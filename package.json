@@ -1,0 +1,37 @@
+{
+  "name": "all-metrics-workflow-kit",
+  "version": "0.6.0-private-install-export",
+  "private": true,
+  "description": "Private GitHub-installable CLI/TUI workflow kit with safe install/export commands.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "workflow-kit": "bin/workflow-kit.mjs"
+  },
+  "scripts": {
+    "check": "node scripts/validate-scaffold.mjs",
+    "check:templates": "node scripts/validate-template-packs.mjs",
+    "check:release": "node scripts/validate-release-readiness.mjs",
+    "check:docs": "node scripts/validate-docs.mjs",
+    "test": "node --test"
+  },
+  "keywords": [
+    "ai-workflow",
+    "agents",
+    "codex",
+    "copilot",
+    "workflow-kit"
+  ],
+  "files": [
+    "README.md",
+    "LICENSE",
+    "CONTRIBUTING.md",
+    "bin/",
+    "docs/",
+    "src/",
+    "templates/"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

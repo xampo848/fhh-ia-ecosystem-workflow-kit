@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0.0",
+  "starter_status": true,
+  "description": "Installable starter template packs for a portable AI workflow kit. Packs are intentionally neutral and must not embed product-specific All Metrics domain rules.",
+  "forbidden_terms_in_portable_or_adapters": [
+    "All Metrics measures",
+    "analytics_metric",
+    "acts_as_tenant",
+    "DORA",
+    "backend/",
+    "front/",
+    "Rails 8",
+    "React 19"
+  ],
+  "packs": [
+    {
+      "id": "portable-core",
+      "role": "neutral workflow contract",
+      "source": "portable-core",
+      "documentation_only": ["README.md"],
+      "required_files": [
+        ".agents/instructions.md",
+        ".agents/skills/registry.md",
+        ".agents/skills/00-router/workflow-router/SKILL.md",
+        ".agents/skills/01-product/create-prd/SKILL.md",
+        ".agents/skills/02-implement/implement-prd/SKILL.md",
+        ".agents/model-routing/README.md",
+        ".agents/capabilities/README.md",
+        ".agents/integrations/README.md",
+        ".agents/memory/README.md"
+      ]
+    },
+    {
+      "id": "repo-overlay-starter",
+      "role": "local project placeholder overlay",
+      "source": "repo-overlay",
+      "documentation_only": ["README.md"],
+      "required_files": [
+        ".agents/skills/06-patterns/README.md",
+        ".agents/capabilities/registry.md"
+      ]
+    },
+    {
+      "id": "adapter-codex",
+      "role": "Codex thin runtime adapter",
+      "source": "runtime-adapters/codex",
+      "documentation_only": [],
+      "requires_reference": ".agents/instructions.md",
+      "required_files": [
+        "AGENTS.md",
+        ".codex/README.md"
+      ]
+    },
+    {
+      "id": "adapter-copilot",
+      "role": "GitHub Copilot thin runtime adapter",
+      "source": "runtime-adapters/copilot",
+      "documentation_only": [],
+      "requires_reference": ".agents/instructions.md",
+      "required_files": [
+        ".github/copilot-instructions.md",
+        ".github/instructions/ai-workflow.instructions.md"
+      ]
+    },
+    {
+      "id": "adapter-claude",
+      "role": "Claude Code thin runtime adapter",
+      "source": "runtime-adapters/claude",
+      "documentation_only": [],
+      "requires_reference": ".agents/instructions.md",
+      "required_files": [
+        "CLAUDE.md"
+      ]
+    }
+  ]
+}
