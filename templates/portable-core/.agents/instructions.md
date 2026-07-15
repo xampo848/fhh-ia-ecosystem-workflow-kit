@@ -16,8 +16,9 @@ For non-trivial work:
 1. Read this file.
 2. Read `.agents/skills/registry.md`.
 3. Route via `workflow-router` unless the user explicitly invokes another skill.
-4. Use `create-prd` for unclear implementation requirements.
-5. Use `implement-prd` for approved PRDs or production code changes.
+4. For every new user prompt or question, run the router intake decision first; do not skip this step.
+5. Use `create-prd` for unclear implementation requirements.
+6. Use `implement-prd` for approved PRDs or production code changes.
 
 ## Safety rules
 

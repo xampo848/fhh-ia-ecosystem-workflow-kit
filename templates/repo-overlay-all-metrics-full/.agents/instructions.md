@@ -144,6 +144,8 @@ Examples:
 - Load this file first from every runtime entrypoint.
 - Use `.agents/skills/registry.md` as the neutral skill discovery and
   just-in-time loading contract.
+- For every new user prompt or question, run router intake first via
+  `.agents/skills/00-router/workflow-router/SKILL.md`; do not skip this step.
 - Load a workflow skill when the task enters that workflow.
 - Load a standards/pattern skill only just-in-time when that repetitive
   procedure is actually needed. For repo-owned implementation patterns, use the

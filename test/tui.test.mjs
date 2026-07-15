@@ -24,7 +24,7 @@ test('tui previews plan and default decline writes nothing', async () => {
   assert.equal(result.applied, false);
   assert.match(output, /FHH workflow/);
   assert.match(output, /complete All Metrics flow/);
-  assert.match(output, /Plan summary/);
+  assert.match(output, /Mission control/);
   assert.match(output, /Aborted\. No files were written\./);
   await assert.rejects(fs.access(path.join(target, '.agents/instructions.md')), { code: 'ENOENT' });
 });
@@ -34,7 +34,7 @@ test('tui confirmed apply writes selected files through planner apply', async ()
   let output = '';
 
   const result = await runTui({
-    ask: scriptedAsk([target, '5', '', 'yes']),
+    ask: scriptedAsk([target, '6', '', 'yes']),
     color: false,
     write: (message) => { output += message; }
   });

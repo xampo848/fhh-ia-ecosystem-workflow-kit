@@ -3,6 +3,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { runCli } from '../src/cli.mjs';
+import { applyInstallPlan } from '../src/apply.mjs';
+import { buildInstallPlan } from '../src/planner.mjs';
 import { createMemoryIo, makeTempRepo } from './helpers.mjs';
 
 test('init defaults to dry-run and writes nothing', async () => {
@@ -58,7 +60,7 @@ test('init --apply --yes writes all runtime adapter packs', async () => {
   const target = await makeTempRepo();
   const io = createMemoryIo();
 
-  const code = await runCli(['init', '--target', target, '--runtime', 'codex,copilot,claude', '--overlay', 'starter', '--apply', '--yes'], io);
+  const code = await runCli(['init', '--target', target, '--runtime', 'codex,copilot,claude,antigravity', '--overlay', 'starter', '--apply', '--yes'], io);
 
   assert.equal(code, 0);
   await fs.access(path.join(target, 'AGENTS.md'));
@@ -66,6 +68,8 @@ test('init --apply --yes writes all runtime adapter packs', async () => {
   await fs.access(path.join(target, '.github/copilot-instructions.md'));
   await fs.access(path.join(target, '.github/instructions/ai-workflow.instructions.md'));
   await fs.access(path.join(target, 'CLAUDE.md'));
+  await fs.access(path.join(target, 'ANTIGRAVITY.md'));
+  await fs.access(path.join(target, '.antigravity/README.md'));
   await fs.access(path.join(target, '.agents/capabilities/registry.md'));
 });
 
@@ -91,4 +95,64 @@ test('export --apply --yes writes selected templates', async () => {
   await fs.access(path.join(target, '.agents/instructions.md'));
   await fs.access(path.join(target, 'AGENTS.md'));
   await fs.access(path.join(target, '.agents/skills/06-patterns/README.md'));
+});
+
+test('update apply requires --yes', async () => {
+  const target = await makeTempRepo();
+  const io = createMemoryIo();
+
+  const code = await runCli(['update', '--target', target, '--apply'], io);
+
+  assert.equal(code, 2);
+  assert.match(io.output.stderr, /Refusing to apply update without --yes/);
+});
+
+test('update fails safely when install state is missing', async () => {
+  const target = await makeTempRepo();
+  const io = createMemoryIo();
+
+  const code = await runCli(['update', '--target', target, '--runtime', 'codex'], io);
+
+  assert.equal(code, 2);
+  assert.match(io.output.stderr, /No install state found/);
+});
+
+test('update skips locally modified managed files', async () => {
+  const target = await makeTempRepo();
+  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex' });
+  await applyInstallPlan(installPlan);
+  await fs.writeFile(path.join(target, 'AGENTS.md'), 'local custom adapter\n', 'utf8');
+
+  const io = createMemoryIo();
+  const code = await runCli(['update', '--target', target, '--runtime', 'codex', '--apply', '--yes'], io);
+
+  assert.equal(code, 0);
+  assert.match(io.output.stdout, /Protected local edits \(skipped\): 1/);
+  const current = await fs.readFile(path.join(target, 'AGENTS.md'), 'utf8');
+  assert.equal(current, 'local custom adapter\n');
+});
+
+test('update adopt-existing bootstraps state without overwriting existing files', async () => {
+  const target = await makeTempRepo();
+  await fs.writeFile(path.join(target, 'AGENTS.md'), 'legacy adapter content\n', 'utf8');
+  const io = createMemoryIo();
+
+  const code = await runCli([
+    'update',
+    '--target',
+    target,
+    '--runtime',
+    'codex',
+    '--overlay',
+    'starter',
+    '--adopt-existing',
+    '--apply',
+    '--yes'
+  ], io);
+
+  assert.equal(code, 0);
+  assert.match(io.output.stdout, /Adopted baseline files: 1/);
+  const current = await fs.readFile(path.join(target, 'AGENTS.md'), 'utf8');
+  assert.equal(current, 'legacy adapter content\n');
+  await fs.access(path.join(target, '.agents/workflow-kit/install-state.json'));
 });

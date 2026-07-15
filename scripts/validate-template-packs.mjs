@@ -82,7 +82,7 @@ async function collectFiles(root) {
 }
 
 function requiredTextFile(relativePath) {
-  return /(^|\/)(AGENTS|CLAUDE|README|copilot-instructions|.*\.instructions)\.md$/.test(relativePath);
+  return /(^|\/)(AGENTS|CLAUDE|ANTIGRAVITY|README|copilot-instructions|.*\.instructions)\.md$/.test(relativePath);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

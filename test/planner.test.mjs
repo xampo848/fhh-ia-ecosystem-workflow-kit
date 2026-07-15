@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { buildInstallPlan } from '../src/planner.mjs';
+import { applyInstallPlan } from '../src/apply.mjs';
+import { buildInstallPlan, buildUpdatePlan, installStateRelativePath } from '../src/planner.mjs';
 import manifest from '../templates/template-manifest.json' with { type: 'json' };
 import { makeTempRepo } from './helpers.mjs';
 
@@ -47,10 +48,10 @@ test('buildInstallPlan defaults to complete all-metrics overlay without duplicat
 
 test('buildInstallPlan all runtimes aligns with manifest required payload files', async () => {
   const target = await makeTempRepo();
-  const plan = await buildInstallPlan({ targetPath: target, runtime: 'codex,copilot,claude', overlay: 'starter' });
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'codex,copilot,claude,antigravity', overlay: 'starter' });
   const planned = new Set(plan.operations.map((item) => item.relativePath));
 
-  const expectedPacks = new Set(['portable-core', 'repo-overlay-starter', 'adapter-codex', 'adapter-copilot', 'adapter-claude']);
+  const expectedPacks = new Set(['portable-core', 'repo-overlay-starter', 'adapter-codex', 'adapter-copilot', 'adapter-claude', 'adapter-antigravity']);
   for (const pack of manifest.packs.filter((item) => expectedPacks.has(item.id))) {
     for (const requiredFile of pack.required_files) {
       assert.ok(planned.has(requiredFile), `missing planned file ${pack.id}:${requiredFile}`);
@@ -77,4 +78,41 @@ test('buildInstallPlan includes complete all-metrics overlay when requested', as
   for (const requiredFile of fullPack.required_files) {
     assert.ok(planned.has(requiredFile), `missing planned file ${fullPack.id}:${requiredFile}`);
   }
+});
+
+test('buildUpdatePlan skips local edits and unmanaged files while keeping managed unchanged', async () => {
+  const target = await makeTempRepo();
+  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex', toolkitVersion: '0.6.0-test' });
+  await applyInstallPlan(installPlan);
+
+  const managedModified = path.join(target, 'AGENTS.md');
+  await fs.writeFile(managedModified, 'local override\n', 'utf8');
+
+  const unmanagedPath = path.join(target, '.agents/instructions.md');
+  await fs.writeFile(unmanagedPath, 'local unmanaged override\n', 'utf8');
+
+  const statePath = path.join(target, installStateRelativePath);
+  const state = JSON.parse(await fs.readFile(statePath, 'utf8'));
+  delete state.files['.agents/instructions.md'];
+  await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+
+  const updatePlan = await buildUpdatePlan({ targetPath: target, runtime: 'codex', toolkitVersion: '0.7.0-test' });
+
+  assert.equal(updatePlan.operations.find((item) => item.relativePath === 'AGENTS.md').operation, 'skip_modified');
+  assert.equal(updatePlan.operations.find((item) => item.relativePath === '.agents/instructions.md').operation, 'skip_unmanaged');
+  assert.equal(updatePlan.summary.skip_modified > 0, true);
+  assert.equal(updatePlan.summary.skip_unmanaged > 0, true);
+});
+
+test('buildUpdatePlan requires install state unless adopt-existing is enabled', async () => {
+  const target = await makeTempRepo();
+
+  await assert.rejects(
+    buildUpdatePlan({ targetPath: target, runtime: 'codex' }),
+    /No install state found/
+  );
+
+  const adoptPlan = await buildUpdatePlan({ targetPath: target, runtime: 'codex', overlay: 'starter', adoptExisting: true });
+  assert.equal(adoptPlan.hadExistingState, false);
+  assert.equal(adoptPlan.operations.some((item) => item.operation === 'create'), true);
 });

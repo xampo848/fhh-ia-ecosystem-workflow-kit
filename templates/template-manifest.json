@@ -91,6 +91,17 @@
       "required_files": [
         "CLAUDE.md"
       ]
+    },
+    {
+      "id": "adapter-antigravity",
+      "role": "Antigravity thin runtime adapter",
+      "source": "runtime-adapters/antigravity",
+      "documentation_only": [],
+      "requires_reference": ".agents/instructions.md",
+      "required_files": [
+        "ANTIGRAVITY.md",
+        ".antigravity/README.md"
+      ]
     }
   ]
 }

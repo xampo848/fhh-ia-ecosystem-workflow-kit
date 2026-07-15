@@ -8,7 +8,7 @@ import manifest from '../templates/template-manifest.json' with { type: 'json' }
 
 test('template manifest declares expected packs', () => {
   const ids = manifest.packs.map((pack) => pack.id).sort();
-  assert.deepEqual(ids, ['adapter-claude', 'adapter-codex', 'adapter-copilot', 'portable-core', 'repo-overlay-all-metrics-full', 'repo-overlay-starter']);
+  assert.deepEqual(ids, ['adapter-antigravity', 'adapter-claude', 'adapter-codex', 'adapter-copilot', 'portable-core', 'repo-overlay-all-metrics-full', 'repo-overlay-starter']);
 });
 
 test('validateTemplatePacks passes for bundled packs', async () => {

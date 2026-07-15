@@ -22,6 +22,7 @@ Supported runtimes are:
 - `codex`
 - `copilot`
 - `claude`
+- `antigravity`
 
 Use `neutral` when your runtime is not listed, then create a local thin adapter that points to `.agents/instructions.md`.
 

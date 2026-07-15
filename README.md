@@ -76,11 +76,12 @@ The TUI asks for target path, runtimes, and overlay, then shows a preview before
 - `codex` — adds `AGENTS.md` and Codex adapter notes.
 - `copilot` — adds GitHub Copilot instruction adapters.
 - `claude` — adds `CLAUDE.md`.
+- `antigravity` — adds `ANTIGRAVITY.md` and Antigravity adapter notes.
 
 Combine runtimes with commas:
 
 ```bash
-workflow-kit init --target /path/to/repo --runtime codex,copilot,claude
+workflow-kit init --target /path/to/repo --runtime codex,copilot,claude,antigravity
 ```
 
 ## Installation Mode

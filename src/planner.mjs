@@ -1,13 +1,17 @@
 import fs from 'node:fs/promises';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
+export const installStateRelativePath = '.agents/workflow-kit/install-state.json';
+const installStateSchemaVersion = '1.0.0';
 const runtimeTemplatePaths = {
   codex: 'runtime-adapters/codex',
   copilot: 'runtime-adapters/copilot',
-  claude: 'runtime-adapters/claude'
+  claude: 'runtime-adapters/claude',
+  antigravity: 'runtime-adapters/antigravity'
 };
 
 export function parseRuntimeList(value = 'neutral') {
@@ -116,8 +120,157 @@ export async function buildInstallPlan(options = {}) {
 
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 
+  const nextInstallState = buildNextInstallState({
+    previousState: null,
+    operations,
+    runtimes,
+    overlay,
+    toolkitVersion: options.toolkitVersion
+  });
+
   return {
+    mode: 'init',
     targetPath,
+    stateFilePath: path.join(targetPath, installStateRelativePath),
+    nextInstallState,
+    runtimes,
+    overlay,
+    operations,
+    summary: summarizeOperations(operations)
+  };
+}
+
+export async function buildUpdatePlan(options = {}) {
+  const targetPath = path.resolve(options.targetPath ?? process.cwd());
+  const stateFilePath = path.join(targetPath, installStateRelativePath);
+  const existingState = await readInstallState(stateFilePath);
+  const runtimes = parseRuntimeList(options.runtime ?? existingState?.runtimes?.join(',') ?? 'neutral');
+  const overlay = normalizeOverlay(options.overlay ?? existingState?.overlay ?? 'all-metrics-full');
+  const files = await selectedTemplateFiles({ runtimes, overlay });
+  const previousHashes = new Map(Object.entries(existingState?.files ?? {}));
+  const operations = [];
+
+  if (!existingState && !options.adoptExisting) {
+    throw new Error('No install state found. Run `workflow-kit update --adopt-existing --runtime <list> --overlay <name>` first to bootstrap a safe baseline.');
+  }
+
+  for (const file of files) {
+    const targetFile = path.resolve(targetPath, file.relativePath);
+    const relativeTarget = path.relative(targetPath, targetFile);
+
+    if (relativeTarget.startsWith('..') || path.isAbsolute(relativeTarget)) {
+      throw new Error(`Refusing to plan write outside target: ${file.relativePath}`);
+    }
+
+    const content = await fs.readFile(file.sourcePath, 'utf8');
+    const sourceChecksum = computeChecksum(content);
+    const recordedChecksum = previousHashes.get(file.relativePath);
+
+    let existingContent = null;
+    try {
+      existingContent = await fs.readFile(targetFile, 'utf8');
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+
+    if (existingContent === null) {
+      operations.push({
+        operation: 'create',
+        relativePath: file.relativePath,
+        targetFile,
+        sourcePath: file.sourcePath,
+        content,
+        sourceChecksum
+      });
+      continue;
+    }
+
+    if (!existingState && options.adoptExisting) {
+      operations.push({
+        operation: 'adopt_existing',
+        relativePath: file.relativePath,
+        targetFile,
+        sourcePath: file.sourcePath,
+        content,
+        sourceChecksum,
+        existingChecksum: computeChecksum(existingContent)
+      });
+      continue;
+    }
+
+    if (recordedChecksum) {
+      const existingChecksum = computeChecksum(existingContent);
+      if (existingChecksum !== recordedChecksum) {
+        operations.push({
+          operation: 'skip_modified',
+          relativePath: file.relativePath,
+          targetFile,
+          sourcePath: file.sourcePath,
+          content,
+          sourceChecksum,
+          existingChecksum,
+          recordedChecksum
+        });
+      } else if (existingContent === content) {
+        operations.push({
+          operation: 'unchanged',
+          relativePath: file.relativePath,
+          targetFile,
+          sourcePath: file.sourcePath,
+          content,
+          sourceChecksum
+        });
+      } else {
+        operations.push({
+          operation: 'overwrite_with_backup',
+          relativePath: file.relativePath,
+          targetFile,
+          sourcePath: file.sourcePath,
+          content,
+          sourceChecksum,
+          recordedChecksum
+        });
+      }
+      continue;
+    }
+
+    if (existingContent === content) {
+      operations.push({
+        operation: 'unchanged',
+        relativePath: file.relativePath,
+        targetFile,
+        sourcePath: file.sourcePath,
+        content,
+        sourceChecksum
+      });
+    } else {
+      operations.push({
+        operation: 'skip_unmanaged',
+        relativePath: file.relativePath,
+        targetFile,
+        sourcePath: file.sourcePath,
+        content,
+        sourceChecksum
+      });
+    }
+  }
+
+  operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+
+  const nextInstallState = buildNextInstallState({
+    previousState: existingState,
+    operations,
+    runtimes,
+    overlay,
+    toolkitVersion: options.toolkitVersion
+  });
+
+  return {
+    mode: 'update',
+    targetPath,
+    stateFilePath,
+    hadExistingState: Boolean(existingState),
+    nextInstallState,
     runtimes,
     overlay,
     operations,
@@ -126,15 +279,26 @@ export async function buildInstallPlan(options = {}) {
 }
 
 export function summarizeOperations(operations) {
-  return operations.reduce((summary, item) => {
+  const summary = {
+    create: 0,
+    unchanged: 0,
+    overwrite_with_backup: 0,
+    skip_modified: 0,
+    skip_unmanaged: 0,
+    adopt_existing: 0
+  };
+
+  for (const item of operations) {
     summary[item.operation] = (summary[item.operation] ?? 0) + 1;
-    return summary;
-  }, { create: 0, unchanged: 0, overwrite_with_backup: 0 });
+  }
+
+  return summary;
 }
 
 export function formatPlan(plan) {
   const lines = [
     `Target: ${plan.targetPath}`,
+    `Mode: ${plan.mode ?? 'init'}`,
     `Runtimes: ${plan.runtimes.join(',')}`,
     `Overlay: ${plan.overlay}`,
     'Operations:'
@@ -144,6 +308,68 @@ export function formatPlan(plan) {
     lines.push(`- ${item.operation}: ${item.relativePath}`);
   }
 
-  lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, overwrite_with_backup=${plan.summary.overwrite_with_backup}`);
+  lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}`);
   return lines.join('\n');
+}
+
+function computeChecksum(content) {
+  return crypto.createHash('sha256').update(content, 'utf8').digest('hex');
+}
+
+async function readInstallState(stateFilePath) {
+  try {
+    const raw = await fs.readFile(stateFilePath, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (parsed?.schemaVersion !== installStateSchemaVersion || typeof parsed.files !== 'object' || parsed.files === null) {
+      return null;
+    }
+
+    return {
+      schemaVersion: parsed.schemaVersion,
+      managedBy: parsed.managedBy,
+      toolkitVersion: parsed.toolkitVersion,
+      generatedAt: parsed.generatedAt,
+      runtimes: Array.isArray(parsed.runtimes) ? parseRuntimeList(parsed.runtimes.join(',')) : ['neutral'],
+      overlay: normalizeOverlay(parsed.overlay ?? 'all-metrics-full'),
+      files: parsed.files
+    };
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    if (error instanceof SyntaxError) return null;
+    throw error;
+  }
+}
+
+function buildNextInstallState({ previousState, operations, runtimes, overlay, toolkitVersion }) {
+  const files = { ...(previousState?.files ?? {}) };
+
+  for (const item of operations) {
+    if (item.operation === 'skip_unmanaged') {
+      continue;
+    }
+
+    if (item.operation === 'skip_modified') {
+      if (item.recordedChecksum) files[item.relativePath] = item.recordedChecksum;
+      continue;
+    }
+
+    if (item.operation === 'adopt_existing') {
+      files[item.relativePath] = item.existingChecksum;
+      continue;
+    }
+
+    if (item.sourceChecksum) {
+      files[item.relativePath] = item.sourceChecksum;
+    }
+  }
+
+  return {
+    schemaVersion: installStateSchemaVersion,
+    managedBy: 'all-metrics-workflow-kit',
+    toolkitVersion: toolkitVersion ?? null,
+    generatedAt: new Date().toISOString(),
+    runtimes,
+    overlay,
+    files
+  };
 }
