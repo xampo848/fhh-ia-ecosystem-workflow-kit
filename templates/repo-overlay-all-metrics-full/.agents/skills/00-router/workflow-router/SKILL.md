@@ -84,10 +84,26 @@ Requirements for FULL trace:
 | Broad initiative | Multi-phase work, major capability, research, roadmap, appetite, multiple PRDs | `create-epic` | Yes unless user explicitly asked for epic/initiative/research | `balanced`; `premium` only for major architecture or commercial risk |
 | Feature specification | Clear feature, business rules, UX states, API/data impact, acceptance criteria needed | `create-prd` | No, unless user only wanted a quick answer | `balanced` |
 | Tiny backlog item | Small task, no full PRD needed, clear AC expected | `generate-pm-ticket` | No | `lean` |
+| Workflow extension maintenance | User asks how to add/edit router rules, skill registry entries, or custom `.agents/skills/**` skills; or asks the AI to perform those edits | Direct workflow-maintenance edits with validation (or explanation-only if requested) | No | `lean` |
 | Production code change | Build, implement, develop, fix behavior, add UI, change backend/frontend, modify tests | `implement-prd` if PRD exists; otherwise route to `create-prd` or `generate-pm-ticket` first | Ask only if PRD/ticket path is unclear | `balanced`; `premium` for high-risk architecture or debugging |
 | PRD implementation | User references PRD path or says implement this PRD | `implement-prd` | No | `balanced` |
 | Review / QA | Review PR, review diff, validate quality, inspect frontend, audit UI, or sharpen visual direction | relevant review skill (`frontend-design`, `react-doctor`, `impeccable`, `pr-comments-resolution`, `playwright-testing`, or inline review) | No | `lean` for pure visual direction, otherwise `balanced`; `premium` for large or release-critical diffs |
 | Documentation | Explain delivered feature, write guide, preserve knowledge | `document-development` | No | `lean` |
+
+## Workflow extension handling
+
+When the request is about extending the workflow itself (router, registry, custom skills):
+
+1. Decide mode first:
+  - explanation-only (user asks "how"),
+  - execution (user asks to apply changes).
+2. Keep edits scoped to workflow contract files unless user asks broader changes.
+3. Preserve boundaries:
+  - routing policy in `workflow-router/SKILL.md`,
+  - startup contract in `.agents/instructions.md`,
+  - discovery metadata in `.agents/skills/registry.md`,
+  - algorithm details in each skill `SKILL.md`.
+4. After execution-mode edits, run relevant repository checks and report outcomes.
 
 ## Cost posture rules
 
@@ -349,6 +365,8 @@ Behavior:
 | "Crea la épica para GitHub Intelligence" | `create-epic` | `balanced`; `premium` if architecture impact is high |
 | "Arregla este bug en frontend" | `implement-prd` if non-trivial; surgical exception only if very small and clear | `lean` for surgical, otherwise `balanced` |
 | "Haz un ticket para esto" | `generate-pm-ticket` | `lean` |
+| "Agrega un workflow nuevo al router" | Workflow extension maintenance path (explain or edit, based on user intent) | `lean` |
+| "Crea una skill propia y dejala registrada" | Workflow extension maintenance path (create `SKILL.md` + update registry, and router only if needed) | `lean` |
 | "Revisa si esta pantalla está bien" | `frontend-design` si el problema es visual/dirección, `impeccable` si requiere craft/polish/audit amplio, o `react-doctor` si es revisión técnica React | `lean` o `balanced` según profundidad |
 | "Documenta lo que se hizo" | `document-development` | `lean` |
 
@@ -375,6 +393,7 @@ Do not:
 - Load every skill or every pattern doc.
 - Treat `product-studio` as a replacement for `create-prd`.
 - Treat `implement-prd` as optional when production code changes are non-trivial.
+- Route workflow-extension maintenance to product workflows when no product artifact is needed.
 - Hide the fact that a skill was skipped.
 - Route to `create-epic` when `create-prd` would be enough.
 - Give a routing answer with no teach/challenge/improve value when the user is making a meaningful engineering decision.

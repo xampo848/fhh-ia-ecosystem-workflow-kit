@@ -156,6 +156,22 @@ Examples:
 - Load human docs only when explanation, rationale, or durable documentation is
   needed.
 
+## Workflow extension requests
+
+When the user asks how to extend the AI workflow itself (router, registry, or custom skills), support both modes:
+
+1. Explanation mode: describe exact files, ordering, and validation steps without editing.
+2. Execution mode: perform the edits when the user asks to apply them.
+
+For extension work, keep boundaries explicit:
+
+- router policy in `.agents/skills/00-router/workflow-router/SKILL.md`;
+- startup contract in `.agents/instructions.md`;
+- skill discovery metadata in `.agents/skills/registry.md`;
+- skill algorithm in each skill `SKILL.md` file.
+
+After extension edits, run relevant repository validation commands and summarize outcomes.
+
 
 ## Token-saving posture
 
