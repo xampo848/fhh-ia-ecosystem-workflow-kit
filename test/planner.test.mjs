@@ -50,3 +50,21 @@ test('buildInstallPlan all runtimes aligns with manifest required payload files'
     }
   }
 });
+
+test('buildInstallPlan includes complete all-metrics overlay when requested', async () => {
+  const target = await makeTempRepo();
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral', overlay: 'all-metrics-full' });
+  const planned = new Set(plan.operations.map((item) => item.relativePath));
+
+  assert.ok(planned.has('.agents/skills/01-product/create-epic/SKILL.md'));
+  assert.ok(planned.has('.agents/skills/04-crosscutting/impeccable/SKILL.md'));
+  assert.ok(planned.has('.agents/skills/05-caveman/cavecrew/SKILL.md'));
+  assert.ok(planned.has('.agents/workflow-kit/manifest.json'));
+  assert.ok(planned.has('.agents/capabilities/manifests/context7.md'));
+
+  const fullPack = manifest.packs.find((item) => item.id === 'repo-overlay-all-metrics-full');
+  assert.ok(fullPack, 'repo-overlay-all-metrics-full pack missing in manifest');
+  for (const requiredFile of fullPack.required_files) {
+    assert.ok(planned.has(requiredFile), `missing planned file ${fullPack.id}:${requiredFile}`);
+  }
+});

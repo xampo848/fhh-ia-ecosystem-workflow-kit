@@ -1,0 +1,437 @@
+{
+  "cache_schema_version": "1.0.0",
+  "derived_artifact": true,
+  "generated_by": "scripts/refresh_skill_registry_cache.py",
+  "canonical_source": ".agents/skills/registry.md",
+  "structured_registry": ".agents/skills/registry.json",
+  "source_hashes": {
+    ".agents/skills/registry.md": "372b1e6a4e41f57598176570df36f9dfcbfca0c53b9856c02bf5080344883087",
+    ".agents/skills/registry.json": "080f709897ecff0bc333f904a4fc56742c4a7a449020cbb19e5f8377f0efb204"
+  },
+  "entry_count": 47,
+  "entries": [
+    {
+      "key": "acceptance-test-engineer",
+      "name": "acceptance-test-engineer",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/acceptance-test-engineer/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "e657c069fd119801128d18096db8135a7d87f7c1e12f3fe65f403bda969fa546"
+    },
+    {
+      "key": "backend-phase-implementer",
+      "name": "backend-phase-implementer",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/backend-phase-implementer/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "beb2f8011dc7e873b1e06e45d155ca79acc4f79e42e1f488fa92b9dbfa70dbe7"
+    },
+    {
+      "key": "cavecrew",
+      "name": "cavecrew",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/cavecrew/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "1ee3cdb316f166abea7f998ef36a43c55d627eced27a1b92a2a329580ea464bf"
+    },
+    {
+      "key": "cavecrew-builder",
+      "name": "cavecrew-builder",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/cavecrew-builder/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "e5241a641f68bff63f22a2d632eaf782b60c68b23f24aac90e44d6f6abfbd6b7"
+    },
+    {
+      "key": "cavecrew-investigator",
+      "name": "cavecrew-investigator",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/cavecrew-investigator/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "a98d239768da74781e8d239a0e5dff1fb9733eaf0c7325d2c2b469cd8e754f8d"
+    },
+    {
+      "key": "cavecrew-reviewer",
+      "name": "cavecrew-reviewer",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/cavecrew-reviewer/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "d0707aab94ee8bdfb9f25c8abf84cc7cd87e3baa4be2dea5625adac930fe2039"
+    },
+    {
+      "key": "caveman",
+      "name": "caveman",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman/SKILL.md",
+      "loading_posture": "Helper/mode",
+      "skill_sha256": "18bc33f5c95d052d0e470682624d78c67d0afdb770375e3bd40162ad85f9a833"
+    },
+    {
+      "key": "caveman-commit",
+      "name": "caveman-commit",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-commit/SKILL.md",
+      "loading_posture": "Helper/mode",
+      "skill_sha256": "58db7b8efab911a629c26e7132517d9076e4e3645009eb604cb8c25663477841"
+    },
+    {
+      "key": "caveman-compress",
+      "name": "caveman-compress",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-compress/SKILL.md",
+      "loading_posture": "Helper/mode",
+      "skill_sha256": "ff336e35374ef337d62148721cc154164997afbca5d2c1c4ddacb6496b9f8824"
+    },
+    {
+      "key": "caveman-help",
+      "name": "caveman-help",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-help/SKILL.md",
+      "loading_posture": "Helper/mode",
+      "skill_sha256": "590d6c6c17254bda56d18da7cc9d0bf252aeec5d1c78b77dd7ae4cabb8404f89"
+    },
+    {
+      "key": "caveman-review",
+      "name": "caveman-review",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-review/SKILL.md",
+      "loading_posture": "Helper/mode",
+      "skill_sha256": "9ef09065f26b9781275b5a4775e14870e331fab833efb2a2aa33f3205a2b83c3"
+    },
+    {
+      "key": "caveman-stats",
+      "name": "caveman-stats",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-stats/SKILL.md",
+      "loading_posture": "Helper/mode",
+      "skill_sha256": "b9e49e46ede956e0c1633eae82a695c996f728bc48f3903f001d301068a2b0ea"
+    },
+    {
+      "key": "codebase-discovery",
+      "name": "codebase-discovery",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/codebase-discovery/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "7c5dcda5bb53b5ec4cfc2e2eae484544cd056841309df5acb7d7374f3eafb921"
+    },
+    {
+      "key": "contract-verifier",
+      "name": "contract-verifier",
+      "group": "skills",
+      "class": "Quality/validation",
+      "path": ".agents/skills/02-implement/contract-verifier/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "3e5c3c9a9d8c924442e5dc20f3e4e393e6e926f2cb064ac6eb2ae7156b4c54a4"
+    },
+    {
+      "key": "create-epic",
+      "name": "create-epic",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/create-epic/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "c7517e34334fa87320e438c3de53d72962dc53b7e7df6e5d92543a2c750f5966"
+    },
+    {
+      "key": "create-prd",
+      "name": "create-prd",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/create-prd/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "160dfd197a99686d08b08539e198fde3b103a9cc525d9124610a4dfbf6453dd5"
+    },
+    {
+      "key": "discovery-process",
+      "name": "discovery-process",
+      "group": "skills",
+      "class": "Product sub-workflow",
+      "path": ".agents/skills/01-product/product-studio/discovery-process/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "f988b2c0f285e6a4e2e6130551c89a210d11cc6acac5ade4b1ca93f7cb614705"
+    },
+    {
+      "key": "document-development",
+      "name": "document-development",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/03-quality/document-development/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "86310cfa683f5b36513e452cdcacd9737498a08ae24ba6d981fe773f5b60408a"
+    },
+    {
+      "key": "engineering-mentor",
+      "name": "engineering-mentor",
+      "group": "skills",
+      "class": "Cross-cutting overlay",
+      "path": ".agents/skills/04-crosscutting/engineering-mentor/SKILL.md",
+      "loading_posture": "Overlay",
+      "skill_sha256": "91245cbd0fa572319625bdd8c1a0b00cd295da9639e3a8faae7ef317f7b5da0d"
+    },
+    {
+      "key": "frontend-design",
+      "name": "frontend-design",
+      "group": "skills",
+      "class": "Cross-cutting overlay",
+      "path": ".agents/skills/04-crosscutting/frontend-design/SKILL.md",
+      "loading_posture": "Overlay",
+      "skill_sha256": "7135324343103787aaf7c43706fcbd98e383b329d51c726cb4031c7efeec53ee"
+    },
+    {
+      "key": "frontend-phase-implementer",
+      "name": "frontend-phase-implementer",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/frontend-phase-implementer/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "944b9321409f33cc44f9d9924f00493da5292a100037a037261bae4f6236e35a"
+    },
+    {
+      "key": "generate-pm-ticket",
+      "name": "generate-pm-ticket",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/generate-pm-ticket/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "699c6e70ea1659f6cdb581f4aae22960dac812fef74c504898c8b3984bb0e033"
+    },
+    {
+      "key": "impeccable",
+      "name": "impeccable",
+      "group": "skills",
+      "class": "Cross-cutting overlay",
+      "path": ".agents/skills/04-crosscutting/impeccable/SKILL.md",
+      "loading_posture": "Overlay",
+      "skill_sha256": "1618b38636473ae14011af272029241c99d8baaaff2f0d16b979e1bb2e30208d"
+    },
+    {
+      "key": "implement-prd",
+      "name": "implement-prd",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "ab3a4b3bd51a79dbe787399421408bf1c08da37f2fbb9161a20089ad50469707"
+    },
+    {
+      "key": "implementation-skill-matcher",
+      "name": "implementation-skill-matcher",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/implementation-skill-matcher/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "fc6a4bbb9e78c60d671dc5c565f71ef667bec22150e0a521dcf0396145fb58ee"
+    },
+    {
+      "key": "implementation-slicing",
+      "name": "implementation-slicing",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/implementation-slicing/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "30f29aa7c58501dcb9ba23b57b47d5c8ac6bc6521414a3061f0ccf0b56e3fd17"
+    },
+    {
+      "key": "jobs-to-be-done",
+      "name": "jobs-to-be-done",
+      "group": "skills",
+      "class": "Product sub-workflow",
+      "path": ".agents/skills/01-product/product-studio/jobs-to-be-done/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "8541581d178ba7035e1c5573629aa836f9a515f44ff1706baa84fc5f8141a8b4"
+    },
+    {
+      "key": "pattern-backend-api-contract-producer",
+      "name": "api-contract-producer",
+      "group": "pattern_skills",
+      "class": "Standards/pattern",
+      "path": ".agents/skills/06-patterns/backend/api-contract-producer/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "60df8ded8f219f989bb89a2de4f497e0eee1d384d07b13d4c3f56151c53f4cfd"
+    },
+    {
+      "key": "pattern-backend-external-data-source-integration",
+      "name": "external-data-source-integration",
+      "group": "pattern_skills",
+      "class": "Standards/pattern",
+      "path": ".agents/skills/06-patterns/backend/external-data-source-integration/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "a6bcb7d90b23662a6adafa026a1738668a7d73f907d0cc99874fd4d11d2b8016"
+    },
+    {
+      "key": "pattern-backend-feature-flag-implementation",
+      "name": "feature-flag-implementation",
+      "group": "pattern_skills",
+      "class": "Standards/pattern",
+      "path": ".agents/skills/06-patterns/backend/feature-flag-implementation/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "df53dec5a7f62949cf79eac95b4e5d555153bf182c8540a1d72716d6fd31c35d"
+    },
+    {
+      "key": "pattern-backend-importer-implementation",
+      "name": "importer-implementation",
+      "group": "pattern_skills",
+      "class": "Standards/pattern",
+      "path": ".agents/skills/06-patterns/backend/importer-implementation/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "9b3585fe76ac145358e98d8b3e35c4be44e9189a550eeb5a9efb057fac786dcb"
+    },
+    {
+      "key": "pattern-domain-tenant-safe-data-access",
+      "name": "tenant-safe-data-access",
+      "group": "pattern_skills",
+      "class": "Standards/pattern",
+      "path": ".agents/skills/06-patterns/domain/tenant-safe-data-access/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "55220748ed5fb9c3b4489022a0543fffc323cd4b1f115cdafefab623e0929332"
+    },
+    {
+      "key": "pattern-frontend-form-validation",
+      "name": "form-validation",
+      "group": "pattern_skills",
+      "class": "Standards/pattern",
+      "path": ".agents/skills/06-patterns/frontend/form-validation/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "2bc7b34cfa11d6270bf077a4f51a6ba0fac44d953fd7d99e3ff22c3a10bdcc26"
+    },
+    {
+      "key": "pattern-frontend-frontend-test-pattern",
+      "name": "frontend-test-pattern",
+      "group": "pattern_skills",
+      "class": "Standards/pattern",
+      "path": ".agents/skills/06-patterns/frontend/frontend-test-pattern/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "da266ca51f5b568c4560615af392b00f890d587376c6397e947cf007997d3abe"
+    },
+    {
+      "key": "playwright-testing",
+      "name": "playwright-testing",
+      "group": "skills",
+      "class": "Quality/validation",
+      "path": ".agents/skills/03-quality/playwright-testing/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "d8c532e9cbe0c931f784085137d6cd90572bebd8f20d1130fb4b3a4bc46e5d65"
+    },
+    {
+      "key": "pr-comments-resolution",
+      "name": "pr-comments-resolution",
+      "group": "skills",
+      "class": "Cross-cutting overlay",
+      "path": ".agents/skills/04-crosscutting/pr-comments-resolution/SKILL.md",
+      "loading_posture": "Overlay",
+      "skill_sha256": "687a6143700438a18ddaf6a1dce58a928abcbe4d886e8a7926f4ffe0a5c001a0"
+    },
+    {
+      "key": "prd-readiness-review",
+      "name": "prd-readiness-review",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/prd-readiness-review/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "3903a94eea754ae97689215f8ac015d9506e6c9a86eda37192b5e33d4231017c"
+    },
+    {
+      "key": "prioritization-advisor",
+      "name": "prioritization-advisor",
+      "group": "skills",
+      "class": "Product sub-workflow",
+      "path": ".agents/skills/01-product/product-studio/prioritization-advisor/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "794e41caae7c9d36ce31e82f8a007cb0fa45628caae54748a3808e051b624dac"
+    },
+    {
+      "key": "product-strategy-session",
+      "name": "product-strategy-session",
+      "group": "skills",
+      "class": "Product sub-workflow",
+      "path": ".agents/skills/01-product/product-studio/product-strategy-session/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "36ef2838ccd1bfac1b23a37b371924c9b875df888523b2d2a4c0f246e41add1f"
+    },
+    {
+      "key": "product-studio",
+      "name": "product-studio",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/product-studio/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "35ac5bbf5593d3e52f30f970d05c65e6a08abdcf260ff41dd7d0b147cc9a3e5e"
+    },
+    {
+      "key": "qa-handoff-review",
+      "name": "qa-handoff-review",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/qa-handoff-review/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "6f2e24fa820400f46933613cd8f562cfd843e36f1f612d5d9d1e0fc01a783716"
+    },
+    {
+      "key": "react-doctor",
+      "name": "react-doctor",
+      "group": "skills",
+      "class": "Quality/validation",
+      "path": ".agents/skills/03-quality/react-doctor/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "42aba396b69792c72dd160396aa847b814cdf557ce62e7953f2537cd4b8e5451"
+    },
+    {
+      "key": "roadmap-planning",
+      "name": "roadmap-planning",
+      "group": "skills",
+      "class": "Product sub-workflow",
+      "path": ".agents/skills/01-product/product-studio/roadmap-planning/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "a594b816a72732059a65a43e0e178717e378a7b411420fef6ce5354bf5acf344"
+    },
+    {
+      "key": "user-story",
+      "name": "user-story",
+      "group": "skills",
+      "class": "Product sub-workflow",
+      "path": ".agents/skills/01-product/product-studio/user-story/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "a8c9336fa4eff993ffda92147eafd0252e8a19b79ecdae61ff79397549fa6fca"
+    },
+    {
+      "key": "validation-runner",
+      "name": "validation-runner",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/validation-runner/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "05013a29f2a82d20ce887a1256bcd1d33c4a846ada0ec8c1affe50fdd9f6cf4e"
+    },
+    {
+      "key": "workflow-router",
+      "name": "workflow-router",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/00-router/workflow-router/SKILL.md",
+      "loading_posture": "Startup-minimal",
+      "skill_sha256": "bb3bc01b112fa14a93fd7e9817825d2d805d2a5f4757102ce686ef6f904de946"
+    },
+    {
+      "key": "workshop-facilitation",
+      "name": "workshop-facilitation",
+      "group": "skills",
+      "class": "Product sub-workflow",
+      "path": ".agents/skills/01-product/product-studio/workshop-facilitation/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "a9ed4499dab9fe04b0f7a197c74d77d8ccc1a68a649cb8fe823f2013d8f4950e"
+    }
+  ]
+}

@@ -85,8 +85,11 @@ workflow-kit init --target /path/to/repo --runtime codex,copilot,claude --overla
 
 - `--overlay none` — install only portable core and selected runtime adapters.
 - `--overlay starter` — also install local placeholder files for project-specific pattern skills and capability registry.
+- `--overlay all-metrics-full` — install the complete All Metrics overlay mirrored from `.agents2` (full skills, pattern skills, capability manifests, and workflow-kit metadata).
 
 The starter overlay is intentionally generic. It does **not** copy All Metrics backend/frontend/domain rules as universal defaults.
+
+The full overlay is intended for teams that explicitly want the All Metrics workflow surface as-is.
 
 ## Safety guarantees
 

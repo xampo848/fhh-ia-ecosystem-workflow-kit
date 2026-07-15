@@ -4,7 +4,7 @@ import { formatDoctorResult, runDoctor } from './doctor.mjs';
 import { runTui } from './tui.mjs';
 
 function printHelp() {
-  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--overlay none|starter]\n  workflow-kit doctor [--target <path>] [--runtime <list>] [--overlay none|starter]\n  workflow-kit tui\n`;
+  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--overlay none|starter|all-metrics-full]\n  workflow-kit doctor [--target <path>] [--runtime <list>] [--overlay none|starter|all-metrics-full]\n  workflow-kit tui\n`;
 }
 
 export function parseArgs(argv) {

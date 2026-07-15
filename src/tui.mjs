@@ -29,7 +29,7 @@ export async function runTui(options = {}) {
 
     const targetPath = valueOrDefault(await ask('Target path [.]: '), '.');
     const runtime = valueOrDefault(await ask('Runtimes (neutral,codex,copilot,claude) [neutral]: '), 'neutral');
-    const overlay = valueOrDefault(await ask('Overlay (none|starter) [none]: '), 'none');
+    const overlay = valueOrDefault(await ask('Overlay (none|starter|all-metrics-full) [none]: '), 'none');
 
     const plan = await buildInstallPlan({ targetPath, runtime, overlay });
     write(`\nPreview\n${formatPlan(plan)}\n\n`);

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create PRD"
+  short_description: "Turn requirements into implementation-ready PRDs"
+  default_prompt: "Use $create-prd to explore the codebase, resolve ambiguity with targeted questions, and produce a complete PRD in docs/prd."

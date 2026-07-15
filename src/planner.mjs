@@ -24,7 +24,7 @@ export function parseRuntimeList(value = 'neutral') {
 }
 
 export function normalizeOverlay(value = 'none') {
-  if (!['none', 'starter'].includes(value)) {
+  if (!['none', 'starter', 'all-metrics-full'].includes(value)) {
     throw new Error(`Unsupported overlay: ${value}`);
   }
   return value;
@@ -65,6 +65,8 @@ export async function selectedTemplateFiles({ runtimes = ['neutral'], overlay = 
 
   if (overlay === 'starter') {
     selected.push(...await collectTemplateFiles('repo-overlay'));
+  } else if (overlay === 'all-metrics-full') {
+    selected.push(...await collectTemplateFiles('repo-overlay-all-metrics-full'));
   }
 
   return selected;

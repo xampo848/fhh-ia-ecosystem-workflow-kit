@@ -17,6 +17,12 @@ node bin/workflow-kit.mjs init \
   --target /path/to/repo \
   --runtime codex,copilot \
   --overlay starter
+
+# Optional: preview full All Metrics overlay
+node bin/workflow-kit.mjs init \
+  --target /path/to/repo \
+  --runtime codex,copilot \
+  --overlay all-metrics-full
 ```
 
 ## 3. Apply after review

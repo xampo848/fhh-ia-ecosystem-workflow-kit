@@ -22,6 +22,11 @@ Recommended structure:
 .agents/capabilities/registry.md         # local capability state
 ```
 
+Overlay choices during migration:
+
+- `--overlay starter`: installs minimal placeholders for local customization.
+- `--overlay all-metrics-full`: installs the complete All Metrics `.agents2`-derived overlay.
+
 ## Runtime adapters
 
 Adapters should remain thin. If you already have `AGENTS.md`, `.github/copilot-instructions.md`, or `CLAUDE.md`, merge them so they point to `.agents/instructions.md` instead of duplicating workflow logic.
