@@ -4,12 +4,12 @@ import { formatDoctorResult, runDoctor } from './doctor.mjs';
 import { runTui } from './tui.mjs';
 
 function printHelp() {
-  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--overlay none|starter|all-metrics-full]\n  workflow-kit doctor [--target <path>] [--runtime <list>] [--overlay none|starter|all-metrics-full]\n  workflow-kit tui\n`;
+  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>]\n  workflow-kit doctor [--target <path>] [--runtime <list>]\n  workflow-kit tui\n`;
 }
 
 export function parseArgs(argv) {
   const [command, ...rest] = argv;
-  const options = { command, dryRun: true, apply: false, yes: false, runtime: 'neutral', overlay: 'none' };
+  const options = { command, dryRun: true, apply: false, yes: false, runtime: 'neutral', overlay: 'all-metrics-full' };
 
   for (let index = 0; index < rest.length; index += 1) {
     const arg = rest[index];

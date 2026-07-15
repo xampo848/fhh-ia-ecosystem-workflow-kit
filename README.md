@@ -31,19 +31,21 @@ workflow-kit --help
 Always preview first. Dry-run is the default and writes nothing:
 
 ```bash
-workflow-kit init --target /path/to/repo --runtime codex,copilot --overlay starter
+workflow-kit init --target /path/to/repo --runtime codex,copilot
 ```
+
+By default, the installer uses the complete All Metrics workflow overlay so the target repo gets the full ready-to-use flow.
 
 Apply only after reviewing the plan:
 
 ```bash
-workflow-kit init --target /path/to/repo --runtime codex,copilot --overlay starter --apply --yes
+workflow-kit init --target /path/to/repo --runtime codex,copilot --apply --yes
 ```
 
 Validate the installed files:
 
 ```bash
-workflow-kit doctor --target /path/to/repo --runtime codex,copilot --overlay starter
+workflow-kit doctor --target /path/to/repo --runtime codex,copilot
 ```
 
 ## Export templates without installing into a repo
@@ -51,13 +53,13 @@ workflow-kit doctor --target /path/to/repo --runtime codex,copilot --overlay sta
 Preview export:
 
 ```bash
-workflow-kit export --output /tmp/workflow-kit-export --runtime codex,copilot --overlay starter
+workflow-kit export --output /tmp/workflow-kit-export --runtime codex,copilot
 ```
 
 Apply export:
 
 ```bash
-workflow-kit export --output /tmp/workflow-kit-export --runtime codex,copilot --overlay starter --apply --yes
+workflow-kit export --output /tmp/workflow-kit-export --runtime codex,copilot --apply --yes
 ```
 
 ## Guided TUI
@@ -78,18 +80,14 @@ The TUI asks for target path, runtimes, and overlay, then shows a preview before
 Combine runtimes with commas:
 
 ```bash
-workflow-kit init --target /path/to/repo --runtime codex,copilot,claude --overlay starter
+workflow-kit init --target /path/to/repo --runtime codex,copilot,claude
 ```
 
-## Overlay options
+## Installation Mode
 
-- `--overlay none` — install only portable core and selected runtime adapters.
-- `--overlay starter` — also install local placeholder files for project-specific pattern skills and capability registry.
-- `--overlay all-metrics-full` — install the complete All Metrics overlay mirrored from `.agents2` (full skills, pattern skills, capability manifests, and workflow-kit metadata).
+The normal install path always uses the complete All Metrics workflow surface, including the full `.agents` tree, skills, manifests, and workflow metadata.
 
-The starter overlay is intentionally generic. It does **not** copy All Metrics backend/frontend/domain rules as universal defaults.
-
-The full overlay is intended for teams that explicitly want the All Metrics workflow surface as-is.
+The CLI and TUI now treat that full install as the standard path so users do not have to choose between partial or placeholder setups.
 
 ## Safety guarantees
 

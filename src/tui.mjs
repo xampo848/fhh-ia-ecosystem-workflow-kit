@@ -14,11 +14,7 @@ const RUNTIME_OPTIONS = [
   { value: 'custom', label: 'Custom list', description: 'Type your own comma-separated runtime list.' }
 ];
 
-const OVERLAY_OPTIONS = [
-  { value: 'none', label: 'No overlay', description: 'Portable core + adapters only.' },
-  { value: 'starter', label: 'Starter overlay', description: 'Minimal local placeholders.' },
-  { value: 'all-metrics-full', label: 'All Metrics full overlay', description: 'Complete .agents2-derived overlay.' }
-];
+const FULL_OVERLAY = 'all-metrics-full';
 
 function valueOrDefault(value, fallback) {
   const trimmed = String(value ?? '').trim();
@@ -82,38 +78,74 @@ function gradientLine(text, paint, startRgb, endRgb) {
   return out;
 }
 
+function renderLogoFrame(logo, paint, shift = 0) {
+  const palettes = [
+    [[64, 179, 255], [179, 96, 255]],
+    [[0, 214, 170], [73, 236, 120]],
+    [[255, 209, 67], [255, 132, 89]],
+    [[255, 104, 104], [255, 71, 178]],
+    [[126, 214, 223], [116, 185, 255]]
+  ];
+
+  const topBorder = '========================================================';
+  const sparkle = '*  *  *            F H H   W O R K F L O W            *  *  *';
+
+  const lines = [
+    gradientLine(topBorder, paint, palettes[(shift + 0) % palettes.length][0], palettes[(shift + 0) % palettes.length][1]),
+    gradientLine(sparkle, paint, palettes[(shift + 1) % palettes.length][0], palettes[(shift + 1) % palettes.length][1])
+  ];
+
+  logo.forEach((line, index) => {
+    const [startRgb, endRgb] = palettes[(shift + index + 2) % palettes.length];
+    lines.push(gradientLine(line, paint, startRgb, endRgb));
+  });
+
+  lines.push(gradientLine(topBorder, paint, palettes[(shift + 3) % palettes.length][0], palettes[(shift + 3) % palettes.length][1]));
+  return lines;
+}
+
 async function animateIntro(write, paint, { animate = true } = {}) {
   const logo = [
     'FFFFFFFFF  HH   HH  HH   HH',
     'FF         HH   HH  HH   HH',
     'FFFFFFF    HHHHHHH  HHHHHHH',
     'FF         HH   HH  HH   HH',
-    'FF         HH   HH  HH   HH'
-  ];
-
-  const palettes = [
-    [[52, 152, 219], [155, 89, 182]],
-    [[26, 188, 156], [46, 204, 113]],
-    [[241, 196, 15], [230, 126, 34]],
-    [[231, 76, 60], [192, 57, 43]],
-    [[142, 68, 173], [52, 152, 219]]
+    'FF         HH   HH  HH   HH',
+    ' ',
+    'WW      WW   OOOOO    RRRRRR   KK   KK  FFFFFFF  LL       OOOOO   WW      WW',
+    'WW  WW  WW  OO   OO   RR   RR  KK  KK   FF       LL      OO   OO  WW  WW  WW',
+    'WW WWWW WW  OO   OO   RRRRRR   KKKK     FFFFF    LL      OO   OO  WW WWWW WW',
+    'WWW    WWW  OO   OO   RR  RR   KK  KK   FF       LL      OO   OO  WWW    WWW',
+    'WW      WW   OOOOO    RR   RR  KK   KK  FF       LLLLLL   OOOOO   WW      WW'
   ];
 
   if (animate) {
-    for (let index = 0; index < logo.length; index += 1) {
-      const [startRgb, endRgb] = palettes[index % palettes.length];
-      write(`${gradientLine(logo[index], paint, startRgb, endRgb)}\n`);
-      await sleep(70);
+    const revealLines = renderLogoFrame(logo, paint, 0);
+
+    for (let index = 0; index < revealLines.length; index += 1) {
+      write(`${paint.dim(revealLines[index])}\n`);
+      await sleep(35);
+    }
+
+    await sleep(90);
+    write(`\u001b[${revealLines.length}A`);
+
+    const shimmerFrames = 5;
+    for (let frame = 0; frame < shimmerFrames; frame += 1) {
+      const frameLines = renderLogoFrame(logo, paint, frame);
+      write(`${frameLines.join('\n')}\n`);
+      if (frame < shimmerFrames - 1) {
+        write(`\u001b[${frameLines.length}A`);
+        await sleep(85);
+      }
     }
   } else {
-    logo.forEach((line, index) => {
-      const [startRgb, endRgb] = palettes[index % palettes.length];
-      write(`${gradientLine(line, paint, startRgb, endRgb)}\n`);
-    });
+    const lines = renderLogoFrame(logo, paint, 1);
+    write(`${lines.join('\n')}\n`);
   }
 
-  write(`${paint.bold(paint.magenta('FHH workflow'))}\n`);
-  write(`${paint.dim('Modern install assistant: preview first, then apply safely with backups.') }\n`);
+  write(`${paint.bold(paint.magenta('FHH workflow'))} ${paint.dim(':: premium terminal experience')}\n`);
+  write(`${paint.dim('Modern install assistant: preview first, then apply safely with backups.')}\n`);
   write(`${paint.dim('No files are written unless you explicitly confirm.')}\n\n`);
 }
 
@@ -143,7 +175,6 @@ async function selectOption({ ask, write, paint, title, options, defaultIndex = 
     write(`${paint.yellow('Invalid choice. Please select one of the listed options.')}\n`);
   }
 }
-
 function toInquirerChoices(options) {
   return options.map((option) => ({
     name: option.label,
@@ -237,7 +268,7 @@ export async function runTui(options = {}) {
 
     let targetPath;
     let runtime;
-    let overlay;
+    const overlay = FULL_OVERLAY;
 
     if (scriptedMode) {
       targetPath = valueOrDefault(await ask('Target path [.]: '), '.');
@@ -256,15 +287,7 @@ export async function runTui(options = {}) {
         ? valueOrDefault(await ask('Custom runtimes [neutral]: '), 'neutral')
         : runtimePreset;
 
-      write('\n');
-      overlay = await selectOption({
-        ask,
-        write,
-        paint,
-        title: 'Select overlay',
-        defaultIndex: 0,
-        options: OVERLAY_OPTIONS
-      });
+      write(`${paint.dim('Workflow package: complete All Metrics flow (full install).')}\n\n`);
     } else {
       targetPath = valueOrDefault(await promptInput({
         message: 'Target path',
@@ -284,11 +307,7 @@ export async function runTui(options = {}) {
         }), 'neutral')
         : runtimePreset;
 
-      overlay = await promptSelect({
-        message: 'Select overlay',
-        choices: toInquirerChoices(OVERLAY_OPTIONS),
-        default: 'none'
-      });
+      write(`${paint.dim('Workflow package locked to complete All Metrics flow.')}\n\n`);
     }
 
     const plan = await withSpinner({

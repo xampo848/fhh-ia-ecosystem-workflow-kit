@@ -34,6 +34,16 @@ test('buildInstallPlan marks identical files unchanged and changed files as back
   assert.equal(plan.operations.find((item) => item.relativePath === 'AGENTS.md').operation, 'overwrite_with_backup');
 });
 
+test('buildInstallPlan defaults to complete all-metrics overlay without duplicate paths', async () => {
+  const target = await makeTempRepo();
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
+  const uniquePaths = new Set(plan.operations.map((item) => item.relativePath));
+
+  assert.equal(uniquePaths.size, plan.operations.length);
+  assert.ok(plan.operations.some((item) => item.relativePath === '.agents/skills/01-product/create-epic/SKILL.md'));
+  assert.ok(plan.operations.some((item) => item.relativePath === '.agents/workflow-kit/manifest.json'));
+});
+
 
 test('buildInstallPlan all runtimes aligns with manifest required payload files', async () => {
   const target = await makeTempRepo();

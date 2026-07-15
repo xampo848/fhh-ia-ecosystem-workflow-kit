@@ -23,7 +23,7 @@ export function parseRuntimeList(value = 'neutral') {
   return [...runtimes];
 }
 
-export function normalizeOverlay(value = 'none') {
+export function normalizeOverlay(value = 'all-metrics-full') {
   if (!['none', 'starter', 'all-metrics-full'].includes(value)) {
     throw new Error(`Unsupported overlay: ${value}`);
   }
@@ -55,8 +55,10 @@ async function collectTemplateFiles(templateRelativePath) {
   return files;
 }
 
-export async function selectedTemplateFiles({ runtimes = ['neutral'], overlay = 'none' } = {}) {
-  const selected = await collectTemplateFiles('portable-core');
+export async function selectedTemplateFiles({ runtimes = ['neutral'], overlay = 'all-metrics-full' } = {}) {
+  const selected = overlay === 'all-metrics-full'
+    ? await collectTemplateFiles('repo-overlay-all-metrics-full')
+    : await collectTemplateFiles('portable-core');
 
   for (const runtime of runtimes) {
     if (runtime === 'neutral') continue;
@@ -69,13 +71,18 @@ export async function selectedTemplateFiles({ runtimes = ['neutral'], overlay = 
     selected.push(...await collectTemplateFiles('repo-overlay-all-metrics-full'));
   }
 
-  return selected;
+  const deduped = new Map();
+  for (const file of selected) {
+    deduped.set(file.relativePath, file);
+  }
+
+  return [...deduped.values()].sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 }
 
 export async function buildInstallPlan(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   const runtimes = parseRuntimeList(options.runtime ?? 'neutral');
-  const overlay = normalizeOverlay(options.overlay ?? 'none');
+  const overlay = normalizeOverlay(options.overlay ?? 'all-metrics-full');
   const files = await selectedTemplateFiles({ runtimes, overlay });
   const operations = [];
 

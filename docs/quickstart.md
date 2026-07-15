@@ -10,19 +10,16 @@ node bin/workflow-kit.mjs init --target /path/to/repo
 
 Default behavior is dry-run. It prints planned files and writes nothing.
 
+By default, `init` uses the complete All Metrics workflow overlay.
+
 ## 2. Preview selected runtime adapters
 
 ```bash
 node bin/workflow-kit.mjs init \
   --target /path/to/repo \
-  --runtime codex,copilot \
-  --overlay starter
+  --runtime codex,copilot
 
-# Optional: preview full All Metrics overlay
-node bin/workflow-kit.mjs init \
-  --target /path/to/repo \
-  --runtime codex,copilot \
-  --overlay all-metrics-full
+This always previews the complete All Metrics workflow package.
 ```
 
 ## 3. Apply after review
@@ -31,7 +28,6 @@ node bin/workflow-kit.mjs init \
 node bin/workflow-kit.mjs init \
   --target /path/to/repo \
   --runtime codex,copilot \
-  --overlay starter \
   --apply --yes
 ```
 
@@ -42,8 +38,7 @@ Apply requires both `--apply` and `--yes`. Changed existing files are backed up 
 ```bash
 node bin/workflow-kit.mjs doctor \
   --target /path/to/repo \
-  --runtime codex,copilot \
-  --overlay starter
+  --runtime codex,copilot
 ```
 
 ## 5. Guided TUI
@@ -59,13 +54,13 @@ The TUI prompts for target, runtimes, and overlay; it always shows a preview bef
 Preview export:
 
 ```bash
-node bin/workflow-kit.mjs export --output /tmp/workflow-kit-export --runtime codex,copilot --overlay starter
+node bin/workflow-kit.mjs export --output /tmp/workflow-kit-export --runtime codex,copilot
 ```
 
 Apply export after review:
 
 ```bash
-node bin/workflow-kit.mjs export --output /tmp/workflow-kit-export --runtime codex,copilot --overlay starter --apply --yes
+node bin/workflow-kit.mjs export --output /tmp/workflow-kit-export --runtime codex,copilot --apply --yes
 ```
 
 `export` uses the same dry-run-first planner and backup behavior as `init`.

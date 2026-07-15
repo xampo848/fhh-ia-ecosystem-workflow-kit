@@ -22,10 +22,7 @@ Recommended structure:
 .agents/capabilities/registry.md         # local capability state
 ```
 
-Overlay choices during migration:
-
-- `--overlay starter`: installs minimal placeholders for local customization.
-- `--overlay all-metrics-full`: installs the complete All Metrics `.agents2`-derived overlay.
+Default migration behavior installs the complete All Metrics `.agents2`-derived workflow so the target repository receives a ready-to-use flow instead of placeholders.
 
 ## Runtime adapters
 
