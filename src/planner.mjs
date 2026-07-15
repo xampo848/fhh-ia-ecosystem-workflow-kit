@@ -99,6 +99,7 @@ export async function buildInstallPlan(options = {}) {
     }
 
     const content = await fs.readFile(file.sourcePath, 'utf8');
+    const sourceChecksum = computeChecksum(content);
     let operation = 'create';
     let existingContent = null;
 
@@ -114,7 +115,8 @@ export async function buildInstallPlan(options = {}) {
       relativePath: file.relativePath,
       targetFile,
       sourcePath: file.sourcePath,
-      content
+      content,
+      sourceChecksum
     });
   }
 

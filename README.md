@@ -48,6 +48,67 @@ Validate the installed files:
 workflow-kit doctor --target /path/to/repo --runtime codex,copilot
 ```
 
+## Safe updates for already-installed repositories
+
+Use `update` to refresh only workflow-kit managed files.
+
+### Real upgrade flow (update the toolkit binary first)
+
+When you release a new toolkit version, users should update their global install first, then run `workflow-kit update` inside each target repository.
+
+Install a specific released tag:
+
+```bash
+bun add -g github:xampo848/all-metrics-workflow-kit#v0.7.0
+```
+
+Or track the latest default branch:
+
+```bash
+bun add -g github:xampo848/all-metrics-workflow-kit
+```
+
+Verify installed version:
+
+```bash
+workflow-kit --help
+```
+
+Then run repository update:
+
+```bash
+workflow-kit update --target /path/to/repo --apply --yes
+```
+
+Preview first:
+
+```bash
+workflow-kit update --target /path/to/repo
+```
+
+Apply after review:
+
+```bash
+workflow-kit update --target /path/to/repo --apply --yes
+```
+
+Update behavior:
+
+- Only files tracked in `.agents/workflow-kit/install-state.json` are eligible for overwrite.
+- If a tracked file was edited locally, it is skipped as `skip_modified`.
+- If an untracked file exists at the same path, it is skipped as `skip_unmanaged`.
+- Missing tracked files are recreated.
+
+### One-time bootstrap for legacy installs
+
+Older installs may not have an install state file yet. Bootstrap safely without overwriting current files:
+
+```bash
+workflow-kit update --target /path/to/repo --runtime codex,copilot --overlay all-metrics-full --adopt-existing --apply --yes
+```
+
+This records the current baseline in `.agents/workflow-kit/install-state.json` and preserves existing content.
+
 ## Export templates without installing into a repo
 
 Preview export:

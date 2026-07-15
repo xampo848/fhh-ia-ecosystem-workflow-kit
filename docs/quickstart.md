@@ -18,9 +18,9 @@ By default, `init` uses the complete All Metrics workflow overlay.
 node bin/workflow-kit.mjs init \
   --target /path/to/repo \
   --runtime codex,copilot
+```
 
 This always previews the complete All Metrics workflow package.
-```
 
 ## 3. Apply after review
 
@@ -64,3 +64,30 @@ node bin/workflow-kit.mjs export --output /tmp/workflow-kit-export --runtime cod
 ```
 
 `export` uses the same dry-run-first planner and backup behavior as `init`.
+
+## 7. Update an already-installed repo safely
+
+Preview update:
+
+```bash
+node bin/workflow-kit.mjs update --target /path/to/repo
+```
+
+Apply update:
+
+```bash
+node bin/workflow-kit.mjs update --target /path/to/repo --apply --yes
+```
+
+Local edits in tracked files are preserved (`skip_modified`), and untracked path collisions are ignored (`skip_unmanaged`).
+
+Legacy bootstrap when `.agents/workflow-kit/install-state.json` does not exist yet:
+
+```bash
+node bin/workflow-kit.mjs update \
+  --target /path/to/repo \
+  --runtime codex,copilot \
+  --overlay all-metrics-full \
+  --adopt-existing \
+  --apply --yes
+```

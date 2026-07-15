@@ -31,3 +31,21 @@ Adapters should remain thin. If you already have `AGENTS.md`, `.github/copilot-i
 ## Rollback
 
 The installer does not delete files. For overwritten conflicts, use the `.workflow-kit-backup-<timestamp>` file created during apply.
+
+## Upgrading safely after migration
+
+`workflow-kit update` uses `.agents/workflow-kit/install-state.json` to decide which files are managed.
+
+Behavior on update:
+
+1. Managed and unchanged-from-last-apply files can be updated.
+2. Managed but locally edited files are preserved as `skip_modified`.
+3. Unmanaged files at colliding paths are preserved as `skip_unmanaged`.
+
+If your repo was installed before install-state support, run a one-time bootstrap:
+
+```bash
+workflow-kit update --target /path/to/repo --runtime codex,copilot --overlay all-metrics-full --adopt-existing --apply --yes
+```
+
+This records the current baseline and avoids immediate overwrites.
