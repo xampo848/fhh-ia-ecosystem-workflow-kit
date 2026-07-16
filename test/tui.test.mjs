@@ -15,7 +15,7 @@ test('tui previews plan and default decline writes nothing', async () => {
   let output = '';
 
   const result = await runTui({
-    ask: scriptedAsk([target, '2', '', '', '']),
+    ask: scriptedAsk([target, '', '2', '', '', '']),
     color: false,
     write: (message) => { output += message; }
   });
@@ -23,7 +23,7 @@ test('tui previews plan and default decline writes nothing', async () => {
   assert.equal(result.code, 0);
   assert.equal(result.applied, false);
   assert.match(output, /FHH IA Ecosystem/);
-  assert.match(output, /complete FHH IA Ecosystem flow/);
+  assert.match(output, /Full FHH IA Ecosystem flow selected \(recommended\)\./);
   assert.match(output, /Mission control/);
   assert.match(output, /Aborted\. No files were written\./);
   await assert.rejects(fs.access(path.join(target, '.agents/instructions.md')), { code: 'ENOENT' });
@@ -34,7 +34,7 @@ test('tui confirmed apply writes selected files through planner apply', async ()
   let output = '';
 
   const result = await runTui({
-    ask: scriptedAsk([target, '6', '', '', 'yes']),
+    ask: scriptedAsk([target, '', '6', '', '', 'yes']),
     color: false,
     write: (message) => { output += message; }
   });

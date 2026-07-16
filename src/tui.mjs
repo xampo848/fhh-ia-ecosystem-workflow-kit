@@ -33,6 +33,24 @@ const CAPABILITY_INTENT_OPTIONS = [
   { value: 'install+attach', label: 'Install + attach', description: 'Install then wire it to the neutral flow.' }
 ];
 
+const INSTALL_PACKAGE_OPTIONS = [
+  {
+    value: 'fhh-ia-ecosystem-full',
+    label: 'Full FHH IA Ecosystem (recommended)',
+    description: 'Complete .agents tree, skills, manifests, integrations, memory and workflow metadata.'
+  },
+  {
+    value: 'starter',
+    label: 'Starter overlay',
+    description: 'Portable core plus starter repo overlay. Smaller surface than full.'
+  },
+  {
+    value: 'none',
+    label: 'Portable core only',
+    description: 'Only portable core files. No repo overlay content.'
+  }
+];
+
 const FULL_OVERLAY = 'fhh-ia-ecosystem-full';
 
 function valueOrDefault(value, fallback) {
@@ -275,11 +293,16 @@ function renderBox(write, paint, title, rows) {
 function renderDashboard(write, paint, plan) {
   const totalOps = plan.operations.length;
   const runtimeLabel = plan.runtimes.join(', ');
+  const packageLabel = plan.overlay === 'fhh-ia-ecosystem-full'
+    ? 'Full FHH IA Ecosystem (recommended)'
+    : plan.overlay === 'starter'
+      ? 'Starter overlay'
+      : 'Portable core only';
 
   renderBox(write, paint, 'Mission control', [
     `Target         : ${plan.targetPath}`,
     `Runtimes       : ${runtimeLabel}`,
-    `Workflow pack  : ${plan.overlay}`,
+    `Install package: ${packageLabel}`,
     `Total actions  : ${totalOps}`,
     `Create         : ${plan.summary.create}`,
     `No change      : ${plan.summary.unchanged}`,
@@ -323,8 +346,8 @@ async function withSpinner({ write, paint, label, enabled }, action) {
 
 function renderSummary(write, paint, plan) {
   renderStageHeader(write, paint, {
-    step: 3,
-    total: 4,
+    step: 4,
+    total: 5,
     title: 'Plan preview',
     subtitle: 'Review the install blueprint before deciding whether to write files.'
   });
@@ -346,6 +369,7 @@ function renderSummary(write, paint, plan) {
   write(`\n${paint.bold('Optional capabilities')}\n`);
   write(`  ${paint.dim('You can attach external capabilities later (for example: Engram, Context7, codebase-memory-mcp).')}\n`);
   write(`  ${paint.dim('Follow the neutral policy in .agents/integrations/README: classify intent, confirm source/scope, then install+attach or attach-only.')}\n`);
+  write(`  ${paint.dim('No optional capability install command runs automatically from this TUI.')}\n`);
   write('\n');
 }
 
@@ -513,12 +537,12 @@ export async function runTui(options = {}) {
 
     let targetPath;
     let runtime;
-    const overlay = FULL_OVERLAY;
+    let overlay = FULL_OVERLAY;
 
     if (scriptedMode) {
       renderStageHeader(write, paint, {
         step: 1,
-        total: 4,
+        total: 5,
         title: 'Target selection',
         subtitle: 'Choose where the workflow package will be installed.'
       });
@@ -528,7 +552,23 @@ export async function runTui(options = {}) {
 
       renderStageHeader(write, paint, {
         step: 2,
-        total: 4,
+        total: 5,
+        title: 'Install package',
+        subtitle: 'Choose what package you want to install. Full is the recommended default.'
+      });
+
+      overlay = await selectOption({
+        ask,
+        write,
+        paint,
+        title: 'Select install package',
+        defaultIndex: 0,
+        options: INSTALL_PACKAGE_OPTIONS
+      });
+
+      renderStageHeader(write, paint, {
+        step: 3,
+        total: 5,
         title: 'Runtime adapters',
         subtitle: 'Select which editor or agent surfaces should be wired into the workflow.'
       });
@@ -546,11 +586,16 @@ export async function runTui(options = {}) {
         ? valueOrDefault(await ask('Custom runtimes [neutral]: '), 'neutral')
         : runtimePreset;
 
-      write(`${renderChip(paint, 'WORKFLOW PACKAGE', 'green')} ${paint.dim('complete FHH IA Ecosystem flow (full install).')}\n\n`);
+      const packageSummary = overlay === 'fhh-ia-ecosystem-full'
+        ? 'Full FHH IA Ecosystem flow selected (recommended).'
+        : overlay === 'starter'
+          ? 'Starter overlay selected.'
+          : 'Portable core only selected.';
+      write(`${renderChip(paint, 'INSTALL PACKAGE', overlay === 'fhh-ia-ecosystem-full' ? 'green' : 'yellow')} ${paint.dim(packageSummary)}\n\n`);
     } else {
       renderStageHeader(write, paint, {
         step: 1,
-        total: 4,
+        total: 5,
         title: 'Target selection',
         subtitle: 'Choose where the workflow package will be installed.'
       });
@@ -562,7 +607,20 @@ export async function runTui(options = {}) {
 
       renderStageHeader(write, paint, {
         step: 2,
-        total: 4,
+        total: 5,
+        title: 'Install package',
+        subtitle: 'Choose what package you want to install. Full is the recommended default.'
+      });
+
+      overlay = await promptSelect({
+        message: 'Select install package',
+        choices: toInquirerChoices(INSTALL_PACKAGE_OPTIONS),
+        default: FULL_OVERLAY
+      });
+
+      renderStageHeader(write, paint, {
+        step: 3,
+        total: 5,
         title: 'Runtime adapters',
         subtitle: 'Select which editor or agent surfaces should be wired into the workflow.'
       });
@@ -580,7 +638,12 @@ export async function runTui(options = {}) {
         }), 'neutral')
         : runtimePreset;
 
-      write(`${renderChip(paint, 'WORKFLOW PACKAGE', 'green')} ${paint.dim('complete FHH IA Ecosystem flow (full install).')}\n\n`);
+      const packageSummary = overlay === 'fhh-ia-ecosystem-full'
+        ? 'Full FHH IA Ecosystem flow selected (recommended).'
+        : overlay === 'starter'
+          ? 'Starter overlay selected.'
+          : 'Portable core only selected.';
+      write(`${renderChip(paint, 'INSTALL PACKAGE', overlay === 'fhh-ia-ecosystem-full' ? 'green' : 'yellow')} ${paint.dim(packageSummary)}\n\n`);
     }
 
     const plan = await withSpinner({
@@ -683,8 +746,8 @@ export async function runTui(options = {}) {
 
     let shouldApply = false;
     renderStageHeader(write, paint, {
-      step: 4,
-      total: 4,
+      step: 5,
+      total: 5,
       title: 'Apply confirmation',
       subtitle: 'Nothing is written until you explicitly confirm this final step.'
     });

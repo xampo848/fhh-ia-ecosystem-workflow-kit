@@ -49,6 +49,7 @@ node bin/workflow-kit.mjs tui
 
 The TUI prompts for target, runtimes, and overlay; it always shows a preview before asking whether to write. The default confirmation writes nothing.
 It can also open an optional capability guide (Context7, Engram, codebase-memory-mcp) with source/scope/mode confirmation and official install commands.
+The TUI now asks explicitly which install package to use. Default and recommended: `Full FHH IA Ecosystem`.
 
 ## 6. Export templates without treating the output as a repo install
 
