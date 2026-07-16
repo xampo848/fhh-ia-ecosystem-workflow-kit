@@ -1,36 +1,23 @@
 # FHH IA Ecosystem Workflow Kit
 
-Previously known as All Metrics Workflow Kit.
-
 Private, installable AI workflow kit for bringing the FHH IA Ecosystem agent workflow into other repositories safely.
-
-## Naming transition policy
-
-Brand name transition is active: FHH IA Ecosystem is the canonical public name.
-
-- Legacy name references to All Metrics may remain temporarily for compatibility.
-- Technical identifiers remain stable during transition, including:
-  - repository path and package slug `all-metrics-workflow-kit`
-  - overlay id `all-metrics-full`
-  - managed state marker `all-metrics-workflow-kit`
-- Legacy naming should be phased out in public-facing narrative docs first, then in internal templates, while preserving non-breaking install/update behavior.
 
 > Current status: **private GitHub install/export ready**. The package provides a dry-run-first CLI, guided TUI, template export, doctor validation, manifest-validated template packs, release guardrails, and adoption docs. It is intentionally **not published to npm**.
 
 ## Install from the private GitHub repository
 
-You need access to the private repository: `xampo848/all-metrics-workflow-kit`.
+You need access to the private repository: `xampo848/fhh-ia-ecosystem-workflow-kit`.
 
 Using SSH:
 
 ```bash
-npm install -g git+ssh://git@github.com/xampo848/all-metrics-workflow-kit.git
+npm install -g git+ssh://git@github.com/xampo848/fhh-ia-ecosystem-workflow-kit.git
 ```
 
 Using GitHub shorthand with HTTPS auth already configured:
 
 ```bash
-npm install -g github:xampo848/all-metrics-workflow-kit
+npm install -g github:xampo848/fhh-ia-ecosystem-workflow-kit
 ```
 
 Then verify:
@@ -72,13 +59,13 @@ When you release a new toolkit version, users should update their global install
 Install a specific released tag:
 
 ```bash
-bun add -g github:xampo848/all-metrics-workflow-kit#v0.7.0
+bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.7.0
 ```
 
 Or track the latest default branch:
 
 ```bash
-bun add -g github:xampo848/all-metrics-workflow-kit
+bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit
 ```
 
 Verify installed version:
@@ -117,7 +104,7 @@ Update behavior:
 Older installs may not have an install state file yet. Bootstrap safely without overwriting current files:
 
 ```bash
-workflow-kit update --target /path/to/repo --runtime codex,copilot --overlay all-metrics-full --adopt-existing --apply --yes
+workflow-kit update --target /path/to/repo --runtime codex,copilot --overlay fhh-ia-ecosystem-full --adopt-existing --apply --yes
 ```
 
 This records the current baseline in `.agents/workflow-kit/install-state.json` and preserves existing content.
@@ -262,7 +249,7 @@ This keeps discovery (`registry.md`) and execution policy (`workflow-router`) al
 ## Project structure
 
 ```text
-all-metrics-workflow-kit/
+fhh-ia-ecosystem-workflow-kit/
   bin/workflow-kit.mjs
   src/                       # CLI, planner, apply, doctor, TUI
   templates/                 # manifest-validated portable/adapters/overlay packs

@@ -10,7 +10,7 @@ function printHelp() {
 
 export function parseArgs(argv) {
   const [command, ...rest] = argv;
-  const options = { command, dryRun: true, apply: false, yes: false, runtime: 'neutral', overlay: 'all-metrics-full' };
+  const options = { command, dryRun: true, apply: false, yes: false, runtime: 'neutral', overlay: 'fhh-ia-ecosystem-full' };
 
   for (let index = 0; index < rest.length; index += 1) {
     const arg = rest[index];

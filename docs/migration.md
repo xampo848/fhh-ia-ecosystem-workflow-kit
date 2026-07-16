@@ -22,7 +22,7 @@ Recommended structure:
 .agents/capabilities/registry.md         # local capability state
 ```
 
-Default migration behavior installs the complete All Metrics `.agents2`-derived workflow so the target repository receives a ready-to-use flow instead of placeholders.
+Default migration behavior installs the complete FHH IA Ecosystem `.agents2`-derived workflow so the target repository receives a ready-to-use flow instead of placeholders.
 
 ## Runtime adapters
 
@@ -45,20 +45,8 @@ Behavior on update:
 If your repo was installed before install-state support, run a one-time bootstrap:
 
 ```bash
-workflow-kit update --target /path/to/repo --runtime codex,copilot --overlay all-metrics-full --adopt-existing --apply --yes
+workflow-kit update --target /path/to/repo --runtime codex,copilot --overlay fhh-ia-ecosystem-full --adopt-existing --apply --yes
 ```
 
 This records the current baseline and avoids immediate overwrites.
 
-## Legacy naming compatibility
-
-The project now uses `FHH IA Ecosystem` as canonical brand in user-facing text.
-
-To avoid breaking existing installs during migration:
-
-- Keep technical IDs unchanged unless a major migration is planned:
-	- package/repo slug: `all-metrics-workflow-kit`
-	- full overlay id: `all-metrics-full`
-	- managed-by marker in install state: `all-metrics-workflow-kit`
-- Treat legacy mentions of `All Metrics` as compatibility aliases in older docs/templates.
-- Prefer updating narrative docs first; defer identifier renames until explicit major-version planning.

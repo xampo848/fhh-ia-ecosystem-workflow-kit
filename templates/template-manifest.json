@@ -1,9 +1,9 @@
 {
   "schema_version": "1.0.0",
   "starter_status": true,
-  "description": "Installable starter template packs for a portable AI workflow kit. Packs are intentionally neutral and must not embed product-specific All Metrics domain rules.",
+  "description": "Installable starter template packs for a portable AI workflow kit. Packs are intentionally neutral and must not embed product-specific FHH IA Ecosystem domain rules.",
   "forbidden_terms_in_portable_or_adapters": [
-    "All Metrics measures",
+    "FHH IA Ecosystem measures",
     "analytics_metric",
     "acts_as_tenant",
     "DORA",
@@ -45,9 +45,9 @@
       ]
     },
     {
-      "id": "repo-overlay-all-metrics-full",
-      "role": "complete All Metrics overlay derived from .agents2",
-      "source": "repo-overlay-all-metrics-full",
+      "id": "repo-overlay-fhh-ia-ecosystem-full",
+      "role": "complete FHH IA Ecosystem overlay derived from .agents2",
+      "source": "repo-overlay-fhh-ia-ecosystem-full",
       "documentation_only": [
         "README.md"
       ],

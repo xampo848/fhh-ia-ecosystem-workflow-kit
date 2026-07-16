@@ -35,7 +35,7 @@ test('buildInstallPlan marks identical files unchanged and changed files as back
   assert.equal(plan.operations.find((item) => item.relativePath === 'AGENTS.md').operation, 'overwrite_with_backup');
 });
 
-test('buildInstallPlan defaults to complete all-metrics overlay without duplicate paths', async () => {
+test('buildInstallPlan defaults to complete fhh-ia-ecosystem overlay without duplicate paths', async () => {
   const target = await makeTempRepo();
   const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
   const uniquePaths = new Set(plan.operations.map((item) => item.relativePath));
@@ -62,9 +62,9 @@ test('buildInstallPlan all runtimes aligns with manifest required payload files'
   }
 });
 
-test('buildInstallPlan includes complete all-metrics overlay when requested', async () => {
+test('buildInstallPlan includes complete fhh-ia-ecosystem overlay when requested', async () => {
   const target = await makeTempRepo();
-  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral', overlay: 'all-metrics-full' });
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral', overlay: 'fhh-ia-ecosystem-full' });
   const planned = new Set(plan.operations.map((item) => item.relativePath));
 
   assert.ok(planned.has('.agents/skills/01-product/create-epic/SKILL.md'));
@@ -73,8 +73,8 @@ test('buildInstallPlan includes complete all-metrics overlay when requested', as
   assert.ok(planned.has('.agents/workflow-kit/manifest.json'));
   assert.ok(planned.has('.agents/capabilities/manifests/context7.md'));
 
-  const fullPack = manifest.packs.find((item) => item.id === 'repo-overlay-all-metrics-full');
-  assert.ok(fullPack, 'repo-overlay-all-metrics-full pack missing in manifest');
+  const fullPack = manifest.packs.find((item) => item.id === 'repo-overlay-fhh-ia-ecosystem-full');
+  assert.ok(fullPack, 'repo-overlay-fhh-ia-ecosystem-full pack missing in manifest');
   for (const requiredFile of fullPack.required_files) {
     assert.ok(planned.has(requiredFile), `missing planned file ${fullPack.id}:${requiredFile}`);
   }

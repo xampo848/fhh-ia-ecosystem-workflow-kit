@@ -8,7 +8,7 @@ import manifest from '../templates/template-manifest.json' with { type: 'json' }
 
 test('template manifest declares expected packs', () => {
   const ids = manifest.packs.map((pack) => pack.id).sort();
-  assert.deepEqual(ids, ['adapter-antigravity', 'adapter-claude', 'adapter-codex', 'adapter-copilot', 'portable-core', 'repo-overlay-all-metrics-full', 'repo-overlay-starter']);
+  assert.deepEqual(ids, ['adapter-antigravity', 'adapter-claude', 'adapter-codex', 'adapter-copilot', 'portable-core', 'repo-overlay-fhh-ia-ecosystem-full', 'repo-overlay-starter']);
 });
 
 test('validateTemplatePacks passes for bundled packs', async () => {
@@ -19,7 +19,7 @@ test('validateTemplatePacks passes for bundled packs', async () => {
 test('validateTemplatePacks catches forbidden portable terms', async () => {
   const root = await copyFixturePackage();
   const target = path.join(root, 'templates/portable-core/.agents/instructions.md');
-  await fs.appendFile(target, '\nAll Metrics measures DORA with backend/ rules.\n', 'utf8');
+  await fs.appendFile(target, '\nFHH IA Ecosystem measures DORA with backend/ rules.\n', 'utf8');
 
   const result = await validateTemplatePacks({ root });
 

@@ -1,4 +1,4 @@
-# Propuestas de Mejora — All Metrics Workflow Kit
+# Propuestas de Mejora — FHH IA Ecosystem Workflow Kit
 
 **Fecha:** 2026-07-15
 **Alcance de la revisión:** CLI (`src/cli.mjs`), planner (`src/planner.mjs`), aplicación de cambios (`src/apply.mjs`), doctor (`src/doctor.mjs`), TUI (`src/tui.mjs`), scripts de validación (`scripts/`), manifests de plantillas (`templates/`), configuración de CI (`.github/workflows/ci.yml`), empaquetado (`package.json`) y documentación (`README.md`, `docs/`).
@@ -27,7 +27,7 @@
 ## P0 — Crítico (corregir de inmediato)
 
 ### P0.1 — Inconsistencia de versión entre `package.json` y la documentación
-- **Observación:** `package.json` declara `"version": "0.6.0-private-install-export"`, mientras que el `README.md` instruye a instalar `#v0.7.0` (`bun add -g github:xampo848/all-metrics-workflow-kit#v0.7.0`).
+- **Observación:** `package.json` declara `"version": "0.6.0-private-install-export"`, mientras que el `README.md` instruye a instalar `#v0.7.0` (`bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.7.0`).
 - **Riesgo:** Los usuarios instalan un tag que no corresponde a la versión publicada del código; confusión en soporte y en el flujo de release.
 - **Propuesta:**
   1. Definir la versión canónica y alinear ambos artefactos.
@@ -48,11 +48,11 @@
 ## P1 — Alta prioridad
 
 ### P1.1 — Lógica redundante en `selectedTemplateFiles`
-- **Observación:** En `src/planner.mjs`, cuando `overlay === 'all-metrics-full'` la carpeta `repo-overlay-all-metrics-full` se recolecta **dos veces**: una en la selección inicial y otra en el bloque `else if (overlay === 'all-metrics-full')`. La deduplicación posterior enmascara el problema, pero el código realiza trabajo de E/S duplicado y es confuso de mantener.
+- **Observación:** En `src/planner.mjs`, cuando `overlay === 'fhh-ia-ecosystem-full'` la carpeta `repo-overlay-fhh-ia-ecosystem-full` se recolecta **dos veces**: una en la selección inicial y otra en el bloque `else if (overlay === 'fhh-ia-ecosystem-full')`. La deduplicación posterior enmascara el problema, pero el código realiza trabajo de E/S duplicado y es confuso de mantener.
 - **Propuesta:** Simplificar la selección a una sola pasada por overlay:
   - `none` → solo `portable-core`.
   - `starter` → `portable-core` + `repo-overlay`.
-  - `all-metrics-full` → `repo-overlay-all-metrics-full` (una sola vez).
+  - `fhh-ia-ecosystem-full` → `repo-overlay-fhh-ia-ecosystem-full` (una sola vez).
   Añadir un test que verifique que ninguna ruta se lee dos veces del disco.
 
 ### P1.2 — Inconsistencia de gestor de paquetes (npm vs bun)
@@ -90,7 +90,7 @@
 - **Propuesta:** Incorporar ESLint (config recomendada + reglas para módulos ES) y Prettier, añadir script `lint`/`format:check` e integrarlo en CI.
 
 ### P2.3 — Overlays `none` y `starter` sin documentar ni cubrir
-- **Observación:** `normalizeOverlay` acepta `none`, `starter` y `all-metrics-full`, pero el `README` solo describe el flujo *full install*. El comportamiento de `none` (que degrada a `portable-core`) no está documentado y su cobertura de test es parcial.
+- **Observación:** `normalizeOverlay` acepta `none`, `starter` y `fhh-ia-ecosystem-full`, pero el `README` solo describe el flujo *full install*. El comportamiento de `none` (que degrada a `portable-core`) no está documentado y su cobertura de test es parcial.
 - **Propuesta:** Documentar explícitamente los tres overlays con su alcance exacto, o marcar `none`/`starter` como internos/experimentales; añadir tests que fijen su comportamiento.
 
 ### P2.4 — Robustez del recorrido de plantillas

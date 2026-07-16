@@ -5,7 +5,7 @@ import { selectedTemplateFiles, parseRuntimeList, normalizeOverlay } from './pla
 export async function runDoctor(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   const runtimes = parseRuntimeList(options.runtime ?? 'neutral');
-  const overlay = normalizeOverlay(options.overlay ?? 'all-metrics-full');
+  const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const files = await selectedTemplateFiles({ runtimes, overlay });
   const missing = [];
   const present = [];

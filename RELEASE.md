@@ -23,20 +23,6 @@ Before any release action, confirm all of these explicitly:
 - [ ] Maintainer explicitly approves package publication, if any.
 - [ ] Release notes and version are approved.
 
-## Naming transition gate (FHH IA Ecosystem)
-
-Before cutting a release during the naming transition, confirm all of these:
-
-- [ ] Public-facing docs use `FHH IA Ecosystem` as canonical name.
-- [ ] A clear legacy note is present where `All Metrics` still appears.
-- [ ] No technical compatibility identifier was renamed without explicit migration plan (`all-metrics-workflow-kit`, `all-metrics-full`).
-- [ ] Release notes include a short naming transition note and compatibility window.
-
-Compatibility window policy:
-
-- Keep legacy naming compatibility for at least 2 minor releases after transition start.
-- Deprecation warnings should be informative and non-blocking during that window.
-
 ## Non-goals before approval
 
 Do not run:

@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve the All Metrics Workflow Kit.
+Thanks for helping improve the FHH IA Ecosystem Workflow Kit.
 
 ## Current phase
 
@@ -11,7 +11,7 @@ This project is currently in Safe CLI MVP phase. Contributions may improve the d
 - Keep portable core separate from repo-specific overlay.
 - Keep runtime adapters thin wrappers over neutral `.agents/**` contracts.
 - Do not add publishing automation until the publishing/release PRD.
-- Do not copy All Metrics backend/frontend domain rules as generic defaults.
+- Do not copy FHH IA Ecosystem backend/frontend domain rules as generic defaults.
 - Prefer explicit docs and validation over implicit behavior.
 
 ## Local validation

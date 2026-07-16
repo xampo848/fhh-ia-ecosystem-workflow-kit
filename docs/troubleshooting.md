@@ -19,7 +19,7 @@ Run `doctor` with the same runtime and overlay options used for install. If file
 Your repo was likely installed before state tracking was introduced. Bootstrap baseline state without overwriting current files:
 
 ```bash
-workflow-kit update --target /path/to/repo --runtime codex,copilot --overlay all-metrics-full --adopt-existing --apply --yes
+workflow-kit update --target /path/to/repo --runtime codex,copilot --overlay fhh-ia-ecosystem-full --adopt-existing --apply --yes
 ```
 
 After that, regular `workflow-kit update --apply --yes` runs will perform managed, safe updates.

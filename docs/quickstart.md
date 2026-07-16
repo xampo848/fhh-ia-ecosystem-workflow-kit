@@ -87,7 +87,7 @@ Legacy bootstrap when `.agents/workflow-kit/install-state.json` does not exist y
 node bin/workflow-kit.mjs update \
   --target /path/to/repo \
   --runtime codex,copilot \
-  --overlay all-metrics-full \
+  --overlay fhh-ia-ecosystem-full \
   --adopt-existing \
   --apply --yes
 ```

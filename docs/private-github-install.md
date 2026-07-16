@@ -7,13 +7,13 @@ This project can stay private and still be installed by users or automation that
 After the private repository exists, install with an authenticated GitHub URL:
 
 ```bash
-npm install -g git+ssh://git@github.com/<owner>/all-metrics-workflow-kit.git
+npm install -g git+ssh://git@github.com/<owner>/fhh-ia-ecosystem-workflow-kit.git
 ```
 
 Or use HTTPS with GitHub authentication already configured:
 
 ```bash
-npm install -g github:<owner>/all-metrics-workflow-kit
+npm install -g github:<owner>/fhh-ia-ecosystem-workflow-kit
 ```
 
 Then run:

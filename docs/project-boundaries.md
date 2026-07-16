@@ -14,7 +14,7 @@ Portable core is the reusable workflow contract:
 - integration install/attach policy;
 - memory and runtime parity governance.
 
-Portable core must not include product-specific backend/frontend rules from All Metrics.
+Portable core must not include product-specific backend/frontend rules from FHH IA Ecosystem.
 
 ## Repo overlay
 
@@ -26,7 +26,7 @@ Repo overlay is local to a target repository:
 - local capability manifests and activation defaults;
 - local runtime adapter references.
 
-The installer may generate starter placeholders, but it must not pretend All Metrics overlay rules are universal.
+The installer may generate starter placeholders, but it must not pretend FHH IA Ecosystem overlay rules are universal.
 
 ## Runtime adapters
 

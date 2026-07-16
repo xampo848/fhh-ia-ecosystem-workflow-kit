@@ -27,8 +27,8 @@ export function parseRuntimeList(value = 'neutral') {
   return [...runtimes];
 }
 
-export function normalizeOverlay(value = 'all-metrics-full') {
-  if (!['none', 'starter', 'all-metrics-full'].includes(value)) {
+export function normalizeOverlay(value = 'fhh-ia-ecosystem-full') {
+  if (!['none', 'starter', 'fhh-ia-ecosystem-full'].includes(value)) {
     throw new Error(`Unsupported overlay: ${value}`);
   }
   return value;
@@ -59,9 +59,9 @@ async function collectTemplateFiles(templateRelativePath) {
   return files;
 }
 
-export async function selectedTemplateFiles({ runtimes = ['neutral'], overlay = 'all-metrics-full' } = {}) {
-  const selected = overlay === 'all-metrics-full'
-    ? await collectTemplateFiles('repo-overlay-all-metrics-full')
+export async function selectedTemplateFiles({ runtimes = ['neutral'], overlay = 'fhh-ia-ecosystem-full' } = {}) {
+  const selected = overlay === 'fhh-ia-ecosystem-full'
+    ? await collectTemplateFiles('repo-overlay-fhh-ia-ecosystem-full')
     : await collectTemplateFiles('portable-core');
 
   for (const runtime of runtimes) {
@@ -71,8 +71,8 @@ export async function selectedTemplateFiles({ runtimes = ['neutral'], overlay = 
 
   if (overlay === 'starter') {
     selected.push(...await collectTemplateFiles('repo-overlay'));
-  } else if (overlay === 'all-metrics-full') {
-    selected.push(...await collectTemplateFiles('repo-overlay-all-metrics-full'));
+  } else if (overlay === 'fhh-ia-ecosystem-full') {
+    selected.push(...await collectTemplateFiles('repo-overlay-fhh-ia-ecosystem-full'));
   }
 
   const deduped = new Map();
@@ -86,7 +86,7 @@ export async function selectedTemplateFiles({ runtimes = ['neutral'], overlay = 
 export async function buildInstallPlan(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   const runtimes = parseRuntimeList(options.runtime ?? 'neutral');
-  const overlay = normalizeOverlay(options.overlay ?? 'all-metrics-full');
+  const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const files = await selectedTemplateFiles({ runtimes, overlay });
   const operations = [];
 
@@ -147,7 +147,7 @@ export async function buildUpdatePlan(options = {}) {
   const stateFilePath = path.join(targetPath, installStateRelativePath);
   const existingState = await readInstallState(stateFilePath);
   const runtimes = parseRuntimeList(options.runtime ?? existingState?.runtimes?.join(',') ?? 'neutral');
-  const overlay = normalizeOverlay(options.overlay ?? existingState?.overlay ?? 'all-metrics-full');
+  const overlay = normalizeOverlay(options.overlay ?? existingState?.overlay ?? 'fhh-ia-ecosystem-full');
   const files = await selectedTemplateFiles({ runtimes, overlay });
   const previousHashes = new Map(Object.entries(existingState?.files ?? {}));
   const operations = [];
@@ -332,7 +332,7 @@ async function readInstallState(stateFilePath) {
       toolkitVersion: parsed.toolkitVersion,
       generatedAt: parsed.generatedAt,
       runtimes: Array.isArray(parsed.runtimes) ? parseRuntimeList(parsed.runtimes.join(',')) : ['neutral'],
-      overlay: normalizeOverlay(parsed.overlay ?? 'all-metrics-full'),
+      overlay: normalizeOverlay(parsed.overlay ?? 'fhh-ia-ecosystem-full'),
       files: parsed.files
     };
   } catch (error) {
@@ -367,7 +367,7 @@ function buildNextInstallState({ previousState, operations, runtimes, overlay, t
 
   return {
     schemaVersion: installStateSchemaVersion,
-    managedBy: 'all-metrics-workflow-kit',
+    managedBy: 'fhh-ia-ecosystem-workflow-kit',
     toolkitVersion: toolkitVersion ?? null,
     generatedAt: new Date().toISOString(),
     runtimes,
