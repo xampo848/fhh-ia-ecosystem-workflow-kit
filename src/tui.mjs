@@ -15,6 +15,24 @@ const RUNTIME_OPTIONS = [
   { value: 'custom', label: 'Custom list', description: 'Type your own comma-separated runtime list.' }
 ];
 
+const CAPABILITY_OPTIONS = [
+  { value: 'context7', label: 'Context7', description: 'Up-to-date docs MCP.' },
+  { value: 'engram', label: 'Engram', description: 'Durable memory MCP.' },
+  { value: 'codebase-memory-mcp', label: 'Codebase Memory MCP', description: 'Code graph and structural search MCP.' },
+  { value: 'skip', label: 'Skip', description: 'Return to install flow.' }
+];
+
+const CAPABILITY_SCOPE_OPTIONS = [
+  { value: 'user/global', label: 'User/global', description: 'Available across projects.' },
+  { value: 'repo/project', label: 'Repo/project', description: 'Configured in this repository only.' },
+  { value: 'hybrid', label: 'Hybrid', description: 'Installed globally and attached in this repository.' }
+];
+
+const CAPABILITY_INTENT_OPTIONS = [
+  { value: 'attach-only', label: 'Attach-only', description: 'Tool already available in runtime; only wire it to the flow.' },
+  { value: 'install+attach', label: 'Install + attach', description: 'Install then wire it to the neutral flow.' }
+];
+
 const FULL_OVERLAY = 'fhh-ia-ecosystem-full';
 
 function valueOrDefault(value, fallback) {
@@ -331,6 +349,150 @@ function renderSummary(write, paint, plan) {
   write('\n');
 }
 
+function runtimeSet(runtimeList = '') {
+  return new Set(String(runtimeList).split(',').map((item) => item.trim()).filter(Boolean));
+}
+
+function defaultIntentFor(capability) {
+  if (capability === 'context7' || capability === 'engram') return 'attach-only';
+  return 'install+attach';
+}
+
+function capabilityGuide({ capability, scope, intent, runtimes }) {
+  if (capability === 'context7') {
+    const commands = [
+      'VS Code MCP (workspace .vscode/mcp.json):',
+      '{',
+      '  "servers": {',
+      '    "context7": {',
+      '      "type": "stdio",',
+      '      "command": "npx",',
+      '      "args": ["-y", "@upstash/context7-mcp@latest", "--api-key", "YOUR_API_KEY"]',
+      '    }',
+      '  }',
+      '}',
+      '',
+      'Codex (~/.codex/config.toml):',
+      '[mcp_servers.context7]',
+      'command = "npx"',
+      'args = ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_API_KEY"]',
+      'startup_timeout_ms = 20_000',
+      '',
+      'Copilot CLI (~/.copilot/mcp-config.json):',
+      '{',
+      '  "mcpServers": {',
+      '    "context7": {',
+      '      "type": "local",',
+      '      "command": "npx",',
+      '      "args": ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_API_KEY"]',
+      '    }',
+      '  }',
+      '}'
+    ];
+
+    return {
+      source: 'upstash/context7 (packages/mcp/README.md)',
+      effect: 'Adds Context7 docs tools (resolve-library-id + get-library-docs).',
+      commands,
+      notes: [
+        'Node.js >= 18 is required by Context7 MCP.',
+        'Use official source by default unless user requests another source.'
+      ],
+      scope,
+      intent,
+      runtimeHint: `Detected runtimes: ${[...runtimes].join(', ') || 'neutral'}`
+    };
+  }
+
+  if (capability === 'engram') {
+    const commands = [
+      'Install Engram binary (macOS/Linux):',
+      'brew install gentleman-programming/tap/engram',
+      '',
+      'Then setup by runtime:',
+      'engram setup codex',
+      'engram setup vscode-copilot',
+      '',
+      'Workspace MCP alternative (.vscode/mcp.json):',
+      '{',
+      '  "servers": {',
+      '    "engram": {',
+      '      "command": "engram",',
+      '      "args": ["mcp"]',
+      '    }',
+      '  }',
+      '}',
+      '',
+      'CLI one-liner:',
+      'code --add-mcp "{\"name\":\"engram\",\"command\":\"engram\",\"args\":[\"mcp\"]}"'
+    ];
+
+    return {
+      source: 'gentleman-programming/engram (docs/INSTALLATION.md + docs/AGENT-SETUP.md)',
+      effect: 'Enables durable memory tools (mem_save, mem_search, mem_context, mem_session_summary).',
+      commands,
+      notes: [
+        'For Codex/Copilot/VS Code, Engram MCP runs as stdio via engram mcp.',
+        'No install command should run without explicit approval.'
+      ],
+      scope,
+      intent,
+      runtimeHint: `Detected runtimes: ${[...runtimes].join(', ') || 'neutral'}`
+    };
+  }
+
+  const commands = [
+    'Install package:',
+    'npm install -g codebase-memory-mcp',
+    '',
+    'Configure detected coding agents:',
+    'codebase-memory-mcp install',
+    '',
+    'Optional quick config:',
+    'codebase-memory-mcp config set auto_index true',
+    '',
+    'Manual MCP entry example:',
+    '{',
+    '  "mcpServers": {',
+    '    "codebase-memory-mcp": {',
+    '      "command": "codebase-memory-mcp",',
+    '      "args": []',
+    '    }',
+    '  }',
+    '}'
+  ];
+
+  return {
+    source: 'DeusData/codebase-memory-mcp (pkg/npm/README.md + README.md)',
+    effect: 'Adds structural code graph MCP tools for indexing/search/trace.',
+    commands,
+    notes: [
+      'Installer mutates local agent configs; confirm scope before running.',
+      'Restart the coding agent after install/setup.'
+    ],
+    scope,
+    intent,
+    runtimeHint: `Detected runtimes: ${[...runtimes].join(', ') || 'neutral'}`
+  };
+}
+
+function renderCapabilityGuide(write, paint, guide, capability) {
+  renderBox(write, paint, 'Capability confirmation', [
+    `Capability : ${capability}`,
+    `Source     : ${guide.source}`,
+    `Scope      : ${guide.scope}`,
+    `Mode       : ${guide.intent}`,
+    `Effect     : ${guide.effect}`,
+    `${guide.runtimeHint}`
+  ]);
+  write('\n');
+  write(`${paint.bold('Recommended commands (official docs)')}\n`);
+  write(`${guide.commands.join('\n')}\n\n`);
+  write(`${paint.bold('Notes')}\n`);
+  guide.notes.forEach((note) => write(`- ${note}\n`));
+  write('\n');
+}
+
 export async function runTui(options = {}) {
   const write = options.write ?? ((message) => output.write(message));
   const colorEnabled = options.color === false ? false : supportsColor();
@@ -442,6 +604,81 @@ export async function runTui(options = {}) {
 
     if (showFullPreview) {
       write(`\n${paint.bold('Full preview')}\n${formatPlan(plan)}\n\n`);
+    }
+
+    let wantCapabilityGuide = false;
+    if (scriptedMode) {
+      wantCapabilityGuide = isYes(await ask('Open optional capability setup guide? [no]: '));
+    } else {
+      wantCapabilityGuide = await promptConfirm({
+        message: 'Open optional capability setup guide?',
+        default: false
+      });
+    }
+
+    if (wantCapabilityGuide) {
+      const chosenCapability = scriptedMode
+        ? await selectOption({
+          ask,
+          write,
+          paint,
+          title: 'Select optional capability',
+          defaultIndex: 0,
+          options: CAPABILITY_OPTIONS
+        })
+        : await promptSelect({
+          message: 'Select optional capability',
+          choices: toInquirerChoices(CAPABILITY_OPTIONS),
+          default: 'context7'
+        });
+
+      if (chosenCapability !== 'skip') {
+        const chosenScope = scriptedMode
+          ? await selectOption({
+            ask,
+            write,
+            paint,
+            title: 'Select capability scope',
+            defaultIndex: 2,
+            options: CAPABILITY_SCOPE_OPTIONS
+          })
+          : await promptSelect({
+            message: 'Select capability scope',
+            choices: toInquirerChoices(CAPABILITY_SCOPE_OPTIONS),
+            default: 'hybrid'
+          });
+
+        const intentDefault = defaultIntentFor(chosenCapability);
+        const intentOptions = CAPABILITY_INTENT_OPTIONS.map((item) => ({
+          ...item,
+          label: item.value === intentDefault ? `${item.label} (recommended)` : item.label
+        }));
+
+        const chosenIntent = scriptedMode
+          ? await selectOption({
+            ask,
+            write,
+            paint,
+            title: 'Select install mode',
+            defaultIndex: intentDefault === 'attach-only' ? 0 : 1,
+            options: intentOptions
+          })
+          : await promptSelect({
+            message: 'Select install mode',
+            choices: toInquirerChoices(intentOptions),
+            default: intentDefault
+          });
+
+        const guide = capabilityGuide({
+          capability: chosenCapability,
+          scope: chosenScope,
+          intent: chosenIntent,
+          runtimes: runtimeSet(runtime)
+        });
+
+        write('\n');
+        renderCapabilityGuide(write, paint, guide, chosenCapability);
+      }
     }
 
     let shouldApply = false;

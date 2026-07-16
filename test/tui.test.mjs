@@ -15,7 +15,7 @@ test('tui previews plan and default decline writes nothing', async () => {
   let output = '';
 
   const result = await runTui({
-    ask: scriptedAsk([target, '2', '', '']),
+    ask: scriptedAsk([target, '2', '', '', '']),
     color: false,
     write: (message) => { output += message; }
   });
@@ -34,7 +34,7 @@ test('tui confirmed apply writes selected files through planner apply', async ()
   let output = '';
 
   const result = await runTui({
-    ask: scriptedAsk([target, '6', '', 'yes']),
+    ask: scriptedAsk([target, '6', '', '', 'yes']),
     color: false,
     write: (message) => { output += message; }
   });
