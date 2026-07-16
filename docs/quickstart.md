@@ -91,3 +91,30 @@ node bin/workflow-kit.mjs update \
   --adopt-existing \
   --apply --yes
 ```
+
+## 8. Optional alternative tools (Engram, Context7, codebase-memory-mcp)
+
+After `init`, you can guide users to install or attach external capabilities.
+Use the neutral integrations contract in `.agents/integrations/README`.
+
+Recommended prompts in the target repo:
+
+```text
+Instala Context7 para este proyecto y adjuntalo al flujo neutral.
+Antes de instalar, muestrame un resumen de confirmacion con fuente, scope y efecto esperado.
+```
+
+```text
+Engram ya esta disponible globalmente. Haz solo attach en este repo y documenta el estado final.
+```
+
+```text
+Quiero codebase-memory-mcp. Primero dime si es install+attach o attach-only y espera mi aprobacion antes de ejecutar comandos.
+```
+
+Minimum guardrails:
+
+- Never install silently; require explicit approval first.
+- Default to official/curated source unless user requests another source.
+- Record selected scope (`user/global`, `repo/project`, or `hybrid`).
+- A capability is complete only when it is attached and documented in the repo.

@@ -324,6 +324,10 @@ function renderSummary(write, paint, plan) {
       write(`  ${paint.dim(`... ${plan.operations.length - previewOps.length} more operations`)}\n`);
     }
   }
+
+  write(`\n${paint.bold('Optional capabilities')}\n`);
+  write(`  ${paint.dim('You can attach external capabilities later (for example: Engram, Context7, codebase-memory-mcp).')}\n`);
+  write(`  ${paint.dim('Follow the neutral policy in .agents/integrations/README: classify intent, confirm source/scope, then install+attach or attach-only.')}\n`);
   write('\n');
 }
 

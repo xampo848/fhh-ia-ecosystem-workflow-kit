@@ -131,6 +131,17 @@ workflow-kit tui
 
 The TUI asks for target path, runtimes, and overlay, then shows a preview before asking whether to write. The default answer writes nothing.
 
+## Optional alternative tools (post-install)
+
+After `init`/`tui`, you can guide users to add optional external capabilities such as Engram, Context7, or codebase-memory-mcp.
+
+- Follow `.agents/integrations/README` in the target repository.
+- Classify intent as `install + attach` or `attach-only`.
+- Show confirmation summary before any install command.
+- Use official/curated source by default.
+
+See the concrete prompts and guardrails in [docs/quickstart.md](docs/quickstart.md).
+
 ## Supported runtimes
 
 - `neutral` — portable `.agents` core only.
