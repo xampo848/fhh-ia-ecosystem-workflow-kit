@@ -188,8 +188,8 @@ function renderLogoFrame(paint, frame = 0) {
     '      ██   █████       ███████ ██    ██ ███████ ████████ ███████ ███    ███',
     '      ██  ██   ██      ██      ██    ██ ██         ██    ██      ████  ████',
     '      ██  ███████      ███████ ██    ██ ███████    ██    █████   ██ ████ ██',
-    '      ██  ██   ██           ██  ██████       ██    ██    ██      ██  ██  ██',
-    '      ██  ██   ██      ███████    ███   ███████    ██    ███████ ██      ██'
+    '      ██  ██   ██           ██   ████        ██    ██    ██      ██  ██  ██',
+    '      ██  ██   ██      ███████    ██    ███████    ██    ███████ ██      ██'
   ];
 
   const heroLines = hero.map((line, index) => {
@@ -666,7 +666,7 @@ export async function runTui(options = {}) {
     }
 
     if (showFullPreview) {
-      write(`\n${paint.bold('Full preview')}\n${formatPlan(plan)}\n\n`);
+      write(`\n${paint.cyan(paint.bold('Full preview'))}\n${formatPlan(plan)}\n\n`);
     }
 
     let wantCapabilityGuide = false;
