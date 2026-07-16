@@ -1,0 +1,158 @@
+export function toInquirerChoices(options) {
+  return options.map((option) => ({
+    name: option.label,
+    value: option.value,
+    description: option.description
+  }));
+}
+
+export function installPackageDetails(overlay) {
+  if (overlay === 'fhh-ia-ecosystem-full') {
+    return {
+      label: 'Full FHH IA Ecosystem (recommended)',
+      summary: 'Full FHH IA Ecosystem flow selected (recommended).',
+      tone: 'green'
+    };
+  }
+
+  if (overlay === 'starter') {
+    return {
+      label: 'Starter overlay',
+      summary: 'Starter overlay selected.',
+      tone: 'yellow'
+    };
+  }
+
+  return {
+    label: 'Portable core only',
+    summary: 'Portable core only selected.',
+    tone: 'yellow'
+  };
+}
+
+export function runtimeSet(runtimeList = '') {
+  return new Set(String(runtimeList).split(',').map((item) => item.trim()).filter(Boolean));
+}
+
+export function defaultIntentFor(capability) {
+  if (capability === 'context7' || capability === 'engram') return 'attach-only';
+  return 'install+attach';
+}
+
+export function createCapabilityGuide({ capability, scope, intent, runtimes }) {
+  if (capability === 'context7') {
+    const commands = [
+      'VS Code MCP (workspace .vscode/mcp.json):',
+      '{',
+      '  "servers": {',
+      '    "context7": {',
+      '      "type": "stdio",',
+      '      "command": "npx",',
+      '      "args": ["-y", "@upstash/context7-mcp@latest", "--api-key", "YOUR_API_KEY"]',
+      '    }',
+      '  }',
+      '}',
+      '',
+      'Codex (~/.codex/config.toml):',
+      '[mcp_servers.context7]',
+      'command = "npx"',
+      'args = ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_API_KEY"]',
+      'startup_timeout_ms = 20_000',
+      '',
+      'Copilot CLI (~/.copilot/mcp-config.json):',
+      '{',
+      '  "mcpServers": {',
+      '    "context7": {',
+      '      "type": "local",',
+      '      "command": "npx",',
+      '      "args": ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_API_KEY"]',
+      '    }',
+      '  }',
+      '}'
+    ];
+
+    return {
+      source: 'upstash/context7 (packages/mcp/README.md)',
+      effect: 'Adds Context7 docs tools (resolve-library-id + get-library-docs).',
+      commands,
+      notes: [
+        'Node.js >= 18 is required by Context7 MCP.',
+        'Use official source by default unless user requests another source.'
+      ],
+      scope,
+      intent,
+      runtimeHint: `Detected runtimes: ${[...runtimes].join(', ') || 'neutral'}`
+    };
+  }
+
+  if (capability === 'engram') {
+    const commands = [
+      'Install Engram binary (macOS/Linux):',
+      'brew install gentleman-programming/tap/engram',
+      '',
+      'Then setup by runtime:',
+      'engram setup codex',
+      'engram setup vscode-copilot',
+      '',
+      'Workspace MCP alternative (.vscode/mcp.json):',
+      '{',
+      '  "servers": {',
+      '    "engram": {',
+      '      "command": "engram",',
+      '      "args": ["mcp"]',
+      '    }',
+      '  }',
+      '}',
+      '',
+      'CLI one-liner:',
+      'code --add-mcp "{\"name\":\"engram\",\"command\":\"engram\",\"args\":[\"mcp\"]}"'
+    ];
+
+    return {
+      source: 'gentleman-programming/engram (docs/INSTALLATION.md + docs/AGENT-SETUP.md)',
+      effect: 'Enables durable memory tools (mem_save, mem_search, mem_context, mem_session_summary).',
+      commands,
+      notes: [
+        'For Codex/Copilot/VS Code, Engram MCP runs as stdio via engram mcp.',
+        'No install command should run without explicit approval.'
+      ],
+      scope,
+      intent,
+      runtimeHint: `Detected runtimes: ${[...runtimes].join(', ') || 'neutral'}`
+    };
+  }
+
+  const commands = [
+    'Install package:',
+    'npm install -g codebase-memory-mcp',
+    '',
+    'Configure detected coding agents:',
+    'codebase-memory-mcp install',
+    '',
+    'Optional quick config:',
+    'codebase-memory-mcp config set auto_index true',
+    '',
+    'Manual MCP entry example:',
+    '{',
+    '  "mcpServers": {',
+    '    "codebase-memory-mcp": {',
+    '      "command": "codebase-memory-mcp",',
+    '      "args": []',
+    '    }',
+    '  }',
+    '}'
+  ];
+
+  return {
+    source: 'DeusData/codebase-memory-mcp (pkg/npm/README.md + README.md)',
+    effect: 'Adds structural code graph MCP tools for indexing/search/trace.',
+    commands,
+    notes: [
+      'Installer mutates local agent configs; confirm scope before running.',
+      'Restart the coding agent after install/setup.'
+    ],
+    scope,
+    intent,
+    runtimeHint: `Detected runtimes: ${[...runtimes].join(', ') || 'neutral'}`
+  };
+}
