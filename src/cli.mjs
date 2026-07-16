@@ -1,33 +1,7 @@
-import { applyInstallPlan } from './apply.mjs';
-import { buildInstallPlan, buildUpdatePlan, formatPlan } from './planner.mjs';
-import { formatDoctorResult, runDoctor } from './doctor.mjs';
-import { runTui } from './tui.mjs';
-import packageJson from '../package.json' with { type: 'json' };
+import { parseArgs, printHelp } from './cli/args.mjs';
+import { commandHandlers } from './cli/commands.mjs';
 
-function printHelp() {
-  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--overlay <name>]\n  workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--overlay <name>] [--adopt-existing]\n  workflow-kit export [--output <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--overlay <name>]\n  workflow-kit doctor [--target <path>] [--runtime <list>]\n  workflow-kit tui\n`;
-}
-
-export function parseArgs(argv) {
-  const [command, ...rest] = argv;
-  const options = { command, dryRun: true, apply: false, yes: false, runtime: 'neutral', overlay: 'fhh-ia-ecosystem-full' };
-
-  for (let index = 0; index < rest.length; index += 1) {
-    const arg = rest[index];
-    if (arg === '--target') options.targetPath = rest[++index];
-    else if (arg === '--output') options.outputPath = rest[++index];
-    else if (arg === '--runtime') options.runtime = rest[++index];
-    else if (arg === '--overlay') options.overlay = rest[++index];
-    else if (arg === '--dry-run') options.dryRun = true;
-    else if (arg === '--apply') { options.apply = true; options.dryRun = false; }
-    else if (arg === '--yes') options.yes = true;
-    else if (arg === '--adopt-existing') options.adoptExisting = true;
-    else if (arg === '--help' || arg === '-h') options.help = true;
-    else throw new Error(`Unknown argument: ${arg}`);
-  }
-
-  return options;
-}
+export { parseArgs };
 
 export async function runCli(argv = process.argv.slice(2), io = {}) {
   const stdout = io.stdout ?? process.stdout;
@@ -39,82 +13,14 @@ export async function runCli(argv = process.argv.slice(2), io = {}) {
     return 0;
   }
 
-  try {
-    if (options.command === 'init') {
-      if (options.apply && !options.yes) {
-        stderr.write('Refusing to apply without --yes. Run dry-run first, then use --apply --yes.\n');
-        return 2;
-      }
-
-      const plan = await buildInstallPlan({ ...options, toolkitVersion: packageJson.version });
-      stdout.write(`${options.apply ? 'Apply plan' : 'Dry-run plan'}\n${formatPlan(plan)}\n`);
-
-      if (!options.apply) return 0;
-
-      const applied = await applyInstallPlan(plan);
-      const writeCount = applied.filter((item) => item.applied).length;
-      const backupCount = applied.filter((item) => item.backupPath).length;
-      stdout.write(`Applied writes: ${writeCount}\nBackups created: ${backupCount}\n`);
-      return 0;
-    }
-
-    if (options.command === 'update') {
-      if (options.apply && !options.yes) {
-        stderr.write('Refusing to apply update without --yes. Run dry-run first, then use --apply --yes.\n');
-        return 2;
-      }
-
-      const plan = await buildUpdatePlan({ ...options, toolkitVersion: packageJson.version });
-      stdout.write(`${options.apply ? 'Update apply plan' : 'Update dry-run plan'}\n${formatPlan(plan)}\n`);
-
-      if (!options.apply) return 0;
-
-      const applied = await applyInstallPlan(plan);
-      const writeCount = applied.filter((item) => item.applied).length;
-      const backupCount = applied.filter((item) => item.backupPath).length;
-      const modifiedSkips = applied.filter((item) => item.operation === 'skip_modified').length;
-      const unmanagedSkips = applied.filter((item) => item.operation === 'skip_unmanaged').length;
-      const adopted = applied.filter((item) => item.operation === 'adopt_existing').length;
-      stdout.write(`Updated writes: ${writeCount}\nBackups created: ${backupCount}\nProtected local edits (skipped): ${modifiedSkips}\nUnmanaged files (skipped): ${unmanagedSkips}\nAdopted baseline files: ${adopted}\n`);
-      return 0;
-    }
-
-    if (options.command === 'export') {
-      if (options.outputPath) options.targetPath = options.outputPath;
-      if (!options.targetPath) {
-        stderr.write('Export requires --output <path>.\n');
-        return 2;
-      }
-      if (options.apply && !options.yes) {
-        stderr.write('Refusing to export without --yes. Run dry-run first, then use --apply --yes.\n');
-        return 2;
-      }
-
-      const plan = await buildInstallPlan({ ...options, toolkitVersion: packageJson.version });
-      stdout.write(`${options.apply ? 'Export apply plan' : 'Export dry-run plan'}\n${formatPlan(plan)}\n`);
-
-      if (!options.apply) return 0;
-
-      const applied = await applyInstallPlan(plan);
-      const writeCount = applied.filter((item) => item.applied).length;
-      const backupCount = applied.filter((item) => item.backupPath).length;
-      stdout.write(`Exported files: ${writeCount}\nBackups created: ${backupCount}\n`);
-      return 0;
-    }
-
-    if (options.command === 'doctor') {
-      const result = await runDoctor(options);
-      stdout.write(`${formatDoctorResult(result)}\n`);
-      return result.ok ? 0 : 1;
-    }
-
-    if (options.command === 'tui') {
-      const result = await runTui({ write: (message) => stdout.write(message) });
-      return result.code;
-    }
-
+  const handler = commandHandlers[options.command];
+  if (!handler) {
     stderr.write(`Unknown command: ${options.command}\n${printHelp()}\n`);
     return 2;
+  }
+
+  try {
+    return await handler(options, { stdout, stderr });
   } catch (error) {
     stderr.write(`${error.message}\n`);
     return 2;
