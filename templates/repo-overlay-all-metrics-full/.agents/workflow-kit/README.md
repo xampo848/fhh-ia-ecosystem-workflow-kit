@@ -1,7 +1,9 @@
-# All Metrics Workflow Kit
+# FHH IA Ecosystem Workflow Kit
 
-This directory defines the repo-local packaging boundary for reusing the All
-Metrics AI workflow in another project.
+Previously known as All Metrics Workflow Kit.
+
+This directory defines the repo-local packaging boundary for reusing the FHH IA
+Ecosystem AI workflow in another project.
 
 It is **not an installer**, marketplace package, or published distribution. It
 is a packaging blueprint that separates portable core from repo overlay and
@@ -12,7 +14,7 @@ runtime thin adapter concerns.
 | Layer | Role |
 | --- | --- |
 | Portable core | Neutral AI contracts, generic workflow skills, registry/schema/cache mechanics, capability lifecycle vocabulary |
-| Repo overlay | All Metrics product/domain rules, local pattern skills, local capability adoption, local docs |
+| Repo overlay | FHH IA Ecosystem product/domain rules, local pattern skills, local capability adoption, local docs |
 | Runtime adapters | Thin adapter files for Codex, GitHub Copilot, Claude Code, or future runtimes |
 | Derived artifacts | Registry JSON/cache generated from canonical Markdown and skill files |
 

@@ -1,7 +1,7 @@
 # Neutral memory sharing and runtime parity governance
 
 This directory defines the neutral governance contract for optional shared
-memory and runtime parity review in All Metrics AI workflows.
+memory and runtime parity review in FHH IA Ecosystem AI workflows.
 
 ## Purpose
 

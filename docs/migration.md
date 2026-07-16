@@ -49,3 +49,16 @@ workflow-kit update --target /path/to/repo --runtime codex,copilot --overlay all
 ```
 
 This records the current baseline and avoids immediate overwrites.
+
+## Legacy naming compatibility
+
+The project now uses `FHH IA Ecosystem` as canonical brand in user-facing text.
+
+To avoid breaking existing installs during migration:
+
+- Keep technical IDs unchanged unless a major migration is planned:
+	- package/repo slug: `all-metrics-workflow-kit`
+	- full overlay id: `all-metrics-full`
+	- managed-by marker in install state: `all-metrics-workflow-kit`
+- Treat legacy mentions of `All Metrics` as compatibility aliases in older docs/templates.
+- Prefer updating narrative docs first; defer identifier renames until explicit major-version planning.

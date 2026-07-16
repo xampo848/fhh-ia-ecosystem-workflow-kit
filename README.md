@@ -1,6 +1,19 @@
-# All Metrics Workflow Kit
+# FHH IA Ecosystem Workflow Kit
 
-Private, installable AI workflow kit for bringing the All Metrics-style agent workflow into other repositories safely.
+Previously known as All Metrics Workflow Kit.
+
+Private, installable AI workflow kit for bringing the FHH IA Ecosystem agent workflow into other repositories safely.
+
+## Naming transition policy
+
+Brand name transition is active: FHH IA Ecosystem is the canonical public name.
+
+- Legacy name references to All Metrics may remain temporarily for compatibility.
+- Technical identifiers remain stable during transition, including:
+  - repository path and package slug `all-metrics-workflow-kit`
+  - overlay id `all-metrics-full`
+  - managed state marker `all-metrics-workflow-kit`
+- Legacy naming should be phased out in public-facing narrative docs first, then in internal templates, while preserving non-breaking install/update behavior.
 
 > Current status: **private GitHub install/export ready**. The package provides a dry-run-first CLI, guided TUI, template export, doctor validation, manifest-validated template packs, release guardrails, and adoption docs. It is intentionally **not published to npm**.
 
@@ -34,7 +47,7 @@ Always preview first. Dry-run is the default and writes nothing:
 workflow-kit init --target /path/to/repo --runtime codex,copilot
 ```
 
-By default, the installer uses the complete All Metrics workflow overlay so the target repo gets the full ready-to-use flow.
+By default, the installer uses the complete FHH IA Ecosystem workflow overlay so the target repo gets the full ready-to-use flow.
 
 Apply only after reviewing the plan:
 
@@ -147,7 +160,7 @@ workflow-kit init --target /path/to/repo --runtime codex,copilot,claude,antigrav
 
 ## Installation Mode
 
-The normal install path always uses the complete All Metrics workflow surface, including the full `.agents` tree, skills, manifests, and workflow metadata.
+The normal install path always uses the complete FHH IA Ecosystem workflow surface, including the full `.agents` tree, skills, manifests, and workflow metadata.
 
 The CLI and TUI now treat that full install as the standard path so users do not have to choose between partial or placeholder setups.
 

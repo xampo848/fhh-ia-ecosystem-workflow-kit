@@ -1,4 +1,6 @@
-# All Metrics — Neutral AI Instructions
+# FHH IA Ecosystem — Neutral AI Instructions
+
+Previously known as All Metrics in legacy materials.
 
 This file is the tool-neutral AI contract layer for the repository.
 

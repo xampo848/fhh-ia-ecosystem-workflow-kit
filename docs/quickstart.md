@@ -10,7 +10,7 @@ node bin/workflow-kit.mjs init --target /path/to/repo
 
 Default behavior is dry-run. It prints planned files and writes nothing.
 
-By default, `init` uses the complete All Metrics workflow overlay.
+By default, `init` uses the complete FHH IA Ecosystem workflow overlay.
 
 ## 2. Preview selected runtime adapters
 
@@ -20,7 +20,7 @@ node bin/workflow-kit.mjs init \
   --runtime codex,copilot
 ```
 
-This always previews the complete All Metrics workflow package.
+This always previews the complete FHH IA Ecosystem workflow package.
 
 ## 3. Apply after review
 

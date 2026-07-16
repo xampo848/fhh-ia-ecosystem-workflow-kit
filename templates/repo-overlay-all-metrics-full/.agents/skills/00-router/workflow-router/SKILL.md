@@ -1,6 +1,6 @@
 ---
 name: workflow-router
-description: "Safe and cost-aware workflow router for All Metrics AI work. Use before any non-trivial freeform request when the user did not explicitly invoke a skill. Classifies intent, prevents accidental epic creation, prevents skipping implement-prd for development work, optimizes input/output token usage, and guides the user with plain-language options."
+description: "Safe and cost-aware workflow router for FHH IA Ecosystem AI work (legacy name: All Metrics). Use before any non-trivial freeform request when the user did not explicitly invoke a skill. Classifies intent, prevents accidental epic creation, prevents skipping implement-prd for development work, optimizes input/output token usage, and guides the user with plain-language options."
 argument-hint: "Freeform user request"
 user-invocable: true
 license: MIT

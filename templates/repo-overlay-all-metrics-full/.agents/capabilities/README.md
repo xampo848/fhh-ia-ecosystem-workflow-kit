@@ -87,7 +87,7 @@ Requirements:
 ## Token-saving capability activation
 
 A token-saving capability is `active` only when the runtime confirms it is
-installed/available and attached. Once active, All Metrics uses it as a
+installed/available and attached. Once active, FHH IA Ecosystem uses it as a
 quality-preserving default posture: attempt to save tokens first, then fall back
 to normal concise prose whenever compression risks ambiguity, safety, or user
 understanding.

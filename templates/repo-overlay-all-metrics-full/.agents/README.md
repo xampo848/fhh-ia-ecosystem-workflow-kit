@@ -1,4 +1,6 @@
-# All Metrics Agent Context
+# FHH IA Ecosystem Agent Context
+
+Previously known as All Metrics Agent Context.
 
 This directory exposes the project agent context for tools that discover
 instructions and skills from `.agents/`.

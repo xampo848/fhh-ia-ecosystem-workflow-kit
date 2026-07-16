@@ -22,8 +22,8 @@ test('tui previews plan and default decline writes nothing', async () => {
 
   assert.equal(result.code, 0);
   assert.equal(result.applied, false);
-  assert.match(output, /FHH workflow/);
-  assert.match(output, /complete All Metrics flow/);
+  assert.match(output, /FHH IA Ecosystem/);
+  assert.match(output, /complete FHH IA Ecosystem flow/);
   assert.match(output, /Mission control/);
   assert.match(output, /Aborted\. No files were written\./);
   await assert.rejects(fs.access(path.join(target, '.agents/instructions.md')), { code: 'ENOENT' });

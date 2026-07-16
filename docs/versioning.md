@@ -32,3 +32,14 @@ npm run check:release
 ```
 
 Publishing remains approval-gated even when all checks pass.
+
+## Naming transition versioning rules
+
+During the transition from `All Metrics` to `FHH IA Ecosystem`:
+
+- Documentation-only naming updates are patch releases.
+- Non-breaking UX/help text changes related to naming are patch releases.
+- Introducing explicit deprecation notices for legacy naming is a minor release when user guidance materially changes.
+- Renaming compatibility identifiers (for example `all-metrics-full` or `all-metrics-workflow-kit`) is a breaking change and requires a major release with migration guidance.
+
+All naming-transition releases must preserve install/update behavior unless a major migration is explicitly approved.

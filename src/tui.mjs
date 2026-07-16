@@ -138,8 +138,8 @@ function renderSweepTitle(paint, title, frame) {
 }
 
 function renderLogoFrame(paint, frame = 0) {
-  const title = 'FHH WORKFLOW';
-  const subtitle = 'premium terminal install presentation';
+  const title = 'FHH IA ECOSYSTEM';
+  const subtitle = 'ecosystem install presentation';
   const borderChar = frame % 2 === 0 ? '=' : '-';
   const border = gradientText(paint, borderChar.repeat(76), INTRO_PALETTE.purple, INTRO_PALETTE.blue);
   const hero = [
@@ -202,7 +202,7 @@ async function animateIntro(write, paint, { animate = true } = {}) {
     write(`${lines.join('\n')}\n`);
   }
 
-  write(`${paint.bold(introTone(paint, 'purple', 'FHH workflow'))} ${paint.dim(':: launch console')}\n`);
+  write(`${paint.bold(introTone(paint, 'purple', 'FHH IA Ecosystem'))} ${paint.dim(':: launch console')}\n`);
   write(`${introTone(paint, 'cream', 'mode:')} ${introTone(paint, 'blue', 'full install')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'purple', 'preview-first')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'blue', 'backup-safe')}\n`);
   write(`${paint.dim('High-fidelity install assistant: inspect first, then apply safely with backups.')}\n`);
   write(`${paint.dim('No files are written unless you explicitly confirm.')}\n\n`);
@@ -380,7 +380,7 @@ export async function runTui(options = {}) {
         ? valueOrDefault(await ask('Custom runtimes [neutral]: '), 'neutral')
         : runtimePreset;
 
-      write(`${renderChip(paint, 'WORKFLOW PACKAGE', 'green')} ${paint.dim('complete All Metrics flow (full install).')}\n\n`);
+      write(`${renderChip(paint, 'WORKFLOW PACKAGE', 'green')} ${paint.dim('complete FHH IA Ecosystem flow (full install).')}\n\n`);
     } else {
       renderStageHeader(write, paint, {
         step: 1,
@@ -414,7 +414,7 @@ export async function runTui(options = {}) {
         }), 'neutral')
         : runtimePreset;
 
-      write(`${renderChip(paint, 'WORKFLOW PACKAGE', 'green')} ${paint.dim('complete All Metrics flow (full install).')}\n\n`);
+      write(`${renderChip(paint, 'WORKFLOW PACKAGE', 'green')} ${paint.dim('complete FHH IA Ecosystem flow (full install).')}\n\n`);
     }
 
     const plan = await withSpinner({
@@ -468,7 +468,7 @@ export async function runTui(options = {}) {
     write(`\n${paint.green('Apply completed successfully.')} ${renderChip(paint, 'SYSTEM READY', 'green')}\n`);
     write(`Applied writes: ${paint.green(String(writeCount))}\n`);
     write(`Backups created: ${paint.yellow(String(backupCount))}\n`);
-    write(`${paint.dim('The target repository now has the complete All Metrics workflow package installed.')}\n`);
+    write(`${paint.dim('The target repository now has the complete FHH IA Ecosystem workflow package installed.')}\n`);
     return { code: 0, applied: true, plan, appliedOperations: applied };
   } catch (error) {
     if (error instanceof Error && error.name === 'ExitPromptError') {

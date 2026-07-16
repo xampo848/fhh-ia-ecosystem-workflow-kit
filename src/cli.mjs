@@ -5,7 +5,7 @@ import { runTui } from './tui.mjs';
 import packageJson from '../package.json' with { type: 'json' };
 
 function printHelp() {
-  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--overlay <name>]\n  workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--overlay <name>] [--adopt-existing]\n  workflow-kit doctor [--target <path>] [--runtime <list>]\n  workflow-kit tui\n`;
+  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--overlay <name>]\n  workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--overlay <name>] [--adopt-existing]\n  workflow-kit export [--output <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--overlay <name>]\n  workflow-kit doctor [--target <path>] [--runtime <list>]\n  workflow-kit tui\n`;
 }
 
 export function parseArgs(argv) {
