@@ -87,8 +87,22 @@ Requirements for FULL trace:
 | Workflow extension maintenance | User asks how to add/edit router rules, skill registry entries, or custom `.agents/skills/**` skills; or asks the AI to perform those edits | Direct workflow-maintenance edits with validation (or explanation-only if requested) | No | `lean` |
 | Production code change | Build, implement, develop, fix behavior, add UI, change backend/frontend, modify tests | `implement-prd` if PRD exists; otherwise route to `create-prd` or `generate-pm-ticket` first | Ask only if PRD/ticket path is unclear | `balanced`; `premium` for high-risk architecture or debugging |
 | PRD implementation | User references PRD path or says implement this PRD | `implement-prd` | No | `balanced` |
-| Review / QA | Review PR, review diff, validate quality, inspect frontend, audit UI, or sharpen visual direction | relevant review skill (`frontend-design`, `react-doctor`, `impeccable`, `pr-comments-resolution`, `playwright-testing`, or inline review) | No | `lean` for pure visual direction, otherwise `balanced`; `premium` for large or release-critical diffs |
+| Review / QA | Review PR, review diff, validate quality, inspect frontend, audit UI, or sharpen visual direction | stack-gated review skill (`frontend-design`, `react-doctor`, `impeccable`, `pr-comments-resolution`, `playwright-testing`, `contract-verifier`, or inline review) | No | `lean` for pure visual direction, otherwise `balanced`; `premium` for large or release-critical diffs |
 | Documentation | Explain delivered feature, write guide, preserve knowledge | `document-development` | No | `lean` |
+
+## Review/QA applicability gate (required)
+
+Before loading any review/QA skill, run this gate in order:
+
+1. Detect changed surface from user request and current diff: backend-only, frontend non-React, React frontend, contract-only, or mixed.
+2. Select only applicable quality skills:
+  - Backend-only: prefer inline review and/or `contract-verifier`; do not load `react-doctor` or `playwright-testing` by default.
+  - Frontend non-React: do not load `react-doctor`; load `playwright-testing` only if formal E2E coverage is explicitly requested or required.
+  - React frontend: load `react-doctor` for meaningful React changes.
+  - Formal E2E ask or release-critical flow validation: load `playwright-testing` when a navigable UI flow exists.
+3. If no specialized quality skill applies, continue with inline review and explain why specialized skills were skipped.
+
+Do not invoke `react-doctor` or `playwright-testing` unless this gate says they apply.
 
 ## Workflow extension handling
 

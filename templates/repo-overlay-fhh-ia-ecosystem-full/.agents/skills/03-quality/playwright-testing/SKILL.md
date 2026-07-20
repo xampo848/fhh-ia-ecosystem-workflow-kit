@@ -8,6 +8,36 @@ description: Guide for generating Playwright tests using the Playwright MCP tool
 
 This skill enables automated generation of Playwright tests by exploring the application and creating robust test files.
 
+## Trigger
+
+Load when the user explicitly asks for Playwright/E2E tests or when formal UI flow validation is required.
+
+Examples:
+
+- "crea tests e2e con Playwright"
+- "valida este flujo crítico de UI con tests navegables"
+
+## Must Read
+
+- `.github/copilot-instructions.md`
+- `.agents/instructions.md`
+- `.agents/skills/00-router/workflow-router/SKILL.md`
+
+## Applicability Gate (Required)
+
+Run this gate before generating tests:
+
+1. Confirm there is a navigable UI/web flow to validate (not backend-only work).
+2. Confirm E2E intent is explicit or required by risk/release context.
+3. Confirm Playwright tooling/runtime is available or can be used per current policy.
+4. If conditions are not met, return:
+
+```text
+Status: not-applicable
+Reason: No UI E2E surface or explicit E2E requirement for this task.
+Next: inline review, contract checks, or stack-appropriate validation.
+```
+
 ## When to Use This Skill
 
 - User asks to generate Playwright tests
@@ -135,3 +165,9 @@ A successfully generated test must:
 3. Include meaningful assertions
 4. Pass when executed
 5. Be maintainable and readable
+
+## Stop Conditions
+
+- Task is backend-only or has no user-facing navigable UI.
+- The user requested unit/integration testing only (no E2E objective).
+- Playwright runtime is unavailable and cannot be enabled under current policy.
