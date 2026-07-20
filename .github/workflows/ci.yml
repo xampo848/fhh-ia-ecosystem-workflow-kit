@@ -36,3 +36,6 @@ jobs:
 
       - name: Validate release readiness guardrails
         run: npm run check:release
+
+      - name: Validate legal and provenance guardrails
+        run: npm run check:legal

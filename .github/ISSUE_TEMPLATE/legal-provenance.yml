@@ -1,0 +1,33 @@
+name: Legal / Provenance Question
+description: Report licensing, attribution, provenance, or ownership concerns.
+title: "[legal] "
+labels:
+  - legal
+body:
+  - type: textarea
+    id: component
+    attributes:
+      label: Component/path
+      description: Which file(s) or directory is affected?
+    validations:
+      required: true
+  - type: textarea
+    id: concern
+    attributes:
+      label: Concern
+      description: Describe the possible provenance/license/ownership issue.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Links, snippets, commit hashes, references.
+    validations:
+      required: true
+  - type: checkboxes
+    id: blocking
+    attributes:
+      label: Publication impact
+      options:
+        - label: This should block public release until resolved.

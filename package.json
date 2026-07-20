@@ -13,6 +13,7 @@
     "check:templates": "node scripts/validate-template-packs.mjs",
     "check:release": "node scripts/validate-release-readiness.mjs",
     "check:docs": "node scripts/validate-docs.mjs",
+    "check:legal": "node scripts/validate-legal-readiness.mjs",
     "test": "node --test",
     "slides:dev": "slidev slides.md",
     "slides:build": "slidev build slides.md",

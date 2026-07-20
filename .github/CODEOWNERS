@@ -1,0 +1,8 @@
+# Default owners
+* @xampo848
+
+# Legal and policy docs require explicit maintainer review
+/docs/legal/* @xampo848
+/THIRD_PARTY_NOTICES.md @xampo848
+/NOTICE @xampo848
+/LICENSE @xampo848
