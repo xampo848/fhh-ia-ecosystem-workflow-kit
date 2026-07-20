@@ -13,7 +13,11 @@
     "check:templates": "node scripts/validate-template-packs.mjs",
     "check:release": "node scripts/validate-release-readiness.mjs",
     "check:docs": "node scripts/validate-docs.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "slides:dev": "slidev slides.md",
+    "slides:build": "slidev build slides.md",
+    "slides:export": "slidev export slides.md --format pdf",
+    "slides:export:pptx": "slidev export slides.md --format pptx"
   },
   "keywords": [
     "ai-workflow",
@@ -36,5 +40,9 @@
   },
   "dependencies": {
     "@inquirer/prompts": "^8.5.2"
+  },
+  "devDependencies": {
+    "@slidev/cli": "^52.0.0",
+    "@slidev/theme-default": "^0.25.0"
   }
 }

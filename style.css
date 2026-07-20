@@ -1,0 +1,348 @@
+:root {
+  --wk-bg: #07111a;
+  --wk-bg-soft: rgba(17, 31, 45, 0.78);
+  --wk-border: rgba(130, 248, 221, 0.18);
+  --wk-text: #eff7ff;
+  --wk-muted: #8fa8bd;
+  --wk-accent: #59e1c3;
+  --wk-accent-2: #65a9ff;
+  --wk-warm: #f4b860;
+  --wk-danger: #ff7f8f;
+}
+
+.slidev-layout {
+  background:
+    radial-gradient(circle at 15% 20%, rgba(101, 169, 255, 0.14), transparent 26%),
+    radial-gradient(circle at 80% 15%, rgba(89, 225, 195, 0.14), transparent 22%),
+    radial-gradient(circle at 50% 85%, rgba(244, 184, 96, 0.1), transparent 26%),
+    linear-gradient(180deg, #07111a 0%, #091520 52%, #071018 100%);
+  color: var(--wk-text);
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.03em;
+}
+
+h1 {
+  font-size: 2.6rem;
+  line-height: 1.02;
+  max-width: 11.5em;
+}
+
+h2 {
+  font-size: 1.8rem;
+}
+
+p,
+li {
+  color: var(--wk-muted);
+}
+
+strong,
+.accent-text {
+  color: var(--wk-text);
+}
+
+.eyebrow,
+.card-kicker,
+.route-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  color: var(--wk-accent);
+  background: rgba(89, 225, 195, 0.08);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.hero-grid,
+.two-col-balanced,
+.three-up,
+.route-grid,
+.metric-grid {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.hero-grid,
+.two-col-balanced {
+  grid-template-columns: 1.2fr 0.9fr;
+}
+
+.three-up,
+.route-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.metric-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.hero-title {
+  font-size: 2.35rem;
+  line-height: 1.02;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.hero-copy {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  max-width: 34rem;
+}
+
+.hero-copy.small {
+  max-width: 28rem;
+}
+
+.hero-panel,
+.surface-card,
+.route-card,
+.metric-card,
+.timeline-item,
+.phase-band,
+.statement {
+  border: 1px solid var(--wk-border);
+  background: linear-gradient(180deg, rgba(15, 27, 39, 0.92), rgba(9, 18, 28, 0.86));
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.24);
+}
+
+.hero-panel,
+.surface-card,
+.route-card,
+.metric-card,
+.timeline-item,
+.statement {
+  border-radius: 28px;
+}
+
+.hero-panel,
+.surface-card,
+.route-card,
+.metric-card,
+.timeline-item,
+.phase-band,
+.statement {
+  padding: 1.15rem;
+}
+
+.surface-card.tall {
+  min-height: 14.5rem;
+}
+
+.surface-card.wide {
+  padding: 1.4rem;
+}
+
+.surface-card h3,
+.route-card h3,
+.timeline-item h3 {
+  margin-top: 0.8rem;
+  margin-bottom: 0.55rem;
+  color: var(--wk-text);
+}
+
+.surface-card.accent,
+.route-card,
+.metric-card {
+  background:
+    radial-gradient(circle at top right, rgba(89, 225, 195, 0.16), transparent 36%),
+    linear-gradient(180deg, rgba(15, 27, 39, 0.94), rgba(9, 18, 28, 0.88));
+}
+
+.surface-card.warning {
+  background:
+    radial-gradient(circle at top right, rgba(244, 184, 96, 0.18), transparent 32%),
+    linear-gradient(180deg, rgba(21, 28, 35, 0.94), rgba(12, 17, 24, 0.9));
+}
+
+.surface-card.danger {
+  background:
+    radial-gradient(circle at top right, rgba(255, 127, 143, 0.16), transparent 32%),
+    linear-gradient(180deg, rgba(21, 28, 35, 0.94), rgba(12, 17, 24, 0.9));
+}
+
+.stack-orbit {
+  position: relative;
+  height: 320px;
+}
+
+.orbit-center,
+.orbit-node {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+.orbit-center {
+  top: 50%;
+  left: 50%;
+  width: 130px;
+  height: 130px;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(180deg, rgba(89, 225, 195, 0.28), rgba(89, 225, 195, 0.14));
+  border: 1px solid rgba(89, 225, 195, 0.45);
+  color: var(--wk-text);
+  box-shadow: 0 0 80px rgba(89, 225, 195, 0.18);
+}
+
+.orbit-node {
+  width: 110px;
+  height: 110px;
+  background: rgba(10, 21, 31, 0.92);
+  border: 1px solid rgba(101, 169, 255, 0.26);
+  color: #cfe4ff;
+}
+
+.orbit-a { top: 0; left: 50%; transform: translateX(-50%); }
+.orbit-b { right: 10px; top: 50%; transform: translateY(-50%); }
+.orbit-c { left: 18px; top: 50%; transform: translateY(-50%); }
+.orbit-d { left: 50%; bottom: 0; transform: translateX(-50%); }
+
+.clean-list {
+  margin: 0.7rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.clean-list.compact li,
+.surface-card p,
+.route-card p,
+.timeline-item p {
+  line-height: 1.45;
+}
+
+.statement {
+  font-size: 1.15rem;
+  color: var(--wk-text);
+  text-align: center;
+}
+
+.footnote,
+.muted {
+  color: #93a8bb;
+  font-size: 0.92rem;
+}
+
+.timeline-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.timeline-index {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(101, 169, 255, 0.22), rgba(89, 225, 195, 0.14));
+  color: var(--wk-text);
+  font-weight: 800;
+}
+
+.mini-quote {
+  color: var(--wk-text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.86rem;
+  padding: 0.9rem 1rem;
+  border-radius: 18px;
+  background: rgba(89, 225, 195, 0.08);
+  border: 1px solid rgba(89, 225, 195, 0.18);
+}
+
+.route-card {
+  padding: 1.2rem;
+}
+
+.phase-stack {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.phase-band {
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--wk-text);
+}
+
+.phase-band span {
+  min-width: 96px;
+  color: var(--wk-accent);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.76rem;
+}
+
+.skill-matrix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.skill-chip {
+  padding: 0.8rem 1rem;
+  border-radius: 16px;
+  color: var(--wk-text);
+  border: 1px solid rgba(101, 169, 255, 0.24);
+  background: rgba(16, 28, 40, 0.86);
+  font-size: 0.94rem;
+}
+
+.metric-card {
+  min-height: 8rem;
+}
+
+.metric-value {
+  color: var(--wk-text);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.metric-label {
+  color: var(--wk-muted);
+  margin-top: 0.4rem;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.subtle-title {
+  color: var(--wk-text);
+  font-size: 1.35rem;
+  margin-bottom: 0.8rem;
+}
+
+code {
+  color: #b7ffea;
+}
+
+@media (max-width: 1100px) {
+  .hero-grid,
+  .two-col-balanced,
+  .three-up,
+  .route-grid,
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+}
