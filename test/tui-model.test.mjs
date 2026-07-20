@@ -16,17 +16,17 @@ test('installPackageDetails returns recommended metadata for full overlay', () =
   });
 });
 
-test('installPackageDetails returns fallback metadata for starter and portable core', () => {
+test('installPackageDetails returns error metadata for unsupported overlays', () => {
   assert.deepEqual(installPackageDetails('starter'), {
-    label: 'Starter overlay',
-    summary: 'Starter overlay selected.',
-    tone: 'yellow'
+    label: 'Full FHH IA Ecosystem (recommended)',
+    summary: 'Unsupported overlay "starter" requested.',
+    tone: 'red'
   });
 
   assert.deepEqual(installPackageDetails('none'), {
-    label: 'Portable core only',
-    summary: 'Portable core only selected.',
-    tone: 'yellow'
+    label: 'Full FHH IA Ecosystem (recommended)',
+    summary: 'Unsupported overlay "none" requested.',
+    tone: 'red'
   });
 });
 

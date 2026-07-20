@@ -11,7 +11,7 @@ Use this guide when moving from manual `.agents` copying to installer-managed te
 
 ## Preserving local rules
 
-Local domain rules belong in the repo overlay. Do not move product-specific instructions into portable core.
+Local domain rules belong in the full workflow package. Keep runtime-specific instructions inside thin runtime adapters.
 
 Recommended structure:
 
@@ -45,7 +45,7 @@ Behavior on update:
 If your repo was installed before install-state support, run a one-time bootstrap:
 
 ```bash
-workflow-kit update --target /path/to/repo --runtime codex,copilot --overlay fhh-ia-ecosystem-full --adopt-existing --apply --yes
+workflow-kit update --target /path/to/repo --runtime codex,copilot --adopt-existing --apply --yes
 ```
 
 This records the current baseline and avoids immediate overwrites.

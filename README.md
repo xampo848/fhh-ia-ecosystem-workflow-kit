@@ -104,7 +104,7 @@ Update behavior:
 Older installs may not have an install state file yet. Bootstrap safely without overwriting current files:
 
 ```bash
-workflow-kit update --target /path/to/repo --runtime codex,copilot --overlay fhh-ia-ecosystem-full --adopt-existing --apply --yes
+workflow-kit update --target /path/to/repo --runtime codex,copilot --adopt-existing --apply --yes
 ```
 
 This records the current baseline in `.agents/workflow-kit/install-state.json` and preserves existing content.
@@ -129,7 +129,7 @@ workflow-kit export --output /tmp/workflow-kit-export --runtime codex,copilot --
 workflow-kit tui
 ```
 
-The TUI asks for target path, runtimes, and overlay, then shows a preview before asking whether to write. The default answer writes nothing.
+The TUI asks for target path and runtimes, then shows a preview before asking whether to write. The default answer writes nothing.
 
 ## Optional alternative tools (post-install)
 
@@ -144,7 +144,7 @@ See the concrete prompts and guardrails in [docs/quickstart.md](docs/quickstart.
 
 ## Supported runtimes
 
-- `neutral` — portable `.agents` core only.
+- `neutral` — full `.agents` workflow package without runtime adapters.
 - `codex` — adds `AGENTS.md` and Codex adapter notes.
 - `copilot` — adds GitHub Copilot instruction adapters.
 - `claude` — adds `CLAUDE.md`.
@@ -254,7 +254,7 @@ This keeps discovery (`registry.md`) and execution policy (`workflow-router`) al
 - Apply requires `--apply --yes`.
 - Existing changed files are backed up before overwrite.
 - Runtime adapters stay thin and point back to `.agents/instructions.md`.
-- Portable core and repo overlay stay separate.
+- Full workflow package is the default install surface.
 - The package remains `private: true` to prevent accidental npm registry publication.
 
 ## Project structure
@@ -263,7 +263,7 @@ This keeps discovery (`registry.md`) and execution policy (`workflow-router`) al
 fhh-ia-ecosystem-workflow-kit/
   bin/workflow-kit.mjs
   src/                       # CLI, planner, apply, doctor, TUI
-  templates/                 # manifest-validated portable/adapters/overlay packs
+  templates/                 # manifest-validated full workflow pack + runtime adapters
   docs/                      # install, quickstart, migration, troubleshooting
   examples/                  # adoption scenarios
   scripts/                   # validation guardrails

@@ -11,4 +11,4 @@ Included in this overlay:
 - `.agents/model-routing`, `.agents/integrations`, `.agents/memory`, and `.agents/workflow-kit` metadata;
 - `.agents/instructions.md` and `.agents/README.md`.
 
-This pack is intentionally opinionated and project-specific. If you need a neutral starter, use `repo-overlay` instead.
+This pack is intentionally opinionated and project-specific.

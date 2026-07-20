@@ -7,9 +7,9 @@ import { buildInstallPlan, buildUpdatePlan, installStateRelativePath } from '../
 import manifest from '../templates/template-manifest.json' with { type: 'json' };
 import { makeTempRepo } from './helpers.mjs';
 
-test('buildInstallPlan creates portable core and selected adapter operations', async () => {
+test('buildInstallPlan creates full workflow and selected adapter operations', async () => {
   const target = await makeTempRepo();
-  const plan = await buildInstallPlan({ targetPath: target, runtime: 'codex,copilot', overlay: 'starter' });
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'codex,copilot', overlay: 'fhh-ia-ecosystem-full' });
 
   assert.equal(plan.summary.overwrite_with_backup, 0);
   assert.ok(plan.operations.some((item) => item.relativePath === '.agents/instructions.md'));
@@ -48,10 +48,10 @@ test('buildInstallPlan defaults to complete fhh-ia-ecosystem overlay without dup
 
 test('buildInstallPlan all runtimes aligns with manifest required payload files', async () => {
   const target = await makeTempRepo();
-  const plan = await buildInstallPlan({ targetPath: target, runtime: 'codex,copilot,claude,antigravity', overlay: 'starter' });
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'codex,copilot,claude,antigravity', overlay: 'fhh-ia-ecosystem-full' });
   const planned = new Set(plan.operations.map((item) => item.relativePath));
 
-  const expectedPacks = new Set(['portable-core', 'repo-overlay-starter', 'adapter-codex', 'adapter-copilot', 'adapter-claude', 'adapter-antigravity']);
+  const expectedPacks = new Set(['repo-overlay-fhh-ia-ecosystem-full', 'adapter-codex', 'adapter-copilot', 'adapter-claude', 'adapter-antigravity']);
   for (const pack of manifest.packs.filter((item) => expectedPacks.has(item.id))) {
     for (const requiredFile of pack.required_files) {
       assert.ok(planned.has(requiredFile), `missing planned file ${pack.id}:${requiredFile}`);
@@ -112,7 +112,7 @@ test('buildUpdatePlan requires install state unless adopt-existing is enabled', 
     /No install state found/
   );
 
-  const adoptPlan = await buildUpdatePlan({ targetPath: target, runtime: 'codex', overlay: 'starter', adoptExisting: true });
+  const adoptPlan = await buildUpdatePlan({ targetPath: target, runtime: 'codex', overlay: 'fhh-ia-ecosystem-full', adoptExisting: true });
   assert.equal(adoptPlan.hadExistingState, false);
   assert.equal(adoptPlan.operations.some((item) => item.operation === 'create'), true);
 });

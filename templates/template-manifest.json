@@ -14,37 +14,6 @@
   ],
   "packs": [
     {
-      "id": "portable-core",
-      "role": "neutral workflow contract",
-      "source": "portable-core",
-      "documentation_only": [
-        "README.md"
-      ],
-      "required_files": [
-        ".agents/instructions.md",
-        ".agents/skills/registry.md",
-        ".agents/skills/00-router/workflow-router/SKILL.md",
-        ".agents/skills/01-product/create-prd/SKILL.md",
-        ".agents/skills/02-implement/implement-prd/SKILL.md",
-        ".agents/model-routing/README.md",
-        ".agents/capabilities/README.md",
-        ".agents/integrations/README.md",
-        ".agents/memory/README.md"
-      ]
-    },
-    {
-      "id": "repo-overlay-starter",
-      "role": "local project placeholder overlay",
-      "source": "repo-overlay",
-      "documentation_only": [
-        "README.md"
-      ],
-      "required_files": [
-        ".agents/skills/06-patterns/README.md",
-        ".agents/capabilities/registry.md"
-      ]
-    },
-    {
       "id": "repo-overlay-fhh-ia-ecosystem-full",
       "role": "complete FHH IA Ecosystem overlay derived from .agents2",
       "source": "repo-overlay-fhh-ia-ecosystem-full",

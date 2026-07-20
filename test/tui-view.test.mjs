@@ -62,7 +62,7 @@ test('colorizeFullPlanPreview recolors key/value, operation and summary lines', 
     'Target: /tmp/repo',
     'Mode: init',
     'Runtimes: codex,copilot',
-    'Overlay: starter',
+    'Overlay: fhh-ia-ecosystem-full',
     'Operations:',
     '- create: AGENTS.md',
     '- unchanged: .agents/instructions.md',
@@ -75,7 +75,7 @@ test('colorizeFullPlanPreview recolors key/value, operation and summary lines', 
   assert.equal(lines[0], '<cyan>Target:</cyan> <white>/tmp/repo</white>');
   assert.equal(lines[1], '<cyan>Mode:</cyan> <magenta>init</magenta>');
   assert.equal(lines[2], '<cyan>Runtimes:</cyan> <blue>codex,copilot</blue>');
-  assert.equal(lines[3], '<cyan>Overlay:</cyan> <magenta>starter</magenta>');
+  assert.equal(lines[3], '<cyan>Overlay:</cyan> <magenta>fhh-ia-ecosystem-full</magenta>');
   assert.equal(lines[4], '<cyan>Operations:</cyan>');
   assert.equal(lines[5], '- <green>create</green>: <white>AGENTS.md</white>');
   assert.equal(lines[6], '- <blue>unchanged</blue>: <white>.agents/instructions.md</white>');

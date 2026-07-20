@@ -7,26 +7,12 @@ export function toInquirerChoices(options) {
 }
 
 export function installPackageDetails(overlay) {
-  if (overlay === 'fhh-ia-ecosystem-full') {
-    return {
-      label: 'Full FHH IA Ecosystem (recommended)',
-      summary: 'Full FHH IA Ecosystem flow selected (recommended).',
-      tone: 'green'
-    };
-  }
-
-  if (overlay === 'starter') {
-    return {
-      label: 'Starter overlay',
-      summary: 'Starter overlay selected.',
-      tone: 'yellow'
-    };
-  }
-
   return {
-    label: 'Portable core only',
-    summary: 'Portable core only selected.',
-    tone: 'yellow'
+    label: 'Full FHH IA Ecosystem (recommended)',
+    summary: overlay === 'fhh-ia-ecosystem-full'
+      ? 'Full FHH IA Ecosystem flow selected (recommended).'
+      : `Unsupported overlay "${overlay}" requested.`,
+    tone: overlay === 'fhh-ia-ecosystem-full' ? 'green' : 'red'
   };
 }
 

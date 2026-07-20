@@ -24,11 +24,11 @@ const requiredPhrases = {
   'README.md': ['Quickstart', 'Private GitHub install', 'Troubleshooting', 'Migration', 'Release Checklist'],
   'docs/quickstart.md': ['dry-run', '--apply --yes', 'doctor', 'tui', 'export'],
   'docs/troubleshooting.md': ['overwrite_with_backup', 'backup', 'Unsupported runtime', 'missing files'],
-  'docs/migration.md': ['manual `.agents` copying', 'repo overlay', 'Runtime adapters'],
+  'docs/migration.md': ['manual `.agents` copying', 'full workflow package', 'Runtime adapters'],
   'docs/private-github-install.md': ['npm install -g', 'private repository', 'package.json` intentionally remains `private: true`'],
-  'examples/fresh-codex/README.md': ['--runtime codex', '--overlay starter'],
+  'examples/fresh-codex/README.md': ['--runtime codex', '--apply --yes'],
   'examples/existing-copilot/README.md': ['--runtime copilot', 'overwrite_with_backup'],
-  'examples/neutral-core/README.md': ['--runtime neutral', '--overlay none']
+  'examples/neutral-core/README.md': ['--runtime neutral', 'No runtime adapter files']
 };
 
 export async function validateDocs({ root = packageRoot } = {}) {

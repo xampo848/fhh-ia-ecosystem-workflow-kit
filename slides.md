@@ -238,7 +238,7 @@ defaults:
 
 <div class="slide-head">
   <h1>Cómo se reutiliza el workflow en otros repositorios</h1>
-  <div class="sub">El workflow-kit define la frontera portable-core/overlay para reuso, preservando el mismo flujo completo en cualquier repositorio nuevo.</div>
+  <div class="sub">El workflow-kit empaqueta el flujo completo para reuso, preservando la misma operación en cualquier repositorio nuevo.</div>
 </div>
 
 <div class="compare">

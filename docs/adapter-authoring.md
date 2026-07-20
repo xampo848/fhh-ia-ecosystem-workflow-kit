@@ -1,13 +1,12 @@
 # Template and Adapter Authoring Guide
 
-This guide explains how to extend the starter template packs safely.
+This guide explains how to extend the template packs safely.
 
 ## Pack layers
 
 | Pack | Purpose | Must not contain |
 | --- | --- | --- |
-| `portable-core` | Neutral workflow contract and starter workflow skills | Product-specific backend/frontend/domain rules |
-| `repo-overlay` | Local project customization placeholders | Claims that examples are universal defaults |
+| `repo-overlay-fhh-ia-ecosystem-full` | Complete workflow payload installed in target repositories | Runtime-specific entrypoint duplication |
 | `runtime-adapters/*` | Thin runtime entrypoints | Duplicated workflow algorithms |
 
 ## Manifest rules
@@ -39,4 +38,4 @@ Run:
 npm run check:templates
 ```
 
-The validator checks required files, thin adapter references, and forbidden product-specific terms in portable core and adapters.
+The validator checks required files, thin adapter references, and forbidden product-specific terms in adapters.

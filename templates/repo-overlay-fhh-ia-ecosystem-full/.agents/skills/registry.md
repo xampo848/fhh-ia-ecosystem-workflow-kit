@@ -184,13 +184,7 @@ Current repo-owned v1 pattern skills:
 
 | Skill name | Class | Physical path | Trigger | Loading posture | Cost hint | Future structured key | Runtime notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `importer-implementation` | Standards/pattern | `.agents/skills/06-patterns/backend/importer-implementation/SKILL.md` | Importer/ingestion backend slice | Just-in-time | balanced | `pattern-backend-importer-implementation` | Prefer before backend importer/service changes. |
-| `external-data-source-integration` | Standards/pattern | `.agents/skills/06-patterns/backend/external-data-source-integration/SKILL.md` | External source/provider integration slice | Just-in-time | balanced | `pattern-backend-external-data-source-integration` | Use when provider reliability/safety rules matter. |
-| `feature-flag-implementation` | Standards/pattern | `.agents/skills/06-patterns/backend/feature-flag-implementation/SKILL.md` | Backend feature-flagged behavior slice | Just-in-time | lean | `pattern-backend-feature-flag-implementation` | Dual-state validation required. |
-| `api-contract-producer` | Standards/pattern | `.agents/skills/06-patterns/backend/api-contract-producer/SKILL.md` | Producer-side API payload/serializer/controller change | Just-in-time | balanced | `pattern-backend-api-contract-producer` | Pair with `contract-verifier` when consumers are affected. |
-| `tenant-safe-data-access` | Standards/pattern | `.agents/skills/06-patterns/domain/tenant-safe-data-access/SKILL.md` | Tenant-scoped data access or organization integrity slice | Just-in-time | balanced | `pattern-domain-tenant-safe-data-access` | Use when tenancy boundaries are in scope. |
-| `form-validation` | Standards/pattern | `.agents/skills/06-patterns/frontend/form-validation/SKILL.md` | Frontend form validation/error-handling slice | Just-in-time | balanced | `pattern-frontend-form-validation` | Prefer with Formik/Yup and shared components. |
-| `frontend-test-pattern` | Standards/pattern | `.agents/skills/06-patterns/frontend/frontend-test-pattern/SKILL.md` | Frontend slice needs realistic state-focused testing | Just-in-time | lean | `pattern-frontend-frontend-test-pattern` | Covers loading/success/empty/error expectations. |
+| `add-project-pattern` | Standards/pattern | `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md` | User asks to create/register project-specific pattern skills in repo overlay | Explicit-only | lean | `pattern-authoring-add-project-pattern` | Bootstrap helper for local pattern authoring and registry sync. |
 
 Human docs in `docs/patterns/**` remain references and fallback docs when a
 pattern skill is insufficient or a narrower repo-owned skill does not exist yet.

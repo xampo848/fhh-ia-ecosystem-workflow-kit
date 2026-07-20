@@ -18,7 +18,7 @@
 | P1 | Escritura no transaccional en `applyInstallPlan` | Alto | Medio |
 | P2 | Falta de matriz de versiones de Node en CI | Medio | Bajo |
 | P2 | Ausencia de linter/formatter | Medio | Medio |
-| P2 | Overlay `none`/`starter` sin documentar ni cubrir | Bajo | Bajo |
+| P2 | Consolidar overlay único full en CLI/docs/tests | Bajo | Bajo |
 | P3 | Falta de `CHANGELOG.md`, `.editorconfig`, `.nvmrc` | Bajo | Bajo |
 | P3 | Animación de la TUI sin bandera de desactivación en CLI | Bajo | Bajo |
 
@@ -48,10 +48,8 @@
 ## P1 — Alta prioridad
 
 ### P1.1 — Lógica redundante en `selectedTemplateFiles`
-- **Observación:** En `src/planner.mjs`, cuando `overlay === 'fhh-ia-ecosystem-full'` la carpeta `repo-overlay-fhh-ia-ecosystem-full` se recolecta **dos veces**: una en la selección inicial y otra en el bloque `else if (overlay === 'fhh-ia-ecosystem-full')`. La deduplicación posterior enmascara el problema, pero el código realiza trabajo de E/S duplicado y es confuso de mantener.
+- **Observación:** Históricamente, `selectedTemplateFiles` tenía ramas para `none`/`starter`/`fhh-ia-ecosystem-full` y una recolección duplicada del pack full.
 - **Propuesta:** Simplificar la selección a una sola pasada por overlay:
-  - `none` → solo `portable-core`.
-  - `starter` → `portable-core` + `repo-overlay`.
   - `fhh-ia-ecosystem-full` → `repo-overlay-fhh-ia-ecosystem-full` (una sola vez).
   Añadir un test que verifique que ninguna ruta se lee dos veces del disco.
 
@@ -89,9 +87,9 @@
 - **Riesgo:** Deriva de estilo y errores evitables (variables sin usar, p. ej. `active`/`scriptedMode` en la TUI) no detectados automáticamente.
 - **Propuesta:** Incorporar ESLint (config recomendada + reglas para módulos ES) y Prettier, añadir script `lint`/`format:check` e integrarlo en CI.
 
-### P2.3 — Overlays `none` y `starter` sin documentar ni cubrir
-- **Observación:** `normalizeOverlay` acepta `none`, `starter` y `fhh-ia-ecosystem-full`, pero el `README` solo describe el flujo *full install*. El comportamiento de `none` (que degrada a `portable-core`) no está documentado y su cobertura de test es parcial.
-- **Propuesta:** Documentar explícitamente los tres overlays con su alcance exacto, o marcar `none`/`starter` como internos/experimentales; añadir tests que fijen su comportamiento.
+### P2.3 — Consolidar overlay único full
+- **Observación:** Mantener múltiples overlays incrementa complejidad en código, docs y tests sin aportar valor al flujo actual.
+- **Propuesta:** Mantener únicamente `fhh-ia-ecosystem-full` en comportamiento soportado y alinear todo el repositorio a ese modo.
 
 ### P2.4 — Robustez del recorrido de plantillas
 - **Observación:** `collectTemplateFiles` recorre el árbol siguiendo entradas de directorio sin control explícito de symlinks. Aunque las plantillas son de confianza, un enlace simbólico accidental podría desviar la lectura fuera del árbol esperado.

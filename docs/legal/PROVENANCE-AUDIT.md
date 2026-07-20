@@ -43,7 +43,6 @@ Top-level distribution (tracked):
 - `src/tui/*.mjs`
 
 2. Skills, prompts, agent contracts
-- `templates/portable-core/.agents/**`
 - `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/**`
 
 3. Runtime adapters
@@ -54,8 +53,6 @@ Top-level distribution (tracked):
 
 4. Templates and overlay packs
 - `templates/template-manifest.json`
-- `templates/portable-core/**`
-- `templates/repo-overlay/**`
 - `templates/repo-overlay-fhh-ia-ecosystem-full/**`
 
 5. Documentation
@@ -105,6 +102,7 @@ Top-level distribution (tracked):
 ### Más cercano a idea/concepto general
 
 - Arquitectura de router de workflows, separación core/overlay, adapters delgados (requiere revisar archivo por archivo, pero no hay evidencia directa de copia literal externa en `src/**`).
+- Arquitectura de router de workflows, paquetes full + adapters delgados (requiere revisar archivo por archivo, pero no hay evidencia directa de copia literal externa en `src/**`).
 
 ## Contenido IA (clasificación de riesgo)
 

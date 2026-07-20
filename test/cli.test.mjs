@@ -32,7 +32,7 @@ test('init --apply --yes writes selected templates', async () => {
   const target = await makeTempRepo();
   const io = createMemoryIo();
 
-  const code = await runCli(['init', '--target', target, '--runtime', 'codex,copilot', '--overlay', 'starter', '--apply', '--yes'], io);
+  const code = await runCli(['init', '--target', target, '--runtime', 'codex,copilot', '--apply', '--yes'], io);
 
   assert.equal(code, 0);
   assert.match(io.output.stdout, /Applied writes:/);
@@ -60,7 +60,7 @@ test('init --apply --yes writes all runtime adapter packs', async () => {
   const target = await makeTempRepo();
   const io = createMemoryIo();
 
-  const code = await runCli(['init', '--target', target, '--runtime', 'codex,copilot,claude,antigravity', '--overlay', 'starter', '--apply', '--yes'], io);
+  const code = await runCli(['init', '--target', target, '--runtime', 'codex,copilot,claude,antigravity', '--apply', '--yes'], io);
 
   assert.equal(code, 0);
   await fs.access(path.join(target, 'AGENTS.md'));
@@ -88,7 +88,7 @@ test('export --apply --yes writes selected templates', async () => {
   const target = await makeTempRepo('workflow-kit-export-');
   const io = createMemoryIo();
 
-  const code = await runCli(['export', '--output', target, '--runtime', 'codex', '--overlay', 'starter', '--apply', '--yes'], io);
+  const code = await runCli(['export', '--output', target, '--runtime', 'codex', '--apply', '--yes'], io);
 
   assert.equal(code, 0);
   assert.match(io.output.stdout, /Exported files:/);
@@ -144,7 +144,7 @@ test('update adopt-existing bootstraps state without overwriting existing files'
     '--runtime',
     'codex',
     '--overlay',
-    'starter',
+    'fhh-ia-ecosystem-full',
     '--adopt-existing',
     '--apply',
     '--yes'

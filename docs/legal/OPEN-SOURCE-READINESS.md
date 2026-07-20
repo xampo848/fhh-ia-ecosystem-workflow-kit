@@ -33,7 +33,7 @@ Status owner: repository maintainers
 ### P1 — required before public visibility
 
 1. Complete third-party notices and per-component upstream license attachments where needed.
-2. Confirm portable-core vs private-overlay separation in templates and docs.
+2. Confirm full overlay and private/public boundary documentation remains consistent in templates and docs.
 3. Finalize legal wording for outbound licensing posture (MIT stay vs Apache transition timing).
 
 ### P2 — required before accepting broad external contributions

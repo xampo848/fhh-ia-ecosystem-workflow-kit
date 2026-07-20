@@ -14,11 +14,11 @@ import {
 } from './tui/view.mjs';
 
 const RUNTIME_OPTIONS = [
-  { value: 'neutral', label: 'Neutral core only', description: 'Portable .agents core only.' },
-  { value: 'codex', label: 'Codex', description: 'Neutral core + Codex adapter.' },
-  { value: 'copilot', label: 'GitHub Copilot', description: 'Neutral core + Copilot adapter.' },
-  { value: 'claude', label: 'Claude Code', description: 'Neutral core + Claude adapter.' },
-  { value: 'antigravity', label: 'Antigravity', description: 'Neutral core + Antigravity adapter.' },
+  { value: 'neutral', label: 'No extra adapters', description: 'Install full workflow content without runtime adapters.' },
+  { value: 'codex', label: 'Codex', description: 'Full workflow + Codex adapter.' },
+  { value: 'copilot', label: 'GitHub Copilot', description: 'Full workflow + Copilot adapter.' },
+  { value: 'claude', label: 'Claude Code', description: 'Full workflow + Claude adapter.' },
+  { value: 'antigravity', label: 'Antigravity', description: 'Full workflow + Antigravity adapter.' },
   { value: 'codex,copilot', label: 'Codex + Copilot', description: 'Common mixed setup.' },
   { value: 'codex,copilot,claude,antigravity', label: 'All adapters', description: 'Install all runtime adapters.' },
   { value: 'custom', label: 'Custom list', description: 'Type your own comma-separated runtime list.' }
@@ -40,24 +40,6 @@ const CAPABILITY_SCOPE_OPTIONS = [
 const CAPABILITY_INTENT_OPTIONS = [
   { value: 'attach-only', label: 'Attach-only', description: 'Tool already available in runtime; only wire it to the flow.' },
   { value: 'install+attach', label: 'Install + attach', description: 'Install then wire it to the neutral flow.' }
-];
-
-const INSTALL_PACKAGE_OPTIONS = [
-  {
-    value: 'fhh-ia-ecosystem-full',
-    label: 'Full FHH IA Ecosystem (recommended)',
-    description: 'Complete .agents tree, skills, manifests, integrations, memory and workflow metadata.'
-  },
-  {
-    value: 'starter',
-    label: 'Starter overlay',
-    description: 'Portable core plus starter repo overlay. Smaller surface than full.'
-  },
-  {
-    value: 'none',
-    label: 'Portable core only',
-    description: 'Only portable core files. No repo overlay content.'
-  }
 ];
 
 const FULL_OVERLAY = 'fhh-ia-ecosystem-full';
@@ -123,14 +105,10 @@ export async function runTui(options = {}) {
         step: 2,
         total: 5,
         title: 'Install package',
-        subtitle: 'Choose what package you want to install. Full is the recommended default.'
+        subtitle: 'The toolkit now installs the complete FHH IA Ecosystem package by default.'
       });
-
-      overlay = await prompter.chooseOption({
-        title: 'Select install package',
-        defaultIndex: 0,
-        options: INSTALL_PACKAGE_OPTIONS
-      });
+      const packageDetails = installPackageDetails(overlay);
+      write(`${renderChip(paint, 'INSTALL PACKAGE', packageDetails.tone)} ${paint.dim(packageDetails.summary)}\n\n`);
 
       renderStageHeader(write, paint, {
         step: 3,
@@ -148,9 +126,6 @@ export async function runTui(options = {}) {
       runtime = runtimePreset === 'custom'
         ? await prompter.promptText('Custom runtimes [neutral]: ', 'neutral')
         : runtimePreset;
-
-      const packageDetails = installPackageDetails(overlay);
-      write(`${renderChip(paint, 'INSTALL PACKAGE', packageDetails.tone)} ${paint.dim(packageDetails.summary)}\n\n`);
     } else {
       renderStageHeader(write, paint, {
         step: 1,
@@ -165,14 +140,10 @@ export async function runTui(options = {}) {
         step: 2,
         total: 5,
         title: 'Install package',
-        subtitle: 'Choose what package you want to install. Full is the recommended default.'
+        subtitle: 'The toolkit now installs the complete FHH IA Ecosystem package by default.'
       });
-
-      overlay = await prompter.chooseOption({
-        title: 'Select install package',
-        options: INSTALL_PACKAGE_OPTIONS,
-        defaultValue: FULL_OVERLAY
-      });
+      const packageDetails = installPackageDetails(overlay);
+      write(`${renderChip(paint, 'INSTALL PACKAGE', packageDetails.tone)} ${paint.dim(packageDetails.summary)}\n\n`);
 
       renderStageHeader(write, paint, {
         step: 3,
@@ -191,8 +162,6 @@ export async function runTui(options = {}) {
         ? await prompter.promptText('Custom runtimes (comma-separated)', 'neutral')
         : runtimePreset;
 
-      const packageDetails = installPackageDetails(overlay);
-      write(`${renderChip(paint, 'INSTALL PACKAGE', packageDetails.tone)} ${paint.dim(packageDetails.summary)}\n\n`);
     }
 
     const plan = await withSpinner({

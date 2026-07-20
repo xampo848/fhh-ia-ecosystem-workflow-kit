@@ -407,74 +407,14 @@
   ],
   "pattern_skills": [
     {
-      "name": "importer-implementation",
+      "name": "add-project-pattern",
       "class": "Standards/pattern",
-      "path": ".agents/skills/06-patterns/backend/importer-implementation/SKILL.md",
-      "trigger": "Importer/ingestion backend slice",
-      "loading_posture": "Just-in-time",
-      "cost_hint": "balanced",
-      "key": "pattern-backend-importer-implementation",
-      "runtime_notes": "Prefer before backend importer/service changes."
-    },
-    {
-      "name": "external-data-source-integration",
-      "class": "Standards/pattern",
-      "path": ".agents/skills/06-patterns/backend/external-data-source-integration/SKILL.md",
-      "trigger": "External source/provider integration slice",
-      "loading_posture": "Just-in-time",
-      "cost_hint": "balanced",
-      "key": "pattern-backend-external-data-source-integration",
-      "runtime_notes": "Use when provider reliability/safety rules matter."
-    },
-    {
-      "name": "feature-flag-implementation",
-      "class": "Standards/pattern",
-      "path": ".agents/skills/06-patterns/backend/feature-flag-implementation/SKILL.md",
-      "trigger": "Backend feature-flagged behavior slice",
-      "loading_posture": "Just-in-time",
+      "path": ".agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md",
+      "trigger": "User asks to create/register project-specific pattern skills in repo overlay",
+      "loading_posture": "Explicit-only",
       "cost_hint": "lean",
-      "key": "pattern-backend-feature-flag-implementation",
-      "runtime_notes": "Dual-state validation required."
-    },
-    {
-      "name": "api-contract-producer",
-      "class": "Standards/pattern",
-      "path": ".agents/skills/06-patterns/backend/api-contract-producer/SKILL.md",
-      "trigger": "Producer-side API payload/serializer/controller change",
-      "loading_posture": "Just-in-time",
-      "cost_hint": "balanced",
-      "key": "pattern-backend-api-contract-producer",
-      "runtime_notes": "Pair with `contract-verifier` when consumers are affected."
-    },
-    {
-      "name": "tenant-safe-data-access",
-      "class": "Standards/pattern",
-      "path": ".agents/skills/06-patterns/domain/tenant-safe-data-access/SKILL.md",
-      "trigger": "Tenant-scoped data access or organization integrity slice",
-      "loading_posture": "Just-in-time",
-      "cost_hint": "balanced",
-      "key": "pattern-domain-tenant-safe-data-access",
-      "runtime_notes": "Use when tenancy boundaries are in scope."
-    },
-    {
-      "name": "form-validation",
-      "class": "Standards/pattern",
-      "path": ".agents/skills/06-patterns/frontend/form-validation/SKILL.md",
-      "trigger": "Frontend form validation/error-handling slice",
-      "loading_posture": "Just-in-time",
-      "cost_hint": "balanced",
-      "key": "pattern-frontend-form-validation",
-      "runtime_notes": "Prefer with Formik/Yup and shared components."
-    },
-    {
-      "name": "frontend-test-pattern",
-      "class": "Standards/pattern",
-      "path": ".agents/skills/06-patterns/frontend/frontend-test-pattern/SKILL.md",
-      "trigger": "Frontend slice needs realistic state-focused testing",
-      "loading_posture": "Just-in-time",
-      "cost_hint": "lean",
-      "key": "pattern-frontend-frontend-test-pattern",
-      "runtime_notes": "Covers loading/success/empty/error expectations."
+      "key": "pattern-authoring-add-project-pattern",
+      "runtime_notes": "Bootstrap helper for local pattern authoring and registry sync."
     }
   ]
 }

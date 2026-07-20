@@ -2,7 +2,7 @@
 
 This guide shows the safe adoption path. Start with dry-run, inspect the plan, then apply only when ready.
 
-## 1. Preview a neutral-core install
+## 1. Preview an install
 
 ```bash
 node bin/workflow-kit.mjs init --target /path/to/repo
@@ -47,9 +47,9 @@ node bin/workflow-kit.mjs doctor \
 node bin/workflow-kit.mjs tui
 ```
 
-The TUI prompts for target, runtimes, and overlay; it always shows a preview before asking whether to write. The default confirmation writes nothing.
+The TUI prompts for target and runtimes; it always shows a preview before asking whether to write. The default confirmation writes nothing.
 It can also open an optional capability guide (Context7, Engram, codebase-memory-mcp) with source/scope/mode confirmation and official install commands.
-The TUI now asks explicitly which install package to use. Default and recommended: `Full FHH IA Ecosystem`.
+The install package is fixed to `Full FHH IA Ecosystem`.
 
 ## 6. Export templates without treating the output as a repo install
 
@@ -89,7 +89,6 @@ Legacy bootstrap when `.agents/workflow-kit/install-state.json` does not exist y
 node bin/workflow-kit.mjs update \
   --target /path/to/repo \
   --runtime codex,copilot \
-  --overlay fhh-ia-ecosystem-full \
   --adopt-existing \
   --apply --yes
 ```

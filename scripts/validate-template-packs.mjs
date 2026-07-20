@@ -41,7 +41,7 @@ export async function validateTemplatePacks({ root = packageRoot } = {}) {
       }
     }
 
-    const shouldCheckPortableTerms = pack.id === 'portable-core' || pack.id.startsWith('adapter-');
+    const shouldCheckPortableTerms = pack.id.startsWith('adapter-');
     const shouldCheckThinReference = Boolean(pack.requires_reference);
     const files = await collectFiles(packRoot);
 

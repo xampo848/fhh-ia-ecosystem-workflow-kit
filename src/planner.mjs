@@ -28,7 +28,7 @@ export function parseRuntimeList(value = 'neutral') {
 }
 
 export function normalizeOverlay(value = 'fhh-ia-ecosystem-full') {
-  if (!['none', 'starter', 'fhh-ia-ecosystem-full'].includes(value)) {
+  if (!['fhh-ia-ecosystem-full'].includes(value)) {
     throw new Error(`Unsupported overlay: ${value}`);
   }
   return value;
@@ -60,19 +60,11 @@ async function collectTemplateFiles(templateRelativePath) {
 }
 
 export async function selectedTemplateFiles({ runtimes = ['neutral'], overlay = 'fhh-ia-ecosystem-full' } = {}) {
-  const selected = overlay === 'fhh-ia-ecosystem-full'
-    ? await collectTemplateFiles('repo-overlay-fhh-ia-ecosystem-full')
-    : await collectTemplateFiles('portable-core');
+  const selected = await collectTemplateFiles('repo-overlay-fhh-ia-ecosystem-full');
 
   for (const runtime of runtimes) {
     if (runtime === 'neutral') continue;
     selected.push(...await collectTemplateFiles(runtimeTemplatePaths[runtime]));
-  }
-
-  if (overlay === 'starter') {
-    selected.push(...await collectTemplateFiles('repo-overlay'));
-  } else if (overlay === 'fhh-ia-ecosystem-full') {
-    selected.push(...await collectTemplateFiles('repo-overlay-fhh-ia-ecosystem-full'));
   }
 
   const deduped = new Map();
@@ -153,7 +145,7 @@ export async function buildUpdatePlan(options = {}) {
   const operations = [];
 
   if (!existingState && !options.adoptExisting) {
-    throw new Error('No install state found. Run `workflow-kit update --adopt-existing --runtime <list> --overlay <name>` first to bootstrap a safe baseline.');
+    throw new Error('No install state found. Run `workflow-kit update --adopt-existing --runtime <list>` first to bootstrap a safe baseline.');
   }
 
   for (const file of files) {

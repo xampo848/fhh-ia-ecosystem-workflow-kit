@@ -10,9 +10,12 @@ Initial physical convention for new pattern skills:
 
 Examples:
 
-- `.agents/skills/06-patterns/backend/importer-implementation/SKILL.md`
-- `.agents/skills/06-patterns/frontend/form-validation/SKILL.md`
-- `.agents/skills/06-patterns/domain/tenant-safe-data-access/SKILL.md`
+- `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md`
+- `.agents/skills/06-patterns/backend/project-specific-importer/SKILL.md`
+- `.agents/skills/06-patterns/frontend/project-specific-form-validation/SKILL.md`
+
+This overlay is intentionally project-extensible. It ships only a neutral
+authoring helper and does not ship domain-specific default patterns.
 
 ## Purpose
 
@@ -107,6 +110,19 @@ Every new pattern skill should define:
 7. **Stop conditions** — ambiguities or risk boundaries that prohibit guessing.
 8. **Out-of-scope notes** — adjacent work that the pattern skill must not
    absorb.
+
+## Recommended Bootstrap Flow
+
+When a repository starts from this overlay:
+
+1. Use `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md`.
+2. Create 1-3 local project patterns under
+  `.agents/skills/06-patterns/<domain>/<skill>/SKILL.md`.
+3. Register each new skill in `.agents/skills/registry.md`.
+4. Regenerate derived artifacts:
+  `.agents/skills/registry.json` and `.agents/skills/registry.cache.json`.
+5. Keep fallback docs in `docs/patterns/**` until enough local pattern skills
+  exist.
 
 ## Handoff Evidence Contract
 

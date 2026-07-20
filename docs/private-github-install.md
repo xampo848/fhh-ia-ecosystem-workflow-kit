@@ -20,8 +20,8 @@ Then run:
 
 ```bash
 workflow-kit --help
-workflow-kit init --target /path/to/repo --runtime codex --overlay starter
-workflow-kit export --output /tmp/workflow-kit-export --runtime codex --overlay starter
+workflow-kit init --target /path/to/repo --runtime codex
+workflow-kit export --output /tmp/workflow-kit-export --runtime codex
 ```
 
 ## Private access requirements

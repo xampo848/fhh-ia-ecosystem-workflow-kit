@@ -1,17 +1,17 @@
-# Example: Neutral Core Only
+# Example: Full Workflow Without Adapters
 
-Use when a team wants only the neutral `.agents` workflow contract and will create runtime adapters later.
+Use when a team wants the full `.agents` workflow package and will add runtime adapters later.
 
 ## Preview
 
 ```bash
-node bin/workflow-kit.mjs init --target ./platform-repo --runtime neutral --overlay none
+node bin/workflow-kit.mjs init --target ./platform-repo --runtime neutral
 ```
 
 ## Apply after review
 
 ```bash
-node bin/workflow-kit.mjs init --target ./platform-repo --runtime neutral --overlay none --apply --yes
+node bin/workflow-kit.mjs init --target ./platform-repo --runtime neutral --apply --yes
 ```
 
-This installs portable core files only. It does not create `AGENTS.md`, Copilot, or Claude adapter files.
+This installs the full workflow package. No runtime adapter files are created (`AGENTS.md`, Copilot, Claude, etc.) while runtime stays `neutral`.

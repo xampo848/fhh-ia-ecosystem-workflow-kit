@@ -8,8 +8,8 @@ test('doctor succeeds after selected install is applied', async () => {
   const installIo = createMemoryIo();
   const doctorIo = createMemoryIo();
 
-  assert.equal(await runCli(['init', '--target', target, '--runtime', 'codex,copilot', '--overlay', 'starter', '--apply', '--yes'], installIo), 0);
-  const code = await runCli(['doctor', '--target', target, '--runtime', 'codex,copilot', '--overlay', 'starter'], doctorIo);
+  assert.equal(await runCli(['init', '--target', target, '--runtime', 'codex,copilot', '--overlay', 'fhh-ia-ecosystem-full', '--apply', '--yes'], installIo), 0);
+  const code = await runCli(['doctor', '--target', target, '--runtime', 'codex,copilot', '--overlay', 'fhh-ia-ecosystem-full'], doctorIo);
 
   assert.equal(code, 0);
   assert.match(doctorIo.output.stdout, /Doctor: ok/);

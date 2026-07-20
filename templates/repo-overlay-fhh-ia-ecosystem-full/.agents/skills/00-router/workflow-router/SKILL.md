@@ -367,6 +367,7 @@ Behavior:
 | "Haz un ticket para esto" | `generate-pm-ticket` | `lean` |
 | "Agrega un workflow nuevo al router" | Workflow extension maintenance path (explain or edit, based on user intent) | `lean` |
 | "Crea una skill propia y dejala registrada" | Workflow extension maintenance path (create `SKILL.md` + update registry, and router only if needed) | `lean` |
+| "Quiero agregar un pattern para mi proyecto" | Workflow extension maintenance path using `add-project-pattern` + registry sync | `lean` |
 | "Revisa si esta pantalla está bien" | `frontend-design` si el problema es visual/dirección, `impeccable` si requiere craft/polish/audit amplio, o `react-doctor` si es revisión técnica React | `lean` o `balanced` según profundidad |
 | "Documenta lo que se hizo" | `document-development` | `lean` |
 
