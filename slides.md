@@ -1,14 +1,14 @@
 ---
 theme: default
-title: AI Workflow Kit · FHH IA Ecosystem
+title: FHH IA Ecosystem Workflow
 titleTemplate: '%s'
 info: |
-  Un sistema operativo para el desarrollo asistido por IA.
-  Gobernanza, calidad, portabilidad y eficiencia.
+  FHH IA Ecosystem Workflow: el flujo completo de desarrollo asistido por IA.
+  Finetuning avanzado para delivery de software con gobernanza y calidad.
 author: Francisco Herrera
 presenter: true
 download: false
-exportFilename: ai-workflow-kit
+exportFilename: fhh-ia-ecosystem-workflow
 lineNumbers: false
 monaco: false
 colorSchema: dark
@@ -27,35 +27,36 @@ defaults:
 
 <div class="cover">
   <div>
-    <div class="eyebrow">AI Workflow Kit · FHH IA Ecosystem</div>
-    <div class="cover-title">Un sistema operativo<br>para el desarrollo<br>asistido por IA</div>
-    <div class="cover-sub">Gobernanza, calidad, portabilidad y eficiencia</div>
+    <div class="cover-title">El flujo completo<br>para desarrollar software<br>con agentes IA</div>
+    <div class="cover-sub">Finetuning avanzado de desarrollo de software</div>
     <p class="cover-copy">
-      Un mismo sistema de trabajo para llevar un workflow personal a una organización
-      sin perder control — repetible, auditable y portable entre runtimes.
+      Un sistema operativo end-to-end: contrato neutral, skills ejecutables, capacidades acoplables, routing por riesgo, memoria gobernada y paridad entre runtimes.
     </p>
     <div class="cover-meta">
-      <span class="v">Propuesta de adopción corporativa</span>
-      <span class="k">Basada en la implementación real del workflow kit · v0.6.0</span>
+      <span class="v">Flujo completo del ecosistema IA</span>
+      <span class="k">Basado en templates/repo-overlay-fhh-ia-ecosystem-full/.agents/**</span>
     </div>
   </div>
   <div class="stack">
     <div class="stack-item s-core">
-      <div class="st-tag">Fuente de verdad</div>
-      <div class="st-title">.agents/</div>
-      <div class="st-desc">Contrato neutral · routing · skills · políticas · memoria</div>
+      <div class="st-tag">Contrato neutral</div>
+      <div class="st-title">.agents/instructions.md</div>
+      <div class="st-desc">Fuente de verdad para todos los runtimes</div>
     </div>
     <div class="stack-item s-cyan">
-      <div class="st-tag">Portable core</div>
-      <div class="st-title">Router · create-prd · implement-prd</div>
+      <div class="st-tag">Motor del workflow</div>
+      <div class="st-title">47 SKILL.md en 7 áreas</div>
+      <div class="st-desc">Router + Product + Implement + Quality + Crosscutting + Caveman + Patterns</div>
     </div>
     <div class="stack-item s-blue">
-      <div class="st-tag">Runtime adapters</div>
-      <div class="st-title">Codex · Copilot · Claude · Antigravity</div>
+      <div class="st-tag">Capacidades</div>
+      <div class="st-title">6 manifests + integración neutral</div>
+      <div class="st-desc">context7 · engram · impeccable · cavecrew · caveman · skills-sh</div>
     </div>
     <div class="stack-item s-mint">
-      <div class="st-tag">Repo overlay</div>
-      <div class="st-title">Reglas locales · estándares · dominio</div>
+      <div class="st-tag">Paridad runtime</div>
+      <div class="st-title">Codex · Copilot · Claude</div>
+      <div class="st-desc">Misma semántica, distintos wrappers</div>
     </div>
   </div>
 </div>
@@ -63,572 +64,221 @@ defaults:
 ---
 
 <div class="slide-head">
-  <div class="eyebrow">Resumen ejecutivo</div>
-  <h1>La oportunidad no es "usar más IA"</h1>
-  <div class="sub">Es convertir la IA en un sistema de trabajo repetible, auditable y controlado.</div>
+  <h1>Un workflow completo, no una colección de prompts</h1>
+  <div class="sub">Contrato neutral, taxonomía de skills, capacidades acoplables y gobernanza de calidad trabajando como un solo sistema.</div>
 </div>
 
 <div class="grid grid-3">
   <div class="card accent-cyan">
     <div class="idx">01</div>
-    <div class="card-title">Estandarizar</div>
-    <div class="card-copy">Una fuente de verdad neutral evita que Codex, Copilot y Claude ejecuten reglas distintas.</div>
+    <div class="card-title">Control semántico</div>
+    <div class="card-copy">Un contrato neutral gobierna skills, integración, memoria y routing en todos los runtimes.</div>
   </div>
   <div class="card accent-mint">
     <div class="idx">02</div>
-    <div class="card-title">Proteger</div>
-    <div class="card-copy">Dry-run, backups, validación y separación core/overlay reducen cambios destructivos y contaminación de contexto.</div>
+    <div class="card-title">Cobertura operativa</div>
+    <div class="card-copy">Desde discovery y PRD hasta implementación por slices, QA fresco y documentación durable.</div>
   </div>
   <div class="card accent-blue">
     <div class="idx">03</div>
-    <div class="card-title">Escalar</div>
-    <div class="card-copy">Un kit instalable permite llevar el mismo modelo a varios repositorios sin copiar reglas manualmente.</div>
+    <div class="card-title">Escalamiento real</div>
+    <div class="card-copy">Paridad multi-runtime, capacidades acoplables y blueprint de adopción para nuevos repositorios.</div>
   </div>
 </div>
 
 <div class="callout mt-6">
-  <strong>Recomendación.</strong> Mantener el repositorio personal privado y crear una distribución privada propiedad de la empresa. Los desarrolladores contribuyen mediante PRs; las mejoras reutilizables vuelven al upstream solo con reglas explícitas de propiedad intelectual.
+  <strong>Un solo estándar de trabajo:</strong> todas las piezas del ecosistema — skills, capabilities, routing y memoria — operan bajo la misma gobernanza.
 </div>
-
-<div class="source">Fuentes: README.md · package.json · templates/template-manifest.json</div>
 
 ---
 
 <div class="slide-head">
-  <div class="eyebrow amber">El problema</div>
-  <h1>Sin un workflow común, cada agente "inventa" su forma de trabajar</h1>
-  <div class="sub">El costo real aparece en retrabajo, inconsistencias, consumo de tokens y defectos que escapan al proceso.</div>
+  <h1>Mapa completo de capas y responsabilidades</h1>
+  <div class="sub">El workflow separa contrato, ejecución, capacidades y adapters para mantener calidad sin acoplarse a un solo vendor.</div>
+</div>
+
+<div class="grid grid-3">
+  <div class="card accent-cyan">
+    <div class="card-title">.agents/instructions.md</div>
+    <div class="card-copy">Startup contract neutral: jerarquía de fuentes, loading rules, token posture, políticas de integración y routing.</div>
+  </div>
+  <div class="card accent-blue">
+    <div class="card-title">.agents/skills/**</div>
+    <div class="card-copy">Taxonomía y ejecución AI-native. Registro neutral con cargas just-in-time y delegates con ownership explícito.</div>
+  </div>
+  <div class="card accent-mint">
+    <div class="card-title">.agents/capabilities/**</div>
+    <div class="card-copy">Blueprint de packaging + lifecycle (known/installed/attached/active) + attach points estables.</div>
+  </div>
+  <div class="card accent-magenta">
+    <div class="card-title">.agents/integrations/**</div>
+    <div class="card-copy">Contrato install/attach: intents, source policy, confirmación obligatoria y definición de éxito.</div>
+  </div>
+  <div class="card accent-amber">
+    <div class="card-title">.agents/model-routing/**</div>
+    <div class="card-copy">Cost posture lean/balanced/premium + tiers Grande/Mediano/Liviano + delegación y overrides.</div>
+  </div>
+  <div class="card accent-cyan">
+    <div class="card-title">.agents/memory/** + parity</div>
+    <div class="card-copy">Gobierno de memoria compartida, sensibilidad y checklist de paridad runtime para evitar drift.</div>
+  </div>
+</div>
+
+---
+
+<div class="slide-head">
+  <h1>47 skills activables en 7 áreas operativas</h1>
+  <div class="sub">No son prompts sueltos: son procedimientos ejecutables con triggers, loading posture y límites de ownership.</div>
 </div>
 
 <div class="grid grid-4">
-  <div class="card accent-amber">
-    <div class="card-icon">⇋</div>
-    <div class="card-title">Runtimes divergentes</div>
-    <div class="card-copy">AGENTS.md, Copilot y Claude pueden contener reglas duplicadas o contradictorias.</div>
-  </div>
-  <div class="card accent-amber">
-    <div class="card-icon">↯</div>
-    <div class="card-title">Contexto inflado</div>
-    <div class="card-copy">Se cargan demasiadas skills, documentos y archivos aunque la tarea sea pequeña.</div>
-  </div>
-  <div class="card accent-amber">
-    <div class="card-icon">！</div>
-    <div class="card-title">Calidad no verificable</div>
-    <div class="card-copy">La IA implementa antes de fijar alcance, criterios de aceptación y validación.</div>
-  </div>
-  <div class="card accent-amber">
-    <div class="card-icon">◇</div>
-    <div class="card-title">Conocimiento efímero</div>
-    <div class="card-copy">Decisiones y patrones quedan en chats, no en artefactos reutilizables.</div>
-  </div>
+  <div class="card accent-cyan"><div class="idx">00-router</div><div class="card-title">1 skill</div><div class="card-copy">workflow-router: intake y selección de flujo seguro mínimo.</div></div>
+  <div class="card accent-blue"><div class="idx">01-product</div><div class="card-title">11 skills</div><div class="card-copy">product-studio, create-epic, create-prd, PM ticket y sub-workflows de estrategia.</div></div>
+  <div class="card accent-mint"><div class="idx">02-implement</div><div class="card-title">11 skills</div><div class="card-copy">implement-prd + readiness, discovery, slicing, implementers, contracts, validation y QA.</div></div>
+  <div class="card accent-magenta"><div class="idx">03-quality</div><div class="card-title">3 skills</div><div class="card-copy">document-development, playwright-testing, react-doctor.</div></div>
+  <div class="card accent-amber"><div class="idx">04-crosscutting</div><div class="card-title">4 skills</div><div class="card-copy">engineering-mentor, frontend-design, impeccable, PR comments resolution.</div></div>
+  <div class="card accent-cyan"><div class="idx">05-caveman</div><div class="card-title">10 skills</div><div class="card-copy">modo de compresión y helper delegates para velocidad con precisión.</div></div>
+  <div class="card accent-blue"><div class="idx">06-patterns</div><div class="card-title">7 skills</div><div class="card-copy">backend/domain/frontend patterns reutilizables para implementation slicing.</div></div>
+  <div class="card accent-mint"><div class="idx">Registry</div><div class="card-title">Contrato neutral</div><div class="card-copy">registry.md + registry.json/cache/schema como inventario canónico y artefactos derivados.</div></div>
 </div>
-
-<div class="callout amber mt-6">
-  <strong>Resultado típico:</strong> más autonomía aparente, pero menos previsibilidad operacional.
-</div>
-
-<div class="source">Referencia: docs/internal-documentation/workflows/ai-workflow.md · .agents/instructions.md</div>
 
 ---
 
 <div class="slide-head">
-  <div class="eyebrow">Alcance real</div>
-  <h1>Qué entrega hoy el kit y qué pertenece al workflow maduro</h1>
-  <div class="sub">La propuesta evita vender como "incluido" lo que todavía es una extensión de la implementación de referencia.</div>
-</div>
-
-<div class="compare">
-  <div class="panel p-now">
-    <div class="p-tag">Producto distribuible hoy</div>
-    <div class="p-title">v0.6.0 · private install/export ready</div>
-    <ul>
-      <li>CLI: init, export, doctor y TUI guiada.</li>
-      <li>Dry-run por defecto; apply exige <strong>--apply --yes</strong>.</li>
-      <li>Core portable mínimo: router, create-prd e implement-prd.</li>
-      <li>Adapters delgados para Codex, Copilot y Claude.</li>
-      <li>Overlay starter para reglas locales y capabilities.</li>
-      <li>Backups, manifest validation y release guardrails.</li>
-    </ul>
-  </div>
-  <div class="panel p-ref">
-    <div class="p-tag">Referencia madura</div>
-    <div class="p-title">Workflow ampliado para producción</div>
-    <ul>
-      <li>product-studio, create-epic y document-development.</li>
-      <li>Readiness, discovery y slicing antes de implementar.</li>
-      <li>Implementadores backend/frontend y acceptance tests.</li>
-      <li>Verificación de contratos, validación y QA fresco.</li>
-      <li>Model routing lean/balanced/premium y delegación.</li>
-      <li>Memoria, patrones de dominio y quality gates.</li>
-    </ul>
-  </div>
-</div>
-
-<div class="source">Fuentes: README.md · templates/portable-core/** · docs/internal-documentation/workflows/ai-workflow.md</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow blue">Arquitectura</div>
-  <h1>Una fuente de verdad; múltiples runtimes; reglas locales separadas</h1>
-  <div class="sub">La portabilidad se consigue evitando que los adapters y el core absorban reglas específicas de cada producto.</div>
-</div>
-
-<div class="arch">
-  <div class="arch-core">
-    <div class="ac-tag">Fuente de verdad</div>
-    <div class="ac-path">.agents/</div>
-    <div class="ac-desc">instrucciones · registry · skills · model routing · integrations · memory — neutral y reusable</div>
-  </div>
-  <div class="arch-runtimes">
-    <div class="rt">
-      <div class="rt-badge">C</div>
-      <div class="rt-name">Codex</div>
-      <div class="rt-desc">AGENTS.md apunta al core.</div>
-    </div>
-    <div class="rt r-blue">
-      <div class="rt-badge">G</div>
-      <div class="rt-name">GitHub Copilot</div>
-      <div class="rt-desc">.github/ adapta la superficie.</div>
-    </div>
-    <div class="rt r-mint">
-      <div class="rt-badge">A</div>
-      <div class="rt-name">Claude</div>
-      <div class="rt-desc">CLAUDE.md hereda reglas.</div>
-    </div>
-    <div class="rt r-amber">
-      <div class="rt-badge">N</div>
-      <div class="rt-name">Neutral</div>
-      <div class="rt-desc">Solo portable core.</div>
-    </div>
-  </div>
-  <div class="callout">
-    <strong>Repo overlay:</strong> arquitectura local · estándares · patrones · comandos de prueba · dominio — separado del core.
-  </div>
-</div>
-
-<div class="source">Fuente: templates/template-manifest.json · runtime-adapters/** · portable-core/.agents/instructions.md</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow">Entrada y routing</div>
-  <h1>El usuario describe el problema; el sistema elige el flujo mínimo seguro</h1>
-  <div class="sub">No se exige memorizar skills. La decisión queda trazada con razón, costo y validación esperada.</div>
-</div>
-
-<div class="flow">
-  <div class="flow-row">
-    <div class="step">
-      <span class="s-num">?</span>
-      <div class="s-title">Solicitud libre</div>
-      <div class="s-desc">El usuario describe qué necesita, sin memorizar skills ni comandos.</div>
-    </div>
-    <div class="step" style="border-color: rgba(51,214,255,0.5); background: rgba(51,214,255,0.08);">
-      <span class="s-num">→</span>
-      <div class="s-title">Workflow router</div>
-      <div class="s-desc">Clasifica intención, riesgo y tamaño. Elige el menor workflow que conserve calidad production-ready.</div>
-    </div>
-  </div>
-  <div class="flow-row">
-    <div class="step">
-      <span class="s-num">A</span>
-      <div class="s-title">Respuesta directa</div>
-      <div class="s-desc">Análisis o comando puntual.</div>
-    </div>
-    <div class="step">
-      <span class="s-num">B</span>
-      <div class="s-title">create-prd</div>
-      <div class="s-desc">Requisitos aún no explícitos.</div>
-    </div>
-    <div class="step">
-      <span class="s-num">C</span>
-      <div class="s-title">implement-prd</div>
-      <div class="s-desc">PRD aprobado o cambio productivo.</div>
-    </div>
-    <div class="step">
-      <span class="s-num">D</span>
-      <div class="s-title">Flujo extendido</div>
-      <div class="s-desc">Producto, épica o documentación.</div>
-    </div>
-  </div>
-</div>
-
-<div class="callout mt-4">
-  <strong>Traza:</strong> workflow · confidence · reason · alternative · cost posture · validation.
-</div>
-
-<div class="source">Fuentes: workflow-router/SKILL.md · .github/copilot-instructions.md · ai-workflow.md</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow mint">Ciclo de trabajo</div>
-  <h1>De una necesidad difusa a una capacidad terminada y documentada</h1>
-  <div class="sub">Los pasos se activan según el tamaño de la iniciativa; no todos son obligatorios en cada tarea.</div>
+  <h1>Del routing a la entrega verificable en una sola cadena</h1>
+  <div class="sub">El workflow operacionaliza entrega de software con fases, ownership y gates explícitos.</div>
 </div>
 
 <div class="phase-band">
-  <div class="band b-amber">Opcional cuando falta claridad</div>
-  <div class="band b-cyan">Núcleo de entrega</div>
-  <div class="band b-mint">Cierre durable</div>
-</div>
-
-<div class="flow-row">
-  <div class="step">
-    <span class="s-num">−1</span>
-    <div class="s-title">Product studio</div>
-    <div class="s-desc">Aclara problema, usuario, prioridad y validación.</div>
-  </div>
-  <div class="step">
-    <span class="s-num">0</span>
-    <div class="s-title">Create epic</div>
-    <div class="s-desc">Investiga iniciativas amplias y las divide en PRDs.</div>
-  </div>
-  <div class="step">
-    <span class="s-num">1</span>
-    <div class="s-title">Create PRD</div>
-    <div class="s-desc">Fija alcance, reglas, aceptación, riesgos y fases.</div>
-  </div>
-  <div class="step">
-    <span class="s-num">2</span>
-    <div class="s-title">Implement PRD</div>
-    <div class="s-desc">Construye por slices con evidencia y quality gates.</div>
-  </div>
-  <div class="step">
-    <span class="s-num">3</span>
-    <div class="s-title">Document</div>
-    <div class="s-desc">Preserva conocimiento para dev, QA, soporte y producto.</div>
-  </div>
-</div>
-
-<div class="source">Fuente: docs/internal-documentation/workflows/ai-workflow.md</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow">Orquestación de implementación</div>
-  <h1>"Implementar" no significa empezar a escribir código</h1>
-  <div class="sub">Primero se valida que el trabajo sea ejecutable; después se descubre, divide, construye y verifica.</div>
+  <div class="band b-amber">Intake y definición</div>
+  <div class="band b-cyan">Implementación orquestada</div>
+  <div class="band b-mint">Calidad y cierre durable</div>
 </div>
 
 <div class="flow">
   <div class="flow-row">
-    <div class="step"><span class="s-num">1</span><div class="s-title">Readiness</div><div class="s-desc">GO / STOP</div></div>
-    <div class="step"><span class="s-num">2</span><div class="s-title">Discovery</div><div class="s-desc">Patrones, archivos y riesgos</div></div>
-    <div class="step"><span class="s-num">3</span><div class="s-title">Slicing</div><div class="s-desc">Ownership y orden</div></div>
-    <div class="step"><span class="s-num">4</span><div class="s-title">Build</div><div class="s-desc">Backend / Frontend / Tests</div></div>
-  </div>
-  <div class="flow-row">
-    <div class="step"><span class="s-num">5</span><div class="s-title">Contracts</div><div class="s-desc">API ↔ UI</div></div>
-    <div class="step"><span class="s-num">6</span><div class="s-title">Validation</div><div class="s-desc">Tests + lint</div></div>
-    <div class="step"><span class="s-num">7</span><div class="s-title">Fresh QA</div><div class="s-desc">Revisión independiente</div></div>
-    <div class="step"><span class="s-num">8</span><div class="s-title">Docs</div><div class="s-desc">Conocimiento durable</div></div>
+    <div class="step"><span class="s-num">R</span><div class="s-title">Router</div><div class="s-desc">Clasifica intención/riesgo y decide flujo.</div></div>
+    <div class="step"><span class="s-num">P</span><div class="s-title">Product</div><div class="s-desc">product-studio, epic o PRD con aceptación.</div></div>
+    <div class="step"><span class="s-num">I</span><div class="s-title">Implement PRD</div><div class="s-desc">Readiness → Discovery → Slicing → Build.</div></div>
+    <div class="step"><span class="s-num">Q</span><div class="s-title">Quality Gates</div><div class="s-desc">Contracts → Validation → Fresh QA.</div></div>
+    <div class="step"><span class="s-num">D</span><div class="s-title">Document</div><div class="s-desc">Cierre durable de conocimiento.</div></div>
   </div>
 </div>
 
 <div class="callout mint mt-4">
-  La <strong>evidencia de aceptación</strong> —no la cantidad de código— determina el cierre.
+  <strong>Principio del workflow:</strong> no hay "avance" sin evidencia de aceptación, validación focalizada y ownership de archivos por fase/delegate.
 </div>
-
-<div class="source">Fuente: ai-workflow.md §7 · implement-prd/SKILL.md</div>
 
 ---
 
 <div class="slide-head">
-  <div class="eyebrow magenta">Eficiencia</div>
-  <h1>Controlar costo sin degradar calidad</h1>
-  <div class="sub">El sistema optimiza contexto, modelo, delegación y validación; no "abarata" omitiendo controles.</div>
+  <h1>El workflow también es un sistema de capabilities acoplables</h1>
+  <div class="sub">Skills ejecutan el flujo; capabilities extienden el sistema con una política neutral de install/attach.</div>
 </div>
 
-<div class="tiers">
-  <div class="tier lean">
-    <div class="t-name">LEAN</div>
-    <div class="t-desc">Routing, documentación, repetición, cambios de bajo riesgo.</div>
-  </div>
-  <div class="tier balanced">
-    <div class="t-name">BALANCED</div>
-    <div class="t-desc">PRDs, implementación normal, debugging y code review.</div>
-  </div>
-  <div class="tier premium">
-    <div class="t-name">PREMIUM</div>
-    <div class="t-desc">Arquitectura, seguridad, multi-tenancy y QA crítico.</div>
-  </div>
-</div>
-
-<div class="grid grid-4">
-  <div class="card accent-cyan">
-    <div class="card-title">Carga just-in-time</div>
-    <div class="card-copy">Solo abrir skills, patrones y archivos cuando el trigger aplica.</div>
+<div class="grid grid-2">
+  <div class="card accent-magenta">
+    <div class="card-title">Inventario de capabilities (6)</div>
+    <div class="chips mt-2">
+      <span class="chip">context7</span>
+      <span class="chip">engram</span>
+      <span class="chip">impeccable</span>
+      <span class="chip">caveman</span>
+      <span class="chip">cavecrew</span>
+      <span class="chip">skills-sh</span>
+    </div>
+    <div class="card-copy mt-4">Cada capability declara manifest, attach points, scope, install_mode y estado de lifecycle.</div>
   </div>
   <div class="card accent-blue">
-    <div class="card-title">Delegación selectiva</div>
-    <div class="card-copy">Subagentes solo si reducen riesgo, carga de contexto o sesgo de revisión.</div>
-  </div>
-  <div class="card accent-mint">
-    <div class="card-title">Validación focalizada</div>
-    <div class="card-copy">Comenzar con el comando mínimo que puede falsar el cambio.</div>
-  </div>
-  <div class="card accent-magenta">
-    <div class="card-title">Salida proporcional</div>
-    <div class="card-copy">Reportar decisiones, deltas, riesgos y próximos pasos; evitar repetir contexto.</div>
+    <div class="card-title">Contrato de integración</div>
+    <div class="card-copy">
+      Intents soportados: install+attach, attach-only, list/discover, recommend.<br>
+      Políticas: source oficial por defecto, confirmación previa obligatoria, éxito = available + attached + documented.
+    </div>
   </div>
 </div>
 
-<div class="source">Fuentes: model-routing/README.md · .agents/instructions.md · copilot-instructions.md</div>
+<table class="wk-table mt-4">
+  <thead><tr><th>Attach point</th><th>Uso en el workflow</th></tr></thead>
+  <tbody>
+    <tr><td>startup-discovery</td><td>Visibilidad inicial y disponibilidad</td></tr>
+    <tr><td>workflow-routing</td><td>Influye selección de flujo/capability lookup</td></tr>
+    <tr><td>skill-execution</td><td>Uso just-in-time durante skills</td></tr>
+    <tr><td>memory / validation</td><td>Evidencia durable y verificaciones</td></tr>
+  </tbody>
+</table>
 
 ---
 
 <div class="slide-head">
-  <div class="eyebrow">Instalación segura</div>
-  <h1>Dry-run primero; escritura explícita después</h1>
-  <div class="sub">El kit trata la adopción como una operación de infraestructura: planificable, reversible y validable.</div>
-</div>
-
-<div class="flow-row">
-  <div class="step"><span class="s-num">1</span><div class="s-title">Seleccionar</div><div class="s-desc">Target · runtimes · overlay</div></div>
-  <div class="step"><span class="s-num">2</span><div class="s-title">Planificar</div><div class="s-desc">create · unchanged · overwrite</div></div>
-  <div class="step"><span class="s-num">3</span><div class="s-title">Revisar</div><div class="s-desc">Conflictos y archivos afectados</div></div>
-  <div class="step"><span class="s-num">4</span><div class="s-title">Aplicar</div><div class="s-desc">Requiere --apply --yes</div></div>
-  <div class="step"><span class="s-num">5</span><div class="s-title">Respaldar</div><div class="s-desc">Backup timestamped antes de overwrite</div></div>
-  <div class="step"><span class="s-num">6</span><div class="s-title">Validar</div><div class="s-desc">workflow-kit doctor</div></div>
-</div>
-
-<div class="callout mt-4">
-  <strong>Por defecto no escribe nada.</strong>
-  <span style="font-family:'JetBrains Mono',monospace; color:var(--wk-text-soft); display:block; margin-top:0.4rem; font-size:0.8rem;">workflow-kit init --target /repo --runtime codex,copilot --overlay starter</span>
-</div>
-
-<div class="source">Fuentes: src/cli.mjs · planner.mjs · apply.mjs · doctor.mjs · tui.mjs</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow">Guardrails</div>
-  <h1>La seguridad está integrada en el diseño del producto</h1>
-  <div class="sub">No depende de que cada desarrollador recuerde "tener cuidado" al instalar o actualizar el workflow.</div>
+  <h1>Calidad consistente entre Codex, Copilot y Claude</h1>
+  <div class="sub">La paridad del workflow no exige mismo archivo ni mismo modelo exacto; exige misma semántica de riesgo, gates y gobernanza.</div>
 </div>
 
 <div class="grid grid-3">
-  <div class="card accent-mint">
-    <div class="card-icon">✓</div>
-    <div class="card-title">Sin escritura silenciosa</div>
-    <div class="card-copy">Dry-run default; apply explícito.</div>
+  <div class="card accent-cyan">
+    <div class="card-title">Model routing neutral</div>
+    <div class="card-copy">Cost posture lean/balanced/premium + tiers Grande/Mediano/Liviano + override explícito con warning de riesgo.</div>
   </div>
   <div class="card accent-mint">
-    <div class="card-icon">↶</div>
-    <div class="card-title">Sin overwrite irreversible</div>
-    <div class="card-copy">Backup automático antes de reemplazar.</div>
+    <div class="card-title">Memory governance</div>
+    <div class="card-copy">Scopes local-session/local-user/project-shared/runtime-derived + sensibilidad public/restricted/do-not-share.</div>
   </div>
-  <div class="card accent-mint">
-    <div class="card-icon">▦</div>
-    <div class="card-title">Sin fuga de reglas locales</div>
-    <div class="card-copy">Core portable y overlay tienen límites validados.</div>
-  </div>
-  <div class="card accent-mint">
-    <div class="card-icon">≣</div>
-    <div class="card-title">Sin lógica duplicada</div>
-    <div class="card-copy">Adapters delgados heredan del contrato neutral.</div>
-  </div>
-  <div class="card accent-mint">
-    <div class="card-icon">⊘</div>
-    <div class="card-title">Sin publicación accidental</div>
-    <div class="card-copy">package.json private:true y release approval-gated.</div>
-  </div>
-  <div class="card accent-mint">
-    <div class="card-icon">≡</div>
-    <div class="card-title">Sin capabilities implícitas</div>
-    <div class="card-copy">Instalar ≠ adjuntar ≠ activar.</div>
+  <div class="card accent-blue">
+    <div class="card-title">Parity checklist</div>
+    <div class="card-copy">Startup, skill discovery, integrations, routing, memory y closure/reporting con estado aligned/drift.</div>
   </div>
 </div>
 
-<div class="source">Fuentes: README.md · template-manifest.json · RELEASE.md · capabilities/README.md</div>
+<div class="callout mt-4">
+  <strong>Regla de oro:</strong> si un wrapper redefine semántica neutral, hay drift y debe corregirse.
+</div>
 
 ---
 
 <div class="slide-head">
-  <div class="eyebrow blue">Modelo operativo recomendado</div>
-  <h1>Separar el activo personal del producto corporativo</h1>
-  <div class="sub">La empresa necesita control operacional; el creador necesita preservar propiedad, independencia y trazabilidad.</div>
+  <h1>Cómo se reutiliza el workflow en otros repositorios</h1>
+  <div class="sub">El workflow-kit define la frontera portable-core/overlay para reuso, preservando el mismo flujo completo en cualquier repositorio nuevo.</div>
 </div>
 
 <div class="compare">
   <div class="panel p-now">
-    <div class="p-tag">Upstream personal · privado</div>
-    <div class="p-title">workflow-kit (personal)</div>
+    <div class="p-tag">Operación diaria</div>
+    <div class="p-title">Repo Overlay del workflow</div>
     <ul>
-      <li>Visión, diseño genérico y roadmap personal.</li>
-      <li>Sin reglas internas ni secretos de la empresa.</li>
-      <li>Publicación futura bajo decisión del autor.</li>
-      <li>Acepta solo contribuciones con origen y derechos claros.</li>
+      <li>Superficie completa de skills, capabilities y gobernanza.</li>
+      <li>Finetuning avanzado para delivery real de software.</li>
+      <li>Paridad runtime y quality gates en producción.</li>
+      <li>Base recomendada para equipos y repos activos.</li>
     </ul>
   </div>
   <div class="panel p-ref">
-    <div class="p-tag">Distribución corporativa · privada</div>
-    <div class="p-title">company/ai-workflow-kit</div>
+    <div class="p-tag">Packaging boundary</div>
+    <div class="p-title">workflow-kit blueprint</div>
     <ul>
-      <li>Overlay, políticas, seguridad y runtimes corporativos.</li>
-      <li>Contribuciones de desarrolladores vía pull request.</li>
-      <li>CODEOWNERS, rulesets, CI y releases internas.</li>
-      <li>Propiedad y soporte formal de la organización.</li>
+      <li>Define cómo portar el sistema a otros repositorios.</li>
+      <li>Valida separación de capas y artefactos derivados.</li>
+      <li>Preserva el mismo flujo completo al adoptarlo.</li>
+      <li>Existe para adopción, no para reducir alcance.</li>
     </ul>
   </div>
 </div>
-
-<div class="callout mt-4">
-  <strong>Flujo:</strong> el corporativo importa versiones aprobadas del upstream; el upstream recibe mejoras genéricas propuestas — basado en la separación portable-core / repo-overlay del propio kit.
-</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow">Colaboración</div>
-  <h1>Mejoran el sistema sin escribir directamente en el repositorio personal</h1>
-  <div class="sub">La colaboración preserva revisión, ownership y separación entre mejoras corporativas y mejoras genéricas.</div>
-</div>
-
-<div class="flow-row">
-  <div class="step"><span class="s-num">1</span><div class="s-title">Issue / RFC</div><div class="s-desc">Problema observado, evidencia y propuesta.</div></div>
-  <div class="step"><span class="s-num">2</span><div class="s-title">Branch</div><div class="s-desc">Cambio aislado en repo corporativo.</div></div>
-  <div class="step"><span class="s-num">3</span><div class="s-title">Pull request</div><div class="s-desc">Tests, docs e impacto en templates.</div></div>
-  <div class="step"><span class="s-num">4</span><div class="s-title">CODEOWNERS</div><div class="s-desc">Revisión obligatoria del workflow owner.</div></div>
-  <div class="step"><span class="s-num">5</span><div class="s-title">Release interno</div><div class="s-desc">Versión, changelog y piloto.</div></div>
-</div>
-
-<div class="grid grid-2 mt-4">
-  <div class="card accent-blue">
-    <div class="card-title">Mejora corporativa</div>
-    <div class="card-copy">Políticas internas, seguridad, vendors, modelos aprobados, comandos y overlays.</div>
-  </div>
-  <div class="card accent-mint">
-    <div class="card-title">Mejora genérica</div>
-    <div class="card-copy">CLI, planner, doctor, adapters neutrales o guardrails reutilizables; candidata a upstream.</div>
-  </div>
-</div>
-
-<div class="source">Base: CONTRIBUTING.md · RELEASE.md · arquitectura de templates del kit.</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow amber">Decisión de visibilidad</div>
-  <h1>Mantener privado ahora; considerar público después de estabilizar la frontera</h1>
-  <div class="sub">Hacerlo público hoy aumenta distribución, pero cede control, expone diferenciadores y complica la propiedad de contribuciones corporativas.</div>
-</div>
-
-<table class="wk-table">
-  <thead>
-    <tr><th>Criterio</th><th>Privado</th><th>Público</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Control de roadmap</td><td class="col-priv">Alto</td><td class="col-pub">Medio</td></tr>
-    <tr><td>Adopción en la empresa</td><td class="col-priv">Simple con acceso GitHub</td><td class="col-pub">Simple, pero sin aislamiento</td></tr>
-    <tr><td>Protección del diferenciador</td><td class="col-priv">Alta</td><td class="col-pub">Baja</td></tr>
-    <tr><td>Contribuciones externas</td><td class="col-priv">Limitadas y controladas</td><td class="col-pub">Amplias; mayor mantenimiento</td></tr>
-    <tr><td>Riesgo IP empresa/personal</td><td class="col-priv">Gestionable con repos separados</td><td class="col-pub">Más complejo</td></tr>
-    <tr><td>Credibilidad / comunidad</td><td class="col-priv">Menor</td><td class="col-pub">Mayor</td></tr>
-  </tbody>
-</table>
-
-<div class="callout amber mt-4">
-  <strong>Decisión recomendada:</strong> privado durante el piloto corporativo y hasta contar con versión 1.0, política de contribución y revisión de propiedad intelectual.
-</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow mint">Adopción</div>
-  <h1>Plan 30–60–90 días para introducirlo sin imponerlo</h1>
-  <div class="sub">El objetivo del piloto es demostrar calidad y eficiencia, no convertir el workflow en burocracia obligatoria desde el primer día.</div>
-</div>
-
-<div class="grid grid-3">
-  <div class="card accent-mint">
-    <div class="idx">0–30 días</div>
-    <div class="card-title">Diseñar y pilotear</div>
-    <div class="card-copy">
-      Crear repo corporativo privado.<br>
-      Definir owners, licencia interna y reglas de contribución.<br>
-      Seleccionar 2 repos piloto y 4–6 desarrolladores.<br>
-      Instalar core + adapters + overlay mínimo.
-    </div>
-  </div>
-  <div class="card accent-cyan">
-    <div class="idx">31–60 días</div>
-    <div class="card-title">Medir y ajustar</div>
-    <div class="card-copy">
-      Medir tiempo a PR, retrabajo, defectos y consumo.<br>
-      Refinar router, skills y quality gates.<br>
-      Separar reglas universales de reglas locales.<br>
-      Publicar primera release interna estable.
-    </div>
-  </div>
-  <div class="card accent-blue">
-    <div class="idx">61–90 días</div>
-    <div class="card-title">Escalar con gobierno</div>
-    <div class="card-copy">
-      Ampliar a nuevos equipos/repositorios.<br>
-      Crear onboarding y office hours.<br>
-      Automatizar doctor y drift checks en CI.<br>
-      Decidir roadmap, soporte y eventual apertura pública.
-    </div>
-  </div>
-</div>
-
-<div class="source">Propuesta de rollout: pilotar, medir y escalar por evidencia.</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow">Decisiones requeridas</div>
-  <h1>Qué debe aprobar la empresa para comenzar</h1>
-  <div class="sub">La tecnología ya tiene una base funcional; el siguiente bloqueo es de ownership, gobierno y adopción.</div>
-</div>
-
-<div class="grid grid-4">
-  <div class="card accent-cyan">
-    <div class="idx">01</div>
-    <div class="card-title">Repositorio</div>
-    <div class="card-copy">Crear un repositorio privado propiedad de la empresa.</div>
-  </div>
-  <div class="card accent-blue">
-    <div class="idx">02</div>
-    <div class="card-title">Ownership</div>
-    <div class="card-copy">Nombrar workflow owner, CODEOWNERS y mantenedores.</div>
-  </div>
-  <div class="card accent-mint">
-    <div class="idx">03</div>
-    <div class="card-title">Piloto</div>
-    <div class="card-copy">Seleccionar equipos y repositorios con métricas de éxito.</div>
-  </div>
-  <div class="card accent-amber">
-    <div class="idx">04</div>
-    <div class="card-title">IP y licencia</div>
-    <div class="card-copy">Validar el uso del proyecto personal y las contribuciones.</div>
-  </div>
-</div>
-
-<div class="callout mint mt-6">
-  <strong>Resultado esperado:</strong> un estándar interno de IA que aumenta velocidad sin sacrificar arquitectura, seguridad ni control.
-</div>
-
-<div class="source">Recomendación final basada en el estado actual v0.6.0-private-install-export.</div>
 
 ---
 layout: section
 class: section-slide
 ---
 
-<div class="section-num">Gracias</div>
-<div class="section-title">Un estándar interno de IA<br>que aumenta velocidad<br>sin sacrificar control</div>
+<div class="section-num">Cierre</div>
+<div class="section-title">FHH IA Ecosystem Workflow<br>es el estándar completo<br>de ingeniería con IA</div>
 <div class="section-copy mt-4">
-  AI Workflow Kit · FHH IA Ecosystem — un sistema operativo para el desarrollo asistido por IA.
+  Sistema completo: contrato neutral, skills AI-native, capabilities acoplables, routing por riesgo, memoria gobernada y paridad multi-runtime.
 </div>
 <div class="chips mt-6">
-  <span class="chip">.agents/</span>
-  <span class="chip">workflow-router</span>
-  <span class="chip">implement-prd</span>
-  <span class="chip">dry-run first</span>
-  <span class="chip">lean · balanced · premium</span>
-  <span class="chip">portable-core / repo-overlay</span>
+  <span class="chip">47 skills</span>
+  <span class="chip">6 capabilities</span>
+  <span class="chip">7 áreas operativas</span>
+  <span class="chip">quality gates</span>
+  <span class="chip">runtime parity</span>
+  <span class="chip">finetuning avanzado</span>
 </div>
