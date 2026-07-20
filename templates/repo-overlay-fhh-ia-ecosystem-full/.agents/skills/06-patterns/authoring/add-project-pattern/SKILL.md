@@ -26,7 +26,9 @@ patterns from other products.
 1. Confirm scope: one repeatable implementation class, not a whole workflow.
 2. Choose path:
    `.agents/skills/06-patterns/<domain>/<skill>/SKILL.md`.
-3. Create `SKILL.md` with:
+3. Start from
+   `.agents/skills/06-patterns/authoring/pattern-skill-template.md`.
+4. Create `SKILL.md` with:
    - frontmatter (`name`, `description`),
    - trigger,
    - must-read references,
@@ -34,7 +36,7 @@ patterns from other products.
    - validation hooks,
    - stop conditions,
    - out-of-scope notes.
-4. Register the skill in `.agents/skills/registry.md` under standards/pattern
+5. Register the skill in `.agents/skills/registry.md` under standards/pattern
    skills with:
    - stable name,
    - class `Standards/pattern`,
@@ -43,9 +45,9 @@ patterns from other products.
    - loading posture (usually `Just-in-time`),
    - cost hint,
    - stable key.
-5. Regenerate/update derived artifacts:
+6. Regenerate/update derived artifacts:
    `.agents/skills/registry.json` and `.agents/skills/registry.cache.json`.
-6. Validate no stale references to removed or foreign-project patterns remain.
+7. Validate no stale references to removed or foreign-project patterns remain.
 
 ## Validation Hooks
 

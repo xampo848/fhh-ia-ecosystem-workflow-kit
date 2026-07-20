@@ -116,12 +116,14 @@ Every new pattern skill should define:
 When a repository starts from this overlay:
 
 1. Use `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md`.
-2. Create 1-3 local project patterns under
+2. Copy
+  `.agents/skills/06-patterns/authoring/pattern-skill-template.md` and fill it.
+3. Create 1-3 local project patterns under
   `.agents/skills/06-patterns/<domain>/<skill>/SKILL.md`.
-3. Register each new skill in `.agents/skills/registry.md`.
-4. Regenerate derived artifacts:
+4. Register each new skill in `.agents/skills/registry.md`.
+5. Regenerate derived artifacts:
   `.agents/skills/registry.json` and `.agents/skills/registry.cache.json`.
-5. Keep fallback docs in `docs/patterns/**` until enough local pattern skills
+6. Keep fallback docs in `docs/patterns/**` until enough local pattern skills
   exist.
 
 ## Handoff Evidence Contract

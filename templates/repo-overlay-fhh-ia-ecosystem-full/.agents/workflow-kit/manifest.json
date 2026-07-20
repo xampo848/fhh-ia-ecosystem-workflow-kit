@@ -24,6 +24,7 @@
   "repo_overlay": [
     ".agents/skills/06-patterns/README.md",
     ".agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md",
+    ".agents/skills/06-patterns/authoring/pattern-skill-template.md",
     ".agents/capabilities/registry.md",
     ".agents/capabilities/manifests/context7.md",
     ".agents/capabilities/manifests/engram.md",
