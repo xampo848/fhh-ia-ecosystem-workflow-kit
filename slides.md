@@ -66,42 +66,56 @@ defaults:
 <div class="slide-head">
   <div class="eyebrow blue">General</div>
   <h1>Cómo leer esta documentación</h1>
-  <div class="sub">Cada bloque responde 5 preguntas: propósito, uso, entradas, salidas y evidencia de cierre.</div>
+  <div class="sub">Primero identifica qué capa estás leyendo y su fuente de verdad; después aplica la lectura adecuada para orientar o ejecutar trabajo.</div>
 </div>
 
-<div class="grid grid-3">
+<div class="flow-row phase-quality">
+  <div class="step"><span class="s-num">1</span><div class="s-title">Ubica la capa</div><div class="s-desc">Contrato neutral, registry, skill, integración, adapter o documentación humana.</div></div>
+  <div class="step"><span class="s-num">2</span><div class="s-title">Confirma el ownership</div><div class="s-desc">La fuente neutral gobierna; adapters solo exponen su comportamiento al runtime.</div></div>
+  <div class="step"><span class="s-num">3</span><div class="s-title">Elige la lectura</div><div class="s-desc">Sistema para orientarte; workflow o skill para ejecutar una tarea concreta.</div></div>
+</div>
+
+<div class="compare mt-4">
+  <div class="panel p-now">
+    <div class="p-tag">Lectura del sistema</div>
+    <div class="p-title">Para entender cómo se organiza</div>
+    <ul>
+      <li>Qué responsabilidad tiene cada capa.</li>
+      <li>Cuál es la fuente de verdad y qué puede extenderse.</li>
+      <li>Cómo se cargan registry, integrations y runtime adapters.</li>
+    </ul>
+  </div>
+  <div class="panel p-ref">
+    <div class="p-tag">Lectura de ejecución</div>
+    <div class="p-title">Para aplicar un workflow o skill</div>
+    <ul>
+      <li>Propósito, trigger y entradas mínimas.</li>
+      <li>Pasos, salida esperada y handoff.</li>
+      <li>Evidencia de cierre y condiciones de parada.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="grid grid-3 mt-4">
   <div class="card accent-cyan">
-    <div class="idx">1</div>
-    <div class="card-title">Propósito</div>
-    <div class="card-copy">Qué problema resuelve el módulo y qué decisión toma dentro del flujo.</div>
+    <div class="idx">FUENTE</div>
+    <div class="card-title">Contrato neutral primero</div>
+    <div class="card-copy">Ante una contradicción, .agents/instructions.md prevalece sobre cualquier adapter de runtime.</div>
   </div>
   <div class="card accent-blue">
-    <div class="idx">2</div>
-    <div class="card-title">Cuándo usarlo</div>
-    <div class="card-copy">Señales de activación, triggers y clase de solicitud.</div>
+    <div class="idx">CARGA</div>
+    <div class="card-title">Registry antes que inventario</div>
+    <div class="card-copy">Descubre skills mediante el registry y carga solo la que exige el trigger y la fase activa.</div>
   </div>
   <div class="card accent-mint">
-    <div class="idx">3</div>
-    <div class="card-title">Entradas y salidas</div>
-    <div class="card-copy">Entradas mínimas requeridas y artefactos esperados al finalizar.</div>
-  </div>
-</div>
-
-<div class="grid grid-2 mt-4">
-  <div class="card accent-magenta">
-    <div class="idx">4</div>
-    <div class="card-title">Evidencia</div>
-    <div class="card-copy">Tests, checks, trazas o documentos que demuestran calidad real.</div>
-  </div>
-  <div class="card accent-amber">
-    <div class="idx">5</div>
-    <div class="card-title">Condiciones de parada</div>
-    <div class="card-copy">Cuándo no se debe continuar sin clarificar o corregir.</div>
+    <div class="idx">LÍMITE</div>
+    <div class="card-title">Docs no sustituyen skills</div>
+    <div class="card-copy">La documentación explica y orienta; los SKILL.md establecen el procedimiento ejecutable.</div>
   </div>
 </div>
 
 <div class="callout mt-4">
-  <strong>Nota de consistencia:</strong> esta versión refleja el estado real del repo (skills, adapters y contratos) para evitar drift entre narrativa y código.
+  <strong>Regla de lectura:</strong> no cargar todo al inicio. Navega desde la capa y el trigger hacia la fuente exacta que necesitas para decidir o ejecutar.
 </div>
 
 ---
