@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import { applyInstallPlan } from './apply.mjs';
 import { buildInstallPlan, formatPlan } from './planner.mjs';
 import {
@@ -50,6 +51,203 @@ const CAPABILITY_INTENT_OPTIONS = [
 
 const FULL_OVERLAY = 'fhh-ia-ecosystem-full';
 
+function defaultCommandExists(command) {
+  return new Promise((resolve) => {
+    const child = spawn(command, ['--version'], { stdio: 'ignore' });
+    child.on('error', (error) => {
+      if (error && error.code === 'ENOENT') {
+        resolve(false);
+        return;
+      }
+      resolve(false);
+    });
+    child.on('exit', () => resolve(true));
+  });
+}
+
+function defaultRunCommand({ command, args, cwd, write, paint }) {
+  return new Promise((resolve) => {
+    write(`${paint.dim(`$ ${command} ${args.join(' ')}`)}\n`);
+    const child = spawn(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+
+    child.stdout.on('data', (chunk) => {
+      write(`${paint.dim(String(chunk))}`);
+    });
+
+    child.stderr.on('data', (chunk) => {
+      write(`${paint.yellow(String(chunk))}`);
+    });
+
+    child.on('error', (error) => {
+      const reason = error && error.code === 'ENOENT'
+        ? `${command} is not available in PATH`
+        : String(error?.message ?? error);
+      write(`${paint.red(`Command failed to start: ${reason}`)}\n`);
+      resolve({ ok: false, code: null, reason });
+    });
+
+    child.on('exit', (code) => {
+      if (code === 0) {
+        resolve({ ok: true, code });
+        return;
+      }
+      write(`${paint.red(`Command exited with code ${code}`)}\n`);
+      resolve({ ok: false, code, reason: `exit-${code}` });
+    });
+  });
+}
+
+async function preferredPackageManager(commandExists) {
+  if (await commandExists('bun')) return 'bun';
+  return 'npm';
+}
+
+function buildCapabilityInstallSteps({ capability, intent, runtimes, packageManager }) {
+  if (intent !== 'install+attach') {
+    return {
+      capability,
+      steps: [],
+      skipped: 'Selected mode is attach-only.',
+      notes: []
+    };
+  }
+
+  if (capability === 'context7') {
+    const installStep = packageManager === 'bun'
+      ? { label: 'Install @upstash/context7-mcp', command: 'bun', args: ['add', '-g', '@upstash/context7-mcp'] }
+      : { label: 'Install @upstash/context7-mcp', command: 'npm', args: ['install', '-g', '@upstash/context7-mcp'] };
+
+    return {
+      capability,
+      steps: [installStep],
+      skipped: null,
+      notes: [
+        'Context7 still requires manual MCP configuration with your API key.',
+        'Use the generated guide to add Context7 entries for your runtimes (Codex, Copilot, or workspace MCP).'
+      ]
+    };
+  }
+
+  if (capability === 'codebase-memory-mcp') {
+    const installStep = packageManager === 'bun'
+      ? { label: 'Install codebase-memory-mcp', command: 'bun', args: ['add', '-g', 'codebase-memory-mcp'] }
+      : { label: 'Install codebase-memory-mcp', command: 'npm', args: ['install', '-g', 'codebase-memory-mcp'] };
+
+    return {
+      capability,
+      steps: [
+        installStep,
+        { label: 'Attach codebase-memory-mcp to detected runtimes', command: 'codebase-memory-mcp', args: ['install'] }
+      ],
+      skipped: null,
+      notes: []
+    };
+  }
+
+  if (capability === 'engram') {
+    const steps = [
+      { label: 'Install engram', command: 'brew', args: ['install', 'gentleman-programming/tap/engram'] }
+    ];
+
+    if (runtimes.has('codex')) {
+      steps.push({ label: 'Attach engram to Codex', command: 'engram', args: ['setup', 'codex'] });
+    }
+    if (runtimes.has('copilot')) {
+      steps.push({ label: 'Attach engram to GitHub Copilot', command: 'engram', args: ['setup', 'vscode-copilot'] });
+    }
+
+    return {
+      capability,
+      steps,
+      skipped: null,
+      notes: []
+    };
+  }
+
+  return {
+    capability,
+    steps: [],
+    skipped: `Auto-install is not implemented for capability \"${capability}\".`,
+    notes: []
+  };
+}
+
+async function runCapabilityAutoInstall({ selections, runtimes, cwd, write, paint, commandExists, runCommand }) {
+  if (selections.length === 0) {
+    return {
+      attempted: 0,
+      succeeded: 0,
+      failed: 0,
+      skipped: []
+    };
+  }
+
+  const packageManager = await preferredPackageManager(commandExists);
+  const runtimeSetForInstall = runtimeSet(runtimes.join(','));
+  const queue = selections.map((selection) => buildCapabilityInstallSteps({
+    capability: selection.capability,
+    intent: selection.intent,
+    runtimes: runtimeSetForInstall,
+    packageManager
+  }));
+
+  const skipped = queue
+    .filter((item) => item.steps.length === 0)
+    .map((item) => ({ capability: item.capability, reason: item.skipped }));
+  const notes = queue.flatMap((item) => item.notes ?? []);
+
+  const runnable = queue.filter((item) => item.steps.length > 0);
+  if (runnable.length === 0) {
+    return {
+      attempted: 0,
+      succeeded: 0,
+      failed: 0,
+      skipped,
+      packageManager,
+      notes
+    };
+  }
+
+  write(`\n${paint.bold('Automatic optional capability install')}${paint.dim(` (preferred package manager: ${packageManager})`)}\n`);
+
+  let attempted = 0;
+  let succeeded = 0;
+  let failed = 0;
+
+  for (const item of runnable) {
+    write(`${paint.bold(`\n- ${item.capability}`)}\n`);
+    for (const step of item.steps) {
+      attempted += 1;
+      write(`${paint.cyan(`  -> ${step.label}`)}\n`);
+      const result = await runCommand({
+        command: step.command,
+        args: step.args,
+        cwd,
+        write,
+        paint
+      });
+
+      if (!result.ok) {
+        failed += 1;
+        write(`${paint.red(`  ! failed: ${step.command} ${step.args.join(' ')}`)}\n`);
+        break;
+      }
+
+      succeeded += 1;
+      write(`${paint.green('  done')}\n`);
+    }
+  }
+
+  return {
+    attempted,
+    succeeded,
+    failed,
+    skipped,
+    packageManager,
+    notes
+  };
+}
+
 async function withSpinner({ write, paint, label, enabled }, action) {
   if (!enabled) return action();
 
@@ -85,6 +283,8 @@ export async function runTui(options = {}) {
   const paint = createPainter(colorEnabled);
   const animate = options.animate ?? !options.ask;
   const scriptedMode = Boolean(options.ask);
+  const commandExists = options.commandExists ?? defaultCommandExists;
+  const runCommand = options.runCommand ?? defaultRunCommand;
   const prompter = scriptedMode
     ? createScriptedPrompter({ ask: options.ask, write, paint })
     : createInteractivePrompter();
@@ -200,6 +400,9 @@ export async function runTui(options = {}) {
       wantCapabilityGuide = await prompter.confirm('Open optional capability setup guide?', false);
     }
 
+    const capabilitySelections = [];
+    let shouldAutoInstallCapabilities = false;
+
     if (wantCapabilityGuide) {
       const chosenCapabilities = scriptedMode
         ? await prompter.chooseOptions({
@@ -253,8 +456,22 @@ export async function runTui(options = {}) {
             runtimes: runtimeSet(runtime)
           });
 
+          capabilitySelections.push({
+            capability,
+            scope: chosenScope,
+            intent: chosenIntent
+          });
+
           write('\n');
           renderCapabilityGuide(write, paint, guide, capability);
+        }
+
+        if (capabilitySelections.some((item) => item.intent === 'install+attach')) {
+          if (scriptedMode) {
+            shouldAutoInstallCapabilities = await prompter.confirm('Automatically run install commands for all install+attach optional capabilities? [no]: ');
+          } else {
+            shouldAutoInstallCapabilities = await prompter.confirm('Automatically run install commands for all install+attach optional capabilities?', false);
+          }
         }
       }
     }
@@ -284,8 +501,45 @@ export async function runTui(options = {}) {
     write(`\n${paint.green('Apply completed successfully.')} ${renderChip(paint, 'SYSTEM READY', 'green')}\n`);
     write(`Applied writes: ${paint.green(String(writeCount))}\n`);
     write(`Backups created: ${paint.yellow(String(backupCount))}\n`);
+
+    let capabilityInstallResult = null;
+    if (shouldAutoInstallCapabilities) {
+      capabilityInstallResult = await runCapabilityAutoInstall({
+        selections: capabilitySelections.filter((item) => item.intent === 'install+attach'),
+        runtimes: plan.runtimes,
+        cwd: targetPath,
+        write,
+        paint,
+        commandExists,
+        runCommand
+      });
+
+      write(`\n${paint.bold('Optional capabilities auto-install summary')}\n`);
+      write(`Commands attempted: ${capabilityInstallResult.attempted}\n`);
+      write(`Commands succeeded: ${paint.green(String(capabilityInstallResult.succeeded))}\n`);
+      write(`Commands failed: ${capabilityInstallResult.failed > 0 ? paint.red(String(capabilityInstallResult.failed)) : paint.green('0')}\n`);
+      if (capabilityInstallResult.skipped.length > 0) {
+        write(`${paint.yellow('Skipped capabilities:')}\n`);
+        capabilityInstallResult.skipped.forEach((item) => {
+          write(`- ${item.capability}: ${item.reason}\n`);
+        });
+      }
+      if (capabilityInstallResult.notes.length > 0) {
+        write(`${paint.yellow('Manual configuration required:')}\n`);
+        for (const note of capabilityInstallResult.notes) {
+          write(`- ${note}\n`);
+        }
+      }
+    }
+
     write(`${paint.dim('The target repository now has the complete FHH IA Ecosystem workflow package installed.')}\n`);
-    return { code: 0, applied: true, plan, appliedOperations: applied };
+    return {
+      code: 0,
+      applied: true,
+      plan,
+      appliedOperations: applied,
+      capabilityInstallResult
+    };
   } catch (error) {
     if (error instanceof Error && error.name === 'ExitPromptError') {
       write(`\n${paint.yellow('Canceled by user. No files were written.')}\n`);

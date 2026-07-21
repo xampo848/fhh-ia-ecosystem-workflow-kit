@@ -317,6 +317,63 @@ defaults:
 ---
 
 <div class="slide-head">
+  <div class="eyebrow amber">Ejemplos en vivo</div>
+  <h1>Probar el router con solicitudes reales</h1>
+  <div class="sub">Usa estos prompts sin invocar una skill: la demostración consiste en observar cómo el router elige el flujo mínimo seguro y explica su decisión.</div>
+</div>
+
+<table class="wk-table">
+  <thead><tr><th>Prompt para probar</th><th>Ruta esperada</th><th>Qué debe demostrar</th></tr></thead>
+  <tbody>
+    <tr><td>"No sabemos si priorizar alertas de gasto o reportes semanales para los administradores."</td><td>product-studio</td><td>Intake y ruta de discovery o priorización; no convertir la idea en una feature.</td></tr>
+    <tr><td>"Queremos habilitar SSO SAML para clientes enterprise durante los próximos dos ciclos."</td><td>create-epic</td><td>Confirmación por iniciativa amplia, investigación y una cola de PRDs por fases.</td></tr>
+    <tr><td>"Los administradores deben invitar miembros por correo, ver invitaciones pendientes y poder revocarlas."</td><td>create-prd</td><td>Exploración del código, preguntas bloqueantes, límites de scope y slices verificables.</td></tr>
+    <tr><td>"Agrega texto de ayuda al filtro de fecha en la pantalla de reportes."</td><td>generate-pm-ticket</td><td>Artefacto pequeño con criterios de aceptación, sin abrir un PRD innecesario.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout amber mt-4">
+  <strong>Resultado que se espera ver:</strong> ruta, confidence, reason, alternativa descartada, postura de costo y decisión de delegación. Si una de esas piezas falta, el enrutamiento no quedó explicado.
+</div>
+
+---
+
+<div class="slide-head">
+  <div class="eyebrow cyan">Ejemplos en vivo</div>
+  <h1>De iniciativa a PRD implementable</h1>
+  <div class="sub">Dos prompts consecutivos muestran el handoff: primero se delimita una iniciativa; luego se convierte una fase elegida en un contrato de ejecución.</div>
+</div>
+
+<div class="compare">
+  <div class="panel p-now">
+    <div class="p-tag">1. Crear la épica</div>
+    <div class="p-title">Prompt de investigación y entrega</div>
+    <p><code>$create-epic Investiga y crea una épica para habilitar SSO SAML para clientes enterprise. El objetivo es reducir fricción de acceso; tenemos una apuesta de dos ciclos. Incluye riesgos de seguridad, tenancy, rollout y una secuencia de PRDs. Guarda el artefacto en docs/epics/.</code></p>
+    <ul>
+      <li>La salida es una épica, no código ni un PRD gigante.</li>
+      <li>Debe separar evidencia, supuestos, riesgos y preguntas abiertas.</li>
+      <li>Debe proponer fases que puedan pasar por create-prd.</li>
+    </ul>
+  </div>
+  <div class="panel p-ref">
+    <div class="p-tag">2. Formalizar una fase</div>
+    <div class="p-title">Prompt de PRD focalizado</div>
+    <p><code>$create-prd A partir de la fase "configuración SAML por organización" de la épica de SSO, crea un PRD. Explora primero el código y pregunta solo lo que bloquee decisiones de datos, autorización, tenancy, activación y rollback. Define slices, criterios Given/When/Then y evidencia de validación.</code></p>
+    <ul>
+      <li>La salida se guarda en <code>docs/prd/</code> y queda lista para implement-prd.</li>
+      <li>Debe declarar qué queda explícitamente fuera de alcance.</li>
+      <li>No debe implementar código durante la planificación.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="callout mt-4">
+  <strong>Secuencia de demo:</strong> ejecuta primero el prompt libre de router y después estos dos prompts explícitos. Así se muestran tanto la decisión automática como el uso dirigido de cada workflow.
+</div>
+
+---
+
+<div class="slide-head">
   <div class="eyebrow">Producto</div>
   <h1>Producto: product-studio</h1>
   <div class="sub">Hub de estrategia y discovery para convertir incertidumbre en decisiones accionables.</div>
