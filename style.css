@@ -201,6 +201,34 @@
 .panel li::before { content: '›'; position: absolute; left: 0; color: var(--wk-mint); font-weight: 700; }
 .panel.p-ref li::before { color: var(--wk-blue); }
 
+/* ---------- Product studio journey ---------- */
+.product-journey { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9rem; }
+.journey-stage {
+  min-height: 8.8rem;
+  border-radius: var(--wk-radius);
+  border: 1px solid var(--wk-line);
+  padding: 1rem 1.1rem;
+  position: relative;
+  background: rgba(16, 40, 58, 0.52);
+}
+.journey-stage::after {
+  content: '→';
+  position: absolute;
+  right: -0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  color: var(--wk-cyan);
+  font-size: 1.2rem;
+}
+.journey-stage:last-child::after { content: ''; }
+.journey-kicker { color: var(--wk-cyan); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.journey-title { color: var(--wk-text); font-size: 1rem; font-weight: 700; line-height: 1.25; margin-top: 0.45rem; }
+.journey-copy { color: var(--wk-muted); font-size: 0.78rem; line-height: 1.4; margin-top: 0.38rem; }
+.journey-input { border-top: 2px solid var(--wk-blue); }
+.journey-diagnose { border-top: 2px solid var(--wk-cyan); }
+.journey-output { border-top: 2px solid var(--wk-mint); }
+
 /* ---------- Flow / steps ---------- */
 .flow { display: grid; gap: 0.8rem; }
 .flow-row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0.7rem; align-items: stretch; }
@@ -226,6 +254,14 @@
 }
 .step .s-title { font-size: 0.88rem; font-weight: 700; color: var(--wk-text); }
 .step .s-desc { font-size: 0.72rem; color: var(--wk-muted); margin-top: 0.2rem; line-height: 1.32; }
+
+/* Preserve each workflow phase color inside its process diagram. */
+.phase-product .step { border-color: rgba(51, 214, 255, 0.38); }
+.phase-product .step .s-num { color: var(--wk-cyan); border-color: rgba(51, 214, 255, 0.4); background: rgba(51, 214, 255, 0.08); }
+.phase-implement .step { border-color: rgba(86, 227, 159, 0.36); }
+.phase-implement .step .s-num { color: var(--wk-mint); border-color: rgba(86, 227, 159, 0.4); background: rgba(86, 227, 159, 0.08); }
+.phase-quality .step { border-color: rgba(108, 140, 255, 0.38); }
+.phase-quality .step .s-num { color: var(--wk-blue); border-color: rgba(108, 140, 255, 0.4); background: rgba(108, 140, 255, 0.08); }
 
 .phase-band { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0.7rem; margin-bottom: 0.5rem; }
 .phase-band .band {
@@ -320,5 +356,6 @@
 .slidev-page { --slidev-controls-foreground: var(--wk-text); }
 
 @media (max-width: 900px) {
-  .cover, .compare, .grid-3, .grid-4, .tiers, .arch-runtimes { grid-template-columns: 1fr; }
+  .cover, .compare, .grid-3, .grid-4, .tiers, .arch-runtimes, .product-journey { grid-template-columns: 1fr; }
+  .journey-stage::after { content: '↓'; right: 50%; top: auto; bottom: -0.85rem; transform: translateX(50%); }
 }
