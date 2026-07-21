@@ -1,6 +1,13 @@
 import { applyInstallPlan } from './apply.mjs';
 import { buildInstallPlan, formatPlan } from './planner.mjs';
-import { createCapabilityGuide, defaultIntentFor, installPackageDetails, runtimeSet } from './tui/model.mjs';
+import {
+  createCapabilityGuide,
+  defaultIntentFor,
+  installPackageDetails,
+  runtimeSet,
+  selectedCapabilityList,
+  selectedRuntimeList
+} from './tui/model.mjs';
 import { createInteractivePrompter, createScriptedPrompter } from './tui/session.mjs';
 import {
   animateIntro,
@@ -19,8 +26,7 @@ const RUNTIME_OPTIONS = [
   { value: 'copilot', label: 'GitHub Copilot', description: 'Full workflow + Copilot adapter.' },
   { value: 'claude', label: 'Claude Code', description: 'Full workflow + Claude adapter.' },
   { value: 'antigravity', label: 'Antigravity', description: 'Full workflow + Antigravity adapter.' },
-  { value: 'codex,copilot', label: 'Codex + Copilot', description: 'Common mixed setup.' },
-  { value: 'codex,copilot,claude,antigravity', label: 'All adapters', description: 'Install all runtime adapters.' },
+  { value: 'all', label: 'Install all adapters', description: 'Codex, GitHub Copilot, Claude Code and Antigravity.' },
   { value: 'custom', label: 'Custom list', description: 'Type your own comma-separated runtime list.' }
 ];
 
@@ -28,7 +34,7 @@ const CAPABILITY_OPTIONS = [
   { value: 'context7', label: 'Context7', description: 'Up-to-date docs MCP.' },
   { value: 'engram', label: 'Engram', description: 'Durable memory MCP.' },
   { value: 'codebase-memory-mcp', label: 'Codebase Memory MCP', description: 'Code graph and structural search MCP.' },
-  { value: 'skip', label: 'Skip', description: 'Return to install flow.' }
+  { value: 'all', label: 'Set up all optional capabilities', description: 'Context7, Engram and Codebase Memory MCP.' }
 ];
 
 const CAPABILITY_SCOPE_OPTIONS = [
@@ -117,15 +123,16 @@ export async function runTui(options = {}) {
         subtitle: 'Select which editor or agent surfaces should be wired into the workflow.'
       });
 
-      const runtimePreset = await prompter.chooseOption({
-        title: 'Select runtimes',
-        defaultIndex: 0,
+      const runtimeChoices = await prompter.chooseOptions({
+        title: 'Select one or more runtimes',
+        defaultValues: ['neutral'],
         options: RUNTIME_OPTIONS
       });
 
-      runtime = runtimePreset === 'custom'
+      const customRuntimes = runtimeChoices.includes('custom')
         ? await prompter.promptText('Custom runtimes [neutral]: ', 'neutral')
-        : runtimePreset;
+        : '';
+      runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
     } else {
       renderStageHeader(write, paint, {
         step: 1,
@@ -152,15 +159,16 @@ export async function runTui(options = {}) {
         subtitle: 'Select which editor or agent surfaces should be wired into the workflow.'
       });
 
-      const runtimePreset = await prompter.chooseOption({
-        title: 'Select runtimes',
+      const runtimeChoices = await prompter.chooseOptions({
+        title: 'Select one or more runtimes',
         options: RUNTIME_OPTIONS,
-        defaultValue: 'neutral'
+        defaultValues: ['neutral']
       });
 
-      runtime = runtimePreset === 'custom'
+      const customRuntimes = runtimeChoices.includes('custom')
         ? await prompter.promptText('Custom runtimes (comma-separated)', 'neutral')
-        : runtimePreset;
+        : '';
+      runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
 
     }
 
@@ -193,19 +201,20 @@ export async function runTui(options = {}) {
     }
 
     if (wantCapabilityGuide) {
-      const chosenCapability = scriptedMode
-        ? await prompter.chooseOption({
-          title: 'Select optional capability',
-          defaultIndex: 0,
+      const chosenCapabilities = scriptedMode
+        ? await prompter.chooseOptions({
+          title: 'Select one or more optional capabilities',
+          defaultValues: ['context7'],
           options: CAPABILITY_OPTIONS
         })
-        : await prompter.chooseOption({
-          title: 'Select optional capability',
+        : await prompter.chooseOptions({
+          title: 'Select one or more optional capabilities',
           options: CAPABILITY_OPTIONS,
-          defaultValue: 'context7'
+          defaultValues: ['context7']
         });
 
-      if (chosenCapability !== 'skip') {
+      const capabilities = selectedCapabilityList(chosenCapabilities);
+      if (capabilities.length > 0) {
         const chosenScope = scriptedMode
           ? await prompter.chooseOption({
             title: 'Select capability scope',
@@ -218,33 +227,35 @@ export async function runTui(options = {}) {
             defaultValue: 'hybrid'
           });
 
-        const intentDefault = defaultIntentFor(chosenCapability);
-        const intentOptions = CAPABILITY_INTENT_OPTIONS.map((item) => ({
-          ...item,
-          label: item.value === intentDefault ? `${item.label} (recommended)` : item.label
-        }));
+        for (const capability of capabilities) {
+          const intentDefault = defaultIntentFor(capability);
+          const intentOptions = CAPABILITY_INTENT_OPTIONS.map((item) => ({
+            ...item,
+            label: item.value === intentDefault ? `${item.label} (recommended)` : item.label
+          }));
 
-        const chosenIntent = scriptedMode
-          ? await prompter.chooseOption({
-            title: 'Select install mode',
-            defaultIndex: intentDefault === 'attach-only' ? 0 : 1,
-            options: intentOptions
-          })
-          : await prompter.chooseOption({
-            title: 'Select install mode',
-            options: intentOptions,
-            defaultValue: intentDefault
+          const chosenIntent = scriptedMode
+            ? await prompter.chooseOption({
+              title: `Select install mode for ${capability}`,
+              defaultIndex: intentDefault === 'attach-only' ? 0 : 1,
+              options: intentOptions
+            })
+            : await prompter.chooseOption({
+              title: `Select install mode for ${capability}`,
+              options: intentOptions,
+              defaultValue: intentDefault
+            });
+
+          const guide = createCapabilityGuide({
+            capability,
+            scope: chosenScope,
+            intent: chosenIntent,
+            runtimes: runtimeSet(runtime)
           });
 
-        const guide = createCapabilityGuide({
-          capability: chosenCapability,
-          scope: chosenScope,
-          intent: chosenIntent,
-          runtimes: runtimeSet(runtime)
-        });
-
-        write('\n');
-        renderCapabilityGuide(write, paint, guide, chosenCapability);
+          write('\n');
+          renderCapabilityGuide(write, paint, guide, capability);
+        }
       }
     }
 

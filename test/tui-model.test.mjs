@@ -5,6 +5,8 @@ import {
   defaultIntentFor,
   installPackageDetails,
   runtimeSet,
+  selectedCapabilityList,
+  selectedRuntimeList,
   toInquirerChoices
 } from '../src/tui/model.mjs';
 
@@ -41,6 +43,17 @@ test('defaultIntentFor keeps attach-only only for capabilities that are commonly
   assert.equal(defaultIntentFor('context7'), 'attach-only');
   assert.equal(defaultIntentFor('engram'), 'attach-only');
   assert.equal(defaultIntentFor('codebase-memory-mcp'), 'install+attach');
+});
+
+test('selectedRuntimeList supports combining Copilot and Antigravity and installing every adapter', () => {
+  assert.deepEqual(selectedRuntimeList(['copilot', 'antigravity']), ['copilot', 'antigravity']);
+  assert.deepEqual(selectedRuntimeList(['neutral', 'copilot']), ['copilot']);
+  assert.deepEqual(selectedRuntimeList(['all']), ['codex', 'copilot', 'claude', 'antigravity']);
+});
+
+test('selectedCapabilityList expands the all choice', () => {
+  assert.deepEqual(selectedCapabilityList(['all']), ['context7', 'engram', 'codebase-memory-mcp']);
+  assert.deepEqual(selectedCapabilityList(['context7', 'engram']), ['context7', 'engram']);
 });
 
 test('createCapabilityGuide builds context7 guidance with official source and runtime hint', () => {

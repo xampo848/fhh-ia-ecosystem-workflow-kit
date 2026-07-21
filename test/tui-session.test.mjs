@@ -44,6 +44,25 @@ test('createScriptedPrompter selects by numeric index and writes menu text', asy
   assert.match(output, /2\) Codex/);
 });
 
+test('createScriptedPrompter selects multiple options by comma-separated indices', async () => {
+  const prompter = createScriptedPrompter({
+    ask: scriptedAsk(['2,3']),
+    write: () => {},
+    paint: createPainter(false)
+  });
+
+  const selected = await prompter.chooseOptions({
+    title: 'Select runtimes',
+    options: [
+      { value: 'neutral', label: 'No extra adapters' },
+      { value: 'copilot', label: 'GitHub Copilot' },
+      { value: 'antigravity', label: 'Antigravity' }
+    ]
+  });
+
+  assert.deepEqual(selected, ['copilot', 'antigravity']);
+});
+
 test('createScriptedPrompter confirms only affirmative answers', async () => {
   const prompter = createScriptedPrompter({
     ask: scriptedAsk(['sí', 'no']),

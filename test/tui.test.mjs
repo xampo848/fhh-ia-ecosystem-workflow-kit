@@ -48,3 +48,17 @@ test('tui confirmed apply writes selected files through planner apply', async ()
   await fs.access(path.join(target, '.github/copilot-instructions.md'));
   await fs.access(path.join(target, '.agents/skills/06-patterns/README.md'));
 });
+
+test('tui combines GitHub Copilot and Antigravity adapters', async () => {
+  const target = await makeTempRepo();
+
+  const result = await runTui({
+    ask: scriptedAsk([target, '3,5', '', '']),
+    color: false,
+    write: () => {}
+  });
+
+  assert.equal(result.applied, false);
+  assert.deepEqual(result.plan.runtimes, ['copilot', 'antigravity']);
+  assert.ok(result.plan.operations.some((item) => item.relativePath === '.github/copilot-instructions.md'));
+});

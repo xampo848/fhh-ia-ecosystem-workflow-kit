@@ -1,9 +1,34 @@
 export function toInquirerChoices(options) {
-  return options.map((option) => ({
-    name: option.label,
-    value: option.value,
-    description: option.description
-  }));
+  return options.map((option) => {
+    const choice = {
+      name: option.label,
+      value: option.value,
+      description: option.description
+    };
+    if (option.checked !== undefined) choice.checked = option.checked;
+    return choice;
+  });
+}
+
+export function selectedRuntimeList(values, customRuntimeList = '') {
+  const selected = new Set(values);
+  const runtimes = selected.has('all')
+    ? ['codex', 'copilot', 'claude', 'antigravity']
+    : [...selected];
+
+  if (selected.has('custom')) {
+    runtimes.push(...String(customRuntimeList).split(',').map((item) => item.trim()).filter(Boolean));
+  }
+
+  const normalized = [...new Set(runtimes.filter((runtime) => runtime !== 'all' && runtime !== 'custom'))];
+  const adapters = normalized.filter((runtime) => runtime !== 'neutral');
+  return adapters.length > 0 ? adapters : ['neutral'];
+}
+
+export function selectedCapabilityList(values) {
+  const selected = new Set(values);
+  if (selected.has('all')) return ['context7', 'engram', 'codebase-memory-mcp'];
+  return [...selected].filter((capability) => capability !== 'all');
 }
 
 export function installPackageDetails(overlay) {

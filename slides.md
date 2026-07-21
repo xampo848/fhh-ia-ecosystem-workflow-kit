@@ -34,7 +34,7 @@ defaults:
     </p>
     <div class="cover-meta">
       <span class="v">Cobertura end-to-end del ecosistema</span>
-      <span class="k">Basado en .agents/, skills registry, capabilities, memory y workflow-kit</span>
+      <span class="k">Basado en .agents/, skills registry, capabilities, memory y CLI workflow-kit</span>
     </div>
   </div>
   <div class="stack">
@@ -197,7 +197,7 @@ defaults:
   </div>
   <div class="card accent-cyan">
     <div class="card-title">Adopción reusable</div>
-    <div class="card-copy">.agents/workflow-kit/** define frontera portable-core y overlay para replicar el sistema.</div>
+    <div class="card-copy">workflow-kit instala el overlay completo, valida los packs y agrega adapters de runtime cuando se solicitan.</div>
   </div>
 </div>
 
@@ -897,30 +897,34 @@ defaults:
 <div class="slide-head">
   <div class="eyebrow blue">Adopción</div>
   <h1>Workflow-kit: adopción en otros repositorios</h1>
-  <div class="sub">Define frontera de packaging para replicar el sistema sin mezclar reglas locales con core portable.</div>
+  <div class="sub">La CLI instala el workflow completo con preview obligatorio, adapters seleccionables y actualizaciones que preservan cambios locales.</div>
 </div>
 
 <div class="compare">
   <div class="panel p-now">
-    <div class="p-tag">Portable core</div>
-    <div class="p-title">Semántica reusable</div>
+    <div class="p-tag">Instalación segura</div>
+    <div class="p-title">Preview antes de escribir</div>
     <ul>
-      <li>Contrato neutral y skills base del workflow.</li>
-      <li>Mecánica de registry, schema y cache.</li>
-      <li>Vocabulario de lifecycle y attach points.</li>
-      <li>Expectativas de paridad runtime.</li>
+      <li><code>init</code> muestra el plan en dry-run por defecto.</li>
+      <li><code>--apply --yes</code> confirma la escritura deliberadamente.</li>
+      <li>El overlay completo instala el árbol <code>.agents</code> listo para operar.</li>
+      <li><code>doctor</code> verifica los archivos esperados tras la instalación.</li>
     </ul>
   </div>
   <div class="panel p-ref">
-    <div class="p-tag">Repo overlay</div>
-    <div class="p-title">Especialización local</div>
+    <div class="p-tag">Runtimes y evolución</div>
+    <div class="p-title">Adapters separados y updates protegidos</div>
     <ul>
-      <li>Reglas de dominio, patterns y capacidades locales.</li>
-      <li>Comandos de validación y documentación específica.</li>
-      <li>Políticas de adopción por equipo.</li>
-      <li>Sin contaminar la semántica portable del core.</li>
+      <li>Selecciona <code>neutral</code>, Codex, Copilot, Claude o Antigravity.</li>
+      <li>Los adapters son packs delgados que remiten a <code>.agents</code>.</li>
+      <li><code>update</code> actualiza solo archivos gestionados por el toolkit.</li>
+      <li>Las ediciones locales se conservan como <code>skip_modified</code> o <code>skip_unmanaged</code>.</li>
     </ul>
   </div>
+</div>
+
+<div class="callout mt-4">
+  <strong>Contrato de distribución:</strong> el manifiesto externo de template packs valida el payload; <code>.agents/workflow-kit/install-state.json</code> es estado generado por la CLI, no documentación instalada.
 </div>
 
 ---
