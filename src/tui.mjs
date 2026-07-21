@@ -49,6 +49,12 @@ const CAPABILITY_INTENT_OPTIONS = [
   { value: 'install+attach', label: 'Install + attach', description: 'Install then wire it to the neutral flow.' }
 ];
 
+const TUI_MODE_OPTIONS = [
+  { value: 'full', label: 'Guia instalacion full', description: 'Workflow completo + capabilities opcionales + auto-install opcional.' },
+  { value: 'workflow-only', label: 'Instalar solo workflow', description: 'Instala/actualiza solo archivos del workflow, sin capabilities opcionales.' },
+  { value: 'capabilities-only', label: 'Instalar solo capabilities opcionales', description: 'Revisa e instala capabilities sin tocar archivos del workflow.' }
+];
+
 const FULL_OVERLAY = 'fhh-ia-ecosystem-full';
 
 function defaultCommandExists(command) {
@@ -183,7 +189,8 @@ async function runCapabilityAutoInstall({ selections, runtimes, cwd, write, pain
   }
 
   const packageManager = await preferredPackageManager(commandExists);
-  const runtimeSetForInstall = runtimeSet(runtimes.join(','));
+  const runtimeList = Array.isArray(runtimes) ? runtimes : [...runtimes];
+  const runtimeSetForInstall = runtimeSet(runtimeList.join(','));
   const queue = selections.map((selection) => buildCapabilityInstallSteps({
     capability: selection.capability,
     intent: selection.intent,
@@ -277,6 +284,106 @@ async function withSpinner({ write, paint, label, enabled }, action) {
   }
 }
 
+async function collectCapabilitiesFlow({
+  prompter,
+  scriptedMode,
+  write,
+  paint,
+  runtime,
+  askOpenGuide = true
+}) {
+  let wantCapabilityGuide = !askOpenGuide;
+  if (askOpenGuide) {
+    if (scriptedMode) {
+      wantCapabilityGuide = await prompter.confirm('Open optional capability setup guide? [no]: ');
+    } else {
+      wantCapabilityGuide = await prompter.confirm('Open optional capability setup guide?', false);
+    }
+  }
+
+  const capabilitySelections = [];
+  let shouldAutoInstallCapabilities = false;
+
+  if (!wantCapabilityGuide) {
+    return { capabilitySelections, shouldAutoInstallCapabilities };
+  }
+
+  const chosenCapabilities = scriptedMode
+    ? await prompter.chooseOptions({
+      title: 'Select one or more optional capabilities',
+      defaultValues: ['context7'],
+      options: CAPABILITY_OPTIONS
+    })
+    : await prompter.chooseOptions({
+      title: 'Select one or more optional capabilities',
+      options: CAPABILITY_OPTIONS,
+      defaultValues: ['context7']
+    });
+
+  const capabilities = selectedCapabilityList(chosenCapabilities);
+  if (capabilities.length === 0) {
+    return { capabilitySelections, shouldAutoInstallCapabilities };
+  }
+
+  const chosenScope = scriptedMode
+    ? await prompter.chooseOption({
+      title: 'Select capability scope',
+      defaultIndex: 2,
+      options: CAPABILITY_SCOPE_OPTIONS
+    })
+    : await prompter.chooseOption({
+      title: 'Select capability scope',
+      options: CAPABILITY_SCOPE_OPTIONS,
+      defaultValue: 'hybrid'
+    });
+
+  for (const capability of capabilities) {
+    const intentDefault = defaultIntentFor(capability);
+    const intentOptions = CAPABILITY_INTENT_OPTIONS.map((item) => ({
+      ...item,
+      label: item.value === intentDefault ? `${item.label} (recommended)` : item.label
+    }));
+
+    const chosenIntent = scriptedMode
+      ? await prompter.chooseOption({
+        title: `Select install mode for ${capability}`,
+        defaultIndex: intentDefault === 'attach-only' ? 0 : 1,
+        options: intentOptions
+      })
+      : await prompter.chooseOption({
+        title: `Select install mode for ${capability}`,
+        options: intentOptions,
+        defaultValue: intentDefault
+      });
+
+    const guide = createCapabilityGuide({
+      capability,
+      scope: chosenScope,
+      intent: chosenIntent,
+      runtimes: runtimeSet(runtime)
+    });
+
+    capabilitySelections.push({
+      capability,
+      scope: chosenScope,
+      intent: chosenIntent
+    });
+
+    write('\n');
+    renderCapabilityGuide(write, paint, guide, capability);
+  }
+
+  if (capabilitySelections.some((item) => item.intent === 'install+attach')) {
+    if (scriptedMode) {
+      shouldAutoInstallCapabilities = await prompter.confirm('Automatically run install commands for all install+attach optional capabilities? [no]: ');
+    } else {
+      shouldAutoInstallCapabilities = await prompter.confirm('Automatically run install commands for all install+attach optional capabilities?', false);
+    }
+  }
+
+  return { capabilitySelections, shouldAutoInstallCapabilities };
+}
+
 export async function runTui(options = {}) {
   const write = options.write ?? ((message) => process.stdout.write(message));
   const colorEnabled = options.color === false ? false : supportsColor();
@@ -292,14 +399,120 @@ export async function runTui(options = {}) {
   try {
     await animateIntro(write, paint, { animate });
 
+    renderStageHeader(write, paint, {
+      step: 1,
+      total: 6,
+      title: 'Indice de flujo',
+      subtitle: 'Elige el modo segun lo que quieras hacer en esta sesion.'
+    });
+
+    const mode = scriptedMode
+      ? await prompter.chooseOption({
+        title: 'Selecciona una opcion',
+        defaultIndex: 0,
+        options: TUI_MODE_OPTIONS
+      })
+      : await prompter.chooseOption({
+        title: 'Selecciona una opcion',
+        options: TUI_MODE_OPTIONS,
+        defaultValue: 'full'
+      });
+
     let targetPath;
     let runtime;
     let overlay = FULL_OVERLAY;
 
+    if (mode === 'capabilities-only') {
+      renderStageHeader(write, paint, {
+        step: 2,
+        total: 4,
+        title: 'Working directory',
+        subtitle: 'Directory used as execution context for optional capability commands.'
+      });
+
+      targetPath = scriptedMode
+        ? await prompter.promptText('Working directory [.]: ', '.')
+        : await prompter.promptText('Working directory', '.');
+
+      renderStageHeader(write, paint, {
+        step: 3,
+        total: 4,
+        title: 'Runtime adapters',
+        subtitle: 'Select runtimes so capability guides and attach steps are contextualized.'
+      });
+
+      const runtimeChoices = await prompter.chooseOptions({
+        title: 'Select one or more runtimes',
+        options: RUNTIME_OPTIONS,
+        defaultValues: ['neutral']
+      });
+
+      const customRuntimes = runtimeChoices.includes('custom')
+        ? await prompter.promptText(scriptedMode ? 'Custom runtimes [neutral]: ' : 'Custom runtimes (comma-separated)', 'neutral')
+        : '';
+      runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
+
+      renderStageHeader(write, paint, {
+        step: 4,
+        total: 4,
+        title: 'Optional capabilities',
+        subtitle: 'Review, configure and optionally auto-install selected capabilities.'
+      });
+
+      const { capabilitySelections, shouldAutoInstallCapabilities } = await collectCapabilitiesFlow({
+        prompter,
+        scriptedMode,
+        write,
+        paint,
+        runtime,
+        askOpenGuide: false
+      });
+
+      let capabilityInstallResult = null;
+      if (shouldAutoInstallCapabilities) {
+        capabilityInstallResult = await runCapabilityAutoInstall({
+          selections: capabilitySelections.filter((item) => item.intent === 'install+attach'),
+          runtimes: runtimeSet(runtime),
+          cwd: targetPath,
+          write,
+          paint,
+          commandExists,
+          runCommand
+        });
+
+        write(`\n${paint.bold('Optional capabilities auto-install summary')}\n`);
+        write(`Commands attempted: ${capabilityInstallResult.attempted}\n`);
+        write(`Commands succeeded: ${paint.green(String(capabilityInstallResult.succeeded))}\n`);
+        write(`Commands failed: ${capabilityInstallResult.failed > 0 ? paint.red(String(capabilityInstallResult.failed)) : paint.green('0')}\n`);
+        if (capabilityInstallResult.skipped.length > 0) {
+          write(`${paint.yellow('Skipped capabilities:')}\n`);
+          capabilityInstallResult.skipped.forEach((item) => {
+            write(`- ${item.capability}: ${item.reason}\n`);
+          });
+        }
+        if (capabilityInstallResult.notes.length > 0) {
+          write(`${paint.yellow('Manual configuration required:')}\n`);
+          for (const note of capabilityInstallResult.notes) {
+            write(`- ${note}\n`);
+          }
+        }
+      }
+
+      write(`${paint.green('Capabilities flow completed.')} ${renderChip(paint, 'SYSTEM READY', 'green')}\n`);
+      return {
+        code: 0,
+        applied: false,
+        mode,
+        runtimes: [...runtimeSet(runtime)],
+        capabilitySelections,
+        capabilityInstallResult
+      };
+    }
+
     if (scriptedMode) {
       renderStageHeader(write, paint, {
-        step: 1,
-        total: 5,
+        step: 2,
+        total: 6,
         title: 'Target selection',
         subtitle: 'Choose where the workflow package will be installed.'
       });
@@ -308,8 +521,8 @@ export async function runTui(options = {}) {
       write('\n');
 
       renderStageHeader(write, paint, {
-        step: 2,
-        total: 5,
+        step: 3,
+        total: 6,
         title: 'Install package',
         subtitle: 'The toolkit now installs the complete FHH IA Ecosystem package by default.'
       });
@@ -317,8 +530,8 @@ export async function runTui(options = {}) {
       write(`${renderChip(paint, 'INSTALL PACKAGE', packageDetails.tone)} ${paint.dim(packageDetails.summary)}\n\n`);
 
       renderStageHeader(write, paint, {
-        step: 3,
-        total: 5,
+        step: 4,
+        total: 6,
         title: 'Runtime adapters',
         subtitle: 'Select which editor or agent surfaces should be wired into the workflow.'
       });
@@ -335,8 +548,8 @@ export async function runTui(options = {}) {
       runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
     } else {
       renderStageHeader(write, paint, {
-        step: 1,
-        total: 5,
+        step: 2,
+        total: 6,
         title: 'Target selection',
         subtitle: 'Choose where the workflow package will be installed.'
       });
@@ -344,8 +557,8 @@ export async function runTui(options = {}) {
       targetPath = await prompter.promptText('Target path', '.');
 
       renderStageHeader(write, paint, {
-        step: 2,
-        total: 5,
+        step: 3,
+        total: 6,
         title: 'Install package',
         subtitle: 'The toolkit now installs the complete FHH IA Ecosystem package by default.'
       });
@@ -353,8 +566,8 @@ export async function runTui(options = {}) {
       write(`${renderChip(paint, 'INSTALL PACKAGE', packageDetails.tone)} ${paint.dim(packageDetails.summary)}\n\n`);
 
       renderStageHeader(write, paint, {
-        step: 3,
-        total: 5,
+        step: 4,
+        total: 6,
         title: 'Runtime adapters',
         subtitle: 'Select which editor or agent surfaces should be wired into the workflow.'
       });
@@ -393,93 +606,21 @@ export async function runTui(options = {}) {
       write(`\n${paint.cyan(paint.bold('Full preview'))}\n${fullPreview}\n\n`);
     }
 
-    let wantCapabilityGuide = false;
-    if (scriptedMode) {
-      wantCapabilityGuide = await prompter.confirm('Open optional capability setup guide? [no]: ');
-    } else {
-      wantCapabilityGuide = await prompter.confirm('Open optional capability setup guide?', false);
-    }
-
-    const capabilitySelections = [];
-    let shouldAutoInstallCapabilities = false;
-
-    if (wantCapabilityGuide) {
-      const chosenCapabilities = scriptedMode
-        ? await prompter.chooseOptions({
-          title: 'Select one or more optional capabilities',
-          defaultValues: ['context7'],
-          options: CAPABILITY_OPTIONS
-        })
-        : await prompter.chooseOptions({
-          title: 'Select one or more optional capabilities',
-          options: CAPABILITY_OPTIONS,
-          defaultValues: ['context7']
-        });
-
-      const capabilities = selectedCapabilityList(chosenCapabilities);
-      if (capabilities.length > 0) {
-        const chosenScope = scriptedMode
-          ? await prompter.chooseOption({
-            title: 'Select capability scope',
-            defaultIndex: 2,
-            options: CAPABILITY_SCOPE_OPTIONS
-          })
-          : await prompter.chooseOption({
-            title: 'Select capability scope',
-            options: CAPABILITY_SCOPE_OPTIONS,
-            defaultValue: 'hybrid'
-          });
-
-        for (const capability of capabilities) {
-          const intentDefault = defaultIntentFor(capability);
-          const intentOptions = CAPABILITY_INTENT_OPTIONS.map((item) => ({
-            ...item,
-            label: item.value === intentDefault ? `${item.label} (recommended)` : item.label
-          }));
-
-          const chosenIntent = scriptedMode
-            ? await prompter.chooseOption({
-              title: `Select install mode for ${capability}`,
-              defaultIndex: intentDefault === 'attach-only' ? 0 : 1,
-              options: intentOptions
-            })
-            : await prompter.chooseOption({
-              title: `Select install mode for ${capability}`,
-              options: intentOptions,
-              defaultValue: intentDefault
-            });
-
-          const guide = createCapabilityGuide({
-            capability,
-            scope: chosenScope,
-            intent: chosenIntent,
-            runtimes: runtimeSet(runtime)
-          });
-
-          capabilitySelections.push({
-            capability,
-            scope: chosenScope,
-            intent: chosenIntent
-          });
-
-          write('\n');
-          renderCapabilityGuide(write, paint, guide, capability);
-        }
-
-        if (capabilitySelections.some((item) => item.intent === 'install+attach')) {
-          if (scriptedMode) {
-            shouldAutoInstallCapabilities = await prompter.confirm('Automatically run install commands for all install+attach optional capabilities? [no]: ');
-          } else {
-            shouldAutoInstallCapabilities = await prompter.confirm('Automatically run install commands for all install+attach optional capabilities?', false);
-          }
-        }
-      }
-    }
+    const { capabilitySelections, shouldAutoInstallCapabilities } = mode === 'workflow-only'
+      ? { capabilitySelections: [], shouldAutoInstallCapabilities: false }
+      : await collectCapabilitiesFlow({
+        prompter,
+        scriptedMode,
+        write,
+        paint,
+        runtime,
+        askOpenGuide: true
+      });
 
     let shouldApply = false;
     renderStageHeader(write, paint, {
-      step: 5,
-      total: 5,
+      step: 6,
+      total: 6,
       title: 'Apply confirmation',
       subtitle: 'Nothing is written until you explicitly confirm this final step.'
     });
@@ -536,6 +677,7 @@ export async function runTui(options = {}) {
     return {
       code: 0,
       applied: true,
+      mode,
       plan,
       appliedOperations: applied,
       capabilityInstallResult

@@ -15,7 +15,7 @@ test('tui previews plan and default decline writes nothing', async () => {
   let output = '';
 
   const result = await runTui({
-    ask: scriptedAsk([target, '', '', '']),
+    ask: scriptedAsk(['', target, '', '', '']),
     color: false,
     write: (message) => { output += message; }
   });
@@ -34,7 +34,7 @@ test('tui confirmed apply writes selected files through planner apply', async ()
   let output = '';
 
   const result = await runTui({
-    ask: scriptedAsk([target, '6', '', '', 'yes']),
+    ask: scriptedAsk(['', target, '6', '', '', 'yes']),
     color: false,
     write: (message) => { output += message; }
   });
@@ -53,7 +53,7 @@ test('tui combines GitHub Copilot and Antigravity adapters', async () => {
   const target = await makeTempRepo();
 
   const result = await runTui({
-    ask: scriptedAsk([target, '3,5', '', '']),
+    ask: scriptedAsk(['', target, '3,5', '', '']),
     color: false,
     write: () => {}
   });
@@ -68,7 +68,7 @@ test('tui can auto-install install+attach optional capabilities in one confirmat
   const executed = [];
 
   const result = await runTui({
-    ask: scriptedAsk([target, '1', '', 'yes', '3', '1', '2', 'yes', 'yes']),
+    ask: scriptedAsk(['', target, '1', '', 'yes', '3', '1', '2', 'yes', 'yes']),
     color: false,
     write: () => {},
     commandExists: async (command) => command === 'bun' || command === 'npm',
@@ -94,7 +94,7 @@ test('tui auto-installs context7 package and reports manual configuration steps'
   let output = '';
 
   const result = await runTui({
-    ask: scriptedAsk([target, '1', '', 'yes', '1', '1', '2', 'yes', 'yes']),
+    ask: scriptedAsk(['', target, '1', '', 'yes', '1', '1', '2', 'yes', 'yes']),
     color: false,
     write: (message) => { output += message; },
     commandExists: async (command) => command === 'bun' || command === 'npm',
@@ -111,4 +111,28 @@ test('tui auto-installs context7 package and reports manual configuration steps'
   assert.equal(result.capabilityInstallResult.failed, 0);
   assert.match(output, /Manual configuration required:/);
   assert.match(output, /Context7 still requires manual MCP configuration with your API key\./);
+});
+
+test('tui capabilities-only mode runs optional capabilities without applying workflow files', async () => {
+  const target = await makeTempRepo();
+  const executed = [];
+
+  const result = await runTui({
+    ask: scriptedAsk(['3', target, '1', '3', '1', '2', 'yes']),
+    color: false,
+    write: () => {},
+    commandExists: async (command) => command === 'bun' || command === 'npm',
+    runCommand: async ({ command, args }) => {
+      executed.push(`${command} ${args.join(' ')}`);
+      return { ok: true, code: 0 };
+    }
+  });
+
+  assert.equal(result.mode, 'capabilities-only');
+  assert.equal(result.applied, false);
+  assert.deepEqual(executed, [
+    'bun add -g codebase-memory-mcp',
+    'codebase-memory-mcp install'
+  ]);
+  await assert.rejects(fs.access(path.join(target, '.agents/instructions.md')), { code: 'ENOENT' });
 });
