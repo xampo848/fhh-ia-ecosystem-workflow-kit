@@ -61,6 +61,46 @@ Rules:
 4. Wrapper docs must distinguish between **default routing** and **user-forced
    override**.
 
+## Model resolution and fallback contract
+
+Routing must resolve in this order:
+
+1. Determine task risk/intent.
+2. Select target **cost posture** (`lean`, `balanced`, `premium`).
+3. Select target **tier** (Liviano, Mediano, Grande).
+4. Resolve to the closest allowed runtime model for that tier.
+
+If the preferred model is unavailable (policy, plan, rollout, region, runtime
+constraint), use the nearest safe fallback in the same tier. If that is not
+possible, move one tier up before moving one tier down.
+
+Fallback behavior must be explicit:
+
+- default mode is `auto-with-fallback`;
+- every fallback must emit a brief reason;
+- fallback must never silently violate a stronger user override.
+
+## User control mode
+
+Users must be able to choose between automatic routing and explicit control.
+
+Allowed control modes:
+
+| Mode | Behavior |
+| --- | --- |
+| `auto-with-fallback` | System chooses by posture/tier and applies safe fallback when needed. |
+| `user-pinned-model` | User forces exact model; fallback only if that model is unavailable, with explicit warning. |
+| `user-pinned-tier` | User forces tier; runtime may choose the closest model in that tier. |
+
+Rules:
+
+1. Default remains `auto-with-fallback` unless user requests otherwise.
+2. User may switch mode per task or per session.
+3. If `user-pinned-model` is blocked by policy, the system must ask for
+   confirmation before applying fallback.
+4. The system must preserve the no-silent-downgrade rule for stronger
+   user-requested tiers.
+
 ## Delegation policy
 
 Delegation is part of routing policy, not a separate afterthought.
@@ -93,24 +133,48 @@ Parity means:
 4. A parity review fails only when two runtimes route the same task to
    materially different risk/quality levels without explanation.
 
-## Current observed runtime defaults
+## Runtime model resolution
 
-These are descriptive current defaults, not permanent contract terms.
+The neutral workflow never assumes that one provider, family, or exact model is
+available everywhere. A runtime resolves a requested tier only from its own
+currently allowed model catalog, which may be constrained by account, plan,
+organization policy, repository policy, region, rollout, or runtime version.
 
-| Runtime surface | Current observed default |
+Each runtime adapter must state whether it can:
+
+| Capability | Meaning |
 | --- | --- |
-| GitHub PRD-oriented agent | `GPT 5.5` |
-| Main implementation/writer agents | `GPT 5.4` |
-| Light discovery/review/validation delegates | `GPT 5.4-mini` |
+| Discover catalog | Read the models currently available to this user/runtime. |
+| Pin a subagent model | Start a delegated agent with an exact model identifier. |
+| Pin a subagent tier | Start a delegated agent with a tier and let the runtime resolve its model. |
+| Auto fallback | Automatically replace an unavailable requested model. |
+
+An adapter must not claim support for a capability unless the active runtime
+confirms it. If catalog discovery or model pinning is unavailable, the adapter
+must report that limitation and ask the user to select a model in the runtime UI
+when a choice is required.
+
+### Resolution record
+
+For a non-trivial delegated task, record or report when the runtime permits it:
+
+```text
+routing_mode: auto-with-fallback | user-pinned-model | user-pinned-tier
+requested_tier: Liviano | Mediano | Grande
+requested_model: <optional runtime model identifier>
+resolved_model: <runtime-confirmed model identifier, if exposed>
+fallback_reason: <optional reason>
+user_confirmed_fallback: true | false | not-required
+```
 
 ## Cross-runtime routing matrix
 
 | Workflow / task | Risk signal | Cost posture | Tier | Codex default | GitHub/Copilot default | Delegation default | User override rule |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Freeform routing, tiny docs, repetitive validation | low ambiguity, low blast radius | `lean` | Liviano | closest lightweight equivalent | closest lightweight equivalent | Avoided unless a narrow helper reduces context | Allowed; warn if user forces unnecessary premium |
-| `create-prd` and high-ambiguity planning | ambiguous scope, synthesis risk, architecture/product trade-off | `balanced` by default, `premium` if risk is high | Grande | strongest planning-capable equivalent available | `GPT 5.5` currently for GitHub PRD agent | Usually avoided inline unless workflow explicitly delegates | Allowed; warn if user forces a cheaper tier that risks under-specification |
-| `implement-prd` orchestration and main writer slices | normal multi-step technical work | `balanced` | Mediano | `GPT 5.4` currently | `GPT 5.4` currently | Recommended/required depending on slice boundaries | Allowed; warn if user forces Liviano for non-trivial implementation |
-| Discovery, readiness, slicing, review, validation delegates | focused read/review/triage | `lean` by default | Liviano | `GPT 5.4-mini` currently for these delegates | `GPT 5.4-mini` currently for these delegates | Recommended when they reduce risk/context; avoided in simple docs-only work | Allowed; warn if user forces Grande without added value |
+| `create-prd` and high-ambiguity planning | ambiguous scope, synthesis risk, architecture/product trade-off | `balanced` by default, `premium` if risk is high | Grande | strongest allowed planning-capable equivalent | strongest allowed planning-capable equivalent | Usually avoided inline unless workflow explicitly delegates | Allowed; warn if user forces a cheaper tier that risks under-specification |
+| `implement-prd` orchestration and main writer slices | normal multi-step technical work | `balanced` | Mediano | closest allowed technical-workhorse equivalent | closest allowed technical-workhorse equivalent | Recommended/required depending on slice boundaries | Allowed; warn if user forces Liviano for non-trivial implementation |
+| Discovery, readiness, slicing, review, validation delegates | focused read/review/triage | `lean` by default | Liviano | closest allowed lightweight equivalent | closest allowed lightweight equivalent | Recommended when they reduce risk/context; avoided in simple docs-only work | Allowed; warn if user forces Grande without added value |
 | Release-critical QA, deep debugging, architecture-sensitive review | high ambiguity, high blast radius, release or migration risk | `premium` | Grande or strongest equivalent | strongest available equivalent | strongest available equivalent | Recommended or required depending on risk | Allowed; never silently downgrade a user-requested stronger tier |
 
 ## Wrapper contract

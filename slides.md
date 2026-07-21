@@ -45,7 +45,7 @@ defaults:
     </div>
     <div class="stack-item s-cyan">
       <div class="st-tag">Skills del workflow</div>
-      <div class="st-title">47 SKILL.md en 7 áreas</div>
+      <div class="st-title">41 SKILL.md en 7 áreas (estado actual)</div>
       <div class="st-desc">Desde routing hasta patterns</div>
     </div>
     <div class="stack-item s-blue">
@@ -99,6 +99,57 @@ defaults:
   </div>
 </div>
 
+<div class="callout mt-4">
+  <strong>Nota de consistencia:</strong> esta versión refleja el estado real del repo (skills, adapters y contratos) para evitar drift entre narrativa y código.
+</div>
+
+---
+
+<div class="slide-head">
+  <h1>Mapa operativo por fases (con color fijo)</h1>
+  <div class="sub">Lectura recomendada: seguir el color para ubicar rápidamente en qué parte del ciclo estás trabajando.</div>
+</div>
+
+<div class="phase-band">
+  <div class="band b-amber">00 Router</div>
+  <div class="band b-cyan">01 Product</div>
+  <div class="band b-mint">02 Implement</div>
+  <div class="band b-blue">03 Quality</div>
+  <div class="band b-magenta">04 Crosscutting</div>
+  <div class="band b-amber">06 Patterns</div>
+</div>
+
+<div class="grid grid-3 mt-2">
+  <div class="card accent-amber">
+    <div class="card-title">Router (00)</div>
+    <div class="card-copy">Clasifica intención, riesgo y ruta mínima segura antes de ejecutar cualquier flujo.</div>
+  </div>
+  <div class="card accent-cyan">
+    <div class="card-title">Product (01)</div>
+    <div class="card-copy">Convierte incertidumbre en decisión: estrategia, épica y PRD ejecutable.</div>
+  </div>
+  <div class="card accent-mint">
+    <div class="card-title">Implement (02)</div>
+    <div class="card-copy">Orquesta slices técnicos, delegación, validación focalizada y handoff de QA.</div>
+  </div>
+  <div class="card accent-blue">
+    <div class="card-title">Quality (03)</div>
+    <div class="card-copy">Verifica evidencia técnica y documental, incluyendo pruebas E2E cuando aplica.</div>
+  </div>
+  <div class="card accent-magenta">
+    <div class="card-title">Crosscutting (04)</div>
+    <div class="card-copy">Aceleradores transversales para diseño, mentoría y resolución de comentarios.</div>
+  </div>
+  <div class="card accent-amber">
+    <div class="card-title">Patterns (06)</div>
+    <div class="card-copy">Contrato reusable para mapear slices a skills requeridas y evidencia de salida.</div>
+  </div>
+</div>
+
+<div class="callout amber mt-4">
+  <strong>Nota:</strong> 05-caveman existe en el repo como modo/capability opcional de ahorro de tokens; no reemplaza las fases core del flujo.
+</div>
+
 ---
 
 <div class="slide-head">
@@ -131,6 +182,32 @@ defaults:
     <div class="card-title">Adopción reusable</div>
     <div class="card-copy">.agents/workflow-kit/** define frontera portable-core y overlay para replicar el sistema.</div>
   </div>
+</div>
+
+---
+
+<div class="slide-head">
+  <h1>Runtimes soportados (incluye Antigravity)</h1>
+  <div class="sub">El toolkit soporta neutral, Codex, Copilot, Claude y Antigravity con adapters delgados que remiten al contrato neutral.</div>
+</div>
+
+<div class="grid grid-3">
+  <div class="card accent-cyan">
+    <div class="card-title">neutral</div>
+    <div class="card-copy">Instala el workflow completo en .agents sin adapter adicional específico de runtime.</div>
+  </div>
+  <div class="card accent-blue">
+    <div class="card-title">codex / copilot / claude</div>
+    <div class="card-copy">Agrega archivos puente de cada runtime, siempre apuntando a .agents como fuente de verdad.</div>
+  </div>
+  <div class="card accent-mint">
+    <div class="card-title">antigravity</div>
+    <div class="card-copy">Adapter oficial incluido: ANTIGRAVITY.md + .antigravity/README.md.</div>
+  </div>
+</div>
+
+<div class="callout mt-4">
+  <strong>Regla clave:</strong> el adapter no redefine flujo. Solo expone acceso runtime a políticas ya definidas en .agents.
 </div>
 
 ---
@@ -325,7 +402,7 @@ defaults:
   </div>
 </div>
 
-<div class="grid grid-2 mt-4">
+<div class="grid grid-3 mt-4">
   <div class="card accent-magenta">
     <div class="card-title">Cobertura documental</div>
     <div class="card-copy">Document-development deja conocimiento durable para dev, QA, soporte y producto.</div>
@@ -333,6 +410,10 @@ defaults:
   <div class="card accent-amber">
     <div class="card-title">Cobertura E2E</div>
     <div class="card-copy">Playwright-testing verifica flujos críticos de usuario en entorno controlado.</div>
+  </div>
+  <div class="card accent-blue">
+    <div class="card-title">Salud React</div>
+    <div class="card-copy">react-doctor acelera diagnóstico de problemas frecuentes en frontend React.</div>
   </div>
 </div>
 
@@ -409,6 +490,36 @@ defaults:
 ---
 
 <div class="slide-head">
+  <h1>Crosscutting (04): capacidades transversales</h1>
+  <div class="sub">Skills que no reemplazan fases, pero elevan calidad y velocidad cuando la situación lo requiere.</div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card accent-magenta">
+    <div class="card-title">engineering-mentor</div>
+    <div class="card-copy">Guía decisiones técnicas y trade-offs sin alterar el contrato principal del flujo.</div>
+  </div>
+  <div class="card accent-magenta">
+    <div class="card-title">frontend-design</div>
+    <div class="card-copy">Define dirección visual y criterios UX para reducir retrabajo de frontend.</div>
+  </div>
+  <div class="card accent-magenta">
+    <div class="card-title">impeccable</div>
+    <div class="card-copy">Overlay premium para calidad visual y hardening de experiencia cuando aplica.</div>
+  </div>
+  <div class="card accent-magenta">
+    <div class="card-title">pr-comments-resolution</div>
+    <div class="card-copy">Resuelve feedback de revisión sin perder trazabilidad a la intención original.</div>
+  </div>
+</div>
+
+<div class="callout magenta mt-4">
+  <strong>Boundary:</strong> crosscutting complementa router/product/implement/quality; no sustituye sus gates.
+</div>
+
+---
+
+<div class="slide-head">
   <h1>Patterns: contrato para implementación reusable</h1>
   <div class="sub">Los pattern skills definen cómo ejecutar clases repetibles de trabajo técnico.</div>
 </div>
@@ -435,9 +546,17 @@ defaults:
 ---
 
 <div class="slide-head">
-  <h1>Extensiones: capabilities e integrations</h1>
-  <div class="sub">Separa claramente workflow (skills) de capacidades externas (tools, MCP, packs).</div>
+  <h1>Capabilities vs Integrations (definición clara)</h1>
+  <div class="sub">Se complementan, pero no son lo mismo: una define estructura; la otra gobierna instalación y attachment.</div>
 </div>
+
+<table class="wk-table">
+  <thead><tr><th>Concepto</th><th>Qué es</th><th>Dónde vive</th><th>Pregunta que responde</th></tr></thead>
+  <tbody>
+    <tr><td>Capability</td><td>Unidad de capacidad adjuntable (Context7, Engram, Caveman, etc.)</td><td>.agents/capabilities/**</td><td>¿Cómo encaja estructuralmente en el sistema?</td></tr>
+    <tr><td>Integration</td><td>Contrato de operación para instalar/adjuntar/listar/recomendar capacidades</td><td>.agents/integrations/README.md</td><td>¿Cómo se solicita, confirma y completa su adopción?</td></tr>
+  </tbody>
+</table>
 
 <div class="tiers">
   <div class="tier lean">
@@ -463,6 +582,10 @@ defaults:
     <tr><td>Install ≠ attach</td><td>Instalar no implica activo; hay que adjuntar al flujo</td></tr>
   </tbody>
 </table>
+
+<div class="callout mt-4">
+  <strong>Modelo mental corto:</strong> capability = qué capacidad existe; integration = cómo se incorpora con gobernanza.
+</div>
 
 ---
 

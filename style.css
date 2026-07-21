@@ -240,6 +240,8 @@
 .band.b-amber { color: var(--wk-amber); background: rgba(255, 184, 77, 0.1); border: 1px solid rgba(255, 184, 77, 0.25); }
 .band.b-cyan { color: var(--wk-cyan); background: rgba(51, 214, 255, 0.1); border: 1px solid rgba(51, 214, 255, 0.25); }
 .band.b-mint { color: var(--wk-mint); background: rgba(86, 227, 159, 0.1); border: 1px solid rgba(86, 227, 159, 0.25); }
+.band.b-blue { color: var(--wk-blue); background: rgba(108, 140, 255, 0.1); border: 1px solid rgba(108, 140, 255, 0.25); }
+.band.b-magenta { color: var(--wk-magenta); background: rgba(255, 79, 216, 0.1); border: 1px solid rgba(255, 79, 216, 0.25); }
 
 /* ---------- Tiers (efficiency) ---------- */
 .tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9rem; margin-bottom: 1rem; }
