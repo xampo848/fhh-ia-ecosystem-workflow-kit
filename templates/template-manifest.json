@@ -25,8 +25,7 @@
         ".agents/skills/registry.md",
         ".agents/skills/02-implement/implement-prd/SKILL.md",
         ".agents/skills/06-patterns/README.md",
-        ".agents/capabilities/registry.md",
-        ".agents/workflow-kit/manifest.json"
+        ".agents/capabilities/registry.md"
       ]
     },
     {

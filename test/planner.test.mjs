@@ -16,6 +16,7 @@ test('buildInstallPlan creates full workflow and selected adapter operations', a
   assert.ok(plan.operations.some((item) => item.relativePath === 'AGENTS.md'));
   assert.ok(plan.operations.some((item) => item.relativePath === '.github/copilot-instructions.md'));
   assert.ok(plan.operations.some((item) => item.relativePath === '.agents/skills/06-patterns/README.md'));
+  assert.equal(plan.operations.some((item) => item.relativePath.startsWith('.agents/workflow-kit/')), false);
   const uniquePaths = new Set(plan.operations.map((item) => item.relativePath));
   assert.equal(uniquePaths.size, plan.operations.length);
   assert.equal(plan.operations.some((item) => item.relativePath === 'README.md'), false);
@@ -42,7 +43,7 @@ test('buildInstallPlan defaults to complete fhh-ia-ecosystem overlay without dup
 
   assert.equal(uniquePaths.size, plan.operations.length);
   assert.ok(plan.operations.some((item) => item.relativePath === '.agents/skills/01-product/create-epic/SKILL.md'));
-  assert.ok(plan.operations.some((item) => item.relativePath === '.agents/workflow-kit/manifest.json'));
+  assert.equal(plan.operations.some((item) => item.relativePath.startsWith('.agents/workflow-kit/')), false);
 });
 
 
@@ -70,7 +71,7 @@ test('buildInstallPlan includes complete fhh-ia-ecosystem overlay when requested
   assert.ok(planned.has('.agents/skills/01-product/create-epic/SKILL.md'));
   assert.ok(planned.has('.agents/skills/04-crosscutting/impeccable/SKILL.md'));
   assert.ok(planned.has('.agents/skills/05-caveman/cavecrew/SKILL.md'));
-  assert.ok(planned.has('.agents/workflow-kit/manifest.json'));
+  assert.equal([...planned].some((relativePath) => relativePath.startsWith('.agents/workflow-kit/')), false);
   assert.ok(planned.has('.agents/capabilities/manifests/context7.md'));
 
   const fullPack = manifest.packs.find((item) => item.id === 'repo-overlay-fhh-ia-ecosystem-full');

@@ -33,8 +33,6 @@ are still stored in compatibility paths.
 - `.agents/capabilities/**` → neutral packaging and capability-attachment
   blueprint for portable core vs repo overlay wiring
 - `.agents/memory/**` → neutral memory-sharing and runtime parity governance
-- `.agents/workflow-kit/**` → portable workflow-kit packaging boundary,
-  manifest, overlay example, and adoption checklist; not an installer
 - `docs/**` → human-facing explanation, rationale, onboarding, and durable docs
 - `.github/**`, `.codex/**`, `AGENTS.md`, `CLAUDE.md` → wrappers/adapters that
   must inherit from the neutral layer

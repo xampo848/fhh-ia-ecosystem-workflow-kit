@@ -8,7 +8,7 @@ Included in this overlay:
 
 - full `.agents/skills` tree (workflow, delegated implementation, quality, crosscutting, caveman, and patterns);
 - full `.agents/capabilities` registry and manifests;
-- `.agents/model-routing`, `.agents/integrations`, `.agents/memory`, and `.agents/workflow-kit` metadata;
+- `.agents/model-routing`, `.agents/integrations`, and `.agents/memory` metadata;
 - `.agents/instructions.md` and `.agents/README.md`.
 
 This pack is intentionally opinionated and project-specific.
