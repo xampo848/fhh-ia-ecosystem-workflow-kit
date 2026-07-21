@@ -202,7 +202,7 @@
 .panel.p-ref li::before { color: var(--wk-blue); }
 
 /* ---------- Product studio journey ---------- */
-.product-journey { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9rem; }
+.product-journey { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.9rem; }
 .journey-stage {
   min-height: 8.8rem;
   border-radius: var(--wk-radius);
@@ -227,6 +227,7 @@
 .journey-copy { color: var(--wk-muted); font-size: 0.78rem; line-height: 1.4; margin-top: 0.38rem; }
 .journey-input { border-top: 2px solid var(--wk-blue); }
 .journey-diagnose { border-top: 2px solid var(--wk-cyan); }
+.journey-route { border-top: 2px solid var(--wk-amber); }
 .journey-output { border-top: 2px solid var(--wk-mint); }
 
 /* ---------- Flow / steps ---------- */

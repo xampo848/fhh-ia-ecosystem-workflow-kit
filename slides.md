@@ -331,30 +331,54 @@ defaults:
 
 <div class="slide-head">
   <div class="eyebrow">Producto</div>
-  <h1>Product-studio: de pregunta a decisión</h1>
-  <div class="sub">Un hub de decisión que combina intake, facilitación y el método de producto adecuado, sin encadenar ceremonias innecesarias.</div>
+  <h1>Product-studio: cómo funciona</h1>
+  <div class="sub">Convierte una necesidad de producto poco definida en un único siguiente paso claro.</div>
 </div>
 
 <div class="product-journey">
   <div class="journey-stage journey-input">
-    <div class="journey-kicker">Entrada libre</div>
-    <div class="journey-title">Problema, idea o desacuerdo</div>
-    <div class="journey-copy">No requiere que la persona conozca el framework correcto.</div>
+    <div class="journey-kicker">1. Entra una necesidad</div>
+    <div class="journey-title">Idea, problema o desacuerdo</div>
+    <div class="journey-copy">Ejemplo: “No sabemos qué construir primero”.</div>
   </div>
   <div class="journey-stage journey-diagnose">
-    <div class="journey-kicker">Diagnóstico</div>
-    <div class="journey-title">Resultado, evidencia, audiencia y horizonte</div>
-    <div class="journey-copy">Cuatro señales para seleccionar la ruta con el menor esfuerzo útil.</div>
+    <div class="journey-kicker">2. Hace intake guiado</div>
+    <div class="journey-title">Resultado, evidencia, personas y horizonte</div>
+    <div class="journey-copy">Una pregunta por turno para identificar la decisión pendiente.</div>
+  </div>
+  <div class="journey-stage journey-route">
+    <div class="journey-kicker">3. Elige una ruta</div>
+    <div class="journey-title">Explorar, decidir o especificar</div>
+    <div class="journey-copy">Selecciona strategy, discovery, jtbd, prioritize, roadmap o story.</div>
   </div>
   <div class="journey-stage journey-output">
-    <div class="journey-kicker">Salida accionable</div>
-    <div class="journey-title">Artefacto de producto o handoff</div>
-    <div class="journey-copy">Brief, plan, mapa, recomendación, roadmap, historia o siguiente workflow.</div>
+    <div class="journey-kicker">4. Entrega y deriva</div>
+    <div class="journey-title">Artefacto y siguiente workflow</div>
+    <div class="journey-copy">Deja un brief, plan o historia; luego recomienda epic, PRD o ticket solo si aplica.</div>
   </div>
 </div>
 
 <div class="callout mt-4">
-  <strong>Regla de foco:</strong> recomienda una ruta principal y, como máximo, una ruta adyacente que mejore de forma material la secuencia.
+  <strong>Resultado:</strong> la persona no necesita conocer el framework; product-studio hace el diagnóstico y propone una sola ruta principal.
+</div>
+
+---
+
+<div class="slide-head">
+  <div class="eyebrow">Producto</div>
+  <h1>Product-studio: ejemplo de una decisión</h1>
+  <div class="sub">La misma conversación pasa de incertidumbre a una acción concreta, sin convertir la primera idea en una feature prematura.</div>
+</div>
+
+<div class="flow-row phase-product">
+  <div class="step"><span class="s-num">1</span><div class="s-title">Entrada</div><div class="s-desc">“No sabemos qué construir primero”.</div></div>
+  <div class="step"><span class="s-num">2</span><div class="s-title">Diagnóstico</div><div class="s-desc">¿Qué resultado importa, qué evidencia existe y qué decisión está bloqueada?</div></div>
+  <div class="step"><span class="s-num">3</span><div class="s-title">Ruta</div><div class="s-desc">prioritize si hay apuestas comparables; discovery si aún faltan señales.</div></div>
+  <div class="step"><span class="s-num">4</span><div class="s-title">Salida</div><div class="s-desc">Criterio de priorización y una apuesta seleccionada, con supuestos visibles.</div></div>
+</div>
+
+<div class="callout mt-4">
+  <strong>Handoff correcto:</strong> solo cuando la apuesta queda suficientemente definida se abre create-epic, create-prd o generate-pm-ticket.
 </div>
 
 ---
@@ -425,26 +449,28 @@ defaults:
 <div class="slide-head">
   <div class="eyebrow">Producto</div>
   <h1>Producto: create-prd</h1>
-  <div class="sub">Convierte una intención de feature en especificación ejecutable con criterios falsables.</div>
+  <div class="sub">Convierte una intención de feature en un contrato de ejecución: decisiones resueltas, slices verificables y evidencia esperada.</div>
 </div>
 
-<div class="grid grid-2">
-  <div class="card accent-blue">
-    <div class="card-title">Fases del protocolo</div>
-    <div class="card-copy">1) Codebase exploration, 2) Gap analysis con preguntas dirigidas, 3) Draft del PRD completo.</div>
-  </div>
+<div class="flow-row phase-product">
+  <div class="step"><span class="s-num">1</span><div class="s-title">Entender la superficie real</div><div class="s-desc">Explora código, patrones, límites y dependencias antes de prometer una solución.</div></div>
+  <div class="step"><span class="s-num">2</span><div class="s-title">Resolver lo que bloquea</div><div class="s-desc">Hace preguntas dirigidas sobre alcance, reglas, datos, tenancy, rollout y recuperación.</div></div>
+  <div class="step"><span class="s-num">3</span><div class="s-title">Planificar trabajo verificable</div><div class="s-desc">Especifica slices con outcome, dependencias, validación, evidencia y condición de parada.</div></div>
+</div>
+
+<div class="grid grid-2 mt-4">
   <div class="card accent-cyan">
-    <div class="card-title">Preguntas obligatorias</div>
-    <div class="card-copy">Scope boundary, business rules, data decisions, tenancy, DDD placement, verification y rollout/recovery.</div>
+    <div class="card-title">Lo que recibe</div>
+    <div class="card-copy">Una necesidad ya priorizada: desde product-studio, una épica o una solicitud de feature suficientemente concreta.</div>
   </div>
   <div class="card accent-mint">
-    <div class="card-title">Estructura de salida</div>
-    <div class="card-copy">Contexto, requerimientos, modelo de datos, plan por fases/slices, aceptación, validación y decisiones tomadas.</div>
+    <div class="card-title">Lo que entrega</div>
+    <div class="card-copy">Un PRD que permite a implement-prd elegir modo, asignar ownership, construir por slices y demostrar aceptación.</div>
   </div>
-  <div class="card accent-magenta">
-    <div class="card-title">Calidad del PRD</div>
-    <div class="card-copy">Cada slice debe tener outcome, dependencies, tests, command de validación, evidencia y stop conditions.</div>
-  </div>
+</div>
+
+<div class="callout mt-4">
+  <strong>Distinción clave:</strong> no es un documento descriptivo; es la base verificable que evita que Implementación tenga que redescubrir decisiones de producto.
 </div>
 
 ---
@@ -478,8 +504,79 @@ defaults:
 
 <div class="slide-head">
   <div class="eyebrow mint">Implementación</div>
+  <h1>Implement-prd: elegir el modo correcto</h1>
+  <div class="sub">El modo ajusta coordinación y evidencia al riesgo real; no todos los cambios requieren el flujo completo.</div>
+</div>
+
+<table class="wk-table">
+  <thead><tr><th>Modo</th><th>Cuándo aplica</th><th>Postura de ejecución</th></tr></thead>
+  <tbody>
+    <tr><td>small/local</td><td>1–2 archivos, alcance y validación evidentes.</td><td>Trabajo local con validación focalizada.</td></tr>
+    <tr><td>controlled-lite</td><td>Una superficie y PRD claro, sin riesgo transversal.</td><td>Preflight compacto y ownership explícito.</td></tr>
+    <tr><td>controlled-implementation</td><td>Riesgo, dependencia o ownership parcialmente independiente.</td><td>Delegación selectiva y checkpoints.</td></tr>
+    <tr><td>standard</td><td>Cross-layer, contrato, migración o UI relevante.</td><td>Flujo completo, slices y gates de evidencia.</td></tr>
+    <tr><td>autonomous-safe</td><td>Trabajo suficientemente delimitado para delegar con seguridad.</td><td>Tracker, handoffs y barreras entre dependencias.</td></tr>
+    <tr><td>resume</td><td>Ejecución previamente interrumpida.</td><td>Reconstruir estado desde evidencia antes de continuar.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout mint mt-4">
+  <strong>Principio:</strong> aumentar el modo cuando aumentan riesgo, alcance, dependencia o necesidad de revisión independiente; no por preferencia de complejidad.
+</div>
+
+---
+
+<div class="slide-head">
+  <div class="eyebrow mint">Implementación</div>
+  <h1>Un slice no termina al escribir código</h1>
+  <div class="sub">Cada slice recorre estados observables. El progreso se acredita con evidencia, no con una declaración de avance.</div>
+</div>
+
+<div class="flow-row phase-implement">
+  <div class="step"><span class="s-num">1</span><div class="s-title">NOT_STARTED</div><div class="s-desc">Scope, dependencia y owner definidos.</div></div>
+  <div class="step"><span class="s-num">2</span><div class="s-title">IMPLEMENTED</div><div class="s-desc">Cambio realizado dentro del write set acordado.</div></div>
+  <div class="step"><span class="s-num">3</span><div class="s-title">TESTED</div><div class="s-desc">Prueba focalizada ejecutada sobre el comportamiento.</div></div>
+  <div class="step"><span class="s-num">4</span><div class="s-title">VALIDATED</div><div class="s-desc">Comando, contrato o smoke check deja resultado verificable.</div></div>
+  <div class="step"><span class="s-num">5</span><div class="s-title">VERIFIED</div><div class="s-desc">Criterio de aceptación y handoff quedan listos para cierre.</div></div>
+</div>
+
+<div class="callout mint mt-4">
+  <strong>Regla de avance:</strong> un slice dependiente no empieza por intuición; espera la evidencia terminal del slice que necesita.
+</div>
+
+---
+
+<div class="slide-head">
+  <div class="eyebrow mint">Implementación</div>
+  <h1>Delegación segura: paralelismo con límites</h1>
+  <div class="sub">La delegación acelera solo cuando conserva ownership, orden de dependencia y capacidad de revalidación.</div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card accent-mint">
+    <div class="card-title">Un writer por archivo</div>
+    <div class="card-copy">Cada write set tiene un owner. Dos implementers no editan la misma superficie en paralelo.</div>
+  </div>
+  <div class="card accent-mint">
+    <div class="card-title">Paralelo solo si es independiente</div>
+    <div class="card-copy">Se delegan slices cuando sus archivos, contratos y decisiones no se bloquean entre sí.</div>
+  </div>
+  <div class="card accent-mint">
+    <div class="card-title">Handoff antes de depender</div>
+    <div class="card-copy">El siguiente slice espera resultado, evidencia y estado terminal del trabajo precedente.</div>
+  </div>
+  <div class="card accent-mint">
+    <div class="card-title">Tracker como fuente de estado</div>
+    <div class="card-copy">Registra owner, dependencia, validación y progreso para que un resume no reconstruya el trabajo a ciegas.</div>
+  </div>
+</div>
+
+---
+
+<div class="slide-head">
+  <div class="eyebrow mint">Implementación</div>
   <h1>Implementación: cadena detallada por fases</h1>
-  <div class="sub">Secuencia recomendada para reducir retrabajo y aumentar confiabilidad.</div>
+  <div class="sub">Secuencia completa para modos con coordinación elevada; los modos ligeros conservan solo los gates que el riesgo justifica.</div>
 </div>
 
 <div class="flow phase-implement">
@@ -495,6 +592,28 @@ defaults:
     <div class="step"><span class="s-num">7</span><div class="s-title">Ejecución de validación</div><div class="s-desc">Comandos focalizados que puedan falsar.</div></div>
     <div class="step"><span class="s-num">8</span><div class="s-title">Revisión de handoff QA</div><div class="s-desc">Fresh-context independiente.</div></div>
   </div>
+</div>
+
+---
+
+<div class="slide-head">
+  <div class="eyebrow blue">Calidad</div>
+  <h1>Calidad: seleccionar la evidencia aplicable</h1>
+  <div class="sub">La validación se elige por superficie y riesgo. Ejecutar un gate irrelevante aumenta costo sin aumentar confianza.</div>
+</div>
+
+<table class="wk-table">
+  <thead><tr><th>Superficie</th><th>Evidencia principal</th><th>Cuándo no aplica</th></tr></thead>
+  <tbody>
+    <tr><td>Contrato, API o integración</td><td>Contract verifier, pruebas de integración y comandos del slice.</td><td>Cuando no cambian contratos ni comportamiento integrado.</td></tr>
+    <tr><td>Frontend React relevante</td><td>react-doctor más tests o revisión focalizada.</td><td>Backend-only o cambio sin superficie React.</td></tr>
+    <tr><td>Flujo navegable de usuario</td><td>Playwright E2E con ruta crítica reproducible.</td><td>Sin UI, sin intención E2E o entorno no disponible.</td></tr>
+    <tr><td>Cambio local de bajo riesgo</td><td>Validación inline y comandos focalizados.</td><td>Cuando el alcance obliga contrato, UI o revisión independiente.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout mt-4">
+  <strong>Gate de aplicabilidad:</strong> antes de crear E2E se confirma UI navegable, intención o riesgo formal y tooling disponible; si no, se declara not-applicable y se usa evidencia proporcional.
 </div>
 
 ---
@@ -634,25 +753,25 @@ defaults:
 <div class="slide-head">
   <div class="eyebrow magenta">Crosscutting</div>
   <h1>Crosscutting: overlays transversales</h1>
-  <div class="sub">Skills que no reemplazan fases, pero elevan calidad y velocidad cuando la situación lo requiere.</div>
+  <div class="sub">Skills que se insertan por una necesidad concreta. Complementan una fase activa; no sustituyen router, Producto, Implementación ni Quality.</div>
 </div>
 
 <div class="grid grid-2">
   <div class="card accent-magenta">
-    <div class="card-title">engineering-mentor</div>
-    <div class="card-copy">Guía decisiones técnicas y trade-offs sin alterar el contrato principal del flujo.</div>
+    <div class="card-title">Decisión técnica difícil</div>
+    <div class="card-copy"><strong>engineering-mentor</strong> entra cuando hay trade-offs; deja una recomendación razonada sin alterar el contrato principal.</div>
   </div>
   <div class="card accent-magenta">
-    <div class="card-title">frontend-design</div>
-    <div class="card-copy">Define dirección visual y criterios UX para reducir retrabajo de frontend.</div>
+    <div class="card-title">Diseño de una superficie UI</div>
+    <div class="card-copy"><strong>frontend-design</strong> entra antes de construir; deja dirección visual y criterios UX para reducir retrabajo.</div>
   </div>
   <div class="card accent-magenta">
-    <div class="card-title">impeccable</div>
-    <div class="card-copy">Overlay premium para calidad visual y hardening de experiencia cuando aplica.</div>
+    <div class="card-title">Hardening visual de alto impacto</div>
+    <div class="card-copy"><strong>impeccable</strong> entra cuando la experiencia requiere un estándar visual superior; deja hallazgos y mejoras priorizadas.</div>
   </div>
   <div class="card accent-magenta">
-    <div class="card-title">pr-comments-resolution</div>
-    <div class="card-copy">Resuelve feedback de revisión sin perder trazabilidad a la intención original.</div>
+    <div class="card-title">Feedback de revisión</div>
+    <div class="card-copy"><strong>pr-comments-resolution</strong> entra tras review; resuelve comentarios con trazabilidad a la intención y evidencia original.</div>
   </div>
 </div>
 
@@ -665,25 +784,25 @@ defaults:
 <div class="slide-head">
   <div class="eyebrow amber">Patterns</div>
   <h1>Patterns: contrato para implementación reusable</h1>
-  <div class="sub">Los pattern skills definen cómo ejecutar clases repetibles de trabajo técnico.</div>
+  <div class="sub">Los pattern skills convierten trabajo técnico repetible en un procedimiento con requisitos, fallback y evidencia de cierre.</div>
 </div>
 
 <div class="grid grid-2">
   <div class="card accent-cyan">
-    <div class="card-title">Slice contract</div>
+    <div class="card-title">Qué declara cada slice</div>
     <div class="card-copy">required_pattern_skills, optional_capabilities, fallback_docs, validation_hooks y handoff fields.</div>
   </div>
   <div class="card accent-blue">
-    <div class="card-title">Boundary rules</div>
-    <div class="card-copy">Skills obligatorias con path exacto; capabilities son opcionales y se gobiernan fuera del registry de skills.</div>
+    <div class="card-title">Requerido, opcional y fallback</div>
+    <div class="card-copy">Skills requeridas usan path exacto; capabilities son opcionales; fallback docs sostienen el trabajo cuando no hay patrón aplicable.</div>
   </div>
   <div class="card accent-mint">
-    <div class="card-title">Handoff evidence</div>
-    <div class="card-copy">El implementer debe dejar evidencia suficiente para que QA y maintainers revaliden sin contexto oculto.</div>
+    <div class="card-title">Qué deja al cerrar</div>
+    <div class="card-copy">El implementer entrega evidencia suficiente para que QA y maintainers revaliden sin contexto oculto.</div>
   </div>
   <div class="card accent-amber">
-    <div class="card-title">Authoring flow</div>
-    <div class="card-copy">Bootstrap recomendado para crear y registrar nuevos patterns con coherencia de contrato.</div>
+    <div class="card-title">Cómo se extiende</div>
+    <div class="card-copy">Bootstrap recomendado para crear y registrar nuevos patterns con coherencia de contrato y descubrimiento.</div>
   </div>
 </div>
 
@@ -800,15 +919,15 @@ defaults:
 
 <div class="flow-row">
   <div class="step"><span class="s-num">1</span><div class="s-title">Intake</div><div class="s-desc">Solicitud entra al router.</div></div>
-  <div class="step"><span class="s-num">2</span><div class="s-title">Ruta</div><div class="s-desc">Direct / Product / PRD / Implement.</div></div>
-  <div class="step"><span class="s-num">3</span><div class="s-title">Especificar</div><div class="s-desc">PRD con slices y validaciones.</div></div>
-  <div class="step"><span class="s-num">4</span><div class="s-title">Construir</div><div class="s-desc">Implement-prd con delegación controlada.</div></div>
-  <div class="step"><span class="s-num">5</span><div class="s-title">Validar</div><div class="s-desc">Contracts, tests, QA handoff.</div></div>
-  <div class="step"><span class="s-num">6</span><div class="s-title">Documentar</div><div class="s-desc">Cierre durable y transferible.</div></div>
+  <div class="step"><span class="s-num">2</span><div class="s-title">Dar forma</div><div class="s-desc">Product-studio entrega una decisión, historia, roadmap o brief.</div></div>
+  <div class="step"><span class="s-num">3</span><div class="s-title">Especificar</div><div class="s-desc">create-prd convierte una feature en slices y evidencia.</div></div>
+  <div class="step"><span class="s-num">4</span><div class="s-title">Construir</div><div class="s-desc">implement-prd elige modo y gobierna ownership.</div></div>
+  <div class="step"><span class="s-num">5</span><div class="s-title">Validar</div><div class="s-desc">Evidence proporcional: contrato, tests, E2E o QA.</div></div>
+  <div class="step"><span class="s-num">6</span><div class="s-title">Documentar</div><div class="s-desc">Cierre durable y transferible para la siguiente decisión.</div></div>
 </div>
 
 <div class="callout mint mt-4">
-  <strong>Definición de terminado:</strong> aceptación cumplida, evidencia verificable, documentación actualizada y sin drift de contrato neutral.
+  <strong>Cadena de handoff:</strong> decisión de producto → PRD ejecutable → slices verificados → evidencia de Quality → documentación durable.
 </div>
 
 ---
