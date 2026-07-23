@@ -54,17 +54,6 @@ test('validateLegalReadiness rejects a same-count overlay path replacement', asy
   assert.ok(result.failures.some((failure) => failure.includes('maintainer-attested overlay path/content inventory differs')));
 });
 
-test('validateLegalReadiness rejects Product Studio drift despite unresolved status', async () => {
-  const root = await copyLegalFixture();
-  const skillPath = path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/SKILL.md');
-  await fs.appendFile(skillPath, '\nUnreviewed change.\n', 'utf8');
-
-  const result = validateLegalReadiness({ root });
-
-  assert.equal(result.ok, false);
-  assert.ok(result.failures.some((failure) => failure.includes('product-studio path/content inventory differs')));
-});
-
 async function copyLegalFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-legal-'));
   for (const entry of [

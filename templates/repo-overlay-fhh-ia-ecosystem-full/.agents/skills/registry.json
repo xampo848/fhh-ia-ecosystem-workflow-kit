@@ -15,16 +15,6 @@
       "runtime_notes": "Intake runs every prompt; load the full skill only for non-trivial routing."
     },
     {
-      "name": "product-studio",
-      "class": "Workflow",
-      "path": ".agents/skills/01-product/product-studio/SKILL.md",
-      "trigger": "Product strategy, discovery, JTBD, prioritization, roadmap, or deciding what should exist",
-      "loading_posture": "Explicit-only",
-      "cost_hint": "balanced",
-      "key": "product-studio",
-      "runtime_notes": "May route to product sub-workflows."
-    },
-    {
       "name": "create-epic",
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-epic/SKILL.md",
@@ -53,76 +43,6 @@
       "cost_hint": "lean",
       "key": "generate-pm-ticket",
       "runtime_notes": "Smaller planning artifact than PRD."
-    },
-    {
-      "name": "discovery-process",
-      "class": "Product sub-workflow",
-      "path": ".agents/skills/01-product/product-studio/discovery-process/SKILL.md",
-      "trigger": "Product discovery cycle from hypothesis to experiments",
-      "loading_posture": "Just-in-time",
-      "cost_hint": "balanced",
-      "key": "discovery-process",
-      "runtime_notes": "Usually loaded by `product-studio`."
-    },
-    {
-      "name": "jobs-to-be-done",
-      "class": "Product sub-workflow",
-      "path": ".agents/skills/01-product/product-studio/jobs-to-be-done/SKILL.md",
-      "trigger": "Clarify customer jobs, pains, and gains",
-      "loading_posture": "Just-in-time",
-      "cost_hint": "balanced",
-      "key": "jobs-to-be-done",
-      "runtime_notes": "Usually loaded by `product-studio`."
-    },
-    {
-      "name": "prioritization-advisor",
-      "class": "Product sub-workflow",
-      "path": ".agents/skills/01-product/product-studio/prioritization-advisor/SKILL.md",
-      "trigger": "Choose prioritization framework or scoring approach",
-      "loading_posture": "Just-in-time",
-      "cost_hint": "lean",
-      "key": "prioritization-advisor",
-      "runtime_notes": "Usually loaded by `product-studio`."
-    },
-    {
-      "name": "product-strategy-session",
-      "class": "Product sub-workflow",
-      "path": ".agents/skills/01-product/product-studio/product-strategy-session/SKILL.md",
-      "trigger": "End-to-end product strategy across positioning/discovery/roadmap",
-      "loading_posture": "Just-in-time",
-      "cost_hint": "balanced",
-      "key": "product-strategy-session",
-      "runtime_notes": "Usually loaded by `product-studio`."
-    },
-    {
-      "name": "roadmap-planning",
-      "class": "Product sub-workflow",
-      "path": ".agents/skills/01-product/product-studio/roadmap-planning/SKILL.md",
-      "trigger": "Turn strategy into roadmap or release sequence",
-      "loading_posture": "Just-in-time",
-      "cost_hint": "balanced",
-      "key": "roadmap-planning",
-      "runtime_notes": "Usually loaded by `product-studio`."
-    },
-    {
-      "name": "user-story",
-      "class": "Product sub-workflow",
-      "path": ".agents/skills/01-product/product-studio/user-story/SKILL.md",
-      "trigger": "Convert needs into user stories and Gherkin acceptance criteria",
-      "loading_posture": "Just-in-time",
-      "cost_hint": "lean",
-      "key": "user-story",
-      "runtime_notes": "Usually loaded by `product-studio`."
-    },
-    {
-      "name": "workshop-facilitation",
-      "class": "Product sub-workflow",
-      "path": ".agents/skills/01-product/product-studio/workshop-facilitation/SKILL.md",
-      "trigger": "PM workflow needs one-question-at-a-time facilitation",
-      "loading_posture": "Just-in-time",
-      "cost_hint": "lean",
-      "key": "workshop-facilitation",
-      "runtime_notes": "Shared facilitation protocol."
     },
     {
       "name": "implement-prd",

@@ -10,8 +10,7 @@ const EXPECTED_COMPONENTS = new Map([
   ['typecraft-guide-skill', { license: 'MIT', commit: '8099648409ec73980bd693ac8d15fd3e3230072d', status: 'VERIFIED' }],
   ['caveman', { license: 'MIT', commit: '0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0', status: 'VERIFIED' }],
   ['frontend-design', { license: 'Apache-2.0', commit: 'd230a6dd6eb1a0dbee9fec55e2f00a96e28dff81', status: 'VERIFIED' }],
-  ['product-manager-prompts', { license: 'MIT', commit: 'ddcd8b00deafe9f3a3f770df6b70a76692d8e0f1', status: 'VERIFIED' }],
-  ['product-studio', { license: 'UNRESOLVED', status: 'EXTERNAL_UNVERIFIED' }]
+  ['product-manager-prompts', { license: 'MIT', commit: 'ddcd8b00deafe9f3a3f770df6b70a76692d8e0f1', status: 'VERIFIED' }]
 ]);
 
 export function validateLegalReadiness({ root = process.cwd() } = {}) {

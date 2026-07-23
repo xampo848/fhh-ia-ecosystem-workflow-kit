@@ -14,7 +14,6 @@ const mirroredFiles = [
 ];
 
 const mirroredDirectories = [
-  '.agents/skills/01-product/product-studio',
   '.agents/skills/04-crosscutting/frontend-design',
   '.agents/skills/04-crosscutting/impeccable',
   '.agents/skills/05-caveman'

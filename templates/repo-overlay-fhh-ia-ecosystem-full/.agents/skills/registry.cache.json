@@ -6,11 +6,11 @@
   "compact_index": ".agents/skills/index.md",
   "structured_registry": ".agents/skills/registry.json",
   "source_hashes": {
-    ".agents/skills/index.md": "258e77581f4083f565c5d9d16c71e05b3cd481509b93ad7b33d7d8eb496ca636",
-    ".agents/skills/registry.md": "0bb637e25b4daa9879fd02794469b499817ccb5e5231b74d7a5b46b90a77a8af",
-    ".agents/skills/registry.json": "a9aa39dfb6105f5f1aa8ed2f33382d48b381937873abf0ee463e59d424b03f80"
+    ".agents/skills/index.md": "f05b066ef7b2983e1ad1bfd8c7e599cdc793aea520a72ec771ae420fba41a6eb",
+    ".agents/skills/registry.md": "e267c7c236066e8ddd919b62ca057372151097ae38c5ad2cc9321f23508ef597",
+    ".agents/skills/registry.json": "be588b3000482f8396d69a41cc21068bccf8263656d03950dd9b0a5772b4384b"
   },
-  "entry_count": 41,
+  "entry_count": 33,
   "entries": [
     {
       "key": "acceptance-test-engineer",
@@ -157,15 +157,6 @@
       "skill_sha256": "49b7f2bedb3b325ef5b405b3cbfab413bfcbd103d989dfec7c5059f342c093a0"
     },
     {
-      "key": "discovery-process",
-      "name": "discovery-process",
-      "group": "skills",
-      "class": "Product sub-workflow",
-      "path": ".agents/skills/01-product/product-studio/discovery-process/SKILL.md",
-      "loading_posture": "Just-in-time",
-      "skill_sha256": "f988b2c0f285e6a4e2e6130551c89a210d11cc6acac5ade4b1ca93f7cb614705"
-    },
-    {
       "key": "document-development",
       "name": "document-development",
       "group": "skills",
@@ -247,15 +238,6 @@
       "skill_sha256": "30f29aa7c58501dcb9ba23b57b47d5c8ac6bc6521414a3061f0ccf0b56e3fd17"
     },
     {
-      "key": "jobs-to-be-done",
-      "name": "jobs-to-be-done",
-      "group": "skills",
-      "class": "Product sub-workflow",
-      "path": ".agents/skills/01-product/product-studio/jobs-to-be-done/SKILL.md",
-      "loading_posture": "Just-in-time",
-      "skill_sha256": "8541581d178ba7035e1c5573629aa836f9a515f44ff1706baa84fc5f8141a8b4"
-    },
-    {
       "key": "pattern-authoring-add-project-pattern",
       "name": "add-project-pattern",
       "group": "pattern_skills",
@@ -292,33 +274,6 @@
       "skill_sha256": "14f7c6106b486245f119ae03de3cdcb33ccfcf623cc7fb8246c2c61d920888cc"
     },
     {
-      "key": "prioritization-advisor",
-      "name": "prioritization-advisor",
-      "group": "skills",
-      "class": "Product sub-workflow",
-      "path": ".agents/skills/01-product/product-studio/prioritization-advisor/SKILL.md",
-      "loading_posture": "Just-in-time",
-      "skill_sha256": "794e41caae7c9d36ce31e82f8a007cb0fa45628caae54748a3808e051b624dac"
-    },
-    {
-      "key": "product-strategy-session",
-      "name": "product-strategy-session",
-      "group": "skills",
-      "class": "Product sub-workflow",
-      "path": ".agents/skills/01-product/product-studio/product-strategy-session/SKILL.md",
-      "loading_posture": "Just-in-time",
-      "skill_sha256": "36ef2838ccd1bfac1b23a37b371924c9b875df888523b2d2a4c0f246e41add1f"
-    },
-    {
-      "key": "product-studio",
-      "name": "product-studio",
-      "group": "skills",
-      "class": "Workflow",
-      "path": ".agents/skills/01-product/product-studio/SKILL.md",
-      "loading_posture": "Explicit-only",
-      "skill_sha256": "35ac5bbf5593d3e52f30f970d05c65e6a08abdcf260ff41dd7d0b147cc9a3e5e"
-    },
-    {
       "key": "qa-handoff-review",
       "name": "qa-handoff-review",
       "group": "skills",
@@ -337,24 +292,6 @@
       "skill_sha256": "70a3a3335faaedc99e04dedbe4643321a004490d19359042179ef22c3d159a93"
     },
     {
-      "key": "roadmap-planning",
-      "name": "roadmap-planning",
-      "group": "skills",
-      "class": "Product sub-workflow",
-      "path": ".agents/skills/01-product/product-studio/roadmap-planning/SKILL.md",
-      "loading_posture": "Just-in-time",
-      "skill_sha256": "a594b816a72732059a65a43e0e178717e378a7b411420fef6ce5354bf5acf344"
-    },
-    {
-      "key": "user-story",
-      "name": "user-story",
-      "group": "skills",
-      "class": "Product sub-workflow",
-      "path": ".agents/skills/01-product/product-studio/user-story/SKILL.md",
-      "loading_posture": "Just-in-time",
-      "skill_sha256": "a8c9336fa4eff993ffda92147eafd0252e8a19b79ecdae61ff79397549fa6fca"
-    },
-    {
       "key": "validation-runner",
       "name": "validation-runner",
       "group": "skills",
@@ -370,16 +307,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "568ab4a044180b6a6e03f66a4ad1a6f98535b2acd1df4856b29a6d5ffc20c786"
-    },
-    {
-      "key": "workshop-facilitation",
-      "name": "workshop-facilitation",
-      "group": "skills",
-      "class": "Product sub-workflow",
-      "path": ".agents/skills/01-product/product-studio/workshop-facilitation/SKILL.md",
-      "loading_posture": "Just-in-time",
-      "skill_sha256": "a9ed4499dab9fe04b0f7a197c74d77d8ccc1a68a649cb8fe823f2013d8f4950e"
+      "skill_sha256": "d3ed38450f95a04cb1f912bb5deaf00203b90c99f8e417784314e5802f7854aa"
     }
   ]
 }

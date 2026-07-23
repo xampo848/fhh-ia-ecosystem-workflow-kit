@@ -20,14 +20,14 @@ test('validateDocs rejects missing required safety phrase', async () => {
   assert.ok(result.failures.some((failure) => failure.includes('docs/quickstart.md must mention dry-run')));
 });
 
-test('validateDocs rejects removal of the public-release NO-GO decision', async () => {
+test('validateDocs rejects removal of the public-release GO decision', async () => {
   const root = await copyDocsFixture();
   await fs.writeFile(path.join(root, 'docs/legal/OPEN-SOURCE-READINESS.md'), '# OPEN SOURCE READINESS\n', 'utf8');
 
   const result = await validateDocs({ root });
 
   assert.equal(result.ok, false);
-  assert.ok(result.failures.some((failure) => failure.includes('OPEN-SOURCE-READINESS.md must mention Recommendation: `NO-GO`')));
+  assert.ok(result.failures.some((failure) => failure.includes('OPEN-SOURCE-READINESS.md must mention Recommendation: `GO`')));
 });
 
 async function copyDocsFixture() {

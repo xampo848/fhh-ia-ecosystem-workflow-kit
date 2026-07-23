@@ -14,7 +14,6 @@ const overlayPrefix = 'templates/repo-overlay-fhh-ia-ecosystem-full';
 
 const directRoutingKeys = new Set([
   'workflow-router',
-  'product-studio',
   'create-epic',
   'create-prd',
   'generate-pm-ticket',

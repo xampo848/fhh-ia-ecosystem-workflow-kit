@@ -61,40 +61,26 @@ artifact and not legal advice.
   at `ddcd8b00deafe9f3a3f770df6b70a76692d8e0f1`.
 - That pre-relicense snapshot was MIT; the applicable text is
   `docs/legal/third-party/licenses/MIT-product-manager-prompts.txt`.
-- This limited evidence does not license or verify the complete Product Studio
-  tree by implication.
+- Product Studio content was removed from canonical and installable overlays;
+  this record is retained as historical provenance evidence.
 
-## External-Unverified Component
+## 6) Product Studio historical note
 
-## 6) product-studio as a complete tree
-
-- Local path:
-  `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/**`
-- Status: `EXTERNAL_UNVERIFIED`; it blocks public release.
-- Direct comparison against `https://github.com/deanpeters/Product-Manager-Skills`
-  (`skills` at commit `99710188c134acf590a02c0e4ee1f431e60004cf`) found partial
-  derivation evidence: 9 of 19 local files are byte-identical, 9 map to the
-  same paths with local modifications, and 1 local wrapper file has no direct
-  path counterpart.
-- The current upstream repository snapshot is published under
-  `CC BY-NC-SA 4.0`. This strengthens provenance evidence but does not by itself
-  authorize public redistribution of the adapted complete tree in this repo.
-- The complete Product Studio tree remains frozen by an integrity inventory for
-  auditability and is not approved for public redistribution.
-- Before public release, obtain source and license evidence for all 19 files or
-  remove the complete Product Studio tree from both canonical and installable
-  overlays, then renew the provenance record.
+- Product Studio was previously classified as `EXTERNAL_UNVERIFIED`.
+- On 2026-07-23, the complete Product Studio tree was removed from both
+  canonical and installable overlays.
+- As a result, Product Studio is removed from distribution scope and no longer
+  blocks public release readiness for the shipped package contents.
 
 ## Distribution Rule
 
 If a component lacks an exact or date-bounded upstream snapshot, required notice
 carry-forward, or clear corporate authorization, it must remain private or be
 excluded from the public release even when the top-level upstream license is
-known. `product-studio` meets that condition today. The legal gate validates the
+known. Product Studio was removed from distribution scope under this rule. The legal gate validates the
 records above, but does not replace the publication decision in
 `docs/legal/OPEN-SOURCE-READINESS.md`.
 
 The internally attested overlay is covered by `docs/legal/overlay-authorship.json`.
-That record excludes every third-party coverage root, including the complete
-Product Studio tree, and must be renewed whenever its path/content inventory
+That record excludes every third-party coverage root and must be renewed whenever its path/content inventory
 changes.

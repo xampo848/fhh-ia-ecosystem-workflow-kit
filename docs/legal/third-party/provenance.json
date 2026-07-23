@@ -169,45 +169,14 @@
         ]
       },
       "localPaths": [
-        "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/jobs-to-be-done",
-        "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/user-story"
       ],
+      "distributionScope": "historical evidence only; Product Studio content has been removed from canonical and installable overlays",
       "verification": {
-        "method": "declared source paths exist in the pinned MIT snapshot; local derivatives entered this repository before the 2026-07-17 upstream relicense",
+        "method": "declared source paths exist in the pinned MIT snapshot; historical local derivatives entered this repository before the 2026-07-17 upstream relicense",
         "localIntroductionCommit": "e4f860e4bd255b5b15dab12201f82b1ae9d5483c",
         "localIntroductionDate": "2026-07-15T23:10:08-04:00"
       },
       "licenseFile": "docs/legal/third-party/licenses/MIT-product-manager-prompts.txt"
-    },
-    {
-      "name": "product-studio",
-      "status": "EXTERNAL_UNVERIFIED",
-      "license": "UNRESOLVED",
-      "upstream": {
-        "repository": "https://github.com/deanpeters/Product-Manager-Skills",
-        "commit": "99710188c134acf590a02c0e4ee1f431e60004cf",
-        "sourceRoot": "skills"
-      },
-      "localPaths": [
-        "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio"
-      ],
-      "integrityInventories": [
-        {
-          "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio",
-          "fileCount": 19,
-          "pathContentSha256": "cd253440fa47381214c6c34feb993005cbc3ac1c323b48b6b44e19bec3832a61"
-        }
-      ],
-      "verification": {
-        "method": "direct comparison against the pinned Product-Manager-Skills/skills snapshot shows partial byte-identical overlap and additional local adaptations",
-        "upstreamCurrentLicense": "CC-BY-NC-SA-4.0",
-        "exactMatches": 9,
-        "localFileCount": 19,
-        "samePathDifferentContent": 9,
-        "localOnlyByPath": 1,
-        "missingEvidence": "A complete rights basis for redistribution of the adapted full tree and an approved publication decision for non-commercial upstream terms."
-      },
-      "publicReleaseBlocker": true
     }
   ]
 }

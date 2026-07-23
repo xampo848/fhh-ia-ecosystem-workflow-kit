@@ -21,6 +21,5 @@ Automation artifacts remain in `.agents/skills/registry.json` and `.agents/skill
 | `implement-prd` | Approved PRD needs implementation | `.agents/skills/02-implement/implement-prd/SKILL.md` | balanced |
 | `playwright-testing` | User asks for Playwright tests or E2E validation is required | `.agents/skills/03-quality/playwright-testing/SKILL.md` | balanced |
 | `pr-comments-resolution` | Resolve or review PR comments in an orderly way | `.agents/skills/04-crosscutting/pr-comments-resolution/SKILL.md` | balanced |
-| `product-studio` | Product strategy, discovery, JTBD, prioritization, roadmap, or deciding what should exist | `.agents/skills/01-product/product-studio/SKILL.md` | balanced |
 | `react-doctor` | Meaningful React changes need post-change audit | `.agents/skills/03-quality/react-doctor/SKILL.md` | balanced |
 | `workflow-router` | Per-turn intake selects non-trivial freeform work without an explicit skill | `.agents/skills/00-router/workflow-router/SKILL.md` | lean |

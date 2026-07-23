@@ -45,7 +45,6 @@ The registry answers four questions:
 | Class | Definition |
 | --- | --- |
 | Workflow | Owns sequence, gates, artifacts, and stop/continue decisions. |
-| Product sub-workflow | Product-thinking workflow below or alongside `product-studio`. |
 | Delegate-only implementation | Used inside `implement-prd` or a specific orchestrator with explicit ownership. |
 | Quality/validation | Specialized validation, testing, contract, or QA procedure. |
 | Cross-cutting overlay | Supplements a primary workflow when the trigger applies. |
@@ -135,17 +134,9 @@ Rules:
 | Skill name | Class | Physical path | Trigger | Loading posture | Cost hint | Future structured key | Runtime notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `workflow-router` | Workflow | `.agents/skills/00-router/workflow-router/SKILL.md` | Per-turn intake selects non-trivial freeform work without an explicit skill | Startup-minimal | lean | `workflow-router` | Intake runs every prompt; load the full skill only for non-trivial routing. |
-| `product-studio` | Workflow | `.agents/skills/01-product/product-studio/SKILL.md` | Product strategy, discovery, JTBD, prioritization, roadmap, or deciding what should exist | Explicit-only | balanced | `product-studio` | May route to product sub-workflows. |
 | `create-epic` | Workflow | `.agents/skills/01-product/create-epic/SKILL.md` | Large initiative needing research, appetite, phases, or multiple PRDs | Explicit-only | balanced | `create-epic` | Use before PRD queue creation. |
 | `create-prd` | Workflow | `.agents/skills/01-product/create-prd/SKILL.md` | Feature/ticket/spec needs formal PRD before implementation | Explicit-only | balanced | `create-prd` | Expected predecessor to `implement-prd`. |
 | `generate-pm-ticket` | Workflow | `.agents/skills/01-product/generate-pm-ticket/SKILL.md` | User needs a backlog/Jira-style ticket rather than full PRD | Explicit-only | lean | `generate-pm-ticket` | Smaller planning artifact than PRD. |
-| `discovery-process` | Product sub-workflow | `.agents/skills/01-product/product-studio/discovery-process/SKILL.md` | Product discovery cycle from hypothesis to experiments | Just-in-time | balanced | `discovery-process` | Usually loaded by `product-studio`. |
-| `jobs-to-be-done` | Product sub-workflow | `.agents/skills/01-product/product-studio/jobs-to-be-done/SKILL.md` | Clarify customer jobs, pains, and gains | Just-in-time | balanced | `jobs-to-be-done` | Usually loaded by `product-studio`. |
-| `prioritization-advisor` | Product sub-workflow | `.agents/skills/01-product/product-studio/prioritization-advisor/SKILL.md` | Choose prioritization framework or scoring approach | Just-in-time | lean | `prioritization-advisor` | Usually loaded by `product-studio`. |
-| `product-strategy-session` | Product sub-workflow | `.agents/skills/01-product/product-studio/product-strategy-session/SKILL.md` | End-to-end product strategy across positioning/discovery/roadmap | Just-in-time | balanced | `product-strategy-session` | Usually loaded by `product-studio`. |
-| `roadmap-planning` | Product sub-workflow | `.agents/skills/01-product/product-studio/roadmap-planning/SKILL.md` | Turn strategy into roadmap or release sequence | Just-in-time | balanced | `roadmap-planning` | Usually loaded by `product-studio`. |
-| `user-story` | Product sub-workflow | `.agents/skills/01-product/product-studio/user-story/SKILL.md` | Convert needs into user stories and Gherkin acceptance criteria | Just-in-time | lean | `user-story` | Usually loaded by `product-studio`. |
-| `workshop-facilitation` | Product sub-workflow | `.agents/skills/01-product/product-studio/workshop-facilitation/SKILL.md` | PM workflow needs one-question-at-a-time facilitation | Just-in-time | lean | `workshop-facilitation` | Shared facilitation protocol. |
 | `implement-prd` | Workflow | `.agents/skills/02-implement/implement-prd/SKILL.md` | Approved PRD needs implementation | Explicit-only | balanced | `implement-prd` | Orchestrator for delegate-only implementation skills. |
 | `prd-readiness-review` | Delegate-only implementation | `.agents/skills/02-implement/prd-readiness-review/SKILL.md` | `implement-prd` needs readiness/go-stop review | Delegated-only | lean | `prd-readiness-review` | Owned by `implement-prd`. |
 | `codebase-discovery` | Delegate-only implementation | `.agents/skills/02-implement/codebase-discovery/SKILL.md` | `implement-prd` needs targeted codebase discovery | Delegated-only | balanced | `codebase-discovery` | Owned by `implement-prd`. |

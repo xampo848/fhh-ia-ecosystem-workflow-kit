@@ -91,7 +91,7 @@ Requirements for FULL trace:
 | Request class | Signals | Primary action | Confirmation required? | Default cost posture |
 | --- | --- | --- | --- | --- |
 | Direct answer | Explanation, advice, comparison, small command, no repo changes | Answer directly | No | `lean` |
-| Product ambiguity | Problem, user need, strategy, priority, roadmap, JTBD, unclear direction | `product-studio` | No, explain why | `balanced` |
+| Product ambiguity | Problem, user need, strategy, priority, roadmap, JTBD, unclear direction | `create-epic` for broad ambiguity, otherwise `create-prd` | Ask one question only if scope is unclear | `balanced` |
 | Broad initiative | Multi-phase work, major capability, research, roadmap, appetite, multiple PRDs | `create-epic` | Yes unless user explicitly asked for epic/initiative/research | `balanced`; `premium` only for major architecture or commercial risk |
 | Feature specification | Clear feature, business rules, UX states, API/data impact, acceptance criteria needed | `create-prd` | No, unless user only wanted a quick answer | `balanced` |
 | Tiny backlog item | Small task, no full PRD needed, clear AC expected | `generate-pm-ticket` | No | `lean` |
@@ -152,7 +152,6 @@ Use when the task needs reliable reasoning but is not high-risk enough for a pre
 
 Typical examples:
 
-- `product-studio`
 - `create-prd`
 - normal `create-epic`
 - normal `implement-prd`
@@ -385,7 +384,7 @@ Behavior:
 
 | User says | Route | Cost posture |
 | --- | --- | --- |
-| "Explícame si esta idea tiene sentido" | Direct answer or `product-studio` if product direction is unclear | `lean` or `balanced` |
+| "Explícame si esta idea tiene sentido" | Direct answer or `create-prd` if the user wants a spec-ready decision | `lean` or `balanced` |
 | "Quiero agregar un dashboard de métricas DORA" | `create-prd` unless explicitly broad/multi-phase | `balanced` |
 | "Implementa este PRD" | `implement-prd` | `balanced` |
 | "Crea la épica para GitHub Intelligence" | `create-epic` | `balanced`; `premium` if architecture impact is high |
@@ -418,7 +417,7 @@ Do not:
 - Start `create-epic` because the idea sounds big but could fit in one PRD.
 - Ask the user to choose from a long skill list.
 - Load every skill or every pattern doc.
-- Treat `product-studio` as a replacement for `create-prd`.
+- Treat `create-epic` as mandatory when one focused `create-prd` is sufficient.
 - Treat `implement-prd` as optional when production code changes are non-trivial.
 - Route workflow-extension maintenance to product workflows when no product artifact is needed.
 - Hide the fact that a skill was skipped.
