@@ -407,6 +407,35 @@ npm_config_cache=/tmp/workflow-kit-npm-cache npm pack --dry-run
 - [Existing GitHub Copilot repository](examples/existing-copilot/README.md)
 - [Neutral core only](examples/neutral-core/README.md)
 
+## Acknowledgments and tool references
+
+This project references and/or integrates ideas, components, or optional capabilities from the following external repositories:
+
+### Optional capabilities and integrations
+
+- [upstash/context7](https://github.com/upstash/context7) (Context7 docs MCP)
+- [gentleman-programming/engram](https://github.com/gentleman-programming/engram) (durable memory MCP)
+- [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) (code graph and structural search MCP)
+- [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) (token-saving communication helpers)
+
+### Upstream components and attribution chain
+
+- [pbakaus/impeccable](https://github.com/pbakaus/impeccable) (frontend craft overlay upstream)
+- [anthropics/skills](https://github.com/anthropics/skills) (frontend-design upstream reference)
+- [qq15725/modern-screenshot](https://github.com/qq15725/modern-screenshot) (vendored artifact source)
+- [ehmo/typecraft-guide-skill](https://github.com/ehmo/typecraft-guide-skill) (upstream attribution chain)
+
+### Historical provenance references
+
+- [deanpeters/product-manager-prompts](https://github.com/deanpeters/product-manager-prompts) (historical provenance reference)
+- [deanpeters/Product-Manager-Skills](https://github.com/deanpeters/Product-Manager-Skills) (historical comparison reference)
+
+### Additional referenced tooling repositories
+
+- [unjs/fontaine](https://github.com/unjs/fontaine) (font metric overrides tooling referenced in design guidance)
+
+Legal provenance details for distributed contents are tracked in [docs/legal/third-party/provenance.json](docs/legal/third-party/provenance.json), [docs/legal/PROVENANCE-AUDIT.md](docs/legal/PROVENANCE-AUDIT.md), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ## Release/publishing note
 
-This repository is private. Do not run `npm publish`, create public releases, or change repository visibility without explicit maintainer approval.
+This repository is public. Keep `package.json` as `private: true` to prevent accidental npm registry publication, and do not run `npm publish` or create package releases without explicit maintainer approval.
