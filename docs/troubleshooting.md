@@ -69,7 +69,7 @@ Use `neutral` when your runtime is not listed, then create a local thin adapter 
 Run checks individually:
 
 ```bash
-bun test
+bun run test
 bun run check
 bun run check:templates
 bun run check:release

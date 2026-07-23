@@ -7,7 +7,7 @@ This project is not published yet. Do not create repositories, push branches, up
 Run locally:
 
 ```bash
-bun test
+bun run test
 bun run check
 bun run check:workflow
 bun run check:docs

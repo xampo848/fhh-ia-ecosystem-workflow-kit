@@ -57,7 +57,7 @@ export async function validateReleaseReadiness({ root = packageRoot } = {}) {
       failures.push('CI workflow must define jobs.validate.steps.');
     } else {
       const runCommands = validateSteps.map((step) => `${step?.run ?? ''}`);
-      for (const expected of ['bun test', 'bun run check', 'bun run check:workflow', 'bun run check:docs', 'bun run check:release', 'bun run check:legal']) {
+      for (const expected of ['bun run test', 'bun run check', 'bun run check:workflow', 'bun run check:docs', 'bun run check:release', 'bun run check:legal']) {
         if (!runCommands.some((command) => command.includes(expected))) {
           failures.push(`CI workflow must run ${expected}.`);
         }

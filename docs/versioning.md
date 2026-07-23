@@ -54,7 +54,7 @@ Prefer pinned tags for coordinated team rollouts. Use `main` only when you expli
 Every version must pass:
 
 ```bash
-bun test
+bun run test
 bun run check
 bun run check:templates
 bun run check:release

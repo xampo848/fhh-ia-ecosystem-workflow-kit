@@ -371,7 +371,7 @@ fhh-ia-ecosystem-workflow-kit/
 ## Validation for maintainers
 
 ```bash
-bun test
+bun run test
 bun run check
 bun run check:templates
 bun run check:release

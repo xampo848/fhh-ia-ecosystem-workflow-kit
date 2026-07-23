@@ -524,7 +524,7 @@ node scripts/sync-skill-registry.mjs --write
   bun run check
   bun run check:templates
   bun run check:docs
-  bun test
+  bun run test
   ```
 
 - [ ] Run CLI smoke tests in temporary repositories for:
