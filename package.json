@@ -1,6 +1,6 @@
 {
   "name": "fhh-ia-ecosystem-workflow-kit",
-  "version": "0.7.2-public-install-export",
+  "version": "0.7.3-public-install-export",
   "private": true,
   "description": "Public GitHub-installable CLI/TUI workflow kit with safe install/export commands.",
   "license": "MIT",

@@ -307,7 +307,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "002d816c141ea5c248a7006645b179bf7ad82e99bdd3122db3141df10c37d1a3"
+      "skill_sha256": "0fe59610b54d7d4cf1a21ffff772722d03aeb2ef84433b0e163f21174c653d31"
     }
   ]
 }

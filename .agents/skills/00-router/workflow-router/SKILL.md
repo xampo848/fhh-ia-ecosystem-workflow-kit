@@ -35,7 +35,8 @@ non-trivial, iterative, implementation-adjacent, or multi-step freeform work
 when the user did not explicitly invoke a skill.
 
 A direct answer may proceed without loading the full router only when the
-request is trivial and informational. Emit a trace when intake selects a
+request is trivial and informational, and it may proceed without a visible
+routing trace. Emit a trace when intake selects a
 meaningful workflow, skill, capability, cost, delegation, or risk decision.
 Never assume that the route selected for the previous prompt remains valid.
 
