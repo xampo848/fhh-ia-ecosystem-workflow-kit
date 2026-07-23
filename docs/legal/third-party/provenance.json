@@ -18,7 +18,7 @@
         {
           "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable",
           "fileCount": 62,
-          "pathContentSha256": "c02572486a9be9dbff6f7b36f470722e012f893b420255294148dcc461d9cc78"
+          "pathContentSha256": "8e5b4746f146913f95ff92489b8d7ab606c51c95332d60671eb5aaa8ed386713"
         }
       ],
       "modificationNotice": "Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in pbakaus/impeccable.",
@@ -110,7 +110,7 @@
         {
           "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/05-caveman",
           "fileCount": 31,
-          "pathContentSha256": "86fd6ac9d9b90245eab1443a1277d4feb78c2f83a3597e2da91d86acc797950d"
+          "pathContentSha256": "b4d64ee91965dba671e85fe026428b0c1b67029aeb72a7f6b2dc95a543a8fcce"
         }
       ],
       "integrityFiles": [
