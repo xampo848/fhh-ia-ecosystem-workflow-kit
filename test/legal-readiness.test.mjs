@@ -9,8 +9,9 @@ import { validateLegalReadiness } from '../scripts/validate-legal-readiness.mjs'
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-test('validateLegalReadiness passes for the repository records', () => {
-  const result = validateLegalReadiness({ root: sourceRoot });
+test('validateLegalReadiness passes for the repository records', async () => {
+  const root = await copyLegalFixture();
+  const result = validateLegalReadiness({ root });
 
   assert.equal(result.ok, true, result.failures.join('\n'));
 });
