@@ -31,7 +31,7 @@ const requiredPaths = [
   'docs/quickstart.md',
   'docs/troubleshooting.md',
   'docs/migration.md',
-  'docs/private-github-install.md',
+  'docs/github-install.md',
   'examples/fresh-codex/README.md',
   'examples/existing-copilot/README.md',
   'examples/neutral-core/README.md'
@@ -55,7 +55,7 @@ if (fs.existsSync(packageJsonPath)) {
   }
 
   if (packageJson.private !== true) {
-    failures.push('package.json must remain private during the scaffold-only phase to prevent accidental publish.');
+    failures.push('package.json must keep the "private" flag enabled during the scaffold-only phase to prevent accidental publish.');
   }
 
   const suspiciousScripts = Object.entries(packageJson.scripts ?? {}).filter(([name, command]) => {

@@ -18,7 +18,7 @@ This project is currently in Safe CLI MVP phase. Contributions may improve the d
 
 - Every non-trivial PR must include a provenance declaration (origin, source URL, license, and redistribution basis).
 - Do not add third-party text/code/templates without documenting them in `THIRD_PARTY_NOTICES.md`.
-- If source/license is unknown, mark as blocked and keep private until resolved.
+- If source/license is unknown, mark as blocked and keep it out of distribution until resolved.
 - Corporate-origin contributions require explicit authorization per `docs/legal/CORPORATE-CONTRIBUTIONS.md`.
 
 ## DCO sign-off

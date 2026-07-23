@@ -1,10 +1,10 @@
-# Private GitHub Install
+# GitHub Install
 
-This project can stay private and still be installed by users or automation that have access to the private GitHub repository.
+This project is public and can be installed by users or automation directly from GitHub.
 
 ## Install with Bun from GitHub
 
-After the private repository exists, install with an authenticated GitHub URL:
+Install with GitHub SSH URL:
 
 ```bash
 bun add -g git+ssh://git@github.com/<owner>/fhh-ia-ecosystem-workflow-kit.git
@@ -37,12 +37,12 @@ workflow-kit init --target /path/to/repo --runtime codex
 workflow-kit export --output /tmp/workflow-kit-export --runtime codex
 ```
 
-## Private access requirements
+## Access requirements
 
-- The installing machine must have access to the private repository.
+- The installing machine must have network access to GitHub.
 - SSH installs require an SSH key with repository access.
 - HTTPS installs require GitHub authentication/token configuration handled outside this tool.
 
 ## Publishing note
 
-`package.json` intentionally remains `private: true`. That blocks accidental npm registry publication but does not prevent installing from a private Git repository when the user has access.
+`package.json` intentionally remains `private: true`. That blocks accidental npm registry publication but does not prevent installing from a public GitHub repository.

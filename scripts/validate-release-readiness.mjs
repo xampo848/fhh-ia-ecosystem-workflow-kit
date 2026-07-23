@@ -30,7 +30,7 @@ export async function validateReleaseReadiness({ root = packageRoot } = {}) {
 
   const packageJson = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
   if (packageJson.private !== true) {
-    failures.push('package.json must remain private until explicit publication approval.');
+    failures.push('package.json must keep the "private" flag enabled until explicit publication approval.');
   }
 
   for (const requiredFile of ['NOTICE', 'THIRD_PARTY_NOTICES.md']) {

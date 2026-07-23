@@ -134,7 +134,7 @@ Estado: declaración explícita del mantenedor indica que el material FHH perten
 | MPL-2.0 | Condicional | Copyleft por archivo | No confirmado |
 | LGPL | Condicional | Reglas de enlace/distribución | No confirmado |
 | GPLv2/v3 | Generalmente incompatible para núcleo Apache empresarial cerrado | Copyleft fuerte | No confirmado |
-| AGPL | Alto riesgo para modelo corporativo privado | Cláusula de red | No confirmado |
+| AGPL | Alto riesgo para modelo corporativo cerrado | Cláusula de red | No confirmado |
 | CC (texto/media) | Depende variante | NC/SA pueden ser incompatibles | No confirmado |
 | Sin licencia | No compatible por defecto | Sin permiso de redistribución | Casos con fuente no confirmada |
 | Propietaria/custom | Riesgo alto | Permiso expreso requerido | Posible en material externo no verificado |

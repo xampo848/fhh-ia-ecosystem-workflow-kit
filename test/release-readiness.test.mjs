@@ -34,7 +34,7 @@ test('validateReleaseReadiness rejects public package before approval', async ()
   const result = await validateReleaseReadiness({ root });
 
   assert.equal(result.ok, false);
-  assert.ok(result.failures.some((failure) => failure.includes('must remain private')));
+  assert.ok(result.failures.some((failure) => failure.includes('must keep the "private" flag enabled')));
 });
 
 test('validateReleaseReadiness rejects CI comment bypass', async () => {

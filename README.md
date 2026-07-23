@@ -24,11 +24,11 @@ It is not a single framework and not a rigid template. It is a practical alterna
 
 It is designed to be adopted as-is or adapted to each team's own way of working.
 
-> Current status: **private GitHub install/export ready**. The package provides a dry-run-first CLI, guided TUI, template export, doctor validation, manifest-validated template packs, release guardrails, and adoption docs. It is intentionally **not published to npm**.
+> Current status: **public GitHub install/export ready**. The package provides a dry-run-first CLI, guided TUI, template export, doctor validation, manifest-validated template packs, release guardrails, and adoption docs. It is intentionally **not published to npm**.
 
-## Install from the private GitHub repository
+## Install from the public GitHub repository
 
-You need access to the private repository: `xampo848/fhh-ia-ecosystem-workflow-kit`.
+Repository URL: `xampo848/fhh-ia-ecosystem-workflow-kit`.
 
 Using Bun with SSH:
 
@@ -393,7 +393,7 @@ npm_config_cache=/tmp/workflow-kit-npm-cache npm pack --dry-run
 
 ## Documentation
 
-- [Private GitHub install](docs/private-github-install.md)
+- [GitHub install](docs/github-install.md)
 - [Quickstart](docs/quickstart.md)
 - [Adapter authoring](docs/adapter-authoring.md)
 - [Troubleshooting](docs/troubleshooting.md)

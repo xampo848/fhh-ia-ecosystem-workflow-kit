@@ -39,7 +39,7 @@ Do not run:
 
 1. Confirm working tree is clean and CI passes.
 2. If merged changes affect the portable core, template packs, runtime adapters, planner/update logic, doctor semantics, or TUI update surface, bump `package.json.version` before distributing the new toolkit.
-3. Set final semver version or approved private prerelease-like version.
+3. Set final semver version or approved rollout prerelease-like version.
 4. Create release notes from merged PRDs and changelog.
 5. Create/push repo only after explicit approval.
 6. Publish package only after explicit approval and final dry-run.

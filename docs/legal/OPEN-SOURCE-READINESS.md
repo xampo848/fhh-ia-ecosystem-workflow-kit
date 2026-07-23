@@ -31,7 +31,7 @@ Status owner: repository maintainers
 
 ### P1 — required before public visibility
 
-1. Confirm full overlay and private/public boundary documentation remains consistent in templates and docs.
+1. Confirm full overlay and public/confidential boundary documentation remains consistent in templates and docs.
 2. Finalize legal wording for outbound licensing posture (MIT stay vs Apache transition timing).
 
 ### P2 — required before accepting broad external contributions
@@ -110,11 +110,11 @@ Do not change repository visibility to public until all conditions below are tru
 
 ```mermaid
 flowchart TD
-	A[Public upstream repository] --> B[Corporate private fork or install]
+	A[Public upstream repository] --> B[Corporate internal fork or install]
 	B --> C[Implement improvement]
 	C --> D{Classification}
 	D -->|Generic| E[Open PR to upstream]
-	D -->|Confidential or company-specific| F[Keep in private overlay]
+	D -->|Confidential or company-specific| F[Keep in confidential overlay]
 	E --> G[Security + legal + CI checks]
 	G --> H[Maintainer merge decision]
 ```
