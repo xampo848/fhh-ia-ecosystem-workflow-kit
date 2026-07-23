@@ -8,11 +8,11 @@
       "name": "workflow-router",
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
-      "trigger": "Per-turn intake selects non-trivial freeform work without an explicit skill",
+      "trigger": "Per-turn intake selects non-trivial, iterative, implementation-adjacent, or multi-step freeform work without an explicit skill",
       "loading_posture": "Startup-minimal",
       "cost_hint": "lean",
       "key": "workflow-router",
-      "runtime_notes": "Intake runs every prompt; load the full skill only for non-trivial routing."
+      "runtime_notes": "Intake runs every prompt; load the full skill for non-trivial, iterative, implementation-adjacent, or multi-step routing."
     },
     {
       "name": "create-epic",

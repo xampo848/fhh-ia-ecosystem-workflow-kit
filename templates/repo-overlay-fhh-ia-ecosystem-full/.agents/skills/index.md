@@ -22,4 +22,4 @@ Automation artifacts remain in `.agents/skills/registry.json` and `.agents/skill
 | `playwright-testing` | User asks for Playwright tests or E2E validation is required | `.agents/skills/03-quality/playwright-testing/SKILL.md` | balanced |
 | `pr-comments-resolution` | Resolve or review PR comments in an orderly way | `.agents/skills/04-crosscutting/pr-comments-resolution/SKILL.md` | balanced |
 | `react-doctor` | Meaningful React changes need post-change audit | `.agents/skills/03-quality/react-doctor/SKILL.md` | balanced |
-| `workflow-router` | Per-turn intake selects non-trivial freeform work without an explicit skill | `.agents/skills/00-router/workflow-router/SKILL.md` | lean |
+| `workflow-router` | Per-turn intake selects non-trivial, iterative, implementation-adjacent, or multi-step freeform work without an explicit skill | `.agents/skills/00-router/workflow-router/SKILL.md` | lean |

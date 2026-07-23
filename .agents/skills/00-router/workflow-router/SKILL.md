@@ -29,14 +29,16 @@ For large, autonomous, multi-agent, or cost-sensitive work, apply `docs/internal
 
 ## Per-turn intake boundary
 
-Lightweight intake runs for every new user prompt under
-`.agents/instructions.md`. Loading this full router is required only for
-non-trivial freeform work when the user did not explicitly invoke a skill.
+Structured intake runs for every new user prompt under
+`.agents/instructions.md`. Loading this full router is required for
+non-trivial, iterative, implementation-adjacent, or multi-step freeform work
+when the user did not explicitly invoke a skill.
 
-A direct answer may proceed without loading the full router and without a
-visible routing trace. Emit a trace when intake selects a meaningful workflow,
-skill, capability, cost, delegation, or risk decision. Never assume that the
-route selected for the previous prompt remains valid.
+A direct answer may proceed without loading the full router only when the
+request is trivial and informational, and it may proceed without a visible
+routing trace. Emit a trace when intake selects a
+meaningful workflow, skill, capability, cost, delegation, or risk decision.
+Never assume that the route selected for the previous prompt remains valid.
 
 ## Router promise
 

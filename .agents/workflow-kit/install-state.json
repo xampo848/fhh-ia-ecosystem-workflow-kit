@@ -1,10 +1,10 @@
 {
   "schemaVersion": "1.0.0",
   "managedBy": "fhh-ia-ecosystem-workflow-kit",
-  "toolkitVersion": null,
-  "generatedAt": "2026-07-23T14:39:37.089Z",
+  "toolkitVersion": "0.7.2-public-install-export",
+  "generatedAt": "2026-07-23T19:44:43.637Z",
   "runtimes": [
-    "copilot"
+    "neutral"
   ],
   "overlay": "fhh-ia-ecosystem-full",
   "files": {
@@ -197,6 +197,7 @@
     ".DS_Store": "5e3eea9d4bde8e2ee86b0bab1904107943c3bd8c62b00b9b908c54671f6cb739",
     ".github/copilot-instructions.md": "5cecdf03313029bc9215e220dda38d5c933ea7c4ca2a8097d313870123fc7f8d",
     ".github/instructions/ai-workflow.instructions.md": "ab0e4a52145a774eebff95cb4888c0b8ddb96da1a7ff8e45d4594c2334242867",
-    "AGENTS.md": "f95434df609680430dbba49e69696cf00d071a0c2ee959557edaccb92cf73436"
+    "AGENTS.md": "f95434df609680430dbba49e69696cf00d071a0c2ee959557edaccb92cf73436",
+    ".agents/skills/index.md": "f05b066ef7b2983e1ad1bfd8c7e599cdc793aea520a72ec771ae420fba41a6eb"
   }
 }
