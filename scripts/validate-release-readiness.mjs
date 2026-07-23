@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
+import fsSync from 'node:fs';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -40,7 +42,7 @@ export async function validateReleaseReadiness({ root = packageRoot } = {}) {
   }
 
   const scriptText = Object.entries(packageJson.scripts ?? {}).map(([name, command]) => `${name} ${command}`).join('\n');
-  if (/npm publish|pnpm publish|yarn publish|gh release|gh repo create|git push|release-it|semantic-release/.test(scriptText)) {
+  if (/npm publish|bun publish|pnpm publish|yarn publish|gh release|gh repo create|git push|release-it|semantic-release/.test(scriptText)) {
     failures.push('package scripts must not publish, push, create repositories, or upload releases before approval.');
   }
 
@@ -55,12 +57,12 @@ export async function validateReleaseReadiness({ root = packageRoot } = {}) {
       failures.push('CI workflow must define jobs.validate.steps.');
     } else {
       const runCommands = validateSteps.map((step) => `${step?.run ?? ''}`);
-      for (const expected of ['npm test', 'npm run check', 'npm run check:workflow', 'npm run check:docs', 'npm run check:release', 'npm run check:legal']) {
+      for (const expected of ['bun test', 'bun run check', 'bun run check:workflow', 'bun run check:docs', 'bun run check:release', 'bun run check:legal']) {
         if (!runCommands.some((command) => command.includes(expected))) {
           failures.push(`CI workflow must run ${expected}.`);
         }
       }
-      if (runCommands.some((command) => /npm publish|gh release|gh repo create|git push/.test(command))) {
+      if (runCommands.some((command) => /npm publish|bun publish|gh release|gh repo create|git push/.test(command))) {
         failures.push('CI workflow must not publish, push, create repositories, or upload releases in this phase.');
       }
     }
@@ -69,12 +71,12 @@ export async function validateReleaseReadiness({ root = packageRoot } = {}) {
   const packedFiles = listPackedFiles(root);
   for (const requiredPackedFile of ['NOTICE', 'THIRD_PARTY_NOTICES.md', 'docs/legal/third-party/provenance.json', 'docs/legal/overlay-authorship.json']) {
     if (!packedFiles.has(requiredPackedFile)) {
-      failures.push(`npm pack --dry-run must include ${requiredPackedFile}.`);
+      failures.push(`bun pm pack --dry-run must include ${requiredPackedFile}.`);
     }
   }
 
   const releaseDoc = await readIfExists(path.join(root, 'RELEASE.md'));
-  for (const expected of ['explicit maintainer approval', 'npm publish', 'gh repo create', 'npm run check:workflow', 'npm run check:docs', 'npm run check:legal']) {
+  for (const expected of ['explicit maintainer approval', 'npm publish', 'gh repo create', 'bun run check:workflow', 'bun run check:docs', 'bun run check:legal']) {
     if (!releaseDoc.includes(expected)) failures.push(`RELEASE.md must mention ${expected}.`);
   }
 
@@ -84,15 +86,35 @@ export async function validateReleaseReadiness({ root = packageRoot } = {}) {
 }
 
 function listPackedFiles(root) {
+  let tempDir = null;
   try {
-    const output = execFileSync('npm', ['pack', '--dry-run', '--json'], {
+    tempDir = fsSync.mkdtempSync(path.join(os.tmpdir(), 'workflow-kit-pack-'));
+    const tarballName = execFileSync('bun', ['pm', 'pack', '--quiet', '--destination', tempDir], {
+      cwd: root,
+      encoding: 'utf8'
+    }).trim();
+
+    const tarballPath = path.isAbsolute(tarballName) ? tarballName : path.join(tempDir, tarballName);
+    const output = execFileSync('tar', ['-tzf', tarballPath], {
       cwd: root,
       encoding: 'utf8'
     });
-    const packed = JSON.parse(output)?.[0]?.files ?? [];
-    return new Set(packed.map((entry) => entry.path));
+    const packed = output
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => line.replace(/^package\//, ''));
+    return new Set(packed);
   } catch {
     return new Set();
+  } finally {
+    if (tempDir) {
+      try {
+        fsSync.rmSync(tempDir, { recursive: true, force: true });
+      } catch {
+        // best-effort cleanup
+      }
+    }
   }
 }
 

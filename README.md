@@ -42,12 +42,6 @@ Using Bun with GitHub shorthand and HTTPS auth already configured:
 bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit
 ```
 
-Alternative with npm:
-
-```bash
-npm install -g github:xampo848/fhh-ia-ecosystem-workflow-kit
-```
-
 Then verify:
 
 ```bash
@@ -333,7 +327,7 @@ For each registry entry, define at least:
 1. Validate template packs in this toolkit repository:
 
 ```bash
-npm run check:templates
+bun run check:templates
 ```
 
 2. In a target repository, preview managed updates before apply:
@@ -377,18 +371,12 @@ fhh-ia-ecosystem-workflow-kit/
 ## Validation for maintainers
 
 ```bash
-npm test
-npm run check
-npm run check:templates
-npm run check:release
-npm run check:docs
-npm pack --dry-run
-```
-
-If your local npm cache has permission issues, use a temporary cache:
-
-```bash
-npm_config_cache=/tmp/workflow-kit-npm-cache npm pack --dry-run
+bun test
+bun run check
+bun run check:templates
+bun run check:release
+bun run check:docs
+bun pm pack --dry-run
 ```
 
 ## Documentation

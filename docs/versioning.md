@@ -54,10 +54,10 @@ Prefer pinned tags for coordinated team rollouts. Use `main` only when you expli
 Every version must pass:
 
 ```bash
-npm test
-npm run check
-npm run check:templates
-npm run check:release
+bun test
+bun run check
+bun run check:templates
+bun run check:release
 ```
 
 Publishing remains approval-gated even when all checks pass.

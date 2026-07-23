@@ -23,12 +23,6 @@ workflow-kit upgrade --apply --yes
 workflow-kit update --target /path/to/repo --apply --yes
 ```
 
-Alternative with npm remains supported:
-
-```bash
-npm install -g github:<owner>/fhh-ia-ecosystem-workflow-kit
-```
-
 Then run:
 
 ```bash

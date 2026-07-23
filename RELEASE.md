@@ -7,12 +7,12 @@ This project is not published yet. Do not create repositories, push branches, up
 Run locally:
 
 ```bash
-npm test
-npm run check
-npm run check:workflow
-npm run check:docs
-npm run check:legal
-npm run check:release
+bun test
+bun run check
+bun run check:workflow
+bun run check:docs
+bun run check:legal
+bun run check:release
 ```
 
 ## Required approvals

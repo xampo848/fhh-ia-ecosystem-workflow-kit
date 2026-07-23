@@ -30,7 +30,7 @@ const requiredPhrases = {
   'docs/quickstart.md': ['dry-run', '--apply --yes', 'doctor', 'tui', 'export'],
   'docs/troubleshooting.md': ['overwrite_with_backup', 'backup', 'Unsupported runtime', 'missing files'],
   'docs/migration.md': ['manual `.agents` copying', 'full workflow package', 'Runtime adapters'],
-  'docs/github-install.md': ['npm install -g', 'public GitHub repository', 'package.json` intentionally remains `private: true`'],
+  'docs/github-install.md': ['bun add -g', 'public GitHub repository', 'package.json` intentionally remains `private: true`'],
   'docs/legal/OPEN-SOURCE-READINESS.md': ['Recommendation: `GO`', 'product-studio has been removed', 'explicit maintainer approval'],
   'docs/legal/PROVENANCE-AUDIT.md': ['P-010', 'removed from distribution scope', 'SHA-256'],
   'docs/legal/third-party/README.md': ['Schema v2', 'EXTERNAL_UNVERIFIED'],

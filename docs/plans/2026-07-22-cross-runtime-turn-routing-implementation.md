@@ -394,7 +394,7 @@ node scripts/sync-skill-registry.mjs --write
 - [ ] Keep install commands in `.agents/integrations/**`, not capability
   manifests.
 - [ ] Mirror canonical changes into the overlay.
-- [ ] Re-run focused tests and `npm run check:workflow`.
+- [ ] Re-run focused tests and `bun run check:workflow`.
 
   Expected: PASS.
 
@@ -500,7 +500,7 @@ node scripts/sync-skill-registry.mjs --write
 - [ ] Run:
 
   ```bash
-  npm run check:docs
+  bun run check:docs
   node --test test/docs.test.mjs
   ```
 
@@ -515,16 +515,16 @@ node scripts/sync-skill-registry.mjs --write
 - [ ] Run focused workflow checks:
 
   ```bash
-  npm run check:workflow
+  bun run check:workflow
   ```
 
 - [ ] Run repository checks:
 
   ```bash
-  npm run check
-  npm run check:templates
-  npm run check:docs
-  npm test
+  bun run check
+  bun run check:templates
+  bun run check:docs
+  bun test
   ```
 
 - [ ] Run CLI smoke tests in temporary repositories for:

@@ -160,11 +160,11 @@ test('update adopt-existing bootstraps state without overwriting existing files'
 test('upgrade defaults to dry-run and prints the chosen command', async () => {
   const io = createMemoryIo();
 
-  const code = await runCli(['upgrade', '--package-manager', 'npm', '--ref', 'v0.7.1'], io);
+  const code = await runCli(['upgrade', '--package-manager', 'bun', '--ref', 'v0.7.1'], io);
 
   assert.equal(code, 0);
   assert.match(io.output.stdout, /Toolkit upgrade dry-run plan/);
-  assert.match(io.output.stdout, /npm install -g github:xampo848\/fhh-ia-ecosystem-workflow-kit#v0.7.1/);
+  assert.match(io.output.stdout, /bun add -g github:xampo848\/fhh-ia-ecosystem-workflow-kit#v0.7.1/);
 });
 
 test('upgrade apply requires --yes', async () => {

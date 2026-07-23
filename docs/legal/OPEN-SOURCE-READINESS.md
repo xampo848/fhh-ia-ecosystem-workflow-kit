@@ -102,7 +102,7 @@ Do not change repository visibility to public until all conditions below are tru
 ## Recommended Publication Path
 
 1. Keep release approval-gated until explicit maintainer and legal approval are recorded for the target commit.
-2. Before changing visibility, rerun `npm run check:legal`, `npm run check:docs`, `npm run check:release`, and the full test suite on the intended commit.
+2. Before changing visibility, rerun `bun run check:legal`, `bun run check:docs`, `bun run check:release`, and the full test suite on the intended commit.
 3. Keep Product Studio excluded from public distribution unless a future scope review establishes a complete legal basis.
 4. Evaluate any transition to Apache-2.0 only after a separate legal decision; the repository remains MIT today.
 

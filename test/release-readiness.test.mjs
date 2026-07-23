@@ -42,14 +42,14 @@ test('validateReleaseReadiness rejects CI comment bypass', async () => {
   const ciPath = path.join(root, '.github/workflows/ci.yml');
   const ci = await fs.readFile(ciPath, 'utf8');
   const mutated = ci
-    .replace('      - name: Validate legal and provenance guardrails\n        run: npm run check:legal\n', '')
-    .concat('\n# npm run check:legal\n');
+    .replace('      - name: Validate legal and provenance guardrails\n        run: bun run check:legal\n', '')
+    .concat('\n# bun run check:legal\n');
   await fs.writeFile(ciPath, mutated, 'utf8');
 
   const result = await validateReleaseReadiness({ root });
 
   assert.equal(result.ok, false);
-  assert.ok(result.failures.some((failure) => failure.includes('CI workflow must run npm run check:legal')));
+  assert.ok(result.failures.some((failure) => failure.includes('CI workflow must run bun run check:legal')));
 });
 
 test('validateReleaseReadiness enforces version bump for distributable changes', async () => {
