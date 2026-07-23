@@ -1,3 +1,5 @@
+// Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in pbakaus/impeccable.
+
 /**
  * CLI entry point: prepare everything needed to enter the live variant poll loop.
  *

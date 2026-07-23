@@ -31,8 +31,11 @@ jobs:
       - name: Validate scaffold
         run: npm run check
 
-      - name: Validate template packs
-        run: npm run check:templates
+      - name: Validate workflow contract
+        run: npm run check:workflow
+
+      - name: Validate documentation
+        run: npm run check:docs
 
       - name: Validate release readiness guardrails
         run: npm run check:release

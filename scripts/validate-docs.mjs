@@ -14,7 +14,12 @@ const requiredDocs = [
   'docs/private-github-install.md',
   'docs/adapter-authoring.md',
   'docs/versioning.md',
+  'docs/legal/OPEN-SOURCE-READINESS.md',
+  'docs/legal/PROVENANCE-AUDIT.md',
+  'docs/legal/third-party/README.md',
   'RELEASE.md',
+  'NOTICE',
+  'THIRD_PARTY_NOTICES.md',
   'examples/fresh-codex/README.md',
   'examples/existing-copilot/README.md',
   'examples/neutral-core/README.md'
@@ -26,6 +31,10 @@ const requiredPhrases = {
   'docs/troubleshooting.md': ['overwrite_with_backup', 'backup', 'Unsupported runtime', 'missing files'],
   'docs/migration.md': ['manual `.agents` copying', 'full workflow package', 'Runtime adapters'],
   'docs/private-github-install.md': ['npm install -g', 'private repository', 'package.json` intentionally remains `private: true`'],
+  'docs/legal/OPEN-SOURCE-READINESS.md': ['Recommendation: `NO-GO`', 'EXTERNAL_UNVERIFIED', 'product-studio'],
+  'docs/legal/PROVENANCE-AUDIT.md': ['EXTERNAL_UNVERIFIED', 'P-010', 'SHA-256'],
+  'docs/legal/third-party/README.md': ['Schema v2', 'EXTERNAL_UNVERIFIED'],
+  'THIRD_PARTY_NOTICES.md': ['frontend-design', 'EXTERNAL_UNVERIFIED', 'product-studio'],
   'examples/fresh-codex/README.md': ['--runtime codex', '--apply --yes'],
   'examples/existing-copilot/README.md': ['--runtime copilot', 'overwrite_with_backup'],
   'examples/neutral-core/README.md': ['--runtime neutral', 'No runtime adapter files']

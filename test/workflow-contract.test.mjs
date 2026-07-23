@@ -4,6 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { buildInstallPlan } from '../src/planner.mjs';
+import { validateOverlayDrift } from '../src/workflow-contract/drift.mjs';
 import { validateWorkflowContract } from '../src/workflow-contract/index.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
@@ -59,4 +60,22 @@ test('package canonical files match the installable overlay', async () => {
     false,
     JSON.stringify(result.diagnostics, null, 2)
   );
+});
+
+test('overlay drift detects divergence in mirrored third-party skills', async () => {
+  const root = await fs.mkdtemp(path.join(process.cwd(), '.tmp-overlay-drift-'));
+  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  await fs.cp(path.join(sourceRoot, '.agents'), path.join(root, '.agents'), { recursive: true });
+  await fs.cp(
+    path.join(sourceRoot, 'templates/repo-overlay-fhh-ia-ecosystem-full'),
+    path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full'),
+    { recursive: true }
+  );
+  const canonicalSkill = path.join(root, '.agents/skills/04-crosscutting/frontend-design/SKILL.md');
+  await fs.appendFile(canonicalSkill, '\nUnmirrored content.\n', 'utf8');
+
+  const diagnostics = await validateOverlayDrift({ root });
+
+  assert.ok(diagnostics.some((item) => item.path.includes('frontend-design/SKILL.md')));
+  await fs.rm(root, { recursive: true, force: true });
 });

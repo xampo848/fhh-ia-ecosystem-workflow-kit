@@ -190,7 +190,7 @@
       "class": "Cross-cutting overlay",
       "path": ".agents/skills/04-crosscutting/frontend-design/SKILL.md",
       "loading_posture": "Overlay",
-      "skill_sha256": "18fdb792768ad0dc1a7363fa5d97dd517097edc41ae2c8905e1f8f080e67e8bc"
+      "skill_sha256": "f3b93cd3f47b1f8810b481fb8aaea738fb7b95eadcf6c3b77563e4e58dd6775c"
     },
     {
       "key": "frontend-phase-implementer",
@@ -217,7 +217,7 @@
       "class": "Cross-cutting overlay",
       "path": ".agents/skills/04-crosscutting/impeccable/SKILL.md",
       "loading_posture": "Overlay",
-      "skill_sha256": "1618b38636473ae14011af272029241c99d8baaaff2f0d16b979e1bb2e30208d"
+      "skill_sha256": "1afa66d9be6126f895ae542135b889bbe52bf593826887176f059c87ddc82973"
     },
     {
       "key": "implement-prd",

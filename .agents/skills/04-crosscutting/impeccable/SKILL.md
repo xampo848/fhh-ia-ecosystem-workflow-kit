@@ -8,6 +8,8 @@ allowed-tools:
 license: Apache 2.0. Based on Anthropic's frontend-design skill. See NOTICE.md for attribution.
 ---
 
+<!-- Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in pbakaus/impeccable. -->
+
 Designs and iterates production-grade frontend interfaces. Real working code, committed design choices, exceptional craft.
 
 ## Setup

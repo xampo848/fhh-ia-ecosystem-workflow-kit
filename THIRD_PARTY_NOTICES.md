@@ -1,63 +1,93 @@
 # THIRD PARTY NOTICES
 
-Last updated: 2026-07-20
+Last updated: 2026-07-23
 
-This file records third-party components and sources identified during provenance audit.
-It is a technical compliance artifact and not legal advice.
+This file summarizes third-party components identified during the provenance
+audit. The pinned source records, copied license texts, applicable notices, and
+integrity records are in `docs/legal/third-party/`. It is a technical compliance
+artifact and not legal advice.
 
-## Confirmed Third-Party Components
+## Confirmed Components
 
 ## 1) modern-screenshot (vendored artifact)
 
 - Local path:
-  - `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable/scripts/modern-screenshot.umd.js`
-- Upstream package: `modern-screenshot`
+  `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable/scripts/modern-screenshot.umd.js`
 - Upstream repository: `https://github.com/qq15725/modern-screenshot`
-- Evidence: `npm view modern-screenshot license repository.url version dist-tags.latest --json`
-- Reported license: `MIT`
-- Action taken:
-  - Kept component with explicit notice entry.
-  - Requires preserving upstream MIT terms when redistributed.
+- Pinned source: `v4.7.0` / `792d6db7411839c62940a6e930161f8e376e817f`
+- License: `MIT` (copyright `2021-present wxm`)
+- The MIT text and artifact checksum are recorded in
+  `docs/legal/third-party/` and verified by the legal gate.
 
-## Components With Pending License Confirmation (Not Cleared)
+## 2) caveman-related manifests and skills
 
-These are not approved for public redistribution until source license and obligations are confirmed.
+- Local paths:
+  `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/capabilities/manifests/caveman.md`
+  and `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/05-caveman/**`
+- Upstream repository: `https://github.com/JuliusBrussee/caveman`
+- Pinned source: `0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0`
+- License: `MIT`; the applicable text is
+  `docs/legal/third-party/licenses/MIT-caveman.txt`.
+- The complete local component is pinned by a SHA-256 path/content inventory.
 
-## 2) product-studio adapted prompts
+## 3) impeccable-related subtree
 
-- Local paths include:
-  - `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/jobs-to-be-done/SKILL.md`
-  - `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/jobs-to-be-done/template.md`
-  - `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/user-story/SKILL.md`
-  - `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/user-story/template.md`
-- Declared source in files: `https://github.com/deanpeters/product-manager-prompts`
-- License status in this audit: `UNCONFIRMED`
-- Action required:
-  - Confirm upstream license for exact source content/version.
-  - Preserve required attribution/license or rewrite clean-room.
+- Local path:
+  `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable/**`
+- Upstream repository: `https://github.com/pbakaus/impeccable`
+- Pinned source: `e587004ee42883dad40d14cd0f5e1b21ae1933df`
+- License: `Apache-2.0`; the applicable text and carried-forward NOTICE are in
+  `docs/legal/third-party/licenses/Apache-2.0-impeccable.txt` and
+  `docs/legal/third-party/notices/impeccable-NOTICE.md`.
+- Locally modified files carry an explicit Apache modification notice and the
+  complete tree is controlled by a SHA-256 path/content inventory.
 
-## 3) caveman-related manifests/skills
+## 4) frontend-design is an independent Apache component
 
-- Local paths include:
-  - `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/capabilities/manifests/caveman.md`
-  - `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/05-caveman/**`
-- Declared source in files: `https://github.com/JuliusBrussee/caveman`
-- License status in this audit: `UNCONFIRMED`
-- Action required:
-  - Confirm upstream license and redistribution terms.
-  - Keep external attribution and include any required notices.
+- Local path:
+  `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/frontend-design/SKILL.md`
+- Upstream repository: `https://github.com/anthropics/skills`, source path
+  `skills/frontend-design`, pinned at
+  `d230a6dd6eb1a0dbee9fec55e2f00a96e28dff81`.
+- License: `Apache-2.0`; the standard terms are in
+  `docs/legal/third-party/licenses/Apache-2.0-impeccable.txt`.
+- This is a separate component from `impeccable`. Its local adaptation has its
+  own modification notice and integrity inventory.
 
-## 4) impeccable-related subtree
+## 5) product-manager-prompts source evidence
 
-- Local paths include:
-  - `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable/**`
-- Source indicator in code:
-  - `cleanup-deprecated.mjs` references `pbakaus/impeccable` as authoritative source marker.
-- License status in this audit: `UNCONFIRMED`
-- Action required:
-  - Confirm upstream repository, license, and scope of derivation.
-  - Do not publish this subtree until verified.
+- Confirmed source paths cover only the Product Studio `jobs-to-be-done` and
+  `user-story` prompts: `https://github.com/deanpeters/product-manager-prompts`
+  at `ddcd8b00deafe9f3a3f770df6b70a76692d8e0f1`.
+- That pre-relicense snapshot was MIT; the applicable text is
+  `docs/legal/third-party/licenses/MIT-product-manager-prompts.txt`.
+- This limited evidence does not license or verify the complete Product Studio
+  tree by implication.
+
+## External-Unverified Component
+
+## 6) product-studio as a complete tree
+
+- Local path:
+  `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/**`
+- Status: `EXTERNAL_UNVERIFIED`; it blocks public release.
+- The remaining Product Studio files lack a complete source snapshot and
+  applicable license record. They are frozen by an integrity inventory for
+  auditability, not approved for redistribution.
+- Before public release, obtain source and license evidence for all 19 files or
+  remove the complete Product Studio tree from both canonical and installable
+  overlays, then renew the provenance record.
 
 ## Distribution Rule
 
-If a component is listed as `UNCONFIRMED`, it must remain private or be removed/rewritten before public release.
+If a component lacks an exact or date-bounded upstream snapshot, required notice
+carry-forward, or clear corporate authorization, it must remain private or be
+excluded from the public release even when the top-level upstream license is
+known. `product-studio` meets that condition today. The legal gate validates the
+records above, but does not replace the publication decision in
+`docs/legal/OPEN-SOURCE-READINESS.md`.
+
+The internally attested overlay is covered by `docs/legal/overlay-authorship.json`.
+That record excludes every third-party coverage root, including the complete
+Product Studio tree, and must be renewed whenever its path/content inventory
+changes.

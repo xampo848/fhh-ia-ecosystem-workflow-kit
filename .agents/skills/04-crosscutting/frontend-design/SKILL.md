@@ -2,8 +2,10 @@
 name: frontend-design
 description: Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Use for early visual direction, aesthetic differentiation, typography, palette, layout thesis, and design intent before or during frontend implementation. Prefer this when the main need is choosing a stronger visual direction; prefer `impeccable` for full design-system-heavy craft, critique, audit, live iteration, or broad UI refinement.
 user-invocable: true
-license: Complete terms in LICENSE.txt
+license: Apache-2.0. Complete terms in docs/legal/third-party/licenses/Apache-2.0-impeccable.txt.
 ---
+
+<!-- Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in anthropics/skills. -->
 
 # Frontend Design
 

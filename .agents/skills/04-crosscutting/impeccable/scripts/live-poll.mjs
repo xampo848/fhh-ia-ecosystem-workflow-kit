@@ -1,3 +1,5 @@
+// Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in pbakaus/impeccable.
+
 /**
  * CLI client for the live variant mode poll/reply protocol.
  *

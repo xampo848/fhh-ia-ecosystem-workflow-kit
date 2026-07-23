@@ -1,3 +1,5 @@
+<!-- Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in pbakaus/impeccable. -->
+
 # Craft Flow
 
 Build a feature with impeccable UX and UI quality: shape the design, land the visual direction, build real production code, inspect and improve in-browser until it meets a high-end studio bar.

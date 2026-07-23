@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "lastVerified": "2026-07-23",
+  "scope": "templates/repo-overlay-fhh-ia-ecosystem-full",
+  "remainingInventory": {
+    "path": "templates/repo-overlay-fhh-ia-ecosystem-full",
+    "fileCount": 76,
+    "pathContentSha256": "b8ed44feab2f866735e35e6097b3b14047b032e3845f56d888d2637f4db1c433"
+  },
+  "externalPathCoverage": [
+    {
+      "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/capabilities/manifests/caveman.md",
+      "component": "caveman"
+    },
+    {
+      "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio",
+      "component": "product-studio"
+    },
+    {
+      "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/frontend-design",
+      "component": "frontend-design"
+    },
+    {
+      "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable",
+      "component": "impeccable"
+    },
+    {
+      "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/05-caveman",
+      "component": "caveman"
+    }
+  ],
+  "remainingFiles": {
+    "classification": "MAINTAINER_ATTESTED_INTERNAL",
+    "authorizationStatement": "The repository maintainer stated on 2026-07-23 that FHH is the publishing party and that FHH-specific overlay material is authorized for publication.",
+    "evidence": [
+      "Current overlay lineage includes rename commit e4f860e4bd255b5b15dab12201f82b1ae9d5483c on 2026-07-15.",
+      "A tracked-file review found no unclassified external source declaration outside externalPathCoverage; ordinary references and framework names are not treated as copied material."
+    ],
+    "limitation": "This is a maintainer authorization record, not independent proof of authorship. Legal counsel must decide whether it is sufficient for public release."
+  }
+}

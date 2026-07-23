@@ -1,6 +1,28 @@
 # FHH IA Ecosystem Workflow Kit
 
-Private, installable AI workflow kit for bringing the FHH IA Ecosystem agent workflow into other repositories safely.
+An installable workflow kit for AI-driven software development that brings the FHH IA Ecosystem operating model into other repositories.
+
+The purpose of this project is to make a complete product-to-delivery workflow reusable for teams building with AI: not only writing code, but also shaping the right work before implementation and documenting it after delivery. It codifies a practical way of working that connects product discovery, planning, execution, and documentation in a single, repeatable system.
+
+It is designed so people can focus on intent instead of memorizing command names or skill names. A router handles routing and skill selection based on the request, so the workflow remains discoverable and usable even as the ecosystem grows.
+
+At a methodology level, work moves through a full lifecycle:
+
+1. Product discovery
+2. Epic definition
+3. Ticket/PRD decomposition
+4. Implementation
+5. Documentation
+
+At a tooling level, this repository combines proven practices with reusable components, including skills, MCP integrations, workflow contracts, and runtime adapters. The result is an opinionated but flexible ecosystem that helps teams execute with consistency while still adapting to their own context.
+
+## What this project is
+
+This is a curated ecosystem assembled from hands-on experience, validated workflows, and selected tools that have proven effective in real software delivery environments.
+
+It is not a single framework and not a rigid template. It is a practical alternative for teams and builders who want a clearer path from idea to shipped and documented software, with explicit structure for discovery, epic-level planning, implementation, and knowledge capture.
+
+It is designed to be adopted as-is or adapted to each team's own way of working.
 
 > Current status: **private GitHub install/export ready**. The package provides a dry-run-first CLI, guided TUI, template export, doctor validation, manifest-validated template packs, release guardrails, and adoption docs. It is intentionally **not published to npm**.
 
@@ -53,6 +75,63 @@ Validate the installed files:
 ```bash
 workflow-kit doctor --target /path/to/repo --runtime codex,copilot
 ```
+
+## Using the workflow after installation
+
+Once installed, the recommended way to use the ecosystem is to describe your intent in natural language. You do not need to remember skill names: the router selects the right workflow and skills based on your request.
+
+Recommended operating flow:
+
+1. Start from product discovery and clarify the problem.
+2. Convert the discovery into epics with clear outcomes.
+3. Decompose each epic into tickets or PRDs.
+4. Implement the work item with the selected workflow.
+5. Document what was built, why, and any important decisions.
+
+### Example prompts you can use
+
+Discovery and framing:
+
+```text
+Help me run product discovery for a feature that reduces onboarding drop-off. I need problem framing, assumptions, risks, and success metrics.
+```
+
+Epic creation:
+
+```text
+Create epics for this initiative and organize them by user value, technical dependencies, and delivery order.
+```
+
+PRD or ticket decomposition:
+
+```text
+Break Epic 2 into implementation-ready tickets with acceptance criteria, edge cases, and test expectations.
+```
+
+Implementation support:
+
+```text
+Implement ticket PAY-14 in this repository. Keep changes minimal, add tests, and summarize trade-offs.
+```
+
+Documentation pass:
+
+```text
+Document what was implemented for PAY-14, including scope, decisions, validation steps, and known limitations.
+```
+
+Capability guidance (optional tools):
+
+```text
+I want to use Context7 and memory tools in this repo. Guide me through install/attach with confirmation before any install step.
+```
+
+### Practical usage notes
+
+- Be explicit about the outcome you want; the router performs better with clear intent and context.
+- Reference artifact names when possible (epic IDs, ticket IDs, PRD names) to keep continuity across phases.
+- Ask for preview/check steps before apply when working on critical repositories.
+- Use the same conversation thread for a full slice (discovery to docs) to preserve context quality.
 
 ## Safe updates for already-installed repositories
 

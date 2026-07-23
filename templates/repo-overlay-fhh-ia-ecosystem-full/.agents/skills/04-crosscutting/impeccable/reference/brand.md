@@ -1,3 +1,5 @@
+<!-- Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in pbakaus/impeccable. -->
+
 # Brand register
 
 When design IS the product: brand sites, landing pages, marketing surfaces, campaign pages, portfolios, long-form content, about pages. The deliverable is the design itself; a visitor's impression is the thing being made.

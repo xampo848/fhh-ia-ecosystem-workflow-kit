@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 2,
+  "lastVerified": "2026-07-23",
+  "components": [
+    {
+      "name": "impeccable",
+      "status": "VERIFIED",
+      "license": "Apache-2.0",
+      "upstream": {
+        "repository": "https://github.com/pbakaus/impeccable",
+        "commit": "e587004ee42883dad40d14cd0f5e1b21ae1933df",
+        "sourceRoot": "skill"
+      },
+      "localPaths": [
+        "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable"
+      ],
+      "integrityInventories": [
+        {
+          "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable",
+          "fileCount": 62,
+          "pathContentSha256": "410c9b9da8c8e01c5003044448f85db7059d698ab2b48c89a8dea2d6ff39bf23"
+        }
+      ],
+      "modificationNotice": "Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in pbakaus/impeccable.",
+      "modifiedFiles": [
+        "SKILL.md",
+        "reference/brand.md",
+        "reference/craft.md",
+        "reference/critique.md",
+        "reference/optimize.md",
+        "reference/polish.md",
+        "reference/shape.md",
+        "scripts/detect-csp.mjs",
+        "scripts/impeccable-paths.mjs",
+        "scripts/live-accept.mjs",
+        "scripts/live-complete.mjs",
+        "scripts/live-inject.mjs",
+        "scripts/live-poll.mjs",
+        "scripts/live-resume.mjs",
+        "scripts/live-server.mjs",
+        "scripts/live-session-store.mjs",
+        "scripts/live-status.mjs",
+        "scripts/live-wrap.mjs",
+        "scripts/live.mjs"
+      ],
+      "verification": {
+        "method": "path and byte comparison against the pinned upstream tree",
+        "sharedFiles": 58,
+        "exactFiles": 39,
+        "modifiedFiles": 19,
+        "localOnlyFiles": 4
+      },
+      "licenseFile": "docs/legal/third-party/licenses/Apache-2.0-impeccable.txt",
+      "noticeFile": "docs/legal/third-party/notices/impeccable-NOTICE.md"
+    },
+    {
+      "name": "modern-screenshot",
+      "status": "VERIFIED",
+      "license": "MIT",
+      "upstream": {
+        "repository": "https://github.com/qq15725/modern-screenshot",
+        "commit": "792d6db7411839c62940a6e930161f8e376e817f",
+        "tag": "v4.7.0"
+      },
+      "localPaths": [
+        "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable/scripts/modern-screenshot.umd.js"
+      ],
+      "integrityFiles": [
+        {
+          "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable/scripts/modern-screenshot.umd.js",
+          "sha256": "bb36665889124a0b6e15f16045265737449c3bdcf2712cdb08af3cfa01563e2b"
+        }
+      ],
+      "verification": {
+        "method": "byte-identical artifact found in impeccable source history and package lock",
+        "sha256": "bb36665889124a0b6e15f16045265737449c3bdcf2712cdb08af3cfa01563e2b"
+      },
+      "licenseFile": "docs/legal/third-party/licenses/MIT-modern-screenshot.txt"
+    },
+    {
+      "name": "typecraft-guide-skill",
+      "status": "VERIFIED",
+      "license": "MIT",
+      "upstream": {
+        "repository": "https://github.com/ehmo/typecraft-guide-skill",
+        "commit": "8099648409ec73980bd693ac8d15fd3e3230072d"
+      },
+      "localPaths": [
+        "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable/reference/typography.md"
+      ],
+      "verification": {
+        "method": "attribution is preserved by the applicable upstream impeccable NOTICE; the local file is byte-identical to the pinned impeccable tree"
+      },
+      "licenseFile": "docs/legal/third-party/licenses/MIT-typecraft-guide-skill.txt"
+    },
+    {
+      "name": "caveman",
+      "status": "VERIFIED",
+      "license": "MIT",
+      "upstream": {
+        "repository": "https://github.com/JuliusBrussee/caveman",
+        "commit": "0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0",
+        "sourceRoot": "skills"
+      },
+      "localPaths": [
+        "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/05-caveman",
+        "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/capabilities/manifests/caveman.md"
+      ],
+      "integrityInventories": [
+        {
+          "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/05-caveman",
+          "fileCount": 31,
+          "pathContentSha256": "86fd6ac9d9b90245eab1443a1277d4feb78c2f83a3597e2da91d86acc797950d"
+        }
+      ],
+      "integrityFiles": [
+        {
+          "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/capabilities/manifests/caveman.md",
+          "sha256": "e59eaab7275e9e5a78b3a2469bc0c0589fa2dd636249535fe08bc23662b7e534"
+        }
+      ],
+      "verification": {
+        "method": "path and byte comparison against the pinned upstream tree",
+        "sharedFiles": 22,
+        "exactFiles": 11,
+        "modifiedFiles": 11,
+        "localOnlyFiles": 9
+      },
+      "licenseFile": "docs/legal/third-party/licenses/MIT-caveman.txt"
+    },
+    {
+      "name": "frontend-design",
+      "status": "VERIFIED",
+      "license": "Apache-2.0",
+      "upstream": {
+        "repository": "https://github.com/anthropics/skills",
+        "commit": "d230a6dd6eb1a0dbee9fec55e2f00a96e28dff81",
+        "sourceRoot": "skills/frontend-design"
+      },
+      "localPaths": [
+        "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/frontend-design"
+      ],
+      "integrityInventories": [
+        {
+          "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/frontend-design",
+          "fileCount": 1,
+          "pathContentSha256": "1c59b17715a8885917914f2244f093deab75be2302edcdaa94e3bf71ae9e990f"
+        }
+      ],
+      "modificationNotice": "Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in anthropics/skills.",
+      "modifiedFiles": [
+        "SKILL.md"
+      ],
+      "verification": {
+        "method": "adapted from the pinned Apache-2.0 upstream skill; local changes are declared in the file"
+      },
+      "licenseFile": "docs/legal/third-party/licenses/Apache-2.0-impeccable.txt"
+    },
+    {
+      "name": "product-manager-prompts",
+      "status": "VERIFIED",
+      "license": "MIT",
+      "upstream": {
+        "repository": "https://github.com/deanpeters/product-manager-prompts",
+        "commit": "ddcd8b00deafe9f3a3f770df6b70a76692d8e0f1",
+        "sourcePaths": [
+          "prompts/jobs-to-be-done.md",
+          "prompts/user-story-prompt-template.md"
+        ]
+      },
+      "localPaths": [
+        "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/jobs-to-be-done",
+        "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/user-story"
+      ],
+      "verification": {
+        "method": "declared source paths exist in the pinned MIT snapshot; local derivatives entered this repository before the 2026-07-17 upstream relicense",
+        "localIntroductionCommit": "e4f860e4bd255b5b15dab12201f82b1ae9d5483c",
+        "localIntroductionDate": "2026-07-15T23:10:08-04:00"
+      },
+      "licenseFile": "docs/legal/third-party/licenses/MIT-product-manager-prompts.txt"
+    },
+    {
+      "name": "product-studio",
+      "status": "EXTERNAL_UNVERIFIED",
+      "license": "UNRESOLVED",
+      "localPaths": [
+        "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio"
+      ],
+      "integrityInventories": [
+        {
+          "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio",
+          "fileCount": 19,
+          "pathContentSha256": "cd253440fa47381214c6c34feb993005cbc3ac1c323b48b6b44e19bec3832a61"
+        }
+      ],
+      "verification": {
+        "method": "the full tree is frozen by an integrity inventory while source and license evidence are incomplete",
+        "missingEvidence": "A source URL, source snapshot, and applicable license covering all 19 files."
+      },
+      "publicReleaseBlocker": true
+    }
+  ]
+}

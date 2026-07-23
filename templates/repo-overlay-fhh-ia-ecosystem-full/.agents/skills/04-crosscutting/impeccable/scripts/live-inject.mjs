@@ -1,3 +1,5 @@
+// Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in pbakaus/impeccable.
+
 /**
  * CLI helper: insert/remove the live variant mode script tag in the project's
  * main HTML entry point.

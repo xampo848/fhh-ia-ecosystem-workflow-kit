@@ -1,6 +1,6 @@
 # PROVENANCE AUDIT
 
-Last updated: 2026-07-20
+Last updated: 2026-07-23
 Auditor: GitHub Copilot (GPT-5.3-Codex)
 Scope: Full tracked repository (`git ls-files`), including templates and history signals.
 
@@ -20,6 +20,8 @@ Evidence labels used in this file:
 - `INFERRED`: strong technical inference from history/structure, but missing upstream legal proof.
 - `SUSPECTED`: plausible risk indicator requiring additional evidence.
 - `MISSING`: required legal/source evidence not found yet.
+
+Historical/high-risk provenance classifications still referenced by validation and audit history include `REQUIRES_AUTHOR_PERMISSION`, `UNKNOWN_PROVENANCE`, `EMPLOYMENT_OWNERSHIP_RISK`, and `EXTERNAL_PERMISSIVE`.
 
 ## Repository Inventory (Categorized)
 
@@ -81,15 +83,16 @@ Top-level distribution (tracked):
 
 | ID | Archivo/componente | Fuente probable | URL | Commit/tag (fuente usada) | Tipo de uso | Licencia origen | Copyright titular | Modificaciones locales | Clasificación | Confianza | Riesgo | Obligaciones aplicables | Acción recomendada | Evidencia |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| P-001 | `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/jobs-to-be-done/SKILL.md` | `deanpeters/product-manager-prompts` | `https://github.com/deanpeters/product-manager-prompts` | `MISSING` | Texto adaptado (declarado) | `MISSING` | `MISSING` | Sí, integrado al skill local | `REQUIRES_AUTHOR_PERMISSION` | High | HIGH | Mantener atribución; verificar licencia upstream; posible permiso explícito | No publicar este componente hasta confirmar licencia o reescribir clean-room | Línea de proveniencia explícita en archivo (`Adapted from ...`) |
-| P-002 | `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/user-story/SKILL.md` y `template.md` | `deanpeters/product-manager-prompts` | `https://github.com/deanpeters/product-manager-prompts` | `MISSING` | Texto adaptado (declarado) | `MISSING` | `MISSING` | Sí | `REQUIRES_AUTHOR_PERMISSION` | High | HIGH | Igual P-001 | Igual P-001 | Provenance explícita en líneas finales |
-| P-003 | `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/capabilities/manifests/caveman.md` y skill family `05-caveman/**` | `JuliusBrussee/caveman` | `https://github.com/JuliusBrussee/caveman` | `MISSING` | Adaptación/port de skills y manifiestos | `MISSING` (no confirmado en auditoría local) | `MISSING` | Sí | `UNKNOWN_PROVENANCE` | Medium | HIGH | Confirmar licencia exacta de la versión usada; respetar avisos y términos | Mantener en overlay privado hasta evidencia de licencia compatible | Manifest declara `source` explícito a repo externo |
-| P-004 | `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable/**` | `pbakaus/impeccable` (indicios internos) | `https://github.com/pbakaus/impeccable` (inferido) | `MISSING` | Código y docs derivados/portados | `MISSING` | `MISSING` | Sí (nombres/rutas adaptadas) | `UNKNOWN_PROVENANCE` | Medium | CRITICAL | Verificar licencia y condiciones; potencial obra derivada extensa | Bloquear publicación hasta confirmar derechos/licencia o extraer/reescribir | `cleanup-deprecated.mjs` referencia fuente lock `pbakaus/impeccable`; historial muestra renombres masivos R100 |
-| P-005 | `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable/scripts/modern-screenshot.umd.js` | paquete npm `modern-screenshot` | `https://github.com/qq15725/modern-screenshot` | npm `4.7.0` | Vendorizado/minificado | MIT (confirmado por npm metadata) | según upstream | Desconocidas | `EXTERNAL_PERMISSIVE` | High | MEDIUM | Conservar aviso/licencia y atribución para redistribución | Incluir en THIRD_PARTY_NOTICES y agregar LICENSE.upstream para trazabilidad | `npm view modern-screenshot` => MIT + repo URL |
-| P-006 | Overlay completo actual | Historial interno previo `repo-overlay-all-metrics-full` | N/A (interno repo) | `5aeec67` introducción; `e4f860e` rename | Renombrado casi total | N/A (interno, pero origen final no demostrado) | `MISSING` | R100/R9x en múltiples archivos | `UNKNOWN_PROVENANCE` | High | HIGH | Verificar que el overlay anterior no ya incluía material externo no autorizado | Tratar como procedencia pendiente, no asumir originalidad | `git log --name-status` muestra renombres masivos desde `repo-overlay-all-metrics-full` |
+| P-001 | `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/jobs-to-be-done/**` | `deanpeters/product-manager-prompts` | `https://github.com/deanpeters/product-manager-prompts` | `ddcd8b00deafe9f3a3f770df6b70a76692d8e0f1` (2026-07-08); local entry `e4f860e` on 2026-07-15, before the 2026-07-17 relicense | Texto adaptado (declarado) | MIT for the pinned pre-v2.3.0 copy | Dean Peters | Sí | `EXTERNAL_PERMISSIVE` | High | LOW | Conservar atribución, snapshot y MIT | No es blocker autónomo mientras se conserve la evidencia | Source path `prompts/jobs-to-be-done.md`, MIT copy, and timing record in `docs/legal/third-party/provenance.json` |
+| P-002 | `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/user-story/**` | `deanpeters/product-manager-prompts` | `https://github.com/deanpeters/product-manager-prompts` | `ddcd8b00deafe9f3a3f770df6b70a76692d8e0f1` (2026-07-08); local entry `e4f860e` on 2026-07-15, before the 2026-07-17 relicense | Texto adaptado (declarado) | MIT for the pinned pre-v2.3.0 copy | Dean Peters | Sí | `EXTERNAL_PERMISSIVE` | High | LOW | Igual P-001 | No es blocker autónomo mientras se conserve la evidencia | Source path `prompts/user-story-prompt-template.md`, MIT copy, and timing record in `docs/legal/third-party/provenance.json` |
+| P-003 | `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/capabilities/manifests/caveman.md` y skill family `05-caveman/**` | `JuliusBrussee/caveman` | `https://github.com/JuliusBrussee/caveman` | `0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0` (2026-07-03) | Adaptación/port de skills y manifiestos | MIT | Julius Brussee | Sí | `EXTERNAL_PERMISSIVE` | High | LOW | Conservar MIT y el pin | No es blocker autónomo mientras se conserve la evidencia | Comparación: 11 exactos, 11 adaptados, 9 locales; evidencia y licencia en `docs/legal/third-party/` |
+| P-004 | `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable/**` | `pbakaus/impeccable` | `https://github.com/pbakaus/impeccable` | `e587004ee42883dad40d14cd0f5e1b21ae1933df` (2026-05-04) | Código y docs derivados/portados | Apache-2.0 | Paul Bakaus and contributors | Sí (nombres/rutas adaptadas) | `EXTERNAL_PERMISSIVE` | High | LOW | Conservar Apache-2.0 y NOTICE aplicable | No es blocker autónomo mientras se conserve la evidencia | Comparación: 39 exactos, 19 adaptados, 4 locales; Apache y NOTICE en `docs/legal/third-party/` |
+| P-005 | `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable/scripts/modern-screenshot.umd.js` | paquete npm `modern-screenshot` | `https://github.com/qq15725/modern-screenshot` | `v4.7.0` / `792d6db7411839c62940a6e930161f8e376e817f` | Vendorizado/minificado | MIT | wxm and contributors | No detectadas | `EXTERNAL_PERMISSIVE` | High | LOW | Conservar MIT y checksum | No es blocker autónomo mientras se conserve la evidencia | SHA-256 verificado por CI y licencia en `docs/legal/third-party/` |
+| P-006 | Resto del overlay fuera de P-001 a P-005 y P-010 | Material interno autorizado por declaración del mantenedor | N/A (interno repo) | Revisión del inventario de rutas/contenidos el 2026-07-23 | Configuración, patrones y adaptadores internos | MIT del repositorio, sujeto a la declaración de autorización | FHH/publicador según mantenedor | Sí | `MAINTAINER_ATTESTED_INTERNAL` | Medium | MEDIUM | Renovar atestación al cambiar el inventario; mantener revisión legal final | No es blocker técnico autónomo, pero no sustituye asesoría legal ni prueba independiente de autoría | `docs/legal/overlay-authorship.json` y su validación de inventario |
 | P-007 | Núcleo `src/**`, `bin/**`, `scripts/**`, tests | Desarrollo local propio (sin indicios externos directos) | N/A | commits recientes | Implementación original aparente | MIT repo actual | contribuyentes repo | Sí | `ORIGINAL_CONFIRMED` (parcial) | Medium | LOW | Mantener licencia principal; continuar revisiones puntuales | Puede permanecer en core, con revisión incremental | Sin marcadores de copia directa detectados en barrido legal |
-| P-008 | Archivos con contenido empresarial específico (`FHH IA Ecosystem`, tenancy/políticas) en overlay full | Material interno/corporativo potencial | N/A | introducidos en `5aeec67` y siguientes | Configuración/patrones específicos de organización | Propiedad laboral potencial | `MISSING` (según contratos) | Sí | `EMPLOYMENT_OWNERSHIP_RISK` | Medium | HIGH | Confirmar autorización corporativa para open source | Mantener privado o segregar hasta autorización formal | Múltiples descripciones orientadas a dominio FHH/tenant/internal docs |
+| P-008 | Archivos con contenido empresarial específico (`FHH IA Ecosystem`, tenancy/políticas) en overlay full | Material propio del publicador según declaración del mantenedor | N/A | introducidos en `5aeec67` y siguientes | Configuración/patrones específicos de organización | Titularidad/autorización afirmada por el mantenedor | Sí | Sí | `ORIGINAL_CONFIRMED` (maintainer-attested) | Medium | LOW | Mantener registro de la afirmación del mantenedor en la auditoría | No requiere segregación por autorización externa según la información actual | Declaración del mantenedor en sesión del 2026-07-23: "FHH somos nosotros" |
 | P-009 | Referencias a fuente externa en documentación y plantillas (no código) | Libros/frameworks y repositorios externos | varias | N/A | Referencias bibliográficas | Generalmente no restrictivo para referencia | terceros | N/A | `AI_GENERATED_LOW_RISK` o `EXTERNAL_PERMISSIVE` según caso | Low | LOW | Atribución editorial recomendada | Mantener referencias, sin copiar texto sustancial sin licencia | Menciones en skills y docs |
+| P-010 | Árbol completo `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/**` | Origen externo incompleto; P-001/P-002 solo cubren dos subárboles | Parcial: `https://github.com/deanpeters/product-manager-prompts` | Pinned MIT snapshot solo para dos prompts | Habilidad y plantillas externas no verificadas como conjunto | `UNRESOLVED` para el árbol completo | Desconocido para los archivos sin evidencia | Sí | `EXTERNAL_UNVERIFIED` | High | HIGH | No redistribuir públicamente sin origen y licencia aplicables | Obtener evidencia para los 19 archivos o retirar el árbol completo de ambas copias | Inventario SHA-256 y bloqueo de publicación en `docs/legal/third-party/provenance.json` |
 
 ## Distinción: idea vs expresión
 
@@ -97,6 +100,7 @@ Top-level distribution (tracked):
 
 - Bloques textuales declarados como “Adapted from ...” (P-001/P-002).
 - Árbol extenso de `impeccable` con heurísticas internas de identificación upstream (P-004).
+- Árbol `product-studio` completo, salvo los dos subárboles con evidencia limitada (P-010).
 - Código vendorizado/minificado (`modern-screenshot.umd.js`) (P-005).
 
 ### Más cercano a idea/concepto general
@@ -109,7 +113,7 @@ Top-level distribution (tracked):
 Dado el contexto declarado, y sin bitácora exhaustiva de prompts:
 
 - Tipo A/B probable: partes de `src/**`, docs operativas y tests (riesgo bajo, pendiente muestreo).
-- Tipo C/D probable: componentes con proveniencia declarada o fuerte inferencia (`product-studio`, `caveman`, `impeccable`) (riesgo alto).
+- Tipo C/D probable: componentes con proveniencia declarada o fuerte inferencia (`caveman`, `impeccable`, `frontend-design`) y el árbol `product-studio` no verificado (riesgo alto).
 - Tipo E: cualquier sección sin historial de prompt/cita y sin evidencia upstream verificable (riesgo medio-alto por incertidumbre).
 
 ## Riesgos de titularidad laboral/corporativa
@@ -119,7 +123,7 @@ Riesgo detectado en overlay completo orientado a FHH IA Ecosystem:
 - Posible creación durante actividad laboral o con recursos corporativos.
 - Inclusión de patrones/estándares internos (`tenant`, rutas de documentación interna, lenguaje organizacional).
 
-Estado: `MISSING` autorización documental explícita del titular corporativo.
+Estado: declaración explícita del mantenedor indica que el material FHH pertenece al publicador y está autorizado para publicación; no se identificó evidencia contradictoria en esta auditoría.
 
 ## Matriz de licencias y compatibilidad (preliminar)
 
@@ -137,17 +141,14 @@ Estado: `MISSING` autorización documental explícita del titular corporativo.
 
 ## Hallazgos P0 (bloquea publicación)
 
-1. Procedencia/licencia no confirmada de `impeccable` y `caveman` (árboles extensos).
-2. Material explícitamente “adapted from” repositorio externo sin licencia verificada en la evidencia local.
-3. Vendorización de librería externa sin archivo local de licencia/notice de tercero.
-4. Riesgo de titularidad corporativa no resuelta para overlay específico FHH.
+1. P-010 bloquea la publicación: el árbol Product Studio completo es `EXTERNAL_UNVERIFIED`; solo dos de sus subárboles tienen fuente y licencia confirmadas.
+2. P-006 sigue siendo una atestación del mantenedor, no una prueba independiente de autoría; la decisión final de publicarlo requiere revisión jurídica.
 
 ## Hallazgos P1 (obligatorio antes de público)
 
-1. Falta de `THIRD_PARTY_NOTICES.md` y `NOTICE` operativos.
-2. Falta de política formal de contribuciones corporativas y DCO.
-3. Falta de gobernanza/seguridad/trademarks explícitos para colaboración externa.
-4. Falta de trazabilidad legal por componente (`LICENSE.upstream` o equivalente) en subárboles externos.
+1. Mantener DCO, política de contribuciones corporativas, gobernanza, seguridad y trademarks como controles obligatorios para colaboración externa.
+2. Renovar la atestación de overlay al cambiar su inventario y la proveniencia de terceros al importar o actualizar material externo.
+3. Obtener aprobación de asesoría legal antes de publicar o relicenciar.
 
 ## Nota de prudencia legal
 

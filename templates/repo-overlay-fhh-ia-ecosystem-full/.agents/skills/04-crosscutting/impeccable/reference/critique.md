@@ -1,3 +1,5 @@
+<!-- Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in pbakaus/impeccable. -->
+
 ### Purpose
 
 Resolve one stable target, run two independent assessments, synthesize a design critique, persist a snapshot, and ask the user what to improve next. The chat response is the primary deliverable; the snapshot is an archive/backlog for future commands.

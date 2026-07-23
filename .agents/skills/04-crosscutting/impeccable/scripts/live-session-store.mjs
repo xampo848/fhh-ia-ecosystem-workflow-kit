@@ -1,3 +1,5 @@
+// Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in pbakaus/impeccable.
+
 import fs from 'node:fs';
 import path from 'node:path';
 import { getLegacyLiveSessionsDir, getLiveSessionsDir } from 'impeccable-paths.mjs';

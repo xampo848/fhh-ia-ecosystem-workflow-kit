@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in pbakaus/impeccable.
+
 /**
  * Recover the next agent action from the durable live-session journal.
  */

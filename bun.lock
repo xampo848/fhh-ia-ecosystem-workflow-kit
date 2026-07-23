@@ -9,6 +9,7 @@
       "devDependencies": {
         "@slidev/cli": "^52.0.0",
         "@slidev/theme-default": "^0.25.0",
+        "yaml": "^2.9.0",
       },
     },
   },

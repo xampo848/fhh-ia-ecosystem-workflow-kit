@@ -9,7 +9,9 @@ Run locally:
 ```bash
 npm test
 npm run check
-npm run check:templates
+npm run check:workflow
+npm run check:docs
+npm run check:legal
 npm run check:release
 ```
 

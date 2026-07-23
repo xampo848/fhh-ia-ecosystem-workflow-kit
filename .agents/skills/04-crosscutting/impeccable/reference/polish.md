@@ -1,3 +1,5 @@
+<!-- Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in pbakaus/impeccable. -->
+
 > **Additional context needed**: quality bar (MVP vs flagship).
 
 Perform a meticulous final pass to catch all the small details that separate good work from great work. The difference between shipped and polished.
