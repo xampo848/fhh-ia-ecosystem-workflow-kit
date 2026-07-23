@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { applyInstallPlan } from './apply.mjs';
+import { formatDoctorResult, runDoctor } from './doctor.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan } from './planner.mjs';
 import {
   createCapabilityGuide,
@@ -53,6 +54,8 @@ const CAPABILITY_INTENT_OPTIONS = [
 const TUI_MODE_OPTIONS = [
   { value: 'install', label: 'Instalar workflow en este repo', description: 'Instala el workflow completo y luego ofrece capabilities opcionales.' },
   { value: 'update', label: 'Actualizar workflow en este repo', description: 'Actualiza solo archivos gestionados, con backups y proteccion de cambios locales.' },
+  { value: 'export', label: 'Exportar workflow a una carpeta', description: 'Genera una copia del paquete del workflow en un directorio de salida.' },
+  { value: 'doctor', label: 'Auditar un repo con doctor', description: 'Valida archivos esperados, drift local y diagnosticos semanticos del workflow.' },
   { value: 'upgrade-toolkit', label: 'Actualizar toolkit en esta maquina', description: 'Actualiza el binario global desde GitHub para luego re-ejecutar update en los repos.' },
   { value: 'capabilities-only', label: 'Instalar solo capabilities opcionales', description: 'Revisa e instala capabilities sin tocar archivos del workflow.' }
 ];
@@ -60,6 +63,13 @@ const TUI_MODE_OPTIONS = [
 const FULL_OVERLAY = 'fhh-ia-ecosystem-full';
 
 const defaultCommandExists = upgradeCommandExists;
+
+function explainExistingRepoBehavior(write, paint) {
+  write(`${paint.bold('Existing repo behavior')}\n`);
+  write(`${paint.dim('- Local .agents/skills/**/SKILL.md files will be auto-registered into registry.json.')}\n`);
+  write(`${paint.dim('- Old docs stay in place unless you explicitly opt in to relocate them.')}\n`);
+  write(`${paint.dim('- Any relocation creates backups and skips occupied destinations.')}\n\n`);
+}
 
 function defaultRunCommand({ command, args, cwd, write, paint }) {
   return new Promise((resolve) => {
@@ -407,6 +417,58 @@ export async function runTui(options = {}) {
     let targetPath;
     let runtime;
     let overlay = FULL_OVERLAY;
+    let migrateLegacyDocs = false;
+
+    if (mode === 'doctor') {
+      renderStageHeader(write, paint, {
+        step: 2,
+        total: 4,
+        title: 'Target selection',
+        subtitle: 'Choose which repository should be audited against the expected toolkit surface.'
+      });
+
+      targetPath = scriptedMode
+        ? await prompter.promptText('Target path [.]: ', '.')
+        : await prompter.promptText('Target path', '.');
+
+      renderStageHeader(write, paint, {
+        step: 3,
+        total: 4,
+        title: 'Runtime adapters',
+        subtitle: 'Select runtimes so doctor validates the correct adapter surface.'
+      });
+
+      const runtimeChoices = await prompter.chooseOptions({
+        title: 'Select one or more runtimes',
+        options: RUNTIME_OPTIONS,
+        defaultValues: ['neutral']
+      });
+
+      const customRuntimes = runtimeChoices.includes('custom')
+        ? await prompter.promptText(scriptedMode ? 'Custom runtimes [neutral]: ' : 'Custom runtimes (comma-separated)', 'neutral')
+        : '';
+      runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
+
+      renderStageHeader(write, paint, {
+        step: 4,
+        total: 4,
+        title: 'Doctor results',
+        subtitle: 'Review repository health before deciding whether to run install, update, or manual fixes.'
+      });
+
+      const doctorResult = await runDoctor({
+        targetPath,
+        runtime,
+        overlay
+      });
+      write(`${formatDoctorResult(doctorResult)}\n`);
+      return {
+        code: doctorResult.ok ? 0 : 1,
+        applied: false,
+        mode,
+        doctorResult
+      };
+    }
 
     if (mode === 'upgrade-toolkit') {
       const metadata = currentToolkitMetadata();
@@ -562,18 +624,22 @@ export async function runTui(options = {}) {
         title: 'Target selection',
         subtitle: mode === 'update'
           ? 'Choose which repository should be reconciled with the current toolkit surface.'
-          : 'Choose where the workflow package will be installed.'
+          : mode === 'export'
+            ? 'Choose where the workflow package should be exported.'
+            : 'Choose where the workflow package will be installed.'
       });
 
-      targetPath = await prompter.promptText('Target path [.]: ', '.');
+      targetPath = await prompter.promptText(mode === 'export' ? 'Output path [.]: ' : 'Target path [.]: ', '.');
       write('\n');
 
       renderStageHeader(write, paint, {
         step: 3,
         total: 6,
-        title: mode === 'update' ? 'Update package' : 'Install package',
+        title: mode === 'update' ? 'Update package' : mode === 'export' ? 'Export package' : 'Install package',
         subtitle: mode === 'update'
           ? 'Managed files will be updated selectively, with backups and protected skips.'
+          : mode === 'export'
+            ? 'The toolkit will render the selected package into the output directory without using repo state.'
           : 'The toolkit now installs the complete FHH IA Ecosystem package by default.'
       });
       const packageDetails = installPackageDetails(overlay);
@@ -596,6 +662,11 @@ export async function runTui(options = {}) {
         ? await prompter.promptText('Custom runtimes [neutral]: ', 'neutral')
         : '';
       runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
+
+      if (mode !== 'export') {
+        explainExistingRepoBehavior(write, paint);
+        migrateLegacyDocs = await prompter.confirm('Move old docs into docs/workflow now when destination paths are free? Backups will be created [no]: ');
+      }
     } else {
       renderStageHeader(write, paint, {
         step: 2,
@@ -603,17 +674,21 @@ export async function runTui(options = {}) {
         title: 'Target selection',
         subtitle: mode === 'update'
           ? 'Choose which repository should be reconciled with the current toolkit surface.'
-          : 'Choose where the workflow package will be installed.'
+          : mode === 'export'
+            ? 'Choose where the workflow package should be exported.'
+            : 'Choose where the workflow package will be installed.'
       });
 
-      targetPath = await prompter.promptText('Target path', '.');
+      targetPath = await prompter.promptText(mode === 'export' ? 'Output path' : 'Target path', '.');
 
       renderStageHeader(write, paint, {
         step: 3,
         total: 6,
-        title: mode === 'update' ? 'Update package' : 'Install package',
+        title: mode === 'update' ? 'Update package' : mode === 'export' ? 'Export package' : 'Install package',
         subtitle: mode === 'update'
           ? 'Managed files will be updated selectively, with backups and protected skips.'
+          : mode === 'export'
+            ? 'The toolkit will render the selected package into the output directory without using repo state.'
           : 'The toolkit now installs the complete FHH IA Ecosystem package by default.'
       });
       const packageDetails = installPackageDetails(overlay);
@@ -637,6 +712,11 @@ export async function runTui(options = {}) {
         : '';
       runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
 
+      if (mode !== 'export') {
+        explainExistingRepoBehavior(write, paint);
+        migrateLegacyDocs = await prompter.confirm('Move old docs into docs/workflow now when destination paths are free? Backups will be created.', false);
+      }
+
     }
 
     const buildPlan = async () => {
@@ -646,6 +726,7 @@ export async function runTui(options = {}) {
             targetPath,
             runtime,
             overlay,
+            migrateLegacyDocs,
             toolkitVersion: currentToolkitMetadata().version
           });
         } catch (error) {
@@ -663,6 +744,7 @@ export async function runTui(options = {}) {
             runtime,
             overlay,
             adoptExisting: true,
+            migrateLegacyDocs,
             toolkitVersion: currentToolkitMetadata().version
           });
         }
@@ -672,6 +754,7 @@ export async function runTui(options = {}) {
         targetPath,
         runtime,
         overlay,
+        migrateLegacyDocs,
         toolkitVersion: currentToolkitMetadata().version
       });
     };
@@ -721,7 +804,7 @@ export async function runTui(options = {}) {
     }
 
     if (!shouldApply) {
-      write(`${paint.yellow('Aborted. No files were written.')}\n`);
+      write(`${paint.yellow(mode === 'export' ? 'Aborted. No files were exported.' : 'Aborted. No files were written.')}\n`);
       return { code: 0, applied: false, plan };
     }
 
@@ -731,9 +814,13 @@ export async function runTui(options = {}) {
     const modifiedSkips = applied.filter((item) => item.operation === 'skip_modified').length;
     const unmanagedSkips = applied.filter((item) => item.operation === 'skip_unmanaged').length;
     const adopted = applied.filter((item) => item.operation === 'adopt_existing').length;
-    write(`\n${paint.green('Apply completed successfully.')} ${renderChip(paint, 'SYSTEM READY', 'green')}\n`);
-    write(`Applied writes: ${paint.green(String(writeCount))}\n`);
+    const relocatedDocs = applied.filter((item) => item.operation === 'move_with_backup').length;
+    write(`\n${paint.green(mode === 'export' ? 'Export completed successfully.' : 'Apply completed successfully.')} ${renderChip(paint, 'SYSTEM READY', 'green')}\n`);
+    write(`${mode === 'export' ? 'Exported files' : 'Applied writes'}: ${paint.green(String(writeCount))}\n`);
     write(`Backups created: ${paint.yellow(String(backupCount))}\n`);
+    if (mode !== 'export') {
+      write(`Legacy docs relocated: ${paint.cyan(String(relocatedDocs))}\n`);
+    }
     if (mode === 'update') {
       write(`Protected local edits (skipped): ${paint.yellow(String(modifiedSkips))}\n`);
       write(`Unmanaged files (skipped): ${paint.yellow(String(unmanagedSkips))}\n`);
@@ -772,7 +859,9 @@ export async function runTui(options = {}) {
 
     write(`${paint.dim(mode === 'update'
       ? 'The target repository has been reconciled against the current managed toolkit surface.'
-      : 'The target repository now has the complete FHH IA Ecosystem workflow package installed.') }\n`);
+      : mode === 'export'
+        ? 'The output directory now contains the complete FHH IA Ecosystem workflow package.'
+        : 'The target repository now has the complete FHH IA Ecosystem workflow package installed.') }\n`);
     return {
       code: 0,
       applied: true,

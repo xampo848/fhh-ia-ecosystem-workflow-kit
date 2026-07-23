@@ -14,7 +14,7 @@ test('parseArgs applies defaults when no flags are given', () => {
 });
 
 test('parseArgs parses target, runtime, overlay and apply/yes flags', () => {
-  const options = parseArgs(['update', '--target', '/tmp/repo', '--runtime', 'codex,copilot', '--overlay', 'fhh-ia-ecosystem-full', '--apply', '--yes']);
+  const options = parseArgs(['update', '--target', '/tmp/repo', '--runtime', 'codex,copilot', '--overlay', 'fhh-ia-ecosystem-full', '--apply', '--yes', '--migrate-legacy-docs']);
 
   assert.equal(options.targetPath, '/tmp/repo');
   assert.equal(options.runtime, 'codex,copilot');
@@ -22,6 +22,7 @@ test('parseArgs parses target, runtime, overlay and apply/yes flags', () => {
   assert.equal(options.apply, true);
   assert.equal(options.dryRun, false);
   assert.equal(options.yes, true);
+  assert.equal(options.migrateLegacyDocs, true);
 });
 
 test('parseArgs parses export output path and adopt-existing flag', () => {

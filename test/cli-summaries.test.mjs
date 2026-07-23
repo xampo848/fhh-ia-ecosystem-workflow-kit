@@ -17,7 +17,7 @@ test('formatInitApplySummary counts applied writes and backups', () => {
     operation({ applied: false })
   ];
 
-  assert.equal(formatInitApplySummary(applied), 'Applied writes: 2\nBackups created: 1\n');
+  assert.equal(formatInitApplySummary(applied), 'Applied writes: 2\nBackups created: 1\nLegacy docs relocated: 0\n');
 });
 
 test('formatExportApplySummary counts applied writes and backups', () => {
@@ -41,6 +41,6 @@ test('formatUpdateApplySummary counts writes, backups, skips and adoptions', () 
 
   assert.equal(
     formatUpdateApplySummary(applied),
-    'Updated writes: 2\nBackups created: 1\nProtected local edits (skipped): 2\nUnmanaged files (skipped): 1\nAdopted baseline files: 1\n'
+    'Updated writes: 2\nBackups created: 1\nProtected local edits (skipped): 2\nUnmanaged files (skipped): 1\nAdopted baseline files: 1\nLegacy docs relocated: 0\n'
   );
 });
