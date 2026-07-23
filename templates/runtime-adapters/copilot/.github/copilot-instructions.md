@@ -24,6 +24,23 @@ Routing visibility requirement:
 	the selected skill.
 - Only trivial informational direct answers may skip visible routing trace.
 
+Caveman preference for routing speed:
+
+- Prefer caveman-compressed style for routing traces, interim progress updates,
+	and low-ambiguity follow-up responses.
+- Keep compression biased toward `full` style for speed unless the user asks
+	for normal prose or deeper explanation.
+- Fall back to normal concise prose for security, irreversible actions,
+	compliance/legal wording, or user confusion.
+
+Turn-by-turn routing guarantee:
+
+- Re-run structured intake on every user prompt, including follow-ups in the
+	same conversation.
+- Do not reuse or cache the previous workflow decision across turns.
+- If the request is non-trivial on a later turn, route again through
+	`workflow-router` before acting.
+
 For model routing, read `.agents/model-routing/README.md`. Use the Copilot model
 picker as the source of truth for models allowed to the active user. Organization
 or repository policy can hide models; do not infer availability from a global

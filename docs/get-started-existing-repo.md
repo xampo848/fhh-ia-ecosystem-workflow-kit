@@ -61,6 +61,7 @@ If diagnostics appear, jump to [Troubleshooting](troubleshooting.md).
 
 During init on an existing repository:
 
+- `.agents/skills/**/SKILL.md` files already present in the target repo are auto-discovered and merged into `.agents/skills/registry.json`.
 - `.agents/skills/registry.json` is merged by union so local custom entries are preserved.
 - `.agents/skills/index.md` and `.agents/skills/registry.md` are preserved if they already exist.
 - `docs/README.md` gets a non-destructive workflow block.
@@ -82,6 +83,18 @@ This file suggests coherent destinations under `docs/workflow/` and includes `gi
 5. Update old links in README/CONTRIBUTING/docs indexes.
 
 The map is generated once. If it already exists, it is not regenerated on subsequent init runs.
+
+### Optional one-command relocation
+
+If you want workflow-kit to perform the safe relocations for you when destinations are free, run:
+
+```bash
+workflow-kit init --target /path/to/repo --runtime codex,copilot --migrate-legacy-docs --apply --yes
+```
+
+The same flag also works with `workflow-kit update`.
+
+If you prefer the easiest path, launch `workflow-kit tui`: it now asks whether legacy docs should be relocated during the install/update flow.
 
 ## 6) Backend/frontend standards setup
 

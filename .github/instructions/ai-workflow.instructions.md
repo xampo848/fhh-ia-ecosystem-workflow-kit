@@ -30,6 +30,23 @@ hardcoded flow stacks in this adapter.
 - The trace format is defined by `workflow-router` and must include at least:
 	selected path and cost posture.
 
+## Turn-by-turn re-routing
+
+- Apply structured intake again for every new user prompt, including follow-up
+	turns in the same chat.
+- Never assume the workflow selected in a previous turn is still valid.
+- For any later non-trivial prompt, re-enter `workflow-router` before planning,
+	editing, or running implementation steps.
+
+## Caveman response posture
+
+- For routing traces and short progress updates, prefer caveman-compressed
+	responses to reduce latency and token pressure.
+- Default to caveman `full` style in low-ambiguity turns unless the user asks
+	for expanded prose.
+- Switch back to normal concise prose when clarity or safety wording is
+	critical (security, destructive actions, legal/compliance, or confusion).
+
 ## Standards and documentation loading
 
 - Documentation ownership is split by purpose:

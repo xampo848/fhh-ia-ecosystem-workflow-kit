@@ -1,5 +1,5 @@
 export function printHelp() {
-  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>]\n  workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--adopt-existing]\n  workflow-kit upgrade [--ref <git-ref>] [--package-manager bun] [--dry-run] [--apply --yes]\n  workflow-kit export [--output <path>] [--dry-run] [--apply --yes] [--runtime <list>]\n  workflow-kit doctor [--target <path>] [--runtime <list>]\n  workflow-kit tui\n`;
+  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--migrate-legacy-docs]\n  workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--adopt-existing] [--migrate-legacy-docs]\n  workflow-kit upgrade [--ref <git-ref>] [--package-manager bun] [--dry-run] [--apply --yes]\n  workflow-kit export [--output <path>] [--dry-run] [--apply --yes] [--runtime <list>]\n  workflow-kit doctor [--target <path>] [--runtime <list>]\n  workflow-kit tui\n`;
 }
 
 export function parseArgs(argv) {
@@ -18,6 +18,7 @@ export function parseArgs(argv) {
     else if (arg === '--apply') { options.apply = true; options.dryRun = false; }
     else if (arg === '--yes') options.yes = true;
     else if (arg === '--adopt-existing') options.adoptExisting = true;
+    else if (arg === '--migrate-legacy-docs') options.migrateLegacyDocs = true;
     else if (arg === '--help' || arg === '-h') options.help = true;
     else throw new Error(`Unknown argument: ${arg}`);
   }

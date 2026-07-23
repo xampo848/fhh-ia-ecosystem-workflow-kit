@@ -83,6 +83,21 @@ test('buildInstallPlan merges existing skills registry and preserves local skill
   assert.equal(markdownRegistryOperation.operation, 'skip_unmanaged');
 });
 
+test('buildInstallPlan auto-discovers local skills from the target repository and registers them', async () => {
+  const target = await makeTempRepo();
+  const localSkillPath = path.join(target, '.agents/skills/local/my-project-skill/SKILL.md');
+
+  await fs.mkdir(path.dirname(localSkillPath), { recursive: true });
+  await fs.writeFile(localSkillPath, `---\nname: my-project-skill\ndescription: Project-specific custom workflow\n---\n\n# My Skill\n`, 'utf8');
+
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
+  const registryOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/registry.json');
+  const mergedRegistry = JSON.parse(registryOperation.content);
+
+  assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'my-project-skill'), true);
+  assert.equal(mergedRegistry.skills.some((entry) => entry.path === '.agents/skills/local/my-project-skill/SKILL.md'), true);
+});
+
 test('buildInstallPlan appends workflow docs hub section into existing docs README', async () => {
   const target = await makeTempRepo();
   const existing = '# Project Docs\n\nGeneral project documentation.\n';
@@ -126,6 +141,20 @@ test('buildInstallPlan does not regenerate legacy docs migration map after first
   const migrationMapOperation = plan.operations.find((item) => item.relativePath === 'docs/workflow/migration/legacy-docs-map.md');
 
   assert.equal(migrationMapOperation, undefined);
+});
+
+test('buildInstallPlan can plan legacy docs relocation when explicitly enabled', async () => {
+  const target = await makeTempRepo();
+  await fs.mkdir(path.join(target, 'docs/backend'), { recursive: true });
+  await fs.writeFile(path.join(target, 'docs/backend/api-guidelines.md'), '# API Guidelines\n', 'utf8');
+
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral', migrateLegacyDocs: true });
+  const relocation = plan.operations.find((item) => item.operation === 'move_with_backup');
+
+  assert.ok(relocation);
+  assert.equal(relocation.fromRelativePath, 'docs/backend/api-guidelines.md');
+  assert.equal(relocation.relativePath, 'docs/workflow/standards/imported-backend/api-guidelines.md');
+  assert.equal(plan.summary.move_with_backup, 1);
 });
 
 test('buildInstallPlan defaults to complete fhh-ia-ecosystem overlay without duplicate paths', async () => {

@@ -93,6 +93,7 @@ export async function buildInstallPlan(options = {}) {
   const runtimes = parseRuntimeList(options.runtime ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const files = await selectedTemplateFiles({ runtimes, overlay });
+  const discoveredSkillEntries = await collectDiscoveredLocalSkillEntries(targetPath);
   const operations = [];
 
   for (const file of files) {
@@ -117,7 +118,8 @@ export async function buildInstallPlan(options = {}) {
     const resolution = resolvePlannedContent({
       relativePath: file.relativePath,
       templateContent: content,
-      existingContent
+      existingContent,
+      discoveredSkillEntries
     });
 
     if (existingContent !== null) {
@@ -142,6 +144,9 @@ export async function buildInstallPlan(options = {}) {
   }
 
   operations.push(...await buildOneTimeDocsMigrationOperations({ targetPath }));
+  if (options.migrateLegacyDocs) {
+    operations.push(...await buildLegacyDocsMoveOperations({ targetPath }));
+  }
 
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 
@@ -162,6 +167,8 @@ export async function buildInstallPlan(options = {}) {
     previousToolkitVersion: null,
     runtimes,
     overlay,
+    discoveredSkillEntries,
+    migrateLegacyDocs: Boolean(options.migrateLegacyDocs),
     operations,
     summary: summarizeOperations(operations)
   };
@@ -174,6 +181,7 @@ export async function buildUpdatePlan(options = {}) {
   const runtimes = parseRuntimeList(options.runtime ?? existingState?.runtimes?.join(',') ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? existingState?.overlay ?? 'fhh-ia-ecosystem-full');
   const files = await selectedTemplateFiles({ runtimes, overlay });
+  const discoveredSkillEntries = await collectDiscoveredLocalSkillEntries(targetPath);
   const previousHashes = new Map(Object.entries(existingState?.files ?? {}));
   const operations = [];
 
@@ -203,7 +211,8 @@ export async function buildUpdatePlan(options = {}) {
     const resolution = resolvePlannedContent({
       relativePath: file.relativePath,
       templateContent: content,
-      existingContent
+      existingContent,
+      discoveredSkillEntries
     });
 
     if (existingContent === null) {
@@ -309,6 +318,10 @@ export async function buildUpdatePlan(options = {}) {
     }
   }
 
+  if (options.migrateLegacyDocs) {
+    operations.push(...await buildLegacyDocsMoveOperations({ targetPath }));
+  }
+
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 
   const nextInstallState = buildNextInstallState({
@@ -329,6 +342,8 @@ export async function buildUpdatePlan(options = {}) {
     previousToolkitVersion: existingState?.toolkitVersion ?? null,
     runtimes,
     overlay,
+    discoveredSkillEntries,
+    migrateLegacyDocs: Boolean(options.migrateLegacyDocs),
     operations,
     summary: summarizeOperations(operations)
   };
@@ -342,6 +357,7 @@ export function summarizeOperations(operations) {
   const summary = {
     create: 0,
     unchanged: 0,
+    move_with_backup: 0,
     merge_with_backup: 0,
     overwrite_with_backup: 0,
     skip_modified: 0,
@@ -368,10 +384,15 @@ export function formatPlan(plan) {
   ];
 
   for (const item of plan.operations) {
+    if (item.operation === 'move_with_backup' && item.fromRelativePath) {
+      lines.push(`- ${item.operation}: ${item.fromRelativePath} -> ${item.relativePath}`);
+      continue;
+    }
+
     lines.push(`- ${item.operation}: ${item.relativePath}`);
   }
 
-  lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, merge_with_backup=${plan.summary.merge_with_backup}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}`);
+  lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, move_with_backup=${plan.summary.move_with_backup}, merge_with_backup=${plan.summary.merge_with_backup}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}`);
   return lines.join('\n');
 }
 
@@ -443,16 +464,16 @@ function buildNextInstallState({ previousState, operations, runtimes, overlay, t
   };
 }
 
-function resolvePlannedContent({ relativePath, templateContent, existingContent }) {
-  if (existingContent === null) {
-    return { strategy: 'template', content: templateContent };
-  }
-
+function resolvePlannedContent({ relativePath, templateContent, existingContent, discoveredSkillEntries = [] }) {
   if (relativePath === skillRegistryJsonPath) {
     return {
       strategy: 'merged',
-      content: mergeSkillRegistryJson({ existingContent, templateContent })
+      content: mergeSkillRegistryJson({ existingContent, templateContent, discoveredSkillEntries })
     };
+  }
+
+  if (existingContent === null) {
+    return { strategy: 'template', content: templateContent };
   }
 
   if (relativePath === docsReadmePath) {
@@ -469,15 +490,22 @@ function resolvePlannedContent({ relativePath, templateContent, existingContent 
   return { strategy: 'template', content: templateContent };
 }
 
-function mergeSkillRegistryJson({ existingContent, templateContent }) {
-  let existing;
+function mergeSkillRegistryJson({ existingContent, templateContent, discoveredSkillEntries = [] }) {
+  let existing = {};
   let incoming;
 
   try {
-    existing = JSON.parse(existingContent);
     incoming = JSON.parse(templateContent);
   } catch {
     return templateContent;
+  }
+
+  if (existingContent !== null) {
+    try {
+      existing = JSON.parse(existingContent);
+    } catch {
+      existing = {};
+    }
   }
 
   const merged = {
@@ -485,8 +513,8 @@ function mergeSkillRegistryJson({ existingContent, templateContent }) {
     ...existing,
     schema_version: existing.schema_version ?? incoming.schema_version ?? '1.0.0',
     canonical_source: existing.canonical_source ?? incoming.canonical_source ?? '.agents/skills/registry.md',
-    skills: mergeRegistryEntries(existing.skills, incoming.skills),
-    pattern_skills: mergeRegistryEntries(existing.pattern_skills, incoming.pattern_skills)
+    skills: mergeRegistryEntries(existing.skills, [...normalizeRegistryEntries(incoming.skills), ...discoveredSkillEntries.filter((entry) => entry.class !== 'Standards/pattern')]),
+    pattern_skills: mergeRegistryEntries(existing.pattern_skills, [...normalizeRegistryEntries(incoming.pattern_skills), ...discoveredSkillEntries.filter((entry) => entry.class === 'Standards/pattern')])
   };
 
   return `${JSON.stringify(merged, null, 2)}\n`;
@@ -523,6 +551,104 @@ function registryEntryIdentity(entry) {
   if (entry.name && typeof entry.name === 'string') return `name:${entry.name}`;
   if (entry.path && typeof entry.path === 'string') return `path:${entry.path}`;
   return `raw:${JSON.stringify(entry)}`;
+}
+
+async function collectDiscoveredLocalSkillEntries(targetPath) {
+  const root = path.join(targetPath, '.agents', 'skills');
+  const discovered = [];
+
+  async function walk(current) {
+    let entries;
+    try {
+      entries = await fs.readdir(current, { withFileTypes: true });
+    } catch (error) {
+      if (error.code === 'ENOENT') return;
+      throw error;
+    }
+
+    for (const entry of entries) {
+      const absolutePath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        await walk(absolutePath);
+        continue;
+      }
+
+      if (!entry.isFile() || entry.name !== 'SKILL.md') continue;
+      const relativePath = path.relative(targetPath, absolutePath).split(path.sep).join('/');
+      const content = await fs.readFile(absolutePath, 'utf8');
+      discovered.push(buildDiscoveredSkillEntry({ relativePath, content }));
+    }
+  }
+
+  await walk(root);
+  return discovered;
+}
+
+function buildDiscoveredSkillEntry({ relativePath, content }) {
+  const frontmatter = parseSkillFrontmatter(content);
+  const rawName = frontmatter.name || skillNameFromPath(relativePath);
+  const name = String(rawName).trim();
+  const skillClass = classifyDiscoveredSkill(relativePath);
+  const description = String(frontmatter.description || '').trim();
+
+  return {
+    name,
+    class: skillClass,
+    path: relativePath,
+    trigger: description || `Discovered local project skill at ${relativePath}; load when explicitly requested.`,
+    loading_posture: defaultLoadingPostureForClass(skillClass),
+    key: slugifySkillKey(name),
+    runtime_notes: 'Auto-discovered from the target repository during workflow-kit install/update.'
+  };
+}
+
+function parseSkillFrontmatter(content) {
+  const match = String(content).match(/^---\n([\s\S]*?)\n---\n/);
+  if (!match) return {};
+
+  const frontmatter = {};
+  for (const line of match[1].split('\n')) {
+    if (!line || /^\s/.test(line)) continue;
+    const separator = line.indexOf(':');
+    if (separator < 0) continue;
+    const key = line.slice(0, separator).trim();
+    const value = line.slice(separator + 1).trim().replace(/^['"]|['"]$/g, '');
+    if (!key) continue;
+    frontmatter[key] = value;
+  }
+
+  return frontmatter;
+}
+
+function skillNameFromPath(relativePath) {
+  const withoutSuffix = relativePath.replace(/\/SKILL\.md$/, '');
+  const segments = withoutSuffix.split('/');
+  return segments[segments.length - 1] || 'local-skill';
+}
+
+function classifyDiscoveredSkill(relativePath) {
+  if (relativePath.includes('/06-patterns/')) return 'Standards/pattern';
+  if (relativePath.includes('/03-quality/')) return 'Quality/validation';
+  if (relativePath.includes('/04-crosscutting/')) return 'Cross-cutting overlay';
+  if (relativePath.includes('/05-caveman/')) return 'Mode/helper';
+  if (relativePath.includes('/02-implement/')) return 'Delegate-only implementation';
+  return 'Workflow';
+}
+
+function defaultLoadingPostureForClass(skillClass) {
+  if (skillClass === 'Delegate-only implementation') return 'Delegated-only';
+  if (skillClass === 'Quality/validation' || skillClass === 'Standards/pattern') return 'Just-in-time';
+  if (skillClass === 'Cross-cutting overlay') return 'Overlay';
+  if (skillClass === 'Mode/helper') return 'Helper/mode';
+  return 'Explicit-only';
+}
+
+function slugifySkillKey(name) {
+  return String(name)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'local-skill';
 }
 
 function mergeDocsReadme({ existingContent, templateContent }) {
@@ -578,6 +704,56 @@ async function buildOneTimeDocsMigrationOperations({ targetPath }) {
     sourceChecksum: computeChecksum(content),
     plannedChecksum: computeChecksum(content)
   });
+
+  return operations;
+}
+
+async function buildLegacyDocsMoveOperations({ targetPath }) {
+  const docsRoot = path.join(targetPath, 'docs');
+  const legacyDocs = await collectLegacyDocsForMigration({ docsRoot });
+  const operations = [];
+
+  for (const item of legacyDocs) {
+    const sourceFile = path.join(docsRoot, item.relative);
+    const targetFile = path.join(targetPath, item.suggested);
+    const relativePath = item.suggested;
+    const fromRelativePath = `docs/${item.relative}`;
+
+    let targetExists = false;
+    try {
+      await fs.access(targetFile);
+      targetExists = true;
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+
+    if (targetExists) {
+      operations.push({
+        operation: 'skip_unmanaged',
+        relativePath,
+        fromRelativePath,
+        targetFile,
+        sourceFile,
+        content: null,
+        sourceChecksum: null,
+        plannedChecksum: null
+      });
+      continue;
+    }
+
+    const content = await fs.readFile(sourceFile, 'utf8');
+    operations.push({
+      operation: 'move_with_backup',
+      relativePath,
+      fromRelativePath,
+      targetFile,
+      sourceFile,
+      sourcePath: null,
+      content,
+      sourceChecksum: computeChecksum(content),
+      plannedChecksum: computeChecksum(content)
+    });
+  }
 
   return operations;
 }

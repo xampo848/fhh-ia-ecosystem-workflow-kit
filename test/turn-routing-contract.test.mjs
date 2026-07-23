@@ -80,5 +80,26 @@ test('Copilot wrappers require visible routing trace for non-trivial work', asyn
     assert.match(content, /non-trivial/i, relativePath);
     assert.match(content, /routing decision trace/i, relativePath);
     assert.match(content, /trivial informational direct answers/i, relativePath);
+    assert.match(content, /do not reuse or cache the previous workflow decision across turns/i, relativePath);
+    assert.match(content, /including follow-ups[\s\S]*same conversation/i, relativePath);
+    assert.match(content, /caveman preference for routing speed/i, relativePath);
+    assert.match(content, /prefer caveman-compressed style[\s\S]*routing traces/i, relativePath);
+    assert.match(content, /biased toward `full` style/i, relativePath);
+  }
+});
+
+test('Copilot scoped instructions enforce re-routing on follow-up turns', async () => {
+  for (const relativePath of [
+    '.github/instructions/ai-workflow.instructions.md',
+    'templates/runtime-adapters/copilot/.github/instructions/ai-workflow.instructions.md'
+  ]) {
+    const content = await read(relativePath);
+    assert.match(content, /turn-by-turn re-routing/i, relativePath);
+    assert.match(content, /including follow-up[\s\S]*same chat/i, relativePath);
+    assert.match(content, /never assume the workflow selected in a previous turn is still valid/i, relativePath);
+    assert.match(content, /re-enter `workflow-router`/i, relativePath);
+    assert.match(content, /caveman response posture/i, relativePath);
+    assert.match(content, /prefer caveman-compressed[\s\S]*reduce latency/i, relativePath);
+    assert.match(content, /caveman `full` style/i, relativePath);
   }
 });

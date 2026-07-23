@@ -177,8 +177,8 @@ export async function animateIntro(write, paint, { animate = true } = {}) {
   }
 
   write(`${paint.bold(introTone(paint, 'purple', 'FHH IA Ecosystem'))} ${paint.dim(':: launch console')}\n`);
-    write(`${introTone(paint, 'cream', 'mode:')} ${introTone(paint, 'blue', 'install')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'purple', 'update')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'blue', 'upgrade')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'purple', 'preview-first')}\n`);
-    write(`${paint.dim('High-fidelity workflow assistant: install, update, or upgrade safely with previews and backups.')}\n`);
+  write(`${introTone(paint, 'cream', 'mode:')} ${introTone(paint, 'blue', 'install')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'purple', 'update')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'blue', 'export')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'purple', 'doctor')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'blue', 'upgrade')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'purple', 'preview-first')}\n`);
+  write(`${paint.dim('High-fidelity workflow assistant: install, update, export, audit, or upgrade safely with previews and backups.')}\n`);
   write(`${paint.dim('No files are written unless you explicitly confirm.')}\n\n`);
 }
 
@@ -199,23 +199,35 @@ function renderDashboard(write, paint, plan) {
   const runtimeLabel = plan.runtimes.join(', ');
   const { label: packageLabel } = installPackageDetails(plan.overlay);
   const packageLine = plan.mode === 'update' ? 'Update package' : 'Install package';
-
-  renderBox(write, paint, 'Mission control', [
+  const discoveredSkills = Array.isArray(plan.discoveredSkillEntries) ? plan.discoveredSkillEntries.length : 0;
+  const rows = [
     `Target         : ${plan.targetPath}`,
     `Toolkit version: ${plan.toolkitVersion ?? 'unknown'}`,
     `Managed target : ${plan.previousToolkitVersion ?? 'none recorded'}`,
     `Runtimes       : ${runtimeLabel}`,
     `${packageLine}: ${packageLabel}`,
+    `Local skills   : ${discoveredSkills} auto-discovered`
+  ];
+
+  if (plan.mode !== 'export') {
+    rows.push(`Legacy docs   : ${plan.migrateLegacyDocs ? 'Relocate when safe' : 'Map only (no automatic moves)'}`);
+  }
+
+  rows.push(
     `Total actions  : ${totalOps}`,
     `Create         : ${plan.summary.create}`,
     `No change      : ${plan.summary.unchanged}`,
+    `Move safe      : ${plan.summary.move_with_backup}`,
     `Merge safe     : ${plan.summary.merge_with_backup}`,
     `Overwrite safe : ${plan.summary.overwrite_with_backup}`
-  ]);
+  );
+
+  renderBox(write, paint, 'Mission control', rows);
 
   write('\n');
   write(`${renderChip(paint, `${plan.summary.create} create`, 'green')} `);
   write(`${renderChip(paint, `${plan.summary.unchanged} unchanged`, 'blue')} `);
+  write(`${renderChip(paint, `${plan.summary.move_with_backup} backup move`, 'cyan')} `);
   write(`${renderChip(paint, `${plan.summary.merge_with_backup} backup merge`, 'yellow')} `);
   write(`${renderChip(paint, `${plan.summary.overwrite_with_backup} backup overwrite`, 'yellow')}\n\n`);
 }
@@ -236,12 +248,29 @@ export function renderSummary(write, paint, plan) {
   if (previewOps.length > 0) {
     write(`${paint.bold('Preview operations')} ${paint.dim('(first 8)')}\n`);
     previewOps.forEach((item) => {
-      const tone = item.operation === 'create' ? 'green' : item.operation === 'unchanged' ? 'blue' : 'yellow';
-      write(`  ${renderChip(paint, item.operation, tone)} ${item.relativePath}\n`);
+      const tone = item.operation === 'create'
+        ? 'green'
+        : item.operation === 'unchanged'
+          ? 'blue'
+          : item.operation === 'move_with_backup'
+            ? 'cyan'
+            : 'yellow';
+      const label = item.operation === 'move_with_backup' && item.fromRelativePath
+        ? `${item.fromRelativePath} -> ${item.relativePath}`
+        : item.relativePath;
+      write(`  ${renderChip(paint, item.operation, tone)} ${label}\n`);
     });
     if (plan.operations.length > previewOps.length) {
       write(`  ${paint.dim(`... ${plan.operations.length - previewOps.length} more operations`)}\n`);
     }
+  }
+
+  if (plan.mode !== 'export') {
+    write(`\n${paint.bold('What happens automatically')}\n`);
+    write(`  ${paint.dim('Skills found in .agents/skills/**/SKILL.md are auto-registered into registry.json.')}\n`);
+    write(`  ${paint.dim(plan.migrateLegacyDocs
+      ? 'Legacy docs will move only when the suggested destination is free; every move creates a backup.'
+      : 'Legacy docs remain in place unless you opt in; workflow-kit still creates the migration map.')}\n`);
   }
 
   write(`\n${paint.bold('Optional capabilities')}\n`);
@@ -256,6 +285,7 @@ export function colorizeFullPlanPreview(paint, formattedPlan) {
     create: 'green',
     unchanged: 'blue',
     merge_with_backup: 'yellow',
+    move_with_backup: 'cyan',
     overwrite_with_backup: 'yellow',
     skip_modified: 'yellow',
     skip_unmanaged: 'yellow',

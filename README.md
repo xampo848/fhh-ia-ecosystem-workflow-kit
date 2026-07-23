@@ -70,12 +70,21 @@ workflow-kit init --target /path/to/repo --runtime codex,copilot --apply --yes
 
 When installing into an already existing project, the installer now applies safe merge behavior for key workflow artifacts:
 
+- Local `.agents/skills/**/SKILL.md` files are auto-discovered and added into `.agents/skills/registry.json` so they do not stay invisible to validation and tooling.
 - `.agents/skills/registry.json` is merged (existing custom skills are preserved and missing workflow-kit skills are added).
 - Existing `.agents/skills/index.md` and `.agents/skills/registry.md` are preserved to avoid clobbering local catalogs.
 - `docs/README.md` gets a non-destructive workflow section (idempotent marker block) so docs are ready to receive workflow documents.
 - `docs/workflow/README.md` is created as an initial docs map when missing.
 - `docs/workflow/standards/` includes setup guides for backend/frontend standards and adoption.
 - A one-time `docs/workflow/migration/legacy-docs-map.md` is generated when legacy docs are detected, with coherent destination suggestions and `git mv` commands.
+
+If you want the toolkit to also relocate legacy docs for you during install/update, use the optional flag:
+
+```bash
+workflow-kit init --target /path/to/repo --runtime codex,copilot --migrate-legacy-docs --apply --yes
+```
+
+The guided TUI asks the same question interactively, which is the easiest path for most users.
 
 Validate the installed files:
 
@@ -222,6 +231,12 @@ Apply after review:
 
 ```bash
 workflow-kit update --target /path/to/repo --apply --yes
+```
+
+To refresh managed files and also relocate remaining legacy docs into `docs/workflow/` when destinations are free:
+
+```bash
+workflow-kit update --target /path/to/repo --migrate-legacy-docs --apply --yes
 ```
 
 Update behavior:
