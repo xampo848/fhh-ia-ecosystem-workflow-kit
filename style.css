@@ -3,47 +3,49 @@
    Registro: documento operativo técnico leído de cerca, no marketing.
    Escena: unx lead técnico revisa el playbook completo en su monitor
    antes de una demo, sala con luz controlada, sesiones largas de lectura.
-   Estrategia de color: Committed — un cobre decidido lleva la identidad;
-   índigo como contraparte fría estructural; los tonos de fase quedan
+   Estrategia de color: Signal coast — azul tinta profundo con acento
+   coral de alerta y soporte cian marítimo; los tonos de fase quedan
    reservados a glifos e hilos finos, nunca a chips ni franjas repetidas.
    ============================================================ */
 
 :root {
-  --wk-bg-deep: oklch(15% 0.014 262);
-  --wk-bg: oklch(17.5% 0.016 262);
-  --wk-bg-2: oklch(20% 0.018 262);
-  --wk-surface: oklch(22% 0.02 262);
-  --wk-surface-2: oklch(19.5% 0.018 262);
-  --wk-surface-3: oklch(24% 0.02 262);
-  --wk-line: oklch(40% 0.03 262 / 55%);
-  --wk-line-soft: oklch(34% 0.026 262 / 40%);
-  --wk-text: oklch(96% 0.012 80);
-  --wk-text-soft: oklch(84% 0.018 75);
-  --wk-muted: oklch(66% 0.02 260);
-  --wk-muted-2: oklch(53% 0.02 260);
+  --wk-bg-deep: oklch(12.5% 0.018 252);
+  --wk-bg: oklch(15.4% 0.02 248);
+  --wk-bg-2: oklch(19.2% 0.022 244);
+  --wk-surface: oklch(22.6% 0.024 244);
+  --wk-surface-2: oklch(20.1% 0.022 244);
+  --wk-surface-3: oklch(25.4% 0.026 244);
+  --wk-line: oklch(49% 0.038 238 / 58%);
+  --wk-line-soft: oklch(40% 0.03 238 / 42%);
+  --wk-text: oklch(96.5% 0.01 80);
+  --wk-text-soft: oklch(88% 0.012 86);
+  --wk-muted: oklch(72% 0.028 236);
+  --wk-muted-2: oklch(57% 0.022 236);
 
-  /* Identidad dominante: cobre. Contraparte fría: índigo. */
-  --wk-copper: oklch(74% 0.15 55);
-  --wk-copper-ink: oklch(21% 0.03 55);
-  --wk-indigo: oklch(67% 0.16 273);
+  /* Identidad dominante: coral. Contraparte fria: cian maritimo. */
+  --wk-copper: oklch(72% 0.2 28);
+  --wk-copper-ink: oklch(24% 0.05 28);
+  --wk-indigo: oklch(76% 0.1 214);
 
   /* Reservados para wayfinding de fase (glifo + texto, nunca relleno). */
-  --wk-cyan: oklch(75% 0.12 199);
-  --wk-mint: oklch(76% 0.14 152);
+  --wk-cyan: oklch(80% 0.11 210);
+  --wk-mint: oklch(81% 0.11 160);
   --wk-blue: var(--wk-indigo);
-  --wk-magenta: oklch(70% 0.18 341);
+  --wk-magenta: oklch(75% 0.12 338);
   --wk-amber: var(--wk-copper);
 
-  --wk-radius: 10px;
-  --wk-radius-sm: 7px;
+  --wk-radius: 8px;
+  --wk-radius-sm: 5px;
 }
 
 .slidev-layout {
   color: var(--wk-text);
   background:
+    radial-gradient(980px 500px at 92% -14%, oklch(72% 0.2 26 / 12%) 0%, transparent 58%),
+    radial-gradient(760px 460px at -12% 106%, oklch(74% 0.11 212 / 12%) 0%, transparent 66%),
     repeating-linear-gradient(180deg, oklch(100% 0 0 / 2.5%) 0px, oklch(100% 0 0 / 2.5%) 1px, transparent 1px, transparent 42px),
     repeating-linear-gradient(90deg, oklch(100% 0 0 / 2%) 0px, oklch(100% 0 0 / 2%) 1px, transparent 1px, transparent 42px),
-    linear-gradient(175deg, var(--wk-bg-deep) 0%, var(--wk-bg) 60%, var(--wk-bg-2) 100%);
+    linear-gradient(175deg, var(--wk-bg-deep) 0%, var(--wk-bg) 55%, var(--wk-bg-2) 100%);
   font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
   padding: 3.2rem 3.6rem;
   font-feature-settings: 'ss01', 'cv01';
@@ -163,7 +165,9 @@
 .card {
   border-radius: var(--wk-radius-sm);
   border: 1px solid var(--wk-line);
-  background: var(--wk-surface-2);
+  background:
+    linear-gradient(180deg, oklch(100% 0 0 / 2.6%) 0%, transparent 26%),
+    var(--wk-surface-2);
   padding: 1.1rem 1.2rem 1.2rem;
   position: relative;
 }
@@ -211,7 +215,9 @@
   border-radius: var(--wk-radius-sm);
   border: 1px solid var(--wk-line);
   padding: 1.1rem 1.25rem;
-  background: var(--wk-surface-2);
+  background:
+    linear-gradient(180deg, oklch(100% 0 0 / 2.6%) 0%, transparent 28%),
+    var(--wk-surface-2);
 }
 .panel .p-tag { font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
 .panel.p-now .p-tag { color: var(--wk-mint); }
@@ -242,7 +248,9 @@
 .step {
   border-radius: var(--wk-radius-sm);
   border: 1px solid var(--wk-line);
-  background: var(--wk-surface-2);
+  background:
+    linear-gradient(180deg, oklch(100% 0 0 / 2.2%) 0%, transparent 24%),
+    var(--wk-surface-2);
   padding: 0.85rem 0.9rem;
   position: relative;
 }

@@ -16,7 +16,7 @@ aspectRatio: 16/9
 canvasWidth: 1440
 transition: fade
 themeConfig:
-  primary: '#e0995e'
+  primary: '#ff5a4f'
 fonts:
   sans: Archivo
   serif: Archivo
