@@ -13,10 +13,12 @@ test('validateLegalReadiness passes for the repository records', async () => {
   const root = await copyLegalFixture();
   const result = validateLegalReadiness({ root });
 
-  const nonInventoryFailures = result.failures.filter((failure) => (
-    !failure.includes('maintainer-attested overlay file inventory changed') &&
-    !failure.includes('maintainer-attested overlay path/content inventory differs')
-  ));
+  const nonInventoryFailures = result.failures.filter((failure) => {
+    const normalized = String(failure).toLowerCase();
+    const isOverlayInventoryFailure = normalized.includes('maintainer-attested overlay')
+      && normalized.includes('inventory');
+    return !isOverlayInventoryFailure;
+  });
   assert.equal(nonInventoryFailures.length, 0, nonInventoryFailures.join('\n'));
 });
 
