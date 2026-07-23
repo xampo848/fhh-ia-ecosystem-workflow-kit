@@ -10,7 +10,8 @@ For every new user prompt:
    `.agents/skills/registry.md` only for full inventory, maintenance, or
    fallback.
 3. If the user explicitly invokes a skill, load it directly.
-4. Otherwise run lightweight intake. For non-trivial freeform work, load
+4. Otherwise run structured intake. For non-trivial, iterative,
+   implementation-adjacent, or multi-step freeform work, load
    `.agents/skills/00-router/workflow-router/SKILL.md`.
 5. Reuse already-loaded context when its source file has not changed. Do not
    bulk-load every skill or pattern.

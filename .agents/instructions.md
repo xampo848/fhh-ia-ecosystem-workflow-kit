@@ -150,19 +150,19 @@ Apply this contract before choosing a response path for every new user prompt.
 Do not assume that the workflow selected for a previous prompt still applies.
 
 1. If the user explicitly invokes a skill, load that skill and follow it.
-2. Otherwise perform lightweight intake before answering, planning, or editing.
-3. A direct answer may proceed without loading the full router and without a
-   visible routing trace.
-4. For non-trivial freeform work, locate `workflow-router` through
-  `.agents/skills/index.md`, load its `SKILL.md`, and follow its gates.
-5. Emit a visible routing trace only when choosing a meaningful workflow,
-   skill, capability, cost posture, delegation posture, or risk path.
+2. Otherwise perform structured per-turn intake before answering, planning, or editing.
+3. A direct answer may proceed without loading the full router only when the request is trivial,
+  informational, and does not require planning, file edits, or multi-step execution.
+4. For non-trivial, iterative, implementation-adjacent, or multi-step freeform work, locate
+  `workflow-router` through `.agents/skills/index.md`, load its `SKILL.md`, and follow its gates.
+5. Emit a visible routing trace when choosing a meaningful workflow,
+  skill, capability, cost posture, delegation posture, or risk path.
 6. Load only the selected workflow, required patterns, and attached
    capabilities. Reuse already-loaded context when its source file has not
    changed.
 
 If the runtime cannot load `workflow-router` or the registry, do not silently
-continue with unrestricted implementation work. Direct answers may proceed, but
+continue with unrestricted implementation work. Only trivial direct answers may proceed;
 non-trivial development must preserve specification and implementation gates,
 capability installation still requires confirmation, and the response must name
 the unavailable file and the reduced fallback being applied.

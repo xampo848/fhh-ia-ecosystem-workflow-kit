@@ -133,7 +133,7 @@ Rules:
 
 | Skill name | Class | Physical path | Trigger | Loading posture | Cost hint | Future structured key | Runtime notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `workflow-router` | Workflow | `.agents/skills/00-router/workflow-router/SKILL.md` | Per-turn intake selects non-trivial freeform work without an explicit skill | Startup-minimal | lean | `workflow-router` | Intake runs every prompt; load the full skill only for non-trivial routing. |
+| `workflow-router` | Workflow | `.agents/skills/00-router/workflow-router/SKILL.md` | Per-turn intake selects non-trivial, iterative, implementation-adjacent, or multi-step freeform work without an explicit skill | Startup-minimal | lean | `workflow-router` | Intake runs every prompt; load the full skill for non-trivial, iterative, implementation-adjacent, or multi-step routing. |
 | `create-epic` | Workflow | `.agents/skills/01-product/create-epic/SKILL.md` | Large initiative needing research, appetite, phases, or multiple PRDs | Explicit-only | balanced | `create-epic` | Use before PRD queue creation. |
 | `create-prd` | Workflow | `.agents/skills/01-product/create-prd/SKILL.md` | Feature/ticket/spec needs formal PRD before implementation | Explicit-only | balanced | `create-prd` | Expected predecessor to `implement-prd`. |
 | `generate-pm-ticket` | Workflow | `.agents/skills/01-product/generate-pm-ticket/SKILL.md` | User needs a backlog/Jira-style ticket rather than full PRD | Explicit-only | lean | `generate-pm-ticket` | Smaller planning artifact than PRD. |
