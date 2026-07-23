@@ -3,8 +3,9 @@
 This is a thin GitHub Copilot runtime adapter.
 
 For every new user prompt, read and apply `.agents/instructions.md` first and
-treat it as the source of truth. Use `.agents/skills/registry.md` for
-just-in-time discovery. If the user explicitly invokes a skill, load it
+treat it as the source of truth. Use `.agents/skills/index.md` for compact
+discovery. Use `.agents/skills/registry.md` only for full inventory,
+maintenance, or fallback. If the user explicitly invokes a skill, load it
 directly; otherwise use lightweight intake and load `workflow-router` for
 non-trivial freeform work. Do not duplicate workflow logic here.
 

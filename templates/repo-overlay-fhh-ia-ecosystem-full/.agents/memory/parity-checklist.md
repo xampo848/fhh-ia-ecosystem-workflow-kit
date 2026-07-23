@@ -19,7 +19,7 @@ Parity means semantic equivalence across runtimes, not identical syntax.
 | --- | --- | --- |
 | Startup contract | Runtime points to `.agents/instructions.md` as neutral source of truth | `aligned`, `drift`, `justified-difference`, `pending` |
 | Per-turn intake | Every prompt applies lightweight intake; explicit skills win, direct answers stay lightweight, and non-trivial freeform work loads `workflow-router` | `aligned`, `drift`, `justified-difference`, `pending` |
-| Skill discovery | Runtime points to `.agents/skills/registry.md` and just-in-time loading | `aligned`, `drift`, `justified-difference`, `pending` |
+| Skill discovery | Runtime points to `.agents/skills/index.md` for startup discovery and `.agents/skills/registry.md` for full inventory | `aligned`, `drift`, `justified-difference`, `pending` |
 | Integrations/capabilities | Runtime points to `.agents/integrations/README.md` and `.agents/capabilities/README.md` | `aligned`, `drift`, `justified-difference`, `pending` |
 | Routing/model policy | Runtime points to `.agents/model-routing/README.md` and preserves tier/posture/override meaning | `aligned`, `drift`, `justified-difference`, `pending` |
 | Memory governance | Runtime points to `.agents/memory/README.md` and preserves scope/shareability/exclusion rules | `aligned`, `drift`, `justified-difference`, `pending` |

@@ -14,6 +14,7 @@ test('neutral instructions define mandatory per-turn intake', async () => {
   const instructions = await read('.agents/instructions.md');
 
   assert.match(instructions, /## Mandatory per-turn intake/);
+  assert.match(instructions, /\.agents\/skills\/index\.md/);
   assert.match(instructions, /every new user prompt/i);
   assert.match(instructions, /explicitly invokes a skill/i);
   assert.match(instructions, /direct answer/i);
@@ -52,6 +53,7 @@ test('all runtime entrypoints apply the minimum neutral bootstrap', async () => 
   for (const relativePath of entrypoints) {
     const content = await read(relativePath);
     assert.match(content, /\.agents\/instructions\.md/, relativePath);
+    assert.match(content, /\.agents\/skills\/index\.md/, relativePath);
     assert.match(content, /every new user prompt/i, relativePath);
     assert.match(content, /explicitly invokes a skill/i, relativePath);
     assert.match(content, /non-trivial/i, relativePath);

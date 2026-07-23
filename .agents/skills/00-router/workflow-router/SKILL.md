@@ -126,7 +126,8 @@ When the request is about extending the workflow itself (router, registry, custo
 3. Preserve boundaries:
   - routing policy in `workflow-router/SKILL.md`,
   - startup contract in `.agents/instructions.md`,
-  - discovery metadata in `.agents/skills/registry.md`,
+  - startup discovery metadata in `.agents/skills/index.md`,
+  - full skill metadata in `.agents/skills/registry.md`,
   - algorithm details in each skill `SKILL.md`.
 4. After execution-mode edits, run relevant repository checks and report outcomes.
 

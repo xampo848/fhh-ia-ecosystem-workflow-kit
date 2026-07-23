@@ -13,8 +13,9 @@ This file is the tool-neutral AI contract layer for the repository.
 ## Source hierarchy
 
 1. **Neutral AI base contract**: `.agents/instructions.md`
-2. **Skill registry**: `.agents/skills/registry.md`, the neutral inventory
-   and just-in-time loading contract for AI-executable skills
+2. **Skill discovery**: `.agents/skills/index.md` for startup-minimal routing
+  and `.agents/skills/registry.md` for the neutral full inventory and
+  authoring contract
 3. **Workflow skills**: algorithmic instructions that say what sequence to
    follow for a workflow such as `create-prd`, `implement-prd`, or
    `document-development`
@@ -34,7 +35,8 @@ contract in `.agents/instructions.md` wins.
 ## Physical skill ownership
 
 - The **canonical AI contract** lives under `.agents/`.
-- The neutral skill registry lives at `.agents/skills/registry.md`.
+- The compact startup discovery index lives at `.agents/skills/index.md`.
+- The neutral full skill registry lives at `.agents/skills/registry.md`.
 - Shared repo-owned skill bodies live physically under `.agents/skills/**`.
 - `.github/skills/**` is a compatibility adapter surface for GitHub/Copilot and legacy references.
 - `.github/**` and `.codex/**` remain valid runtime wrappers, but they must point back to `.agents/` and must not redefine workflow logic.
@@ -54,7 +56,10 @@ follow a repeated procedure.
 
 ## Skill registry
 
-The neutral skill registry lives in `.agents/skills/registry.md`. It records:
+The compact startup discovery index in `.agents/skills/index.md` records the
+minimum directly routable set needed for initial loading.
+
+The neutral full skill registry in `.agents/skills/registry.md` records:
 
 - stable skill names;
 - primary skill class;
@@ -149,7 +154,7 @@ Do not assume that the workflow selected for a previous prompt still applies.
 3. A direct answer may proceed without loading the full router and without a
    visible routing trace.
 4. For non-trivial freeform work, locate `workflow-router` through
-   `.agents/skills/registry.md`, load its `SKILL.md`, and follow its gates.
+  `.agents/skills/index.md`, load its `SKILL.md`, and follow its gates.
 5. Emit a visible routing trace only when choosing a meaningful workflow,
    skill, capability, cost posture, delegation posture, or risk path.
 6. Load only the selected workflow, required patterns, and attached
@@ -165,8 +170,9 @@ the unavailable file and the reduced fallback being applied.
 ## Loading rules
 
 - Load this file first from every runtime entrypoint.
-- Use `.agents/skills/registry.md` as the neutral skill discovery and
-  just-in-time loading contract.
+- Use `.agents/skills/index.md` as the neutral startup discovery contract.
+- Use `.agents/skills/registry.md` as the neutral full inventory, taxonomy,
+  and authoring contract.
 - Apply the mandatory per-turn intake above for every new user prompt.
 - Load a workflow skill when the task enters that workflow.
 - Load a standards/pattern skill only just-in-time when that repetitive
@@ -189,7 +195,8 @@ For extension work, keep boundaries explicit:
 
 - router policy in `.agents/skills/00-router/workflow-router/SKILL.md`;
 - startup contract in `.agents/instructions.md`;
-- skill discovery metadata in `.agents/skills/registry.md`;
+- startup discovery metadata in `.agents/skills/index.md`;
+- full skill metadata in `.agents/skills/registry.md`;
 - skill algorithm in each skill `SKILL.md` file.
 
 After extension edits, run relevant repository validation commands and summarize outcomes.

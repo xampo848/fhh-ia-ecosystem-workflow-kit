@@ -3,9 +3,11 @@
   "derived_artifact": true,
   "generated_by": "scripts/sync-skill-registry.mjs",
   "canonical_source": ".agents/skills/registry.md",
+  "compact_index": ".agents/skills/index.md",
   "structured_registry": ".agents/skills/registry.json",
   "source_hashes": {
-    ".agents/skills/registry.md": "29a1efac71b15adb7bc1d7bddf327fc65bfaba07aa0e291fe5aa8ff2faf9646b",
+    ".agents/skills/index.md": "258e77581f4083f565c5d9d16c71e05b3cd481509b93ad7b33d7d8eb496ca636",
+    ".agents/skills/registry.md": "0bb637e25b4daa9879fd02794469b499817ccb5e5231b74d7a5b46b90a77a8af",
     ".agents/skills/registry.json": "a9aa39dfb6105f5f1aa8ed2f33382d48b381937873abf0ee463e59d424b03f80"
   },
   "entry_count": 41,
@@ -368,7 +370,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "658d35e47d08892cee851d85ad8f2bca57cc3e5abc0f327a5599357a7ffc6a44"
+      "skill_sha256": "568ab4a044180b6a6e03f66a4ad1a6f98535b2acd1df4856b29a6d5ffc20c786"
     },
     {
       "key": "workshop-facilitation",

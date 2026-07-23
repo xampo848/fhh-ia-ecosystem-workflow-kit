@@ -196,7 +196,7 @@ Runtime wrappers must not redefine:
 ## Relationship to other neutral docs
 
 - `.agents/instructions.md` owns the neutral AI source hierarchy.
-- `.agents/skills/registry.md` owns skill discovery and loading posture.
+- `.agents/skills/index.md` owns startup discovery; `.agents/skills/registry.md` owns full inventory and loading posture.
 - `.agents/integrations/README.md` owns install/attach/tooling policy.
 - This file owns cross-runtime model routing, cost posture, and delegation
   meaning.

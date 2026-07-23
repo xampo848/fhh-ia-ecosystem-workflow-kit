@@ -149,7 +149,7 @@ Recommended cadence:
 ## Relationship to other neutral docs
 
 - `.agents/instructions.md` owns the neutral AI source hierarchy.
-- `.agents/skills/registry.md` owns skill discovery and loading posture.
+- `.agents/skills/index.md` owns startup discovery; `.agents/skills/registry.md` owns full inventory and loading posture.
 - `.agents/integrations/README.md` owns install/attach request flow.
 - `.agents/capabilities/README.md` owns capability packaging and attach points.
 - `.agents/model-routing/README.md` owns routing/cost/delegation semantics.

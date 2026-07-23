@@ -35,6 +35,13 @@ export async function validateWorkflowContract({
       message: 'Workflow router skill is missing.'
     }));
   }
+  if (!await exists(root, '.agents/skills/index.md')) {
+    diagnostics.push(diagnostic({
+      code: 'skills/missing-index',
+      path: '.agents/skills/index.md',
+      message: 'Compact skill discovery index is missing.'
+    }));
+  }
 
   diagnostics.push(...await validateAdapterContracts({ root, runtimes }));
   const skillDiagnostics = await validateSkillRegistry({ root });

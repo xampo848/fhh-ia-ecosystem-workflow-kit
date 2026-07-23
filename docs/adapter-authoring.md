@@ -27,7 +27,7 @@ Runtime adapters should be boring:
 
 1. Tell the runtime to read `.agents/instructions.md`.
 2. Re-apply the neutral **per-turn intake** on every user prompt; session startup alone is not enough.
-3. Tell it to use `.agents/skills/registry.md` for just-in-time discovery.
+3. Tell it to use `.agents/skills/index.md` for startup discovery and `.agents/skills/registry.md` only for full inventory or fallback.
 4. Give explicit skill invocation precedence over automatic routing.
 5. Keep direct answers lightweight and load `workflow-router` for non-trivial freeform work.
 6. Avoid copying workflow algorithms into the adapter.

@@ -10,8 +10,12 @@ integrations layer documented under `.agents/integrations/**`.
 
 ## Neutral registry
 
-The concrete skill inventory and just-in-time loading contract live in
+The startup-minimal discovery index lives in `.agents/skills/index.md`.
+
+The concrete full skill inventory and just-in-time loading contract live in
 `.agents/skills/registry.md`.
+
+Use the index for the directly routable startup set.
 
 Use the registry to find:
 
@@ -25,8 +29,8 @@ Use the registry to find:
 Do not load every `SKILL.md` at startup. Load full skill bodies only when the
 registry trigger and loading posture match the current task.
 
-The Markdown registry is canonical. Keep the generated JSON and checksum cache
-in sync with:
+The Markdown registry is canonical. Keep the generated startup index, JSON, and
+checksum cache in sync with:
 
 ```bash
 node scripts/sync-skill-registry.mjs --write

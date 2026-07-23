@@ -6,6 +6,7 @@
   "description": "Packaging boundary for reusing the FHH IA Ecosystem AI workflow without copying repo-specific product rules as portable core.",
   "portable_core": [
     ".agents/instructions.md",
+    ".agents/skills/index.md",
     ".agents/skills/registry.md",
     ".agents/skills/registry.schema.json",
     ".agents/skills/registry.json",
@@ -38,6 +39,7 @@
     ".codex/agents"
   ],
   "derived_artifacts": [
+    ".agents/skills/index.md",
     ".agents/skills/registry.json",
     ".agents/skills/registry.cache.json"
   ],

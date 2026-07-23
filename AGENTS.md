@@ -6,7 +6,9 @@ For every new user prompt:
 
 1. Read and apply `.agents/instructions.md` before answering, planning, or
    editing. It is the source of truth.
-2. Use `.agents/skills/registry.md` for just-in-time skill discovery.
+2. Use `.agents/skills/index.md` for startup-minimal skill discovery and
+   `.agents/skills/registry.md` only for full inventory, maintenance, or
+   fallback.
 3. If the user explicitly invokes a skill, load it directly.
 4. Otherwise run lightweight intake. For non-trivial freeform work, load
    `.agents/skills/00-router/workflow-router/SKILL.md`.

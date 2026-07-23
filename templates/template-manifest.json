@@ -21,6 +21,7 @@
         "README.md"
       ],
       "required_files": [
+        ".agents/skills/index.md",
         ".agents/instructions.md",
         ".agents/skills/registry.md",
         ".agents/skills/02-implement/implement-prd/SKILL.md",
