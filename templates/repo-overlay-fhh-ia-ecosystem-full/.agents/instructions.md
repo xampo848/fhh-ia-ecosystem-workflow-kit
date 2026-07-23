@@ -149,6 +149,12 @@ Examples:
 Apply this contract before choosing a response path for every new user prompt.
 Do not assume that the workflow selected for a previous prompt still applies.
 
+Outside an explicit skill invocation or a trivial direct answer, `workflow-router`
+is the default authority that decides which workflow runs next. Runtime adapters,
+repo overlays, and copied instruction wrappers must point back to this contract
+and then to the router instead of embedding alternate routing rules, workflow
+stacks, or implementation gates that can drift.
+
 1. If the user explicitly invokes a skill, load that skill and follow it.
 2. Otherwise perform structured per-turn intake before answering, planning, or editing.
 3. A direct answer may proceed without loading the full router only when the request is trivial,
@@ -166,6 +172,10 @@ continue with unrestricted implementation work. Only trivial direct answers may 
 non-trivial development must preserve specification and implementation gates,
 capability installation still requires confirmation, and the response must name
 the unavailable file and the reduced fallback being applied.
+
+Repo-specific standards, architecture notes, and validation defaults remain
+valuable, but they should be loaded just in time by the workflow that the router
+selected rather than front-loaded into every runtime entrypoint.
 
 ## Loading rules
 

@@ -2,19 +2,25 @@
 
 This repository uses one tool-neutral AI workflow contract.
 
-For every new user prompt:
+Router-first startup for every new user prompt:
 
 1. Read and apply `.agents/instructions.md` before answering, planning, or
    editing. It is the source of truth.
-2. Use `.agents/skills/index.md` for startup-minimal skill discovery and
-   `.agents/skills/registry.md` only for full inventory, maintenance, or
-   fallback.
+2. Use `.agents/skills/index.md` for startup-minimal discovery.
+   Use `.agents/skills/registry.md` only for full inventory, maintenance,
+   or fallback.
 3. If the user explicitly invokes a skill, load it directly.
-4. Otherwise run structured intake. For non-trivial, iterative,
+4. Otherwise run structured intake. If the request is non-trivial, iterative,
    implementation-adjacent, or multi-step freeform work, load
-   `.agents/skills/00-router/workflow-router/SKILL.md`.
-5. Reuse already-loaded context when its source file has not changed. Do not
-   bulk-load every skill or pattern.
+   `.agents/skills/00-router/workflow-router/SKILL.md` before acting.
+5. Keep runtime adapters thin and avoid duplicating workflow logic.
+6. Reuse already-loaded context when its source file has not changed.
+   Do not bulk-load every skill or pattern.
+
+This bootstrap does not decide whether the work should become `create-prd`,
+`implement-prd`, review, documentation, or another workflow. Outside an
+explicit skill invocation or a trivial direct answer, that decision belongs to
+`workflow-router` after `.agents/instructions.md` has been applied.
 
 Runtime-specific files may describe tools, models, sandboxes, or invocation
 syntax, but must not redefine workflow logic. Use
