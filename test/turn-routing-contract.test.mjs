@@ -67,5 +67,18 @@ test('Copilot scoped instructions apply globally', async () => {
   ]) {
     const content = await read(relativePath);
     assert.match(content, /^---\napplyTo: "\*\*"\n---\n/, relativePath);
+    assert.match(content, /routing decision trace/i, relativePath);
+  }
+});
+
+test('Copilot wrappers require visible routing trace for non-trivial work', async () => {
+  for (const relativePath of [
+    '.github/copilot-instructions.md',
+    'templates/runtime-adapters/copilot/.github/copilot-instructions.md'
+  ]) {
+    const content = await read(relativePath);
+    assert.match(content, /non-trivial/i, relativePath);
+    assert.match(content, /routing decision trace/i, relativePath);
+    assert.match(content, /trivial informational direct answers/i, relativePath);
   }
 });
