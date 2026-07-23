@@ -84,17 +84,7 @@ This file suggests coherent destinations under `docs/workflow/` and includes `gi
 
 The map is generated once. If it already exists, it is not regenerated on subsequent init runs.
 
-### Optional one-command relocation
-
-If you want workflow-kit to perform the safe relocations for you when destinations are free, run:
-
-```bash
-workflow-kit init --target /path/to/repo --runtime codex,copilot --migrate-legacy-docs --apply --yes
-```
-
-The same flag also works with `workflow-kit update`.
-
-If you prefer the easiest path, launch `workflow-kit tui`: it now asks whether legacy docs should be relocated during the install/update flow.
+Workflow-kit does not relocate legacy docs for you. Use the generated map and move the files manually with `git mv` so you stay in control of duplicates, naming, and history preservation.
 
 ## 6) Backend/frontend standards setup
 

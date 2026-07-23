@@ -28,7 +28,7 @@ test('tui previews plan and default decline writes nothing', async () => {
   assert.match(output, /Full FHH IA Ecosystem flow selected \(recommended\)\./);
   assert.match(output, /Mission control/);
   assert.match(output, /Local skills\s+: 0 auto-discovered/);
-  assert.match(output, /Legacy docs remain in place unless you opt in/);
+  assert.match(output, /Legacy docs are not moved automatically/);
   assert.match(output, /Aborted\. No files were written\./);
   await assert.rejects(fs.access(path.join(target, '.agents/instructions.md')), { code: 'ENOENT' });
 });
@@ -38,7 +38,7 @@ test('tui confirmed apply writes selected files through planner apply', async ()
   let output = '';
 
   const result = await runTui({
-    ask: scriptedAsk(['', target, '6', '', '', '', 'yes']),
+    ask: scriptedAsk(['', target, '6', '', '', 'yes']),
     color: false,
     write: (message) => { output += message; }
   });
@@ -57,7 +57,7 @@ test('tui combines GitHub Copilot and Antigravity adapters', async () => {
   const target = await makeTempRepo();
 
   const result = await runTui({
-    ask: scriptedAsk(['', target, '3,5', '', '', '']),
+    ask: scriptedAsk(['', target, '3,5', '', '']),
     color: false,
     write: () => {}
   });
@@ -72,7 +72,7 @@ test('tui can auto-install install+attach optional capabilities in one confirmat
   const executed = [];
 
   const result = await runTui({
-    ask: scriptedAsk(['', target, '1', '', '', 'yes', '3', '1', '2', 'yes', 'yes']),
+    ask: scriptedAsk(['', target, '1', '', 'yes', '3', '1', '2', 'yes', 'yes']),
     color: false,
     write: () => {},
     commandExists: async (command) => command === 'bun',
@@ -98,7 +98,7 @@ test('tui auto-installs context7 package and reports manual configuration steps'
   let output = '';
 
   const result = await runTui({
-    ask: scriptedAsk(['', target, '1', '', '', 'yes', '1', '1', '2', 'yes', 'yes']),
+    ask: scriptedAsk(['', target, '1', '', 'yes', '1', '1', '2', 'yes', 'yes']),
     color: false,
     write: (message) => { output += message; },
     commandExists: async (command) => command === 'bun',
@@ -148,7 +148,7 @@ test('tui update mode applies managed workflow updates without reinstall flow se
   let output = '';
 
   const result = await runTui({
-    ask: scriptedAsk(['2', target, '1', '', '', '', 'yes']),
+    ask: scriptedAsk(['2', target, '1', '', '', 'yes']),
     color: false,
     write: (message) => { output += message; }
   });
@@ -197,28 +197,6 @@ test('tui export mode writes workflow files into the selected output directory',
   assert.match(output, /Exported files:/);
   await fs.access(path.join(target, '.agents/instructions.md'));
   await fs.access(path.join(target, 'AGENTS.md'));
-});
-
-test('tui can relocate legacy docs during install when the user confirms it', async () => {
-  const target = await makeTempRepo('workflow-kit-tui-migrate-docs-');
-  await fs.mkdir(path.join(target, 'docs/backend'), { recursive: true });
-  await fs.writeFile(path.join(target, 'docs/backend/api-guidelines.md'), '# API Guidelines\n', 'utf8');
-  let output = '';
-
-  const result = await runTui({
-    ask: scriptedAsk(['', target, '1', 'yes', '', '', 'yes']),
-    color: false,
-    write: (message) => { output += message; }
-  });
-
-  assert.equal(result.mode, 'install');
-  assert.equal(result.applied, true);
-  assert.match(output, /Local \.agents\/skills\/\*\*\/SKILL\.md files will be auto-registered into registry\.json\./);
-  assert.match(output, /Old docs stay in place unless you explicitly opt in to relocate them\./);
-  assert.match(output, /Legacy docs will move only when the suggested destination is free; every move creates a backup\./);
-  assert.match(output, /Legacy docs relocated: 1/);
-  await fs.access(path.join(target, 'docs/workflow/standards/imported-backend/api-guidelines.md'));
-  await assert.rejects(fs.access(path.join(target, 'docs/backend/api-guidelines.md')), { code: 'ENOENT' });
 });
 
 test('tui doctor mode reports repository diagnostics without writing files', async () => {

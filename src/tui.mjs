@@ -67,8 +67,8 @@ const defaultCommandExists = upgradeCommandExists;
 function explainExistingRepoBehavior(write, paint) {
   write(`${paint.bold('Existing repo behavior')}\n`);
   write(`${paint.dim('- Local .agents/skills/**/SKILL.md files will be auto-registered into registry.json.')}\n`);
-  write(`${paint.dim('- Old docs stay in place unless you explicitly opt in to relocate them.')}\n`);
-  write(`${paint.dim('- Any relocation creates backups and skips occupied destinations.')}\n\n`);
+  write(`${paint.dim('- Old docs are never moved automatically by the TUI.')}\n`);
+  write(`${paint.dim('- Review docs/workflow/migration/legacy-docs-map.md and relocate docs manually if needed.')}\n\n`);
 }
 
 function defaultRunCommand({ command, args, cwd, write, paint }) {
@@ -417,8 +417,6 @@ export async function runTui(options = {}) {
     let targetPath;
     let runtime;
     let overlay = FULL_OVERLAY;
-    let migrateLegacyDocs = false;
-
     if (mode === 'doctor') {
       renderStageHeader(write, paint, {
         step: 2,
@@ -663,10 +661,7 @@ export async function runTui(options = {}) {
         : '';
       runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
 
-      if (mode !== 'export') {
-        explainExistingRepoBehavior(write, paint);
-        migrateLegacyDocs = await prompter.confirm('Move old docs into docs/workflow now when destination paths are free? Backups will be created [no]: ');
-      }
+      if (mode !== 'export') explainExistingRepoBehavior(write, paint);
     } else {
       renderStageHeader(write, paint, {
         step: 2,
@@ -712,10 +707,7 @@ export async function runTui(options = {}) {
         : '';
       runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
 
-      if (mode !== 'export') {
-        explainExistingRepoBehavior(write, paint);
-        migrateLegacyDocs = await prompter.confirm('Move old docs into docs/workflow now when destination paths are free? Backups will be created.', false);
-      }
+      if (mode !== 'export') explainExistingRepoBehavior(write, paint);
 
     }
 
@@ -726,7 +718,6 @@ export async function runTui(options = {}) {
             targetPath,
             runtime,
             overlay,
-            migrateLegacyDocs,
             toolkitVersion: currentToolkitMetadata().version
           });
         } catch (error) {
@@ -744,7 +735,6 @@ export async function runTui(options = {}) {
             runtime,
             overlay,
             adoptExisting: true,
-            migrateLegacyDocs,
             toolkitVersion: currentToolkitMetadata().version
           });
         }
@@ -754,7 +744,6 @@ export async function runTui(options = {}) {
         targetPath,
         runtime,
         overlay,
-        migrateLegacyDocs,
         toolkitVersion: currentToolkitMetadata().version
       });
     };
@@ -814,13 +803,9 @@ export async function runTui(options = {}) {
     const modifiedSkips = applied.filter((item) => item.operation === 'skip_modified').length;
     const unmanagedSkips = applied.filter((item) => item.operation === 'skip_unmanaged').length;
     const adopted = applied.filter((item) => item.operation === 'adopt_existing').length;
-    const relocatedDocs = applied.filter((item) => item.operation === 'move_with_backup').length;
     write(`\n${paint.green(mode === 'export' ? 'Export completed successfully.' : 'Apply completed successfully.')} ${renderChip(paint, 'SYSTEM READY', 'green')}\n`);
     write(`${mode === 'export' ? 'Exported files' : 'Applied writes'}: ${paint.green(String(writeCount))}\n`);
     write(`Backups created: ${paint.yellow(String(backupCount))}\n`);
-    if (mode !== 'export') {
-      write(`Legacy docs relocated: ${paint.cyan(String(relocatedDocs))}\n`);
-    }
     if (mode === 'update') {
       write(`Protected local edits (skipped): ${paint.yellow(String(modifiedSkips))}\n`);
       write(`Unmanaged files (skipped): ${paint.yellow(String(unmanagedSkips))}\n`);

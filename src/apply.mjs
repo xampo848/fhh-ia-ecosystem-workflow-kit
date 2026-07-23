@@ -16,17 +16,6 @@ export async function applyInstallPlan(plan) {
     }
 
     let backupPath = null;
-
-    if (item.operation === 'move_with_backup') {
-      await fs.mkdir(path.dirname(item.targetFile), { recursive: true });
-      backupPath = `${item.sourceFile}.workflow-kit-backup-${backupStamp}`;
-      await fs.copyFile(item.sourceFile, backupPath);
-      await fs.writeFile(item.targetFile, item.content, 'utf8');
-      await fs.unlink(item.sourceFile);
-      applied.push({ ...item, applied: true, backupPath });
-      continue;
-    }
-
     await fs.mkdir(path.dirname(item.targetFile), { recursive: true });
 
     if (item.operation === 'overwrite_with_backup' || item.operation === 'merge_with_backup') {

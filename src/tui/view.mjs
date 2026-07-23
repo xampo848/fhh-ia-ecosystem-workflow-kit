@@ -210,14 +210,13 @@ function renderDashboard(write, paint, plan) {
   ];
 
   if (plan.mode !== 'export') {
-    rows.push(`Legacy docs   : ${plan.migrateLegacyDocs ? 'Relocate when safe' : 'Map only (no automatic moves)'}`);
+    rows.push('Legacy docs   : Manual migration map only');
   }
 
   rows.push(
     `Total actions  : ${totalOps}`,
     `Create         : ${plan.summary.create}`,
     `No change      : ${plan.summary.unchanged}`,
-    `Move safe      : ${plan.summary.move_with_backup}`,
     `Merge safe     : ${plan.summary.merge_with_backup}`,
     `Overwrite safe : ${plan.summary.overwrite_with_backup}`
   );
@@ -227,7 +226,6 @@ function renderDashboard(write, paint, plan) {
   write('\n');
   write(`${renderChip(paint, `${plan.summary.create} create`, 'green')} `);
   write(`${renderChip(paint, `${plan.summary.unchanged} unchanged`, 'blue')} `);
-  write(`${renderChip(paint, `${plan.summary.move_with_backup} backup move`, 'cyan')} `);
   write(`${renderChip(paint, `${plan.summary.merge_with_backup} backup merge`, 'yellow')} `);
   write(`${renderChip(paint, `${plan.summary.overwrite_with_backup} backup overwrite`, 'yellow')}\n\n`);
 }
@@ -252,13 +250,8 @@ export function renderSummary(write, paint, plan) {
         ? 'green'
         : item.operation === 'unchanged'
           ? 'blue'
-          : item.operation === 'move_with_backup'
-            ? 'cyan'
-            : 'yellow';
-      const label = item.operation === 'move_with_backup' && item.fromRelativePath
-        ? `${item.fromRelativePath} -> ${item.relativePath}`
-        : item.relativePath;
-      write(`  ${renderChip(paint, item.operation, tone)} ${label}\n`);
+          : 'yellow';
+      write(`  ${renderChip(paint, item.operation, tone)} ${item.relativePath}\n`);
     });
     if (plan.operations.length > previewOps.length) {
       write(`  ${paint.dim(`... ${plan.operations.length - previewOps.length} more operations`)}\n`);
@@ -268,9 +261,7 @@ export function renderSummary(write, paint, plan) {
   if (plan.mode !== 'export') {
     write(`\n${paint.bold('What happens automatically')}\n`);
     write(`  ${paint.dim('Skills found in .agents/skills/**/SKILL.md are auto-registered into registry.json.')}\n`);
-    write(`  ${paint.dim(plan.migrateLegacyDocs
-      ? 'Legacy docs will move only when the suggested destination is free; every move creates a backup.'
-      : 'Legacy docs remain in place unless you opt in; workflow-kit still creates the migration map.')}\n`);
+    write(`  ${paint.dim('Legacy docs are not moved automatically; workflow-kit only creates the migration map.')}\n`);
   }
 
   write(`\n${paint.bold('Optional capabilities')}\n`);
@@ -285,7 +276,6 @@ export function colorizeFullPlanPreview(paint, formattedPlan) {
     create: 'green',
     unchanged: 'blue',
     merge_with_backup: 'yellow',
-    move_with_backup: 'cyan',
     overwrite_with_backup: 'yellow',
     skip_modified: 'yellow',
     skip_unmanaged: 'yellow',
