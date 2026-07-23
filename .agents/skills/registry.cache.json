@@ -163,7 +163,7 @@
       "class": "Workflow",
       "path": ".agents/skills/03-quality/document-development/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "67e17d97e0009495c901b97492a47622b4aa53549b2fd38f4e95f644c3624f64"
+      "skill_sha256": "e1a8d9ba6993aaf42010ab5b72ad4180ad0197dcf93cdf980f04ecbd943d1b8b"
     },
     {
       "key": "engineering-mentor",
@@ -262,7 +262,7 @@
       "class": "Cross-cutting overlay",
       "path": ".agents/skills/04-crosscutting/pr-comments-resolution/SKILL.md",
       "loading_posture": "Overlay",
-      "skill_sha256": "687a6143700438a18ddaf6a1dce58a928abcbe4d886e8a7926f4ffe0a5c001a0"
+      "skill_sha256": "41cf6a17ed09221c91f5775e7b83f7c95dcdfb732ef57b8b5d40d9f408558fe3"
     },
     {
       "key": "prd-readiness-review",
@@ -307,7 +307,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "0fe59610b54d7d4cf1a21ffff772722d03aeb2ef84433b0e163f21174c653d31"
+      "skill_sha256": "f12048ee9edf991b19ff6801155456ca1fdf0969db702d347ed0008f97f44454"
     }
   ]
 }

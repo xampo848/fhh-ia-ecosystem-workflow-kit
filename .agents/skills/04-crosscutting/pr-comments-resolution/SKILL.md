@@ -25,6 +25,25 @@ This skill explains how to resolve Pull Request comments in an orderly, interact
 4. **Transparency**: Explain what will be done before doing it
 5. **Verification**: Run tests after each important change directly in the terminal.
 
+### Language Clarity Add-on (Simple for Everyone + Tech)
+
+Use simple, plain language that both non-technical and technical people can follow.
+
+- Prefer short sentences and direct words
+- Explain technical terms in one line when first used
+- Keep the same technical precision, but avoid unnecessary complexity
+- For each issue, describe:
+   - What is wrong
+   - Why it matters
+   - What will be changed
+- Avoid dense paragraphs; use clear bullets and small sections
+- Keep examples practical and tied to the real file/comment context
+
+Quick style guide:
+
+- Instead of: "This introduces a potential regression in the validation flow due to a missing guard clause"
+- Use: "There is a missing check. Without it, invalid data can pass and break the flow."
+
 ## 📋 Resolution Protocol
 
 ### Phase 1: Analysis and Organization
@@ -100,7 +119,18 @@ For EACH comment, follow this process:
 
 **NEVER** implement directly without confirming with the user.
 
-Present 2-4 clear options:
+Present options using this criterion:
+
+- 2 options for low-risk/style-only decisions (minor wording, formatting, RuboCop-only)
+- 3 options for standard code decisions (most refactors and behavior-preserving changes)
+- 4 options only for high-impact decisions (data integrity, migrations, architecture, security)
+
+Always include:
+
+- One conservative option
+- One recommended option (with rationale)
+
+Present options as:
 
 ```markdown
 **Question:** How do you want to resolve this?
@@ -125,10 +155,10 @@ What do you prefer, or do you have another idea? 🤔
 
 **IMPORTANT**:
 
-- Use emojis only in option questions (🤔 at the end)
+- You may use emojis whenever they improve readability
 - DO NOT use emojis in code or technical explanations
 - Keep a professional but friendly tone
-- Mark one option as recommended if it is clearly best, but always leave the final decision to the user
+- Mark one option as recommended if it is clearly best, but always leave the final decision to the user, and explain why it is recommended.
 
 #### 2.3 Wait for User Response
 
@@ -175,6 +205,25 @@ If they fail:
 ```
 
 Repeat Phase 2 for each comment.
+
+### Phase 2.7: Mark the Resolved Comment as Closed in GitHub
+
+After implementing and validating each resolved comment, also close its review thread in the PR.
+
+1. Ensure the comment is actually fixed in code
+2. Resolve the thread in GitHub using:
+
+```
+github-pull-request_resolveReviewThread
+```
+
+3. Confirm closure to the user, for example:
+
+```markdown
+✅ **Comment X resolved in code and closed in GitHub thread.**
+```
+
+If the thread cannot be closed (permissions, already resolved, or missing thread id), report it clearly and continue with the next comment.
 
 ### Phase 3: Final Summary
 
@@ -307,13 +356,21 @@ When using this skill, ensure:
 - [ ] Present an organized summary at the start
 - [ ] Resolve one comment at a time
 - [ ] ALWAYS ask before implementing
-- [ ] Propose 2-4 clear options
+- [ ] Propose options using the 2/3/4-option criterion
 - [ ] Wait for user response
 - [ ] Implement only what was chosen
 - [ ] Verify with tests when applicable
 - [ ] Confirm resolution with ✅
+- [ ] Resolve the corresponding GitHub review thread after each fixed comment
 - [ ] Move to the next comment
 - [ ] Provide a final summary at the end
+
+## ➕ Supplemental Checklist (Do Not Replace Original)
+
+- [ ] Use simple language understandable by non-technical and technical stakeholders
+- [ ] Explain each issue with: what, why, and change
+- [ ] Keep technical accuracy while minimizing jargon
+- [ ] For every fixed comment, close its PR review thread in GitHub
 
 ## 🎓 Usage Examples
 
@@ -356,9 +413,9 @@ When using this skill, ensure:
 
 This skill works well with:
 
-- **docs/patterns/frontend/formik-forms.md**: Si los comentarios tocan formularios o validaciones frontend
-- **docs/patterns/backend/service-object-pattern.md**: Si piden mover lógica a services o arreglar controladores
-- **react-doctor**: Si la revisión toca calidad/correctitud en React
+- **docs/patterns/frontend/formik-forms.md**: If comments touch forms or frontend validations
+- **docs/patterns/backend/service-object-pattern.md**: If feedback asks to move controller logic into services
+- **react-doctor**: If the review touches React correctness/quality
 
 ## 📚 References
 

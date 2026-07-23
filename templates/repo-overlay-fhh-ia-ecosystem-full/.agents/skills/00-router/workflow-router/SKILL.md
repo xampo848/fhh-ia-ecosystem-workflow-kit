@@ -23,9 +23,14 @@ The user should not need to memorize skill names. Explain the selected path in p
 
 ## Source of truth
 
-Before routing, read `.github/copilot-instructions.md`. If any rule conflicts with this skill, `.github/copilot-instructions.md` wins.
+Before routing, read `.agents/instructions.md` as the canonical workflow contract.
+Runtime adapters such as `.github/copilot-instructions.md`, `AGENTS.md`, or `ANTIGRAVITY.md`
+must remain thin wrappers and must not override `.agents/instructions.md`.
 
-For large, autonomous, multi-agent, or cost-sensitive work, apply `docs/internal-documentation/workflows/ai-cost-efficiency-policy.md`. For simple routing, use the summary in `.github/copilot-instructions.md` and do not load the full guide.
+For large, autonomous, multi-agent, or cost-sensitive work, apply
+`docs/internal-documentation/workflows/ai-cost-efficiency-policy.md`.
+For simple routing, use the summary from the loaded runtime adapter only as
+transport metadata, never as a replacement for neutral workflow policy.
 
 ## Per-turn intake boundary
 
@@ -102,6 +107,44 @@ Requirements for FULL trace:
 | PRD implementation | User references PRD path or says implement this PRD | `implement-prd` | No | `balanced` |
 | Review / QA | Review PR, review diff, validate quality, inspect frontend, audit UI, or sharpen visual direction | stack-gated review skill (`frontend-design`, `react-doctor`, `impeccable`, `pr-comments-resolution`, `playwright-testing`, `contract-verifier`, or inline review) | No | `lean` for pure visual direction, otherwise `balanced`; `premium` for large or release-critical diffs |
 | Documentation | Explain delivered feature, write guide, preserve knowledge | `document-development` | No | `lean` |
+
+## Deterministic intent resolution (required in every route)
+
+Apply this decision order for every non-trivial freeform request before selecting a workflow.
+
+1. Explicit skill invocation always wins (load that skill).
+2. Hard-trigger intents override generic class matching.
+3. If no hard trigger applies, use the classification table.
+4. If two classes still match, choose the smaller safe workflow and state the tie-break in the routing trace.
+
+### Hard triggers
+
+#### PR comments hard trigger
+
+Route to `pr-comments-resolution` when the user intent is to resolve, process, close, or work through PR/review comments, including mixed Spanish/English phrasing.
+
+Intent examples:
+
+- "resuelve comentarios del PR"
+- "ayudame con review comments"
+- "vamos cerrando comentarios de la PR"
+- "fix Copilot/Sentry comments in this PR"
+
+Do not downgrade this to inline review when the action requested is comment resolution.
+If the request is only explanatory (for example, "que hace esa skill"), answer directly and do not load the workflow.
+
+### Route precedence for ambiguous prompts
+
+When a prompt mentions more than one intent, resolve with this precedence:
+
+1. explicit skill invocation
+2. `pr-comments-resolution` hard trigger
+3. `implement-prd` / production implementation gates
+4. `create-prd` / `generate-pm-ticket` / `create-epic`
+5. review or documentation routes
+6. direct answer
+
+Always include in the routing trace which precedence rule was applied.
 
 ## Review/QA applicability gate (required)
 

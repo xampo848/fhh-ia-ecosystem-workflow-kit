@@ -50,6 +50,10 @@ workflow-kit --help
 
 ## Quickstart: install into a repo safely
 
+If your target repository already exists and already has docs/skills/conventions, use this first:
+
+- [Get Started for Existing Repositories](docs/get-started-existing-repo.md)
+
 Always preview first. Dry-run is the default and writes nothing:
 
 ```bash
@@ -64,11 +68,42 @@ Apply only after reviewing the plan:
 workflow-kit init --target /path/to/repo --runtime codex,copilot --apply --yes
 ```
 
+When installing into an already existing project, the installer now applies safe merge behavior for key workflow artifacts:
+
+- `.agents/skills/registry.json` is merged (existing custom skills are preserved and missing workflow-kit skills are added).
+- Existing `.agents/skills/index.md` and `.agents/skills/registry.md` are preserved to avoid clobbering local catalogs.
+- `docs/README.md` gets a non-destructive workflow section (idempotent marker block) so docs are ready to receive workflow documents.
+- `docs/workflow/README.md` is created as an initial docs map when missing.
+- `docs/workflow/standards/` includes setup guides for backend/frontend standards and adoption.
+- A one-time `docs/workflow/migration/legacy-docs-map.md` is generated when legacy docs are detected, with coherent destination suggestions and `git mv` commands.
+
 Validate the installed files:
 
 ```bash
 workflow-kit doctor --target /path/to/repo --runtime codex,copilot
 ```
+
+### 5-minute operational checklist
+
+Use this quick checklist right after first install:
+
+1. Run dry-run once and confirm operation types are expected (`create`, `merge_with_backup`, `overwrite_with_backup`).
+2. Apply with `--apply --yes` and confirm backups exist for any overwritten/merged file.
+3. Run `workflow-kit doctor --target /path/to/repo --runtime <your-runtimes>` and confirm no blocking errors.
+4. In the target repo, verify these files exist:
+  - `.agents/instructions.md`
+  - `.agents/skills/00-router/workflow-router/SKILL.md`
+  - `.agents/skills/registry.json`
+5. Send one natural-language prompt in your agent runtime (for example, “Implementa una mejora pequeña con tests”) and confirm routing starts from the installed workflow.
+
+For existing repositories with prior docs, also review:
+
+- `docs/workflow/migration/legacy-docs-map.md` (if generated)
+- `docs/workflow/standards/setup-and-migration.md`
+
+If something looks wrong after dry-run/apply, jump directly to:
+
+- [Troubleshooting](docs/troubleshooting.md)
 
 ## Using the workflow after installation
 
@@ -195,6 +230,7 @@ Update behavior:
 - If a tracked file was edited locally, it is skipped as `skip_modified`.
 - If an untracked file exists at the same path, it is skipped as `skip_unmanaged`.
 - Missing tracked files are recreated.
+- Intelligent merges may appear as `merge_with_backup` for safe in-place composition (for example on skill registry or docs hub files).
 
 ### One-time bootstrap for legacy installs
 
@@ -383,6 +419,7 @@ bun pm pack --dry-run
 
 - [GitHub install](docs/github-install.md)
 - [Quickstart](docs/quickstart.md)
+- [Get Started for Existing Repositories](docs/get-started-existing-repo.md)
 - [Adapter authoring](docs/adapter-authoring.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Migration](docs/migration.md)

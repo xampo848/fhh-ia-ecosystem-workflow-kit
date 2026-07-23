@@ -2,6 +2,10 @@
 
 This guide shows the safe adoption path. Start with dry-run, inspect the plan, then apply only when ready.
 
+If your repository already exists (has docs/skills/runtime conventions), start here first:
+
+- [Get Started for Existing Repositories](get-started-existing-repo.md)
+
 ## 1. Preview an install
 
 ```bash
@@ -11,6 +15,16 @@ node bin/workflow-kit.mjs init --target /path/to/repo
 Default behavior is dry-run. It prints planned files and writes nothing.
 
 By default, `init` uses the complete FHH IA Ecosystem workflow overlay.
+
+Operation meanings in preview:
+
+- `create`: new file
+- `unchanged`: no write
+- `overwrite_with_backup`: write with backup first
+- `merge_with_backup`: intelligent merge with backup first
+- `skip_modified`: managed local edit protected during update
+- `skip_unmanaged`: unmanaged collision protected during update
+- `adopt_existing`: baseline captured during update bootstrap
 
 ## 2. Preview selected runtime adapters
 
@@ -33,6 +47,12 @@ node bin/workflow-kit.mjs init \
 
 Apply requires both `--apply` and `--yes`. Changed existing files are backed up before overwrite.
 
+For existing repositories, this apply step also enables:
+
+- skills registry JSON merge,
+- docs hub non-destructive insertion,
+- one-time legacy docs migration map generation when legacy docs are detected.
+
 ## 4. Validate installed files
 
 ```bash
@@ -47,6 +67,8 @@ capability registries, and managed-file drift.
 
 Supported first-class adapters are `codex`, `copilot`, `claude`, and
 `antigravity`. The neutral workflow contract is always installed.
+
+If doctor reports issues, go directly to [Troubleshooting](troubleshooting.md).
 
 ## 5. Upgrade the toolkit binary before updating repos
 
@@ -112,6 +134,8 @@ node bin/workflow-kit.mjs update --target /path/to/repo --apply --yes
 
 Local edits in tracked files are preserved (`skip_modified`), and untracked path collisions are ignored (`skip_unmanaged`).
 
+When an update includes a smart composition, it appears as `merge_with_backup`.
+
 Legacy bootstrap when `.agents/workflow-kit/install-state.json` does not exist yet:
 
 ```bash
@@ -148,3 +172,14 @@ Minimum guardrails:
 - Default to official/curated source unless user requests another source.
 - Record selected scope (`user/global`, `repo/project`, or `hybrid`).
 - A capability is complete only when it is attached and documented in the repo.
+
+## 10. Common adoption doubts
+
+- "How do I migrate docs I already had?"
+: Use `docs/workflow/migration/legacy-docs-map.md` if generated. It includes suggested destinations and `git mv` commands.
+
+- "Where do I configure backend/frontend standards?"
+: Use `docs/workflow/standards/setup-and-migration.md`, `docs/workflow/standards/backend.md`, and `docs/workflow/standards/frontend.md` in the target repository.
+
+- "How do I recover from a wrong apply?"
+: Restore from `*.workflow-kit-backup-<timestamp>` files and re-run dry-run before applying again.

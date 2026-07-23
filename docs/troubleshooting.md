@@ -10,6 +10,21 @@ Recommended action:
 2. Run dry-run again after any manual merge.
 3. Apply only when the planned overwrite is expected.
 
+## Dry-run shows `merge_with_backup`
+
+This is a smart composition write. The installer merges content and still creates a backup first.
+
+Typical paths:
+
+- `.agents/skills/registry.json`
+- `docs/README.md`
+
+Recommended action:
+
+1. Review merged intent in the dry-run plan.
+2. Apply if the merge path is expected.
+3. If not expected, inspect existing file conventions before applying.
+
 ## Doctor reports missing files
 
 Run `doctor` with the same runtime options used for install. If files are still missing, rerun `init` in dry-run mode to see what would be created.
@@ -34,6 +49,43 @@ Regenerate and verify the skill registry with:
 node scripts/sync-skill-registry.mjs --write
 bun run check:workflow
 ```
+
+## Legacy docs map was generated and I am not sure what to do
+
+When initializing an existing repository, workflow-kit may generate:
+
+- `docs/workflow/migration/legacy-docs-map.md`
+
+This is a one-time migration aid. It does not move files automatically.
+
+Recommended action:
+
+1. Open the map and review suggested destinations.
+2. Move docs with `git mv` to preserve history.
+3. Keep one canonical location per document topic.
+4. Update stale links in README/CONTRIBUTING/docs indexes.
+
+## Legacy docs map was not generated
+
+Expected reasons:
+
+- no legacy docs were found under `docs/` outside `docs/workflow/`, or
+- map already exists from a previous init.
+
+Recommended action:
+
+1. Confirm whether docs already live under `docs/workflow/`.
+2. If you still need migration support, create your own mapping file under `docs/workflow/migration/` and follow the same `git mv` flow.
+
+## I do not know where backend/frontend standards should be configured
+
+Use these target-repo files:
+
+- `docs/workflow/standards/setup-and-migration.md`
+- `docs/workflow/standards/backend.md`
+- `docs/workflow/standards/frontend.md`
+
+They are intended to be repository-specific and should be completed during initial adoption.
 
 ## Update fails with "No install state found"
 
@@ -75,6 +127,8 @@ bun run check:templates
 bun run check:release
 bun run check:docs
 ```
+
+If failure is `overlay/content-drift` for `.agents/skills/00-router/workflow-router/SKILL.md`, align canonical and overlay skill contents before re-running validation.
 
 The failure message should name the missing file, unsafe script, invalid template pack, or missing documentation phrase.
 

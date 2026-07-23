@@ -209,12 +209,14 @@ function renderDashboard(write, paint, plan) {
     `Total actions  : ${totalOps}`,
     `Create         : ${plan.summary.create}`,
     `No change      : ${plan.summary.unchanged}`,
+    `Merge safe     : ${plan.summary.merge_with_backup}`,
     `Overwrite safe : ${plan.summary.overwrite_with_backup}`
   ]);
 
   write('\n');
   write(`${renderChip(paint, `${plan.summary.create} create`, 'green')} `);
   write(`${renderChip(paint, `${plan.summary.unchanged} unchanged`, 'blue')} `);
+  write(`${renderChip(paint, `${plan.summary.merge_with_backup} backup merge`, 'yellow')} `);
   write(`${renderChip(paint, `${plan.summary.overwrite_with_backup} backup overwrite`, 'yellow')}\n\n`);
 }
 
@@ -253,6 +255,7 @@ export function colorizeFullPlanPreview(paint, formattedPlan) {
   const toneForOperation = {
     create: 'green',
     unchanged: 'blue',
+    merge_with_backup: 'yellow',
     overwrite_with_backup: 'yellow',
     skip_modified: 'yellow',
     skip_unmanaged: 'yellow',
