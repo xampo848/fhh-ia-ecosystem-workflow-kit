@@ -66,7 +66,7 @@ test('colorizeFullPlanPreview recolors key/value, operation and summary lines', 
     'Operations:',
     '- create: AGENTS.md',
     '- unchanged: .agents/instructions.md',
-    'Summary: create=1, unchanged=1, overwrite_with_backup=0, skip_modified=0, skip_unmanaged=0, adopt_existing=0'
+    'Summary: create=1, unchanged=1, merge_with_backup=0, overwrite_with_backup=0, skip_modified=0, skip_unmanaged=0, adopt_existing=0'
   ].join('\n');
 
   const result = colorizeFullPlanPreview(paint, formattedPlan);
@@ -81,7 +81,7 @@ test('colorizeFullPlanPreview recolors key/value, operation and summary lines', 
   assert.equal(lines[6], '- <blue>unchanged</blue>: <white>.agents/instructions.md</white>');
   assert.equal(
     lines[7],
-    '<cyan>Summary:</cyan> <green>create</green>=<bold>1</bold>, <blue>unchanged</blue>=<bold>1</bold>, <yellow>overwrite_with_backup</yellow>=<bold>0</bold>, <yellow>skip_modified</yellow>=<bold>0</bold>, <yellow>skip_unmanaged</yellow>=<bold>0</bold>, <cyan>adopt_existing</cyan>=<bold>0</bold>'
+    '<cyan>Summary:</cyan> <green>create</green>=<bold>1</bold>, <blue>unchanged</blue>=<bold>1</bold>, <yellow>merge_with_backup</yellow>=<bold>0</bold>, <yellow>overwrite_with_backup</yellow>=<bold>0</bold>, <yellow>skip_modified</yellow>=<bold>0</bold>, <yellow>skip_unmanaged</yellow>=<bold>0</bold>, <cyan>adopt_existing</cyan>=<bold>0</bold>'
   );
 });
 

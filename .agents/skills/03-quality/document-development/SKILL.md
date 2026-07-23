@@ -26,6 +26,7 @@ Antes de escribir una línea, leer:
 3. Los modelos y migraciones relevantes
 4. El controlador y las vistas/partials del flujo
 5. Los tests para entender comportamientos esperados y edge cases
+6. Las policies y reglas de autorización (roles, permisos por acción, restricciones por estado/ownership y feature flags)
 
 Prestar atención especial a:
 
@@ -33,6 +34,7 @@ Prestar atención especial a:
 - Bloques `rescue` y fallbacks → revelan comportamientos de robustez
 - Callbacks y condiciones en el flujo principal → revelan reglas de negocio implícitas
 - Cachés: clave, TTL, invalidación
+- Reglas de autorización: quién puede ver/crear/editar/notificar/eliminar, bajo qué roles y condiciones
 
 ### Paso 2 — Identificar las audiencias
 
@@ -92,6 +94,7 @@ Checklist antes de guardar el documento:
 - [ ] El anexo contiene links a los archivos clave, no código inline
 - [ ] El lenguaje de las secciones 1–5 es accesible para no técnicos
 - [ ] Las secciones 6–8 tienen suficiente detalle técnico para developers
+- [ ] El documento explica claramente políticas de autorización: roles, permisos por acción y restricciones por estado/feature flags
 
 ---
 
@@ -140,6 +143,7 @@ Luego, subpárrafo con comportamientos importantes (edge cases de UX: qué pasa 
 ## 4. Reglas de Negocio
 
 Lista de reglas con título en negrita y explicación. Cada regla tiene nombre, descripción del comportamiento y el "por qué" si no es obvio.
+Incluir explícitamente reglas de autorización: roles habilitados, roles excluidos, condiciones por estado del recurso, ownership y feature flags.
 
 ## 5. Casos de Uso
 
@@ -161,6 +165,7 @@ flowchart LR
 ### Integraciones y decisiones de diseño
 
 Subsecciones por área: integración externa, estrategia de búsqueda/cálculo, caché, etc.
+Debe incluir una subsección específica de **autorización y acceso** (Policies/Pundit), indicando acciones permitidas por rol y restricciones relevantes.
 
 ### Límites operativos
 

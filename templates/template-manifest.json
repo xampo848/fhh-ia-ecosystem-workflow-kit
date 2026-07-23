@@ -26,7 +26,9 @@
         ".agents/skills/registry.md",
         ".agents/skills/02-implement/implement-prd/SKILL.md",
         ".agents/skills/06-patterns/README.md",
-        ".agents/capabilities/registry.md"
+        ".agents/capabilities/registry.md",
+        "docs/workflow/README.md",
+        "docs/workflow/standards/setup-and-migration.md"
       ]
     },
     {

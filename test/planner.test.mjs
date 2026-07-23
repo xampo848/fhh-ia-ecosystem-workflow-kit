@@ -20,6 +20,7 @@ test('buildInstallPlan creates full workflow and selected adapter operations', a
   const uniquePaths = new Set(plan.operations.map((item) => item.relativePath));
   assert.equal(uniquePaths.size, plan.operations.length);
   assert.equal(plan.operations.some((item) => item.relativePath === 'README.md'), false);
+  assert.ok(plan.operations.some((item) => item.relativePath === 'docs/workflow/README.md'));
 });
 
 test('codex and copilot share one AGENTS.md bootstrap without collisions', async () => {
@@ -44,6 +45,87 @@ test('buildInstallPlan marks identical files unchanged and changed files as back
 
   assert.equal(plan.operations.find((item) => item.relativePath === '.agents/instructions.md').operation, 'unchanged');
   assert.equal(plan.operations.find((item) => item.relativePath === 'AGENTS.md').operation, 'overwrite_with_backup');
+});
+
+test('buildInstallPlan merges existing skills registry and preserves local skill docs artifacts', async () => {
+  const target = await makeTempRepo();
+  const existingRegistry = {
+    schema_version: '1.0.0',
+    skills: [
+      {
+        name: 'custom-skill',
+        class: 'Workflow',
+        path: '.agents/skills/custom/SKILL.md',
+        trigger: 'Custom trigger',
+        loading_posture: 'Explicit-only',
+        key: 'custom-skill'
+      }
+    ],
+    pattern_skills: []
+  };
+
+  await fs.mkdir(path.join(target, '.agents/skills'), { recursive: true });
+  await fs.writeFile(path.join(target, '.agents/skills/registry.json'), `${JSON.stringify(existingRegistry, null, 2)}\n`, 'utf8');
+  await fs.writeFile(path.join(target, '.agents/skills/index.md'), '# Existing index\n', 'utf8');
+  await fs.writeFile(path.join(target, '.agents/skills/registry.md'), '# Existing registry\n', 'utf8');
+
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
+
+  const registryOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/registry.json');
+  const indexOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/index.md');
+  const markdownRegistryOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/registry.md');
+
+  assert.equal(registryOperation.operation, 'merge_with_backup');
+  const mergedRegistry = JSON.parse(registryOperation.content);
+  assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'custom-skill'), true);
+  assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'workflow-router'), true);
+  assert.equal(indexOperation.operation, 'skip_unmanaged');
+  assert.equal(markdownRegistryOperation.operation, 'skip_unmanaged');
+});
+
+test('buildInstallPlan appends workflow docs hub section into existing docs README', async () => {
+  const target = await makeTempRepo();
+  const existing = '# Project Docs\n\nGeneral project documentation.\n';
+
+  await fs.mkdir(path.join(target, 'docs'), { recursive: true });
+  await fs.writeFile(path.join(target, 'docs/README.md'), existing, 'utf8');
+
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
+  const docsReadmeOperation = plan.operations.find((item) => item.relativePath === 'docs/README.md');
+
+  assert.equal(docsReadmeOperation.operation, 'merge_with_backup');
+  assert.equal(docsReadmeOperation.content.includes('workflow-kit:docs-workflow:start'), true);
+  assert.equal(docsReadmeOperation.content.startsWith('# Project Docs'), true);
+});
+
+test('buildInstallPlan generates one-time legacy docs migration map when legacy docs exist', async () => {
+  const target = await makeTempRepo();
+  await fs.mkdir(path.join(target, 'docs/backend'), { recursive: true });
+  await fs.writeFile(path.join(target, 'docs/backend/api-guidelines.md'), '# API Guidelines\n', 'utf8');
+  await fs.writeFile(path.join(target, 'docs/architecture.md'), '# Architecture\n', 'utf8');
+
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
+  const migrationMapOperation = plan.operations.find((item) => item.relativePath === 'docs/workflow/migration/legacy-docs-map.md');
+
+  assert.ok(migrationMapOperation);
+  assert.equal(migrationMapOperation.operation, 'create');
+  assert.equal(migrationMapOperation.content.includes('docs/backend/api-guidelines.md'), true);
+  assert.equal(migrationMapOperation.content.includes('docs/workflow/standards/imported-backend/api-guidelines.md'), true);
+  assert.equal(migrationMapOperation.content.includes('docs/architecture.md'), true);
+  assert.equal(migrationMapOperation.content.includes('docs/workflow/decisions/imported-architecture.md'), true);
+});
+
+test('buildInstallPlan does not regenerate legacy docs migration map after first generation', async () => {
+  const target = await makeTempRepo();
+  await fs.mkdir(path.join(target, 'docs/workflow/migration'), { recursive: true });
+  await fs.writeFile(path.join(target, 'docs/workflow/migration/legacy-docs-map.md'), '# Existing map\n', 'utf8');
+  await fs.mkdir(path.join(target, 'docs/legacy'), { recursive: true });
+  await fs.writeFile(path.join(target, 'docs/legacy/notes.md'), '# Notes\n', 'utf8');
+
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
+  const migrationMapOperation = plan.operations.find((item) => item.relativePath === 'docs/workflow/migration/legacy-docs-map.md');
+
+  assert.equal(migrationMapOperation, undefined);
 });
 
 test('buildInstallPlan defaults to complete fhh-ia-ecosystem overlay without duplicate paths', async () => {
@@ -80,6 +162,7 @@ test('buildInstallPlan includes complete fhh-ia-ecosystem overlay when requested
 
   assert.ok(planned.has('.agents/skills/01-product/create-epic/SKILL.md'));
   assert.ok(planned.has('.agents/skills/04-crosscutting/impeccable/SKILL.md'));
+  assert.ok(planned.has('.agents/skills/04-crosscutting/pr-comments-resolution/SKILL.md'));
   assert.ok(planned.has('.agents/skills/05-caveman/cavecrew/SKILL.md'));
   assert.equal([...planned].some((relativePath) => relativePath.startsWith('.agents/workflow-kit/')), false);
   assert.ok(planned.has('.agents/capabilities/manifests/context7.md'));
@@ -113,6 +196,25 @@ test('buildUpdatePlan skips local edits and unmanaged files while keeping manage
   assert.equal(updatePlan.operations.find((item) => item.relativePath === '.agents/instructions.md').operation, 'skip_unmanaged');
   assert.equal(updatePlan.summary.skip_modified > 0, true);
   assert.equal(updatePlan.summary.skip_unmanaged > 0, true);
+});
+
+test('buildUpdatePlan can unmanage preserved skill catalog docs while keeping registry.json managed', async () => {
+  const target = await makeTempRepo();
+  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'neutral', toolkitVersion: '0.6.0-test' });
+  await applyInstallPlan(installPlan);
+
+  await fs.writeFile(path.join(target, '.agents/skills/index.md'), '# Local skill index\n', 'utf8');
+
+  const updatePlan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral', toolkitVersion: '0.7.0-test' });
+  const indexOperation = updatePlan.operations.find((item) => item.relativePath === '.agents/skills/index.md');
+
+  assert.equal(indexOperation.operation, 'skip_unmanaged');
+  assert.equal(indexOperation.dropFromState, true);
+
+  await applyInstallPlan(updatePlan);
+  const state = JSON.parse(await fs.readFile(path.join(target, installStateRelativePath), 'utf8'));
+  assert.equal(Object.prototype.hasOwnProperty.call(state.files, '.agents/skills/index.md'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(state.files, '.agents/skills/registry.json'), true);
 });
 
 test('buildUpdatePlan requires install state unless adopt-existing is enabled', async () => {

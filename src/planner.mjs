@@ -7,6 +7,16 @@ const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const templatesRoot = path.join(packageRoot, 'templates');
 export const installStateRelativePath = '.agents/workflow-kit/install-state.json';
 const installStateSchemaVersion = '1.0.0';
+const skillRegistryJsonPath = '.agents/skills/registry.json';
+const skillCatalogPreservePaths = new Set([
+  '.agents/skills/index.md',
+  '.agents/skills/registry.md',
+  '.agents/skills/registry.cache.json'
+]);
+const docsReadmePath = 'docs/README.md';
+const docsWorkflowMarkerStart = '<!-- workflow-kit:docs-workflow:start -->';
+const docsWorkflowMarkerEnd = '<!-- workflow-kit:docs-workflow:end -->';
+const oneTimeLegacyDocsMapPath = 'docs/workflow/migration/legacy-docs-map.md';
 const runtimeTemplatePaths = {
   codex: ['runtime-adapters/agents-md', 'runtime-adapters/codex'],
   copilot: ['runtime-adapters/agents-md', 'runtime-adapters/copilot'],
@@ -100,9 +110,24 @@ export async function buildInstallPlan(options = {}) {
 
     try {
       existingContent = await fs.readFile(targetFile, 'utf8');
-      operation = existingContent === content ? 'unchanged' : 'overwrite_with_backup';
     } catch (error) {
       if (error.code !== 'ENOENT') throw error;
+    }
+
+    const resolution = resolvePlannedContent({
+      relativePath: file.relativePath,
+      templateContent: content,
+      existingContent
+    });
+
+    if (existingContent !== null) {
+      if (resolution.strategy === 'preserve_existing') {
+        operation = 'skip_unmanaged';
+      } else if (existingContent === resolution.content) {
+        operation = 'unchanged';
+      } else {
+        operation = resolution.strategy === 'merged' ? 'merge_with_backup' : 'overwrite_with_backup';
+      }
     }
 
     operations.push({
@@ -110,10 +135,13 @@ export async function buildInstallPlan(options = {}) {
       relativePath: file.relativePath,
       targetFile,
       sourcePath: file.sourcePath,
-      content,
-      sourceChecksum
+      content: resolution.content,
+      sourceChecksum,
+      plannedChecksum: computeChecksum(resolution.content)
     });
   }
+
+  operations.push(...await buildOneTimeDocsMigrationOperations({ targetPath }));
 
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 
@@ -172,14 +200,35 @@ export async function buildUpdatePlan(options = {}) {
       if (error.code !== 'ENOENT') throw error;
     }
 
+    const resolution = resolvePlannedContent({
+      relativePath: file.relativePath,
+      templateContent: content,
+      existingContent
+    });
+
     if (existingContent === null) {
       operations.push({
         operation: 'create',
         relativePath: file.relativePath,
         targetFile,
         sourcePath: file.sourcePath,
-        content,
-        sourceChecksum
+        content: resolution.content,
+        sourceChecksum,
+        plannedChecksum: computeChecksum(resolution.content)
+      });
+      continue;
+    }
+
+    if (resolution.strategy === 'preserve_existing') {
+      operations.push({
+        operation: 'skip_unmanaged',
+        relativePath: file.relativePath,
+        targetFile,
+        sourcePath: file.sourcePath,
+        content: resolution.content,
+        sourceChecksum,
+        plannedChecksum: computeChecksum(resolution.content),
+        dropFromState: true
       });
       continue;
     }
@@ -190,9 +239,10 @@ export async function buildUpdatePlan(options = {}) {
         relativePath: file.relativePath,
         targetFile,
         sourcePath: file.sourcePath,
-        content,
+        content: resolution.content,
         sourceChecksum,
-        existingChecksum: computeChecksum(existingContent)
+        existingChecksum: computeChecksum(existingContent),
+        plannedChecksum: computeChecksum(resolution.content)
       });
       continue;
     }
@@ -208,39 +258,43 @@ export async function buildUpdatePlan(options = {}) {
           content,
           sourceChecksum,
           existingChecksum,
-          recordedChecksum
+          recordedChecksum,
+          plannedChecksum: computeChecksum(resolution.content)
         });
-      } else if (existingContent === content) {
+      } else if (existingContent === resolution.content) {
         operations.push({
           operation: 'unchanged',
           relativePath: file.relativePath,
           targetFile,
           sourcePath: file.sourcePath,
-          content,
-          sourceChecksum
+          content: resolution.content,
+          sourceChecksum,
+          plannedChecksum: computeChecksum(resolution.content)
         });
       } else {
         operations.push({
-          operation: 'overwrite_with_backup',
+          operation: resolution.strategy === 'merged' ? 'merge_with_backup' : 'overwrite_with_backup',
           relativePath: file.relativePath,
           targetFile,
           sourcePath: file.sourcePath,
-          content,
+          content: resolution.content,
           sourceChecksum,
-          recordedChecksum
+          recordedChecksum,
+          plannedChecksum: computeChecksum(resolution.content)
         });
       }
       continue;
     }
 
-    if (existingContent === content) {
+    if (existingContent === resolution.content) {
       operations.push({
         operation: 'unchanged',
         relativePath: file.relativePath,
         targetFile,
         sourcePath: file.sourcePath,
-        content,
-        sourceChecksum
+        content: resolution.content,
+        sourceChecksum,
+        plannedChecksum: computeChecksum(resolution.content)
       });
     } else {
       operations.push({
@@ -248,8 +302,9 @@ export async function buildUpdatePlan(options = {}) {
         relativePath: file.relativePath,
         targetFile,
         sourcePath: file.sourcePath,
-        content,
-        sourceChecksum
+        content: resolution.content,
+        sourceChecksum,
+        plannedChecksum: computeChecksum(resolution.content)
       });
     }
   }
@@ -287,6 +342,7 @@ export function summarizeOperations(operations) {
   const summary = {
     create: 0,
     unchanged: 0,
+    merge_with_backup: 0,
     overwrite_with_backup: 0,
     skip_modified: 0,
     skip_unmanaged: 0,
@@ -315,7 +371,7 @@ export function formatPlan(plan) {
     lines.push(`- ${item.operation}: ${item.relativePath}`);
   }
 
-  lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}`);
+  lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, merge_with_backup=${plan.summary.merge_with_backup}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}`);
   return lines.join('\n');
 }
 
@@ -352,6 +408,7 @@ function buildNextInstallState({ previousState, operations, runtimes, overlay, t
 
   for (const item of operations) {
     if (item.operation === 'skip_unmanaged') {
+      if (item.dropFromState) delete files[item.relativePath];
       continue;
     }
 
@@ -362,6 +419,11 @@ function buildNextInstallState({ previousState, operations, runtimes, overlay, t
 
     if (item.operation === 'adopt_existing') {
       files[item.relativePath] = item.existingChecksum;
+      continue;
+    }
+
+    if (item.plannedChecksum) {
+      files[item.relativePath] = item.plannedChecksum;
       continue;
     }
 
@@ -379,4 +441,235 @@ function buildNextInstallState({ previousState, operations, runtimes, overlay, t
     overlay,
     files
   };
+}
+
+function resolvePlannedContent({ relativePath, templateContent, existingContent }) {
+  if (existingContent === null) {
+    return { strategy: 'template', content: templateContent };
+  }
+
+  if (relativePath === skillRegistryJsonPath) {
+    return {
+      strategy: 'merged',
+      content: mergeSkillRegistryJson({ existingContent, templateContent })
+    };
+  }
+
+  if (relativePath === docsReadmePath) {
+    return {
+      strategy: 'merged',
+      content: mergeDocsReadme({ existingContent, templateContent })
+    };
+  }
+
+  if (skillCatalogPreservePaths.has(relativePath)) {
+    return { strategy: 'preserve_existing', content: existingContent };
+  }
+
+  return { strategy: 'template', content: templateContent };
+}
+
+function mergeSkillRegistryJson({ existingContent, templateContent }) {
+  let existing;
+  let incoming;
+
+  try {
+    existing = JSON.parse(existingContent);
+    incoming = JSON.parse(templateContent);
+  } catch {
+    return templateContent;
+  }
+
+  const merged = {
+    ...incoming,
+    ...existing,
+    schema_version: existing.schema_version ?? incoming.schema_version ?? '1.0.0',
+    canonical_source: existing.canonical_source ?? incoming.canonical_source ?? '.agents/skills/registry.md',
+    skills: mergeRegistryEntries(existing.skills, incoming.skills),
+    pattern_skills: mergeRegistryEntries(existing.pattern_skills, incoming.pattern_skills)
+  };
+
+  return `${JSON.stringify(merged, null, 2)}\n`;
+}
+
+function mergeRegistryEntries(existingEntries, incomingEntries) {
+  const merged = [];
+  const seen = new Set();
+
+  for (const entry of normalizeRegistryEntries(existingEntries)) {
+    const key = registryEntryIdentity(entry);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(entry);
+  }
+
+  for (const entry of normalizeRegistryEntries(incomingEntries)) {
+    const key = registryEntryIdentity(entry);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(entry);
+  }
+
+  return merged;
+}
+
+function normalizeRegistryEntries(entries) {
+  if (!Array.isArray(entries)) return [];
+  return entries.filter((entry) => entry && typeof entry === 'object');
+}
+
+function registryEntryIdentity(entry) {
+  if (entry.key && typeof entry.key === 'string') return `key:${entry.key}`;
+  if (entry.name && typeof entry.name === 'string') return `name:${entry.name}`;
+  if (entry.path && typeof entry.path === 'string') return `path:${entry.path}`;
+  return `raw:${JSON.stringify(entry)}`;
+}
+
+function mergeDocsReadme({ existingContent, templateContent }) {
+  if (!existingContent.trim()) return templateContent;
+
+  const block = extractDocsWorkflowBlock(templateContent);
+  if (!block) return `${existingContent.trimEnd()}\n\n${templateContent.trim()}\n`;
+
+  const start = existingContent.indexOf(docsWorkflowMarkerStart);
+  const end = existingContent.indexOf(docsWorkflowMarkerEnd);
+
+  if (start >= 0 && end >= start) {
+    const afterEnd = end + docsWorkflowMarkerEnd.length;
+    const before = existingContent.slice(0, start).trimEnd();
+    const after = existingContent.slice(afterEnd).trimStart();
+    const pieces = [before, block.trim()];
+    if (after) pieces.push(after);
+    return `${pieces.filter(Boolean).join('\n\n').trimEnd()}\n`;
+  }
+
+  return `${existingContent.trimEnd()}\n\n${block.trim()}\n`;
+}
+
+function extractDocsWorkflowBlock(content) {
+  const start = content.indexOf(docsWorkflowMarkerStart);
+  const end = content.indexOf(docsWorkflowMarkerEnd);
+  if (start < 0 || end < start) return null;
+  return content.slice(start, end + docsWorkflowMarkerEnd.length);
+}
+
+async function buildOneTimeDocsMigrationOperations({ targetPath }) {
+  const docsRoot = path.join(targetPath, 'docs');
+  const migrationMapTarget = path.join(targetPath, oneTimeLegacyDocsMapPath);
+  const operations = [];
+
+  try {
+    await fs.access(migrationMapTarget);
+    return operations;
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+
+  const legacyDocs = await collectLegacyDocsForMigration({ docsRoot });
+  if (legacyDocs.length === 0) return operations;
+
+  const content = renderLegacyDocsMigrationMap(legacyDocs);
+  operations.push({
+    operation: 'create',
+    relativePath: oneTimeLegacyDocsMapPath,
+    targetFile: migrationMapTarget,
+    sourcePath: null,
+    content,
+    sourceChecksum: computeChecksum(content),
+    plannedChecksum: computeChecksum(content)
+  });
+
+  return operations;
+}
+
+async function collectLegacyDocsForMigration({ docsRoot }) {
+  const files = [];
+
+  async function walk(current) {
+    let entries;
+    try {
+      entries = await fs.readdir(current, { withFileTypes: true });
+    } catch (error) {
+      if (error.code === 'ENOENT') return;
+      throw error;
+    }
+
+    for (const entry of entries) {
+      const absolute = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        await walk(absolute);
+        continue;
+      }
+
+      if (!entry.isFile()) continue;
+      const relative = path.relative(docsRoot, absolute).split(path.sep).join('/');
+      if (relative.startsWith('workflow/')) continue;
+      if (!isDocFile(relative)) continue;
+
+      files.push({
+        relative,
+        suggested: suggestWorkflowDocsTarget(relative)
+      });
+    }
+  }
+
+  await walk(docsRoot);
+  return files.sort((a, b) => a.relative.localeCompare(b.relative));
+}
+
+function isDocFile(relativePath) {
+  return /\.(md|mdx|txt|rst)$/i.test(relativePath);
+}
+
+function suggestWorkflowDocsTarget(relativePath) {
+  const lower = relativePath.toLowerCase();
+  const slug = relativePath.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9/-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+
+  if (/(adr|decision|architecture|arquitectura|tradeoff)/.test(lower)) {
+    return `docs/workflow/decisions/imported-${slug}.md`;
+  }
+
+  if (/(runbook|playbook|operat|release|deploy|incident|troubleshoot|soporte)/.test(lower)) {
+    return `docs/workflow/runbooks/imported-${slug}.md`;
+  }
+
+  if (/(handoff|handover|entrega|qa|transfer|ownership)/.test(lower)) {
+    return `docs/workflow/handoffs/imported-${slug}.md`;
+  }
+
+  if (/(backend|api|contract|frontend|ui|ux|style|guideline|standard|estandar)/.test(lower)) {
+    return `docs/workflow/standards/imported-${slug}.md`;
+  }
+
+  return `docs/workflow/migration/review-${slug}.md`;
+}
+
+function renderLegacyDocsMigrationMap(legacyDocs) {
+  const lines = [
+    '# Legacy Docs Migration Map',
+    '',
+    'This file is generated once by workflow-kit during init when legacy docs already exist.',
+    'It preserves originals and proposes coherent target locations under docs/workflow/.',
+    '',
+    '## How to use this map',
+    '',
+    '1. Review each suggestion and adjust target paths if needed.',
+    '2. Move files with `git mv` to preserve history.',
+    '3. Keep this file as migration evidence or archive it once complete.',
+    '',
+    '| Existing file | Suggested destination |',
+    '| --- | --- |'
+  ];
+
+  for (const item of legacyDocs) {
+    lines.push(`| docs/${item.relative} | ${item.suggested} |`);
+  }
+
+  lines.push('', '## Suggested move commands', '');
+  for (const item of legacyDocs) {
+    lines.push(`- git mv "docs/${item.relative}" "${item.suggested}"`);
+  }
+
+  lines.push('');
+  return `${lines.join('\n')}\n`;
 }

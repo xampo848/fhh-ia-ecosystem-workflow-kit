@@ -79,3 +79,13 @@ test('overlay drift detects divergence in mirrored third-party skills', async ()
   assert.ok(diagnostics.some((item) => item.path.includes('frontend-design/SKILL.md')));
   await fs.rm(root, { recursive: true, force: true });
 });
+
+test('workflow router keeps deterministic PR comments hard trigger policy', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const routerPath = path.join(root, '.agents/skills/00-router/workflow-router/SKILL.md');
+  const router = await fs.readFile(routerPath, 'utf8');
+
+  assert.match(router, /Deterministic intent resolution \(required in every route\)/);
+  assert.match(router, /PR comments hard trigger/);
+  assert.match(router, /Route to `pr-comments-resolution` when the user intent is to resolve, process, close, or work through PR\/review comments/);
+});
