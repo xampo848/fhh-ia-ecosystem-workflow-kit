@@ -60,3 +60,20 @@ test('doctor reports locally modified managed files as warnings', async () => {
   assert.match(doctorIo.output.stdout, /\[managed\/content-drift\]/);
   assert.match(doctorIo.output.stdout, /warning/i);
 });
+
+test('doctor warns when target was last applied with a different toolkit version', async () => {
+  const target = await makeTempRepo();
+  const installIo = createMemoryIo();
+  const doctorIo = createMemoryIo();
+  await runCli(['init', '--target', target, '--runtime', 'codex', '--apply', '--yes'], installIo);
+
+  const statePath = path.join(target, '.agents/workflow-kit/install-state.json');
+  const state = JSON.parse(await fs.readFile(statePath, 'utf8'));
+  state.toolkitVersion = '0.0.1-older';
+  await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+
+  const code = await runCli(['doctor', '--target', target, '--runtime', 'codex'], doctorIo);
+
+  assert.equal(code, 0);
+  assert.match(doctorIo.output.stdout, /\[managed\/toolkit-version-mismatch\]/);
+});

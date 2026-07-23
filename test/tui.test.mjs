@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { applyInstallPlan } from '../src/apply.mjs';
+import { buildInstallPlan } from '../src/planner.mjs';
 import { runTui } from '../src/tui.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
@@ -118,7 +120,7 @@ test('tui capabilities-only mode runs optional capabilities without applying wor
   const executed = [];
 
   const result = await runTui({
-    ask: scriptedAsk(['3', target, '1', '3', '1', '2', 'yes']),
+    ask: scriptedAsk(['4', target, '1', '3', '1', '2', 'yes']),
     color: false,
     write: () => {},
     commandExists: async (command) => command === 'bun' || command === 'npm',
@@ -134,5 +136,45 @@ test('tui capabilities-only mode runs optional capabilities without applying wor
     'bun add -g codebase-memory-mcp',
     'codebase-memory-mcp install'
   ]);
+  await assert.rejects(fs.access(path.join(target, '.agents/instructions.md')), { code: 'ENOENT' });
+});
+
+test('tui update mode applies managed workflow updates without reinstall flow semantics', async () => {
+  const target = await makeTempRepo();
+  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex' });
+  await applyInstallPlan(installPlan);
+  let output = '';
+
+  const result = await runTui({
+    ask: scriptedAsk(['2', target, '1', '', '', 'yes']),
+    color: false,
+    write: (message) => { output += message; }
+  });
+
+  assert.equal(result.mode, 'update');
+  assert.equal(result.applied, true);
+  assert.equal(result.plan.previousToolkitVersion, null);
+  assert.match(output, /Protected local edits \(skipped\):/);
+  assert.match(output, /Managed target/);
+});
+
+test('tui upgrade-toolkit mode runs the global upgrade command and exits without repo writes', async () => {
+  const target = await makeTempRepo();
+  const executed = [];
+
+  const result = await runTui({
+    ask: scriptedAsk(['3', '', 'yes']),
+    color: false,
+    write: () => {},
+    commandExists: async (command) => command === 'bun' || command === 'npm',
+    runCommand: async ({ command, args }) => {
+      executed.push(`${command} ${args.join(' ')}`);
+      return { ok: true, code: 0 };
+    }
+  });
+
+  assert.equal(result.mode, 'upgrade-toolkit');
+  assert.equal(result.applied, false);
+  assert.deepEqual(executed, ['bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#main']);
   await assert.rejects(fs.access(path.join(target, '.agents/instructions.md')), { code: 'ENOENT' });
 });

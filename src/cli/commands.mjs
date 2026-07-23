@@ -2,6 +2,7 @@ import { applyInstallPlan } from '../apply.mjs';
 import { formatDoctorResult, runDoctor } from '../doctor.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan } from '../planner.mjs';
 import { runTui } from '../tui.mjs';
+import { buildUpgradePlan, commandExists, formatUpgradePlan, resolveUpgradePackageManager, runUpgradePlan } from '../upgrade.mjs';
 import packageJson from '../../package.json' with { type: 'json' };
 import { yesGuardMessage } from './guards.mjs';
 import { formatExportApplySummary, formatInitApplySummary, formatUpdateApplySummary } from './summaries.mjs';
@@ -37,6 +38,30 @@ export async function runUpdateCommand(options, { stdout, stderr }) {
 
   const applied = await applyInstallPlan(plan);
   stdout.write(formatUpdateApplySummary(applied));
+  return 0;
+}
+
+export async function runUpgradeCommand(options, { stdout, stderr }) {
+  const guardMessage = yesGuardMessage(options, 'apply toolkit upgrade');
+  if (guardMessage) {
+    stderr.write(guardMessage);
+    return 2;
+  }
+
+  const packageManager = await resolveUpgradePackageManager(options.packageManager, commandExists);
+  const plan = buildUpgradePlan({ ...options, packageManager });
+  stdout.write(`${options.apply ? 'Toolkit upgrade apply plan' : 'Toolkit upgrade dry-run plan'}\n${formatUpgradePlan(plan)}\n`);
+
+  if (!options.apply) return 0;
+
+  const result = await runUpgradePlan(plan, { stdout, stderr });
+  if (!result.ok) {
+    stderr.write(`Toolkit upgrade failed${result.code === null ? '' : ` with exit code ${result.code}`}.\n`);
+    return 2;
+  }
+
+  stdout.write(`Toolkit upgrade completed from ${plan.spec}.\n`);
+  stdout.write('Next step: re-run workflow-kit update --target <repo> --apply --yes with the refreshed toolkit.\n');
   return 0;
 }
 
@@ -77,6 +102,7 @@ export async function runTuiCommand(_options, { stdout }) {
 export const commandHandlers = {
   init: runInitCommand,
   update: runUpdateCommand,
+  upgrade: runUpgradeCommand,
   export: runExportCommand,
   doctor: runDoctorCommand,
   tui: runTuiCommand

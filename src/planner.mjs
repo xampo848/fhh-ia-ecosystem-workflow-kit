@@ -130,6 +130,8 @@ export async function buildInstallPlan(options = {}) {
     targetPath,
     stateFilePath: path.join(targetPath, installStateRelativePath),
     nextInstallState,
+    toolkitVersion: options.toolkitVersion ?? null,
+    previousToolkitVersion: null,
     runtimes,
     overlay,
     operations,
@@ -268,11 +270,17 @@ export async function buildUpdatePlan(options = {}) {
     stateFilePath,
     hadExistingState: Boolean(existingState),
     nextInstallState,
+    toolkitVersion: options.toolkitVersion ?? null,
+    previousToolkitVersion: existingState?.toolkitVersion ?? null,
     runtimes,
     overlay,
     operations,
     summary: summarizeOperations(operations)
   };
+}
+
+export async function readManagedInstallState(targetPath = process.cwd()) {
+  return readInstallState(path.join(path.resolve(targetPath), installStateRelativePath));
 }
 
 export function summarizeOperations(operations) {
@@ -296,6 +304,8 @@ export function formatPlan(plan) {
   const lines = [
     `Target: ${plan.targetPath}`,
     `Mode: ${plan.mode ?? 'init'}`,
+    `Toolkit version: ${plan.toolkitVersion ?? 'unknown'}`,
+    `Target managed version: ${plan.previousToolkitVersion ?? 'none recorded'}`,
     `Runtimes: ${plan.runtimes.join(',')}`,
     `Overlay: ${plan.overlay}`,
     'Operations:'

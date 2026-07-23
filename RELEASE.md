@@ -36,7 +36,30 @@ Do not run:
 ## Draft release sequence after approval
 
 1. Confirm working tree is clean and CI passes.
-2. Set final semver version.
-3. Create release notes from merged PRDs and changelog.
-4. Create/push repo only after explicit approval.
-5. Publish package only after explicit approval and final dry-run.
+2. If merged changes affect the portable core, template packs, runtime adapters, planner/update logic, doctor semantics, or TUI update surface, bump `package.json.version` before distributing the new toolkit.
+3. Set final semver version or approved private prerelease-like version.
+4. Create release notes from merged PRDs and changelog.
+5. Create/push repo only after explicit approval.
+6. Publish package only after explicit approval and final dry-run.
+
+## Safe rollout sequence for users
+
+1. Upgrade the global toolkit binary first:
+
+```bash
+workflow-kit upgrade --ref main --apply --yes
+```
+
+2. Or pin to a reviewed tag:
+
+```bash
+workflow-kit upgrade --ref vX.Y.Z --apply --yes
+```
+
+3. Then update each managed repository:
+
+```bash
+workflow-kit update --target /path/to/repo --apply --yes
+```
+
+4. If a repository predates install-state tracking, bootstrap once with `--adopt-existing` and continue with normal updates after that.

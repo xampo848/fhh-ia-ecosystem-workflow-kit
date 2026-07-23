@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { applyInstallPlan } from './apply.mjs';
-import { buildInstallPlan, formatPlan } from './planner.mjs';
+import { buildInstallPlan, buildUpdatePlan, formatPlan } from './planner.mjs';
 import {
   createCapabilityGuide,
   defaultIntentFor,
@@ -20,6 +20,7 @@ import {
   renderSummary,
   supportsColor
 } from './tui/view.mjs';
+import { buildUpgradePlan, commandExists as upgradeCommandExists, currentToolkitMetadata, formatUpgradePlan, resolveUpgradePackageManager } from './upgrade.mjs';
 
 const RUNTIME_OPTIONS = [
   { value: 'neutral', label: 'No extra adapters', description: 'Install full workflow content without runtime adapters.' },
@@ -50,26 +51,15 @@ const CAPABILITY_INTENT_OPTIONS = [
 ];
 
 const TUI_MODE_OPTIONS = [
-  { value: 'full', label: 'Guia instalacion full', description: 'Workflow completo + capabilities opcionales + auto-install opcional.' },
-  { value: 'workflow-only', label: 'Instalar solo workflow', description: 'Instala/actualiza solo archivos del workflow, sin capabilities opcionales.' },
+  { value: 'install', label: 'Instalar workflow en este repo', description: 'Instala el workflow completo y luego ofrece capabilities opcionales.' },
+  { value: 'update', label: 'Actualizar workflow en este repo', description: 'Actualiza solo archivos gestionados, con backups y proteccion de cambios locales.' },
+  { value: 'upgrade-toolkit', label: 'Actualizar toolkit en esta maquina', description: 'Actualiza el binario global desde GitHub para luego re-ejecutar update en los repos.' },
   { value: 'capabilities-only', label: 'Instalar solo capabilities opcionales', description: 'Revisa e instala capabilities sin tocar archivos del workflow.' }
 ];
 
 const FULL_OVERLAY = 'fhh-ia-ecosystem-full';
 
-function defaultCommandExists(command) {
-  return new Promise((resolve) => {
-    const child = spawn(command, ['--version'], { stdio: 'ignore' });
-    child.on('error', (error) => {
-      if (error && error.code === 'ENOENT') {
-        resolve(false);
-        return;
-      }
-      resolve(false);
-    });
-    child.on('exit', () => resolve(true));
-  });
-}
+const defaultCommandExists = upgradeCommandExists;
 
 function defaultRunCommand({ command, args, cwd, write, paint }) {
   return new Promise((resolve) => {
@@ -422,6 +412,66 @@ export async function runTui(options = {}) {
     let runtime;
     let overlay = FULL_OVERLAY;
 
+    if (mode === 'upgrade-toolkit') {
+      const metadata = currentToolkitMetadata();
+
+      renderStageHeader(write, paint, {
+        step: 2,
+        total: 4,
+        title: 'Upgrade source',
+        subtitle: 'Choose which Git ref should refresh the globally installed toolkit.'
+      });
+
+      const ref = scriptedMode
+        ? await prompter.promptText(`Git ref [${metadata.defaultUpgradeRef}]: `, metadata.defaultUpgradeRef)
+        : await prompter.promptText('Git ref (branch or tag)', metadata.defaultUpgradeRef);
+
+      const packageManager = await resolveUpgradePackageManager(undefined, commandExists);
+      const upgradePlan = buildUpgradePlan({ ref, packageManager });
+
+      renderStageHeader(write, paint, {
+        step: 3,
+        total: 4,
+        title: 'Upgrade preview',
+        subtitle: 'This updates the toolkit binary first. Repository updates happen in a second invocation.'
+      });
+
+      write(`${formatUpgradePlan(upgradePlan)}\n\n`);
+
+      renderStageHeader(write, paint, {
+        step: 4,
+        total: 4,
+        title: 'Run upgrade',
+        subtitle: 'The current process will remain on the old code until you launch workflow-kit again.'
+      });
+
+      const shouldUpgrade = scriptedMode
+        ? await prompter.confirm('Run toolkit upgrade now? Type yes to continue [no]: ')
+        : await prompter.confirm('Run toolkit upgrade now?', false);
+
+      if (!shouldUpgrade) {
+        write(`${paint.yellow('Aborted. Toolkit binary was not changed.')}\n`);
+        return { code: 0, applied: false, mode, upgradePlan };
+      }
+
+      const result = await runCommand({
+        command: upgradePlan.command,
+        args: upgradePlan.args,
+        cwd: process.cwd(),
+        write,
+        paint
+      });
+
+      if (!result.ok) {
+        write(`${paint.red('Toolkit upgrade failed.')}\n`);
+        return { code: 2, applied: false, mode, upgradePlan, upgradeResult: result };
+      }
+
+      write(`${paint.green('Toolkit upgrade completed.')} ${renderChip(paint, 'RESTART NEXT', 'green')}\n`);
+      write(`${paint.dim('Next step: launch workflow-kit again and run update for each target repository.') }\n`);
+      return { code: 0, applied: false, mode, upgradePlan, upgradeResult: result };
+    }
+
     if (mode === 'capabilities-only') {
       renderStageHeader(write, paint, {
         step: 2,
@@ -514,7 +564,9 @@ export async function runTui(options = {}) {
         step: 2,
         total: 6,
         title: 'Target selection',
-        subtitle: 'Choose where the workflow package will be installed.'
+        subtitle: mode === 'update'
+          ? 'Choose which repository should be reconciled with the current toolkit surface.'
+          : 'Choose where the workflow package will be installed.'
       });
 
       targetPath = await prompter.promptText('Target path [.]: ', '.');
@@ -523,8 +575,10 @@ export async function runTui(options = {}) {
       renderStageHeader(write, paint, {
         step: 3,
         total: 6,
-        title: 'Install package',
-        subtitle: 'The toolkit now installs the complete FHH IA Ecosystem package by default.'
+        title: mode === 'update' ? 'Update package' : 'Install package',
+        subtitle: mode === 'update'
+          ? 'Managed files will be updated selectively, with backups and protected skips.'
+          : 'The toolkit now installs the complete FHH IA Ecosystem package by default.'
       });
       const packageDetails = installPackageDetails(overlay);
       write(`${renderChip(paint, 'INSTALL PACKAGE', packageDetails.tone)} ${paint.dim(packageDetails.summary)}\n\n`);
@@ -551,7 +605,9 @@ export async function runTui(options = {}) {
         step: 2,
         total: 6,
         title: 'Target selection',
-        subtitle: 'Choose where the workflow package will be installed.'
+        subtitle: mode === 'update'
+          ? 'Choose which repository should be reconciled with the current toolkit surface.'
+          : 'Choose where the workflow package will be installed.'
       });
 
       targetPath = await prompter.promptText('Target path', '.');
@@ -559,8 +615,10 @@ export async function runTui(options = {}) {
       renderStageHeader(write, paint, {
         step: 3,
         total: 6,
-        title: 'Install package',
-        subtitle: 'The toolkit now installs the complete FHH IA Ecosystem package by default.'
+        title: mode === 'update' ? 'Update package' : 'Install package',
+        subtitle: mode === 'update'
+          ? 'Managed files will be updated selectively, with backups and protected skips.'
+          : 'The toolkit now installs the complete FHH IA Ecosystem package by default.'
       });
       const packageDetails = installPackageDetails(overlay);
       write(`${renderChip(paint, 'INSTALL PACKAGE', packageDetails.tone)} ${paint.dim(packageDetails.summary)}\n\n`);
@@ -585,12 +643,49 @@ export async function runTui(options = {}) {
 
     }
 
+    const buildPlan = async () => {
+      if (mode === 'update') {
+        try {
+          return await buildUpdatePlan({
+            targetPath,
+            runtime,
+            overlay,
+            toolkitVersion: currentToolkitMetadata().version
+          });
+        } catch (error) {
+          if (!/No install state found\./.test(String(error?.message ?? ''))) throw error;
+
+          write(`\n${paint.yellow('No install state found for this repository.')}\n`);
+          const adoptExisting = scriptedMode
+            ? await prompter.confirm('Bootstrap a safe baseline with adopt-existing? Type yes to continue [no]: ')
+            : await prompter.confirm('Bootstrap a safe baseline with adopt-existing?', true);
+
+          if (!adoptExisting) throw error;
+
+          return buildUpdatePlan({
+            targetPath,
+            runtime,
+            overlay,
+            adoptExisting: true,
+            toolkitVersion: currentToolkitMetadata().version
+          });
+        }
+      }
+
+      return buildInstallPlan({
+        targetPath,
+        runtime,
+        overlay,
+        toolkitVersion: currentToolkitMetadata().version
+      });
+    };
+
     const plan = await withSpinner({
       write,
       paint,
       label: 'Building plan',
       enabled: animate
-    }, async () => buildInstallPlan({ targetPath, runtime, overlay }));
+    }, buildPlan);
 
     renderSummary(write, paint, plan);
 
@@ -606,16 +701,14 @@ export async function runTui(options = {}) {
       write(`\n${paint.cyan(paint.bold('Full preview'))}\n${fullPreview}\n\n`);
     }
 
-    const { capabilitySelections, shouldAutoInstallCapabilities } = mode === 'workflow-only'
-      ? { capabilitySelections: [], shouldAutoInstallCapabilities: false }
-      : await collectCapabilitiesFlow({
-        prompter,
-        scriptedMode,
-        write,
-        paint,
-        runtime,
-        askOpenGuide: true
-      });
+    const { capabilitySelections, shouldAutoInstallCapabilities } = await collectCapabilitiesFlow({
+      prompter,
+      scriptedMode,
+      write,
+      paint,
+      runtime,
+      askOpenGuide: true
+    });
 
     let shouldApply = false;
     renderStageHeader(write, paint, {
@@ -639,9 +732,17 @@ export async function runTui(options = {}) {
     const applied = await applyInstallPlan(plan);
     const writeCount = applied.filter((item) => item.applied).length;
     const backupCount = applied.filter((item) => item.backupPath).length;
+    const modifiedSkips = applied.filter((item) => item.operation === 'skip_modified').length;
+    const unmanagedSkips = applied.filter((item) => item.operation === 'skip_unmanaged').length;
+    const adopted = applied.filter((item) => item.operation === 'adopt_existing').length;
     write(`\n${paint.green('Apply completed successfully.')} ${renderChip(paint, 'SYSTEM READY', 'green')}\n`);
     write(`Applied writes: ${paint.green(String(writeCount))}\n`);
     write(`Backups created: ${paint.yellow(String(backupCount))}\n`);
+    if (mode === 'update') {
+      write(`Protected local edits (skipped): ${paint.yellow(String(modifiedSkips))}\n`);
+      write(`Unmanaged files (skipped): ${paint.yellow(String(unmanagedSkips))}\n`);
+      write(`Adopted baseline files: ${paint.cyan(String(adopted))}\n`);
+    }
 
     let capabilityInstallResult = null;
     if (shouldAutoInstallCapabilities) {
@@ -673,7 +774,9 @@ export async function runTui(options = {}) {
       }
     }
 
-    write(`${paint.dim('The target repository now has the complete FHH IA Ecosystem workflow package installed.')}\n`);
+    write(`${paint.dim(mode === 'update'
+      ? 'The target repository has been reconciled against the current managed toolkit surface.'
+      : 'The target repository now has the complete FHH IA Ecosystem workflow package installed.') }\n`);
     return {
       code: 0,
       applied: true,

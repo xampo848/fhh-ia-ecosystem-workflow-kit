@@ -1,7 +1,8 @@
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 import path from 'node:path';
-import { selectedTemplateFiles, parseRuntimeList, normalizeOverlay } from './planner.mjs';
+import packageJson from '../package.json' with { type: 'json' };
+import { selectedTemplateFiles, parseRuntimeList, normalizeOverlay, readManagedInstallState } from './planner.mjs';
 import { validateWorkflowContract } from './workflow-contract/index.mjs';
 
 function checksum(content) {
@@ -9,11 +10,8 @@ function checksum(content) {
 }
 
 async function managedDriftDiagnostics(targetPath) {
-  const statePath = path.join(targetPath, '.agents/workflow-kit/install-state.json');
-  let state;
-  try {
-    state = JSON.parse(await fs.readFile(statePath, 'utf8'));
-  } catch {
+  const state = await readManagedInstallState(targetPath);
+  if (!state) {
     return [];
   }
 
@@ -34,6 +32,20 @@ async function managedDriftDiagnostics(targetPath) {
     }
   }
   return diagnostics;
+}
+
+async function managedVersionDiagnostics(targetPath) {
+  const state = await readManagedInstallState(targetPath);
+  if (!state?.toolkitVersion || !packageJson.version || state.toolkitVersion === packageJson.version) {
+    return [];
+  }
+
+  return [{
+    code: 'managed/toolkit-version-mismatch',
+    path: '.agents/workflow-kit/install-state.json',
+    message: `Managed files were last applied with toolkit version ${state.toolkitVersion}; current CLI version is ${packageJson.version}. Run workflow-kit update if you want this repository on the current toolkit surface.`,
+    severity: 'warning'
+  }];
 }
 
 export async function runDoctor(options = {}) {
@@ -58,7 +70,8 @@ export async function runDoctor(options = {}) {
   const contract = await validateWorkflowContract({ root: targetPath, runtimes });
   const diagnostics = [
     ...contract.diagnostics,
-    ...await managedDriftDiagnostics(targetPath)
+    ...await managedDriftDiagnostics(targetPath),
+    ...await managedVersionDiagnostics(targetPath)
   ].sort((a, b) => a.severity.localeCompare(b.severity)
     || a.code.localeCompare(b.code)
     || a.path.localeCompare(b.path));
@@ -77,6 +90,7 @@ export async function runDoctor(options = {}) {
 export function formatDoctorResult(result) {
   const lines = [
     `Target: ${result.targetPath}`,
+    `Toolkit version: ${packageJson.version}`,
     `Runtimes: ${result.runtimes.join(',')}`,
     `Overlay: ${result.overlay}`,
     result.ok ? 'Doctor: ok' : 'Doctor: failed'

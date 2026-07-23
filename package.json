@@ -5,6 +5,11 @@
   "description": "Private GitHub-installable CLI/TUI workflow kit with safe install/export commands.",
   "license": "MIT",
   "type": "module",
+  "workflowKit": {
+    "repository": "xampo848/fhh-ia-ecosystem-workflow-kit",
+    "defaultUpgradeRef": "main",
+    "preferredPackageManager": "bun"
+  },
   "bin": {
     "workflow-kit": "bin/workflow-kit.mjs"
   },

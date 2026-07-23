@@ -177,8 +177,8 @@ export async function animateIntro(write, paint, { animate = true } = {}) {
   }
 
   write(`${paint.bold(introTone(paint, 'purple', 'FHH IA Ecosystem'))} ${paint.dim(':: launch console')}\n`);
-  write(`${introTone(paint, 'cream', 'mode:')} ${introTone(paint, 'blue', 'full install')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'purple', 'preview-first')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'blue', 'backup-safe')}\n`);
-  write(`${paint.dim('High-fidelity install assistant: inspect first, then apply safely with backups.')}\n`);
+    write(`${introTone(paint, 'cream', 'mode:')} ${introTone(paint, 'blue', 'install')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'purple', 'update')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'blue', 'upgrade')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'purple', 'preview-first')}\n`);
+    write(`${paint.dim('High-fidelity workflow assistant: install, update, or upgrade safely with previews and backups.')}\n`);
   write(`${paint.dim('No files are written unless you explicitly confirm.')}\n\n`);
 }
 
@@ -198,11 +198,14 @@ function renderDashboard(write, paint, plan) {
   const totalOps = plan.operations.length;
   const runtimeLabel = plan.runtimes.join(', ');
   const { label: packageLabel } = installPackageDetails(plan.overlay);
+  const packageLine = plan.mode === 'update' ? 'Update package' : 'Install package';
 
   renderBox(write, paint, 'Mission control', [
     `Target         : ${plan.targetPath}`,
+    `Toolkit version: ${plan.toolkitVersion ?? 'unknown'}`,
+    `Managed target : ${plan.previousToolkitVersion ?? 'none recorded'}`,
     `Runtimes       : ${runtimeLabel}`,
-    `Install package: ${packageLabel}`,
+    `${packageLine}: ${packageLabel}`,
     `Total actions  : ${totalOps}`,
     `Create         : ${plan.summary.create}`,
     `No change      : ${plan.summary.unchanged}`,
@@ -220,7 +223,9 @@ export function renderSummary(write, paint, plan) {
     step: 4,
     total: 5,
     title: 'Plan preview',
-    subtitle: 'Review the install blueprint before deciding whether to write files.'
+    subtitle: plan.mode === 'update'
+      ? 'Review the managed update blueprint before deciding whether to write files.'
+      : 'Review the install blueprint before deciding whether to write files.'
   });
 
   renderDashboard(write, paint, plan);

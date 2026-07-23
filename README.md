@@ -8,13 +8,19 @@ Private, installable AI workflow kit for bringing the FHH IA Ecosystem agent wor
 
 You need access to the private repository: `xampo848/fhh-ia-ecosystem-workflow-kit`.
 
-Using SSH:
+Using Bun with SSH:
 
 ```bash
-npm install -g git+ssh://git@github.com/xampo848/fhh-ia-ecosystem-workflow-kit.git
+bun add -g git+ssh://git@github.com/xampo848/fhh-ia-ecosystem-workflow-kit.git
 ```
 
-Using GitHub shorthand with HTTPS auth already configured:
+Using Bun with GitHub shorthand and HTTPS auth already configured:
+
+```bash
+bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit
+```
+
+Alternative with npm:
 
 ```bash
 npm install -g github:xampo848/fhh-ia-ecosystem-workflow-kit
@@ -55,6 +61,24 @@ Use `update` to refresh only workflow-kit managed files.
 ### Real upgrade flow (update the toolkit binary first)
 
 When you release a new toolkit version, users should update their global install first, then run `workflow-kit update` inside each target repository.
+
+Preview the toolkit binary upgrade command:
+
+```bash
+workflow-kit upgrade
+```
+
+Apply the toolkit binary upgrade against the latest `main`:
+
+```bash
+workflow-kit upgrade --apply --yes
+```
+
+Pin to a released tag for a controlled rollout:
+
+```bash
+workflow-kit upgrade --ref v0.7.0 --apply --yes
+```
 
 Install a specific released tag:
 
@@ -130,6 +154,7 @@ workflow-kit tui
 ```
 
 The TUI asks for target path and runtimes, then shows a preview before asking whether to write. The default answer writes nothing.
+It now includes separate entrypoints for installing a repository, updating a managed repository, upgrading the globally installed toolkit binary, or handling optional capabilities only.
 
 ## Optional alternative tools (post-install)
 

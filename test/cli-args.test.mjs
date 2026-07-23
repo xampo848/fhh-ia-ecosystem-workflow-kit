@@ -31,6 +31,15 @@ test('parseArgs parses export output path and adopt-existing flag', () => {
   assert.equal(options.adoptExisting, true);
 });
 
+test('parseArgs parses upgrade ref and package manager flags', () => {
+  const options = parseArgs(['upgrade', '--ref', 'v0.7.1', '--package-manager', 'npm', '--apply', '--yes']);
+
+  assert.equal(options.ref, 'v0.7.1');
+  assert.equal(options.packageManager, 'npm');
+  assert.equal(options.apply, true);
+  assert.equal(options.yes, true);
+});
+
 test('parseArgs marks help flag for --help and -h', () => {
   assert.equal(parseArgs(['init', '--help']).help, true);
   assert.equal(parseArgs(['init', '-h']).help, true);
@@ -45,6 +54,7 @@ test('printHelp documents all commands', () => {
 
   assert.match(help, /workflow-kit init/);
   assert.match(help, /workflow-kit update/);
+  assert.match(help, /workflow-kit upgrade/);
   assert.match(help, /workflow-kit export/);
   assert.match(help, /workflow-kit doctor/);
   assert.match(help, /workflow-kit tui/);

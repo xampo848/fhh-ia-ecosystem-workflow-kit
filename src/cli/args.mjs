@@ -1,5 +1,5 @@
 export function printHelp() {
-  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>]\n  workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--adopt-existing]\n  workflow-kit export [--output <path>] [--dry-run] [--apply --yes] [--runtime <list>]\n  workflow-kit doctor [--target <path>] [--runtime <list>]\n  workflow-kit tui\n`;
+  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>]\n  workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--adopt-existing]\n  workflow-kit upgrade [--ref <git-ref>] [--package-manager bun|npm] [--dry-run] [--apply --yes]\n  workflow-kit export [--output <path>] [--dry-run] [--apply --yes] [--runtime <list>]\n  workflow-kit doctor [--target <path>] [--runtime <list>]\n  workflow-kit tui\n`;
 }
 
 export function parseArgs(argv) {
@@ -12,6 +12,8 @@ export function parseArgs(argv) {
     else if (arg === '--output') options.outputPath = rest[++index];
     else if (arg === '--runtime') options.runtime = rest[++index];
     else if (arg === '--overlay') options.overlay = rest[++index];
+    else if (arg === '--ref') options.ref = rest[++index];
+    else if (arg === '--package-manager') options.packageManager = rest[++index];
     else if (arg === '--dry-run') options.dryRun = true;
     else if (arg === '--apply') { options.apply = true; options.dryRun = false; }
     else if (arg === '--yes') options.yes = true;

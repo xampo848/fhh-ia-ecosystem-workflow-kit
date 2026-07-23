@@ -48,17 +48,39 @@ capability registries, and managed-file drift.
 Supported first-class adapters are `codex`, `copilot`, `claude`, and
 `antigravity`. The neutral workflow contract is always installed.
 
-## 5. Guided TUI
+## 5. Upgrade the toolkit binary before updating repos
+
+Preview the global toolkit upgrade command:
+
+```bash
+node bin/workflow-kit.mjs upgrade
+```
+
+Apply the latest `main` version to your machine:
+
+```bash
+node bin/workflow-kit.mjs upgrade --apply --yes
+```
+
+Pin to a released tag when needed:
+
+```bash
+node bin/workflow-kit.mjs upgrade --ref v0.7.0 --apply --yes
+```
+
+After that, run `update` in each target repository you manage.
+
+## 6. Guided TUI
 
 ```bash
 node bin/workflow-kit.mjs tui
 ```
 
-The TUI prompts for target and runtimes; it always shows a preview before asking whether to write. The default confirmation writes nothing.
+The TUI index offers install, update, toolkit-upgrade, and capabilities-only flows. It always shows a preview before asking whether to write. The default confirmation writes nothing.
 It can also open an optional capability guide (Context7, Engram, codebase-memory-mcp) with source/scope/mode confirmation and official install commands.
 The install package is fixed to `Full FHH IA Ecosystem`.
 
-## 6. Export templates without treating the output as a repo install
+## 7. Export templates without treating the output as a repo install
 
 Preview export:
 
@@ -74,7 +96,7 @@ node bin/workflow-kit.mjs export --output /tmp/workflow-kit-export --runtime cod
 
 `export` uses the same dry-run-first planner and backup behavior as `init`.
 
-## 7. Update an already-installed repo safely
+## 8. Update an already-installed repo safely
 
 Preview update:
 
@@ -100,7 +122,7 @@ node bin/workflow-kit.mjs update \
   --apply --yes
 ```
 
-## 8. Optional alternative tools (Engram, Context7, codebase-memory-mcp)
+## 9. Optional alternative tools (Engram, Context7, codebase-memory-mcp)
 
 After `init`, you can guide users to install or attach external capabilities.
 Use the neutral integrations contract in `.agents/integrations/README`.
