@@ -18,7 +18,7 @@
         {
           "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable",
           "fileCount": 62,
-          "pathContentSha256": "410c9b9da8c8e01c5003044448f85db7059d698ab2b48c89a8dea2d6ff39bf23"
+          "pathContentSha256": "c02572486a9be9dbff6f7b36f470722e012f893b420255294148dcc461d9cc78"
         }
       ],
       "modificationNotice": "Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in pbakaus/impeccable.",
@@ -183,6 +183,11 @@
       "name": "product-studio",
       "status": "EXTERNAL_UNVERIFIED",
       "license": "UNRESOLVED",
+      "upstream": {
+        "repository": "https://github.com/deanpeters/Product-Manager-Skills",
+        "commit": "99710188c134acf590a02c0e4ee1f431e60004cf",
+        "sourceRoot": "skills"
+      },
       "localPaths": [
         "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio"
       ],
@@ -194,8 +199,13 @@
         }
       ],
       "verification": {
-        "method": "the full tree is frozen by an integrity inventory while source and license evidence are incomplete",
-        "missingEvidence": "A source URL, source snapshot, and applicable license covering all 19 files."
+        "method": "direct comparison against the pinned Product-Manager-Skills/skills snapshot shows partial byte-identical overlap and additional local adaptations",
+        "upstreamCurrentLicense": "CC-BY-NC-SA-4.0",
+        "exactMatches": 9,
+        "localFileCount": 19,
+        "samePathDifferentContent": 9,
+        "localOnlyByPath": 1,
+        "missingEvidence": "A complete rights basis for redistribution of the adapted full tree and an approved publication decision for non-commercial upstream terms."
       },
       "publicReleaseBlocker": true
     }

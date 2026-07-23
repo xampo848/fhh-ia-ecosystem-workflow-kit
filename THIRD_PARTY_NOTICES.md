@@ -71,9 +71,16 @@ artifact and not legal advice.
 - Local path:
   `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/product-studio/**`
 - Status: `EXTERNAL_UNVERIFIED`; it blocks public release.
-- The remaining Product Studio files lack a complete source snapshot and
-  applicable license record. They are frozen by an integrity inventory for
-  auditability, not approved for redistribution.
+- Direct comparison against `https://github.com/deanpeters/Product-Manager-Skills`
+  (`skills` at commit `99710188c134acf590a02c0e4ee1f431e60004cf`) found partial
+  derivation evidence: 9 of 19 local files are byte-identical, 9 map to the
+  same paths with local modifications, and 1 local wrapper file has no direct
+  path counterpart.
+- The current upstream repository snapshot is published under
+  `CC BY-NC-SA 4.0`. This strengthens provenance evidence but does not by itself
+  authorize public redistribution of the adapted complete tree in this repo.
+- The complete Product Studio tree remains frozen by an integrity inventory for
+  auditability and is not approved for public redistribution.
 - Before public release, obtain source and license evidence for all 19 files or
   remove the complete Product Studio tree from both canonical and installable
   overlays, then renew the provenance record.
