@@ -168,8 +168,7 @@
           "prompts/user-story-prompt-template.md"
         ]
       },
-      "localPaths": [
-      ],
+      "localPaths": [],
       "distributionScope": "historical evidence only; Product Studio content has been removed from canonical and installable overlays",
       "verification": {
         "method": "declared source paths exist in the pinned MIT snapshot; historical local derivatives entered this repository before the 2026-07-17 upstream relicense",
