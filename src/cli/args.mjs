@@ -1,5 +1,5 @@
 export function printHelp() {
-  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>]\n  workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--adopt-existing]\n  workflow-kit upgrade [--ref <git-ref>] [--package-manager bun|npm] [--dry-run] [--apply --yes]\n  workflow-kit export [--output <path>] [--dry-run] [--apply --yes] [--runtime <list>]\n  workflow-kit doctor [--target <path>] [--runtime <list>]\n  workflow-kit tui\n`;
+  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>]\n  workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--adopt-existing]\n  workflow-kit upgrade [--ref <git-ref>] [--package-manager bun] [--dry-run] [--apply --yes]\n  workflow-kit export [--output <path>] [--dry-run] [--apply --yes] [--runtime <list>]\n  workflow-kit doctor [--target <path>] [--runtime <list>]\n  workflow-kit tui\n`;
 }
 
 export function parseArgs(argv) {

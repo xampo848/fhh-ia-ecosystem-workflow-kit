@@ -32,7 +32,7 @@ Regenerate and verify the skill registry with:
 
 ```bash
 node scripts/sync-skill-registry.mjs --write
-npm run check:workflow
+bun run check:workflow
 ```
 
 ## Update fails with "No install state found"
@@ -69,11 +69,11 @@ Use `neutral` when your runtime is not listed, then create a local thin adapter 
 Run checks individually:
 
 ```bash
-npm test
-npm run check
-npm run check:templates
-npm run check:release
-npm run check:docs
+bun run test
+bun run check
+bun run check:templates
+bun run check:release
+bun run check:docs
 ```
 
 The failure message should name the missing file, unsafe script, invalid template pack, or missing documentation phrase.

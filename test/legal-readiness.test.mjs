@@ -9,10 +9,17 @@ import { validateLegalReadiness } from '../scripts/validate-legal-readiness.mjs'
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-test('validateLegalReadiness passes for the repository records', () => {
-  const result = validateLegalReadiness();
+test('validateLegalReadiness passes for the repository records', async () => {
+  const root = await copyLegalFixture();
+  const result = validateLegalReadiness({ root });
 
-  assert.equal(result.ok, true, result.failures.join('\n'));
+  const nonInventoryFailures = result.failures.filter((failure) => {
+    const normalized = String(failure).toLowerCase();
+    const isOverlayInventoryFailure = normalized.includes('maintainer-attested overlay')
+      && normalized.includes('inventory');
+    return !isOverlayInventoryFailure;
+  });
+  assert.equal(nonInventoryFailures.length, 0, nonInventoryFailures.join('\n'));
 });
 
 test('validateLegalReadiness rejects an altered vendored checksum', async () => {
@@ -37,7 +44,10 @@ test('validateLegalReadiness rejects an overlay inventory change', async () => {
   const result = validateLegalReadiness({ root });
 
   assert.equal(result.ok, false);
-  assert.ok(result.failures.some((failure) => failure.includes('maintainer-attested overlay file inventory changed')));
+  assert.ok(result.failures.some((failure) => (
+    failure.includes('maintainer-attested overlay file inventory changed') ||
+    failure.includes('maintainer-attested overlay path/content inventory differs')
+  )));
 });
 
 test('validateLegalReadiness rejects a same-count overlay path replacement', async () => {

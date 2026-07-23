@@ -32,10 +32,10 @@ test('parseArgs parses export output path and adopt-existing flag', () => {
 });
 
 test('parseArgs parses upgrade ref and package manager flags', () => {
-  const options = parseArgs(['upgrade', '--ref', 'v0.7.1', '--package-manager', 'npm', '--apply', '--yes']);
+  const options = parseArgs(['upgrade', '--ref', 'v0.7.1', '--package-manager', 'bun', '--apply', '--yes']);
 
   assert.equal(options.ref, 'v0.7.1');
-  assert.equal(options.packageManager, 'npm');
+  assert.equal(options.packageManager, 'bun');
   assert.equal(options.apply, true);
   assert.equal(options.yes, true);
 });

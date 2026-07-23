@@ -7,12 +7,12 @@ This project is not published yet. Do not create repositories, push branches, up
 Run locally:
 
 ```bash
-npm test
-npm run check
-npm run check:workflow
-npm run check:docs
-npm run check:legal
-npm run check:release
+bun run test
+bun run check
+bun run check:workflow
+bun run check:docs
+bun run check:legal
+bun run check:release
 ```
 
 ## Required approvals
@@ -39,7 +39,7 @@ Do not run:
 
 1. Confirm working tree is clean and CI passes.
 2. If merged changes affect the portable core, template packs, runtime adapters, planner/update logic, doctor semantics, or TUI update surface, bump `package.json.version` before distributing the new toolkit.
-3. Set final semver version or approved private prerelease-like version.
+3. Set final semver version or approved rollout prerelease-like version.
 4. Create release notes from merged PRDs and changelog.
 5. Create/push repo only after explicit approval.
 6. Publish package only after explicit approval and final dry-run.

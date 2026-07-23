@@ -24,11 +24,11 @@ It is not a single framework and not a rigid template. It is a practical alterna
 
 It is designed to be adopted as-is or adapted to each team's own way of working.
 
-> Current status: **private GitHub install/export ready**. The package provides a dry-run-first CLI, guided TUI, template export, doctor validation, manifest-validated template packs, release guardrails, and adoption docs. It is intentionally **not published to npm**.
+> Current status: **public GitHub install/export ready**. The package provides a dry-run-first CLI, guided TUI, template export, doctor validation, manifest-validated template packs, release guardrails, and adoption docs. It is intentionally **not published to npm**.
 
-## Install from the private GitHub repository
+## Install from the public GitHub repository
 
-You need access to the private repository: `xampo848/fhh-ia-ecosystem-workflow-kit`.
+Repository URL: `xampo848/fhh-ia-ecosystem-workflow-kit`.
 
 Using Bun with SSH:
 
@@ -40,12 +40,6 @@ Using Bun with GitHub shorthand and HTTPS auth already configured:
 
 ```bash
 bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit
-```
-
-Alternative with npm:
-
-```bash
-npm install -g github:xampo848/fhh-ia-ecosystem-workflow-kit
 ```
 
 Then verify:
@@ -333,7 +327,7 @@ For each registry entry, define at least:
 1. Validate template packs in this toolkit repository:
 
 ```bash
-npm run check:templates
+bun run check:templates
 ```
 
 2. In a target repository, preview managed updates before apply:
@@ -377,23 +371,17 @@ fhh-ia-ecosystem-workflow-kit/
 ## Validation for maintainers
 
 ```bash
-npm test
-npm run check
-npm run check:templates
-npm run check:release
-npm run check:docs
-npm pack --dry-run
-```
-
-If your local npm cache has permission issues, use a temporary cache:
-
-```bash
-npm_config_cache=/tmp/workflow-kit-npm-cache npm pack --dry-run
+bun run test
+bun run check
+bun run check:templates
+bun run check:release
+bun run check:docs
+bun pm pack --dry-run
 ```
 
 ## Documentation
 
-- [Private GitHub install](docs/private-github-install.md)
+- [GitHub install](docs/github-install.md)
 - [Quickstart](docs/quickstart.md)
 - [Adapter authoring](docs/adapter-authoring.md)
 - [Troubleshooting](docs/troubleshooting.md)

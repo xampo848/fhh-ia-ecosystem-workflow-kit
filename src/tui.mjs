@@ -95,7 +95,7 @@ function defaultRunCommand({ command, args, cwd, write, paint }) {
 
 async function preferredPackageManager(commandExists) {
   if (await commandExists('bun')) return 'bun';
-  return 'npm';
+  throw new Error('bun is required to install optional capabilities.');
 }
 
 function buildCapabilityInstallSteps({ capability, intent, runtimes, packageManager }) {
@@ -109,9 +109,7 @@ function buildCapabilityInstallSteps({ capability, intent, runtimes, packageMana
   }
 
   if (capability === 'context7') {
-    const installStep = packageManager === 'bun'
-      ? { label: 'Install @upstash/context7-mcp', command: 'bun', args: ['add', '-g', '@upstash/context7-mcp'] }
-      : { label: 'Install @upstash/context7-mcp', command: 'npm', args: ['install', '-g', '@upstash/context7-mcp'] };
+    const installStep = { label: 'Install @upstash/context7-mcp', command: 'bun', args: ['add', '-g', '@upstash/context7-mcp'] };
 
     return {
       capability,
@@ -125,9 +123,7 @@ function buildCapabilityInstallSteps({ capability, intent, runtimes, packageMana
   }
 
   if (capability === 'codebase-memory-mcp') {
-    const installStep = packageManager === 'bun'
-      ? { label: 'Install codebase-memory-mcp', command: 'bun', args: ['add', '-g', 'codebase-memory-mcp'] }
-      : { label: 'Install codebase-memory-mcp', command: 'npm', args: ['install', '-g', 'codebase-memory-mcp'] };
+    const installStep = { label: 'Install codebase-memory-mcp', command: 'bun', args: ['add', '-g', 'codebase-memory-mcp'] };
 
     return {
       capability,

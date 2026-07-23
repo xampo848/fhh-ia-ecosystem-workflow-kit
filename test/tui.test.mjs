@@ -73,7 +73,7 @@ test('tui can auto-install install+attach optional capabilities in one confirmat
     ask: scriptedAsk(['', target, '1', '', 'yes', '3', '1', '2', 'yes', 'yes']),
     color: false,
     write: () => {},
-    commandExists: async (command) => command === 'bun' || command === 'npm',
+    commandExists: async (command) => command === 'bun',
     runCommand: async ({ command, args }) => {
       executed.push(`${command} ${args.join(' ')}`);
       return { ok: true, code: 0 };
@@ -99,7 +99,7 @@ test('tui auto-installs context7 package and reports manual configuration steps'
     ask: scriptedAsk(['', target, '1', '', 'yes', '1', '1', '2', 'yes', 'yes']),
     color: false,
     write: (message) => { output += message; },
-    commandExists: async (command) => command === 'bun' || command === 'npm',
+    commandExists: async (command) => command === 'bun',
     runCommand: async ({ command, args }) => {
       executed.push(`${command} ${args.join(' ')}`);
       return { ok: true, code: 0 };
@@ -123,7 +123,7 @@ test('tui capabilities-only mode runs optional capabilities without applying wor
     ask: scriptedAsk(['4', target, '1', '3', '1', '2', 'yes']),
     color: false,
     write: () => {},
-    commandExists: async (command) => command === 'bun' || command === 'npm',
+    commandExists: async (command) => command === 'bun',
     runCommand: async ({ command, args }) => {
       executed.push(`${command} ${args.join(' ')}`);
       return { ok: true, code: 0 };
@@ -166,7 +166,7 @@ test('tui upgrade-toolkit mode runs the global upgrade command and exits without
     ask: scriptedAsk(['3', '', 'yes']),
     color: false,
     write: () => {},
-    commandExists: async (command) => command === 'bun' || command === 'npm',
+    commandExists: async (command) => command === 'bun',
     runCommand: async ({ command, args }) => {
       executed.push(`${command} ${args.join(' ')}`);
       return { ok: true, code: 0 };

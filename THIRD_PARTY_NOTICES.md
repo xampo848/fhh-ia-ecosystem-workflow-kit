@@ -75,7 +75,7 @@ artifact and not legal advice.
 ## Distribution Rule
 
 If a component lacks an exact or date-bounded upstream snapshot, required notice
-carry-forward, or clear corporate authorization, it must remain private or be
+carry-forward, or clear corporate authorization, it must remain non-distributable or be
 excluded from the public release even when the top-level upstream license is
 known. Product Studio was removed from distribution scope under this rule. The legal gate validates the
 records above, but does not replace the publication decision in

@@ -11,18 +11,18 @@ Define how company-originated changes can be contributed safely to the upstream 
 1. Developer implements change in company branch/fork.
 2. Company triage classifies change:
    - `GENERIC`: reusable, no internal secrets/policies.
-   - `CORPORATE-CONFIDENTIAL`: internal-only, remains private.
+   - `CORPORATE-CONFIDENTIAL`: internal-only, remains in confidential overlays.
 3. Security review checks for secrets, personal data, internal identifiers, and sensitive architecture details.
 4. IP authorization confirms contributor and company are allowed to submit the change.
 5. Contributor signs off commits using DCO (`Signed-off-by`).
 6. Pull request is opened with provenance declaration.
 7. CI legal/compliance checks run.
-8. Maintainer decides inclusion in portable core or keeps it private.
+8. Maintainer decides inclusion in portable core or keeps it internal.
 9. Merge does not imply roadmap control transfer.
 
 ## Mandatory Conditions for Corporate PRs
 
-- No credentials, tokens, private endpoints, or customer data.
+- No credentials, tokens, internal endpoints, or customer data.
 - No internal-only policy text unless intentionally open-sourced.
 - Explicit statement of rights to contribute the submitted material.
 - DCO sign-off on all commits.
@@ -37,7 +37,7 @@ Contribute upstream only if all are true:
 - The company authorizes publication.
 - Third-party dependencies are license-compatible and documented.
 
-Otherwise, keep in private corporate overlay.
+Otherwise, keep in a confidential corporate overlay.
 
 ## When CLA May Be Needed
 

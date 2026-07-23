@@ -5,7 +5,7 @@
 This project follows an open-core model:
 
 - Portable open source core (neutral workflows, CLI/TUI/planner/apply/doctor, thin adapters, generic templates).
-- Private overlays for company-specific rules, integrations, and confidential practices.
+- Confidential overlays for company-specific rules, integrations, and internal practices.
 
 ## Maintainers
 
@@ -19,7 +19,7 @@ Maintainers control:
 ## Decision principles
 
 - Legitimacy over speed: no release if IP/licensing provenance is unresolved.
-- Safety over convenience: private/corporate material stays out of public core.
+- Safety over convenience: confidential/corporate material stays out of public core.
 - Reproducibility: all legal and technical checks must be automatable.
 
 ## Contribution acceptance gates

@@ -135,7 +135,7 @@ export function createCapabilityGuide({ capability, scope, intent, runtimes }) {
 
   const commands = [
     'Install package:',
-    'npm install -g codebase-memory-mcp',
+    'bun add -g codebase-memory-mcp',
     '',
     'Configure detected coding agents:',
     'codebase-memory-mcp install',
@@ -155,7 +155,7 @@ export function createCapabilityGuide({ capability, scope, intent, runtimes }) {
   ];
 
   return {
-    source: 'DeusData/codebase-memory-mcp (pkg/npm/README.md + README.md)',
+    source: 'DeusData/codebase-memory-mcp (README.md)',
     effect: 'Adds structural code graph MCP tools for indexing/search/trace.',
     commands,
     notes: [

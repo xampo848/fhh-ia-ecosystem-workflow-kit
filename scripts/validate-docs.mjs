@@ -11,7 +11,7 @@ const requiredDocs = [
   'docs/quickstart.md',
   'docs/troubleshooting.md',
   'docs/migration.md',
-  'docs/private-github-install.md',
+  'docs/github-install.md',
   'docs/adapter-authoring.md',
   'docs/versioning.md',
   'docs/legal/OPEN-SOURCE-READINESS.md',
@@ -26,11 +26,11 @@ const requiredDocs = [
 ];
 
 const requiredPhrases = {
-  'README.md': ['Quickstart', 'Private GitHub install', 'Troubleshooting', 'Migration', 'Release Checklist'],
+  'README.md': ['Quickstart', 'GitHub install', 'Troubleshooting', 'Migration', 'Release Checklist'],
   'docs/quickstart.md': ['dry-run', '--apply --yes', 'doctor', 'tui', 'export'],
   'docs/troubleshooting.md': ['overwrite_with_backup', 'backup', 'Unsupported runtime', 'missing files'],
   'docs/migration.md': ['manual `.agents` copying', 'full workflow package', 'Runtime adapters'],
-  'docs/private-github-install.md': ['npm install -g', 'private repository', 'package.json` intentionally remains `private: true`'],
+  'docs/github-install.md': ['bun add -g', 'public GitHub repository', 'package.json` intentionally remains `private: true`'],
   'docs/legal/OPEN-SOURCE-READINESS.md': ['Recommendation: `GO`', 'product-studio has been removed', 'explicit maintainer approval'],
   'docs/legal/PROVENANCE-AUDIT.md': ['P-010', 'removed from distribution scope', 'SHA-256'],
   'docs/legal/third-party/README.md': ['Schema v2', 'EXTERNAL_UNVERIFIED'],

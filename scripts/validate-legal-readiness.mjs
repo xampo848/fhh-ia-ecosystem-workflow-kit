@@ -256,7 +256,11 @@ function collectDirectoryInventory(inventoryRoot, excludedPrefixes) {
     }
   }
   walk(inventoryRoot);
-  return entries.sort((left, right) => left.path.localeCompare(right.path));
+  return entries.sort((left, right) => {
+    if (left.path < right.path) return -1;
+    if (left.path > right.path) return 1;
+    return 0;
+  });
 }
 
 function digestInventory(entries) {

@@ -27,7 +27,7 @@
 ## P0 — Crítico (corregir de inmediato)
 
 ### P0.1 — Inconsistencia de versión entre `package.json` y la documentación
-- **Observación:** `package.json` declara `"version": "0.6.0-private-install-export"`, mientras que el `README.md` instruye a instalar `#v0.7.0` (`bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.7.0`).
+- **Observación:** `package.json` declara `"version": "0.6.0-public-install-export"`, mientras que el `README.md` instruye a instalar `#v0.7.0` (`bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.7.0`).
 - **Riesgo:** Los usuarios instalan un tag que no corresponde a la versión publicada del código; confusión en soporte y en el flujo de release.
 - **Propuesta:**
   1. Definir la versión canónica y alinear ambos artefactos.
@@ -54,7 +54,7 @@
   Añadir un test que verifique que ninguna ruta se lee dos veces del disco.
 
 ### P1.2 — Inconsistencia de gestor de paquetes (npm vs bun)
-- **Observación:** El `README` mezcla `npm install -g …` y `bun add -g …`; los scripts de `package.json` y el CI usan `npm`/`npm ci`; el repositorio versiona `package-lock.json`. La preferencia del equipo es **bun**.
+- **Observación:** El `README` mezclaba `npm install -g …` y `bun add -g …`; los scripts de `package.json` y el CI usaban `npm`/`npm ci`; el repositorio versiona `package-lock.json`. La preferencia del equipo es **bun**.
 - **Riesgo:** Divergencia entre lockfiles, instrucciones contradictorias y builds no reproducibles.
 - **Propuesta:**
   1. Elegir un gestor canónico (bun, según preferencia del equipo) y unificar todas las instrucciones del `README` y de `docs/`.
@@ -64,7 +64,7 @@
 ### P1.3 — `check:docs` no se ejecuta en CI
 - **Observación:** Existe el script `check:docs` (`scripts/validate-docs.mjs`) pero el workflow `ci.yml` solo ejecuta `test`, `check`, `check:templates` y `check:release`.
 - **Riesgo:** Regresiones en documentación no detectadas en CI.
-- **Propuesta:** Añadir un paso `npm run check:docs` (o su equivalente con bun) al workflow y, opcionalmente, exigirlo desde `validate-release-readiness.mjs` como los demás checks.
+- **Propuesta:** Añadir un paso `bun run check:docs` al workflow y, opcionalmente, exigirlo desde `validate-release-readiness.mjs` como los demás checks.
 
 ### P1.4 — Escritura no transaccional en `applyInstallPlan`
 - **Observación:** `src/apply.mjs` itera y escribe archivos secuencialmente y solo al final persiste `install-state.json`. Si una escritura falla a mitad de camino, el repositorio destino queda con un estado parcial y **sin** archivo de estado actualizado, dejando el árbol en un punto intermedio difícil de auditar.

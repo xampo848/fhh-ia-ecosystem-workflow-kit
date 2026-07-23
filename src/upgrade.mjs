@@ -14,7 +14,7 @@ export function currentToolkitMetadata() {
 
 export function normalizePackageManager(value) {
   const normalized = String(value ?? '').trim().toLowerCase();
-  if (normalized === 'bun' || normalized === 'npm') return normalized;
+  if (normalized === 'bun') return normalized;
   throw new Error(`Unsupported package manager: ${value}`);
 }
 
@@ -41,9 +41,7 @@ export function buildUpgradePlan(options = {}) {
     spec,
     currentVersion: metadata.version,
     command: packageManager,
-    args: packageManager === 'bun'
-      ? ['add', '-g', spec]
-      : ['install', '-g', spec]
+    args: ['add', '-g', spec]
   };
 }
 
@@ -77,12 +75,12 @@ export async function resolveUpgradePackageManager(preferred, exists = commandEx
   if (preferred) return normalizePackageManager(preferred);
 
   const metadata = currentToolkitMetadata();
-  const fallbackOrder = [metadata.preferredPackageManager, 'npm'];
+  const fallbackOrder = [metadata.preferredPackageManager, 'bun'];
   for (const candidate of fallbackOrder) {
     if (await exists(candidate)) return candidate;
   }
 
-  throw new Error('Neither bun nor npm is available in PATH for toolkit upgrade.');
+  throw new Error('bun is required in PATH for toolkit upgrade.');
 }
 
 export function runUpgradePlan(plan, { cwd = process.cwd(), stdout = process.stdout, stderr = process.stderr } = {}) {

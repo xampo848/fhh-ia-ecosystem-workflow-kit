@@ -53,7 +53,7 @@ features must use a documented safe fallback instead.
 Run:
 
 ```bash
-npm run check:workflow
+bun run check:workflow
 ```
 
 The validator checks required files, neutral references, per-turn intake,
