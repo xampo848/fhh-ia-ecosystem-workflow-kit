@@ -8,7 +8,15 @@ import manifest from '../templates/template-manifest.json' with { type: 'json' }
 
 test('template manifest declares expected packs', () => {
   const ids = manifest.packs.map((pack) => pack.id).sort();
-  assert.deepEqual(ids, ['adapter-antigravity', 'adapter-claude', 'adapter-codex', 'adapter-copilot', 'repo-overlay-fhh-ia-ecosystem-full']);
+  assert.deepEqual(ids, ['adapter-agents-md', 'adapter-antigravity', 'adapter-claude', 'adapter-codex', 'adapter-copilot', 'repo-overlay-fhh-ia-ecosystem-full']);
+});
+
+test('shared AGENTS adapter owns the root bootstrap', () => {
+  const shared = manifest.packs.find((pack) => pack.id === 'adapter-agents-md');
+  const codex = manifest.packs.find((pack) => pack.id === 'adapter-codex');
+
+  assert.deepEqual(shared.required_files, ['AGENTS.md']);
+  assert.equal(codex.required_files.includes('AGENTS.md'), false);
 });
 
 test('validateTemplatePacks passes for bundled packs', async () => {

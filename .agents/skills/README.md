@@ -25,6 +25,17 @@ Use the registry to find:
 Do not load every `SKILL.md` at startup. Load full skill bodies only when the
 registry trigger and loading posture match the current task.
 
+The Markdown registry is canonical. Keep the generated JSON and checksum cache
+in sync with:
+
+```bash
+node scripts/sync-skill-registry.mjs --write
+node scripts/sync-skill-registry.mjs --check
+```
+
+`npm run check:workflow` runs the check form and also validates adapters,
+capability manifests, and overlay drift.
+
 ## Skill classes
 
 ### Workflow skills

@@ -10,6 +10,7 @@
 | `source_policy` | attach-only from current runtime when available |
 | `availability` | already available in supported runtimes when the tool is exposed |
 | `scope` | hybrid: runtime/user availability plus repo/project attach semantics |
+| `runtime_support` | Codex, GitHub Copilot, Claude Code, and Antigravity when the runtime exposes Context7 tools |
 | `install_mode` | attach-only |
 | `owner_layer` | repo-overlay capability manifest |
 | `status` | optional / attachable |

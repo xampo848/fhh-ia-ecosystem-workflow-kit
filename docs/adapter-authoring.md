@@ -26,16 +26,36 @@ Each pack declares:
 Runtime adapters should be boring:
 
 1. Tell the runtime to read `.agents/instructions.md`.
-2. Tell it to use `.agents/skills/registry.md` for discovery.
-3. Avoid copying workflow algorithms into the adapter.
-4. Keep runtime-specific details small and explicit.
+2. Re-apply the neutral **per-turn intake** on every user prompt; session startup alone is not enough.
+3. Tell it to use `.agents/skills/registry.md` for just-in-time discovery.
+4. Give explicit skill invocation precedence over automatic routing.
+5. Keep direct answers lightweight and load `workflow-router` for non-trivial freeform work.
+6. Avoid copying workflow algorithms into the adapter.
+7. Keep runtime-specific details small and explicit.
+
+`AGENTS.md` is a shared adapter pack used by Codex and Copilot-compatible
+surfaces. Claude Code and Antigravity keep thin syntax-specific entrypoints.
+Runtime selection remains an explicit mapping in `src/planner.mjs`.
+
+## Adding a runtime
+
+1. Add a thin pack under `templates/runtime-adapters/<runtime>/`.
+2. Register the pack in `templates/template-manifest.json`.
+3. Add the explicit runtime-to-pack mapping in `src/planner.mjs`.
+4. Add routing-contract and planner coverage.
+5. Add the runtime to `.agents/memory/parity-checklist.md`.
+
+Do not create a second workflow contract in the adapter. Unsupported runtime
+features must use a documented safe fallback instead.
 
 ## Validation
 
 Run:
 
 ```bash
-npm run check:templates
+npm run check:workflow
 ```
 
-The validator checks required files, thin adapter references, and forbidden product-specific terms in adapters.
+The validator checks required files, neutral references, per-turn intake,
+Copilot `applyTo: "**"` coverage, skill registry integrity, capability
+manifests, and canonical/overlay drift.

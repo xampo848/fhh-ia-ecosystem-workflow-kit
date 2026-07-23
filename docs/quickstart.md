@@ -41,6 +41,13 @@ node bin/workflow-kit.mjs doctor \
   --runtime codex,copilot
 ```
 
+`doctor` validates both installed files and workflow semantics. It reports
+stable diagnostic codes for adapter coverage, per-turn intake, skill and
+capability registries, and managed-file drift.
+
+Supported first-class adapters are `codex`, `copilot`, `claude`, and
+`antigravity`. The neutral workflow contract is always installed.
+
 ## 5. Guided TUI
 
 ```bash

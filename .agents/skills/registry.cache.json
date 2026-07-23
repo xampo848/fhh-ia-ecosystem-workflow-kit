@@ -1,12 +1,12 @@
 {
   "cache_schema_version": "1.0.0",
   "derived_artifact": true,
-  "generated_by": "scripts/refresh_skill_registry_cache.py",
+  "generated_by": "scripts/sync-skill-registry.mjs",
   "canonical_source": ".agents/skills/registry.md",
   "structured_registry": ".agents/skills/registry.json",
   "source_hashes": {
-    ".agents/skills/registry.md": "5ab42b8d055fdb1299324bf05d536a2b38aff706dca55ff935eeaf5e39a1463f",
-    ".agents/skills/registry.json": "2d4b6b4b08a7582d1791638b7d44ca1a76e3fc4bb08651d5a3939c1ddf1dae26"
+    ".agents/skills/registry.md": "29a1efac71b15adb7bc1d7bddf327fc65bfaba07aa0e291fe5aa8ff2faf9646b",
+    ".agents/skills/registry.json": "a9aa39dfb6105f5f1aa8ed2f33382d48b381937873abf0ee463e59d424b03f80"
   },
   "entry_count": 41,
   "entries": [
@@ -260,7 +260,7 @@
       "class": "Standards/pattern",
       "path": ".agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "895d12acf9393a524d8a18f86ddf8863201d11ce0dcadd5926c22c0921249c89"
+      "skill_sha256": "d9c20dc3aa6b9573736e13b4eb07b53c3b7bbc6721082b38574dc481e0277564"
     },
     {
       "key": "playwright-testing",
@@ -269,7 +269,7 @@
       "class": "Quality/validation",
       "path": ".agents/skills/03-quality/playwright-testing/SKILL.md",
       "loading_posture": "Just-in-time",
-      "skill_sha256": "d8c532e9cbe0c931f784085137d6cd90572bebd8f20d1130fb4b3a4bc46e5d65"
+      "skill_sha256": "e2ae65256d4456286ba8bf0214bfd1ca77eff78e1e05c639f0e9cf6d0ab88731"
     },
     {
       "key": "pr-comments-resolution",
@@ -332,7 +332,7 @@
       "class": "Quality/validation",
       "path": ".agents/skills/03-quality/react-doctor/SKILL.md",
       "loading_posture": "Just-in-time",
-      "skill_sha256": "0dfa3454bed85475938379ae518fe777c01c46312731434533776054fa6f915f"
+      "skill_sha256": "70a3a3335faaedc99e04dedbe4643321a004490d19359042179ef22c3d159a93"
     },
     {
       "key": "roadmap-planning",
@@ -368,7 +368,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "2c7546c7a93f81b9932b4c397086bf34d48acfd62940934f3c6f5b9269c8526f"
+      "skill_sha256": "658d35e47d08892cee851d85ad8f2bca57cc3e5abc0f327a5599357a7ffc6a44"
     },
     {
       "key": "workshop-facilitation",

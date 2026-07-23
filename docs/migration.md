@@ -26,7 +26,16 @@ Default migration behavior installs the complete FHH IA Ecosystem `.agents2`-der
 
 ## Runtime adapters
 
-Adapters should remain thin. If you already have `AGENTS.md`, `.github/copilot-instructions.md`, or `CLAUDE.md`, merge them so they point to `.agents/instructions.md` instead of duplicating workflow logic.
+Adapters should remain thin. If you already have `AGENTS.md`,
+`.github/copilot-instructions.md`, `CLAUDE.md`, or `ANTIGRAVITY.md`, merge them
+so they point to `.agents/instructions.md` instead of duplicating workflow
+logic.
+
+Older adapters often routed only at session startup. The current contract
+requires lightweight intake on every prompt: explicit skills win, direct
+answers stay lightweight, and non-trivial freeform work loads
+`workflow-router`. Run `doctor` after migration to find missing semantic rules,
+not only missing files.
 
 ## Rollback
 
@@ -49,4 +58,3 @@ workflow-kit update --target /path/to/repo --runtime codex,copilot --adopt-exist
 ```
 
 This records the current baseline and avoids immediate overwrites.
-

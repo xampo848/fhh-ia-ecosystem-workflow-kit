@@ -29,13 +29,22 @@
       ]
     },
     {
+      "id": "adapter-agents-md",
+      "role": "Shared AGENTS.md bootstrap for compatible agent runtimes",
+      "source": "runtime-adapters/agents-md",
+      "documentation_only": [],
+      "requires_reference": ".agents/instructions.md",
+      "required_files": [
+        "AGENTS.md"
+      ]
+    },
+    {
       "id": "adapter-codex",
       "role": "Codex thin runtime adapter",
       "source": "runtime-adapters/codex",
       "documentation_only": [],
       "requires_reference": ".agents/instructions.md",
       "required_files": [
-        "AGENTS.md",
         ".codex/README.md"
       ]
     },

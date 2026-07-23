@@ -27,6 +27,17 @@ Before routing, read `.github/copilot-instructions.md`. If any rule conflicts wi
 
 For large, autonomous, multi-agent, or cost-sensitive work, apply `docs/internal-documentation/workflows/ai-cost-efficiency-policy.md`. For simple routing, use the summary in `.github/copilot-instructions.md` and do not load the full guide.
 
+## Per-turn intake boundary
+
+Lightweight intake runs for every new user prompt under
+`.agents/instructions.md`. Loading this full router is required only for
+non-trivial freeform work when the user did not explicitly invoke a skill.
+
+A direct answer may proceed without loading the full router and without a
+visible routing trace. Emit a trace when intake selects a meaningful workflow,
+skill, capability, cost, delegation, or risk decision. Never assume that the
+route selected for the previous prompt remains valid.
+
 ## Router promise
 
 For every non-trivial freeform request:

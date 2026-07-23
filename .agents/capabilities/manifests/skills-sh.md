@@ -10,6 +10,7 @@
 | `source_policy` | official/curated by default; explicit user override required for non-default sources |
 | `availability` | external source; only available after explicit install/attach workflow succeeds |
 | `scope` | hybrid: external source plus repo/project attach semantics |
+| `runtime_support` | Codex, GitHub Copilot, Claude Code, and Antigravity subject to each runtime installer |
 | `install_mode` | conditional: install only after explicit confirmation; otherwise policy-only |
 | `owner_layer` | repo-overlay capability manifest |
 | `status` | optional / installable / attachable |

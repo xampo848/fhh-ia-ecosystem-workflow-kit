@@ -22,6 +22,16 @@ test('buildInstallPlan creates full workflow and selected adapter operations', a
   assert.equal(plan.operations.some((item) => item.relativePath === 'README.md'), false);
 });
 
+test('codex and copilot share one AGENTS.md bootstrap without collisions', async () => {
+  const target = await makeTempRepo();
+
+  for (const runtime of ['codex', 'copilot', 'codex,copilot']) {
+    const plan = await buildInstallPlan({ targetPath: target, runtime });
+    const agentsFiles = plan.operations.filter((item) => item.relativePath === 'AGENTS.md');
+    assert.equal(agentsFiles.length, 1, runtime);
+  }
+});
+
 test('buildInstallPlan marks identical files unchanged and changed files as backup overwrite', async () => {
   const target = await makeTempRepo();
   let plan = await buildInstallPlan({ targetPath: target, runtime: 'codex' });
@@ -52,7 +62,7 @@ test('buildInstallPlan all runtimes aligns with manifest required payload files'
   const plan = await buildInstallPlan({ targetPath: target, runtime: 'codex,copilot,claude,antigravity', overlay: 'fhh-ia-ecosystem-full' });
   const planned = new Set(plan.operations.map((item) => item.relativePath));
 
-  const expectedPacks = new Set(['repo-overlay-fhh-ia-ecosystem-full', 'adapter-codex', 'adapter-copilot', 'adapter-claude', 'adapter-antigravity']);
+  const expectedPacks = new Set(['repo-overlay-fhh-ia-ecosystem-full', 'adapter-agents-md', 'adapter-codex', 'adapter-copilot', 'adapter-claude', 'adapter-antigravity']);
   for (const pack of manifest.packs.filter((item) => expectedPacks.has(item.id))) {
     for (const requiredFile of pack.required_files) {
       assert.ok(planned.has(requiredFile), `missing planned file ${pack.id}:${requiredFile}`);

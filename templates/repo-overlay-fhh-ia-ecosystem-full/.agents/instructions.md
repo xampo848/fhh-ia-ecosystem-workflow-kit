@@ -139,13 +139,35 @@ Examples:
 - plugins or connectors
 - repo-owned AI capabilities that only need attachment to the neutral flow
 
+## Mandatory per-turn intake
+
+Apply this contract before choosing a response path for every new user prompt.
+Do not assume that the workflow selected for a previous prompt still applies.
+
+1. If the user explicitly invokes a skill, load that skill and follow it.
+2. Otherwise perform lightweight intake before answering, planning, or editing.
+3. A direct answer may proceed without loading the full router and without a
+   visible routing trace.
+4. For non-trivial freeform work, locate `workflow-router` through
+   `.agents/skills/registry.md`, load its `SKILL.md`, and follow its gates.
+5. Emit a visible routing trace only when choosing a meaningful workflow,
+   skill, capability, cost posture, delegation posture, or risk path.
+6. Load only the selected workflow, required patterns, and attached
+   capabilities. Reuse already-loaded context when its source file has not
+   changed.
+
+If the runtime cannot load `workflow-router` or the registry, do not silently
+continue with unrestricted implementation work. Direct answers may proceed, but
+non-trivial development must preserve specification and implementation gates,
+capability installation still requires confirmation, and the response must name
+the unavailable file and the reduced fallback being applied.
+
 ## Loading rules
 
 - Load this file first from every runtime entrypoint.
 - Use `.agents/skills/registry.md` as the neutral skill discovery and
   just-in-time loading contract.
-- For every new user prompt or question, run router intake first via
-  `.agents/skills/00-router/workflow-router/SKILL.md`; do not skip this step.
+- Apply the mandatory per-turn intake above for every new user prompt.
 - Load a workflow skill when the task enters that workflow.
 - Load a standards/pattern skill only just-in-time when that repetitive
   procedure is actually needed. For repo-owned implementation patterns, use the

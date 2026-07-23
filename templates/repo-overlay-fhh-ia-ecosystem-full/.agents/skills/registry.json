@@ -2,17 +2,17 @@
   "schema_version": "1.0.0",
   "canonical_source": ".agents/skills/registry.md",
   "derived_artifact": true,
-  "generated_by": "scripts/validate_skill_registry.py",
+  "generated_by": "scripts/sync-skill-registry.mjs",
   "skills": [
     {
       "name": "workflow-router",
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
-      "trigger": "Freeform non-trivial request without explicit skill",
+      "trigger": "Per-turn intake selects non-trivial freeform work without an explicit skill",
       "loading_posture": "Startup-minimal",
       "cost_hint": "lean",
       "key": "workflow-router",
-      "runtime_notes": "Default entrypoint; load full skill only when routing is needed."
+      "runtime_notes": "Intake runs every prompt; load the full skill only for non-trivial routing."
     },
     {
       "name": "product-studio",
@@ -252,7 +252,7 @@
       "loading_posture": "Just-in-time",
       "cost_hint": "balanced",
       "key": "playwright-testing",
-      "runtime_notes": "Requires Playwright tooling if used."
+      "runtime_notes": "Stack-gated: only for navigable UI flows with explicit/required E2E intent; requires Playwright tooling if used."
     },
     {
       "name": "react-doctor",
@@ -262,7 +262,7 @@
       "loading_posture": "Just-in-time",
       "cost_hint": "balanced",
       "key": "react-doctor",
-      "runtime_notes": "External command/tool availability follows runtime/tool policy."
+      "runtime_notes": "Stack-gated: only when React surface is present; command/tool availability follows runtime policy."
     },
     {
       "name": "engineering-mentor",

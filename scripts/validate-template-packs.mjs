@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { validateWorkflowContract } from '../src/workflow-contract/index.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
@@ -61,6 +62,17 @@ export async function validateTemplatePacks({ root = packageRoot } = {}) {
       if (shouldCheckThinReference && requiredTextFile(relativePath) && !content.includes(pack.requires_reference)) {
         failures.push(`Adapter file must reference ${pack.requires_reference}: ${pack.id}:${relativePath}`);
       }
+    }
+  }
+
+  const contract = await validateWorkflowContract({
+    root,
+    runtimes: ['neutral'],
+    checkOverlayDrift: true
+  });
+  for (const item of contract.diagnostics) {
+    if (item.severity === 'error') {
+      failures.push(`[${item.code}] ${item.path}: ${item.message}`);
     }
   }
 

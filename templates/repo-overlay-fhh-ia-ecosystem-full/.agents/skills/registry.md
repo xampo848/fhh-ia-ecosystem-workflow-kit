@@ -132,7 +132,7 @@ Rules:
 
 | Skill name | Class | Physical path | Trigger | Loading posture | Cost hint | Future structured key | Runtime notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `workflow-router` | Workflow | `.agents/skills/00-router/workflow-router/SKILL.md` | Freeform non-trivial request without explicit skill | Startup-minimal | lean | `workflow-router` | Default entrypoint; load full skill only when routing is needed. |
+| `workflow-router` | Workflow | `.agents/skills/00-router/workflow-router/SKILL.md` | Per-turn intake selects non-trivial freeform work without an explicit skill | Startup-minimal | lean | `workflow-router` | Intake runs every prompt; load the full skill only for non-trivial routing. |
 | `product-studio` | Workflow | `.agents/skills/01-product/product-studio/SKILL.md` | Product strategy, discovery, JTBD, prioritization, roadmap, or deciding what should exist | Explicit-only | balanced | `product-studio` | May route to product sub-workflows. |
 | `create-epic` | Workflow | `.agents/skills/01-product/create-epic/SKILL.md` | Large initiative needing research, appetite, phases, or multiple PRDs | Explicit-only | balanced | `create-epic` | Use before PRD queue creation. |
 | `create-prd` | Workflow | `.agents/skills/01-product/create-prd/SKILL.md` | Feature/ticket/spec needs formal PRD before implementation | Explicit-only | balanced | `create-prd` | Expected predecessor to `implement-prd`. |

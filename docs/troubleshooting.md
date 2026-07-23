@@ -14,6 +14,27 @@ Recommended action:
 
 Run `doctor` with the same runtime options used for install. If files are still missing, rerun `init` in dry-run mode to see what would be created.
 
+## Doctor reports semantic diagnostics
+
+Each diagnostic includes a stable code, path, severity, and remediation text.
+Common cases:
+
+- `copilot/missing-apply-to`: add YAML frontmatter with `applyTo: "**"` to the
+  repository-wide Copilot instruction file.
+- `adapter/missing-per-turn-intake`: update the runtime wrapper so every prompt
+  applies the neutral intake contract.
+- `skills/unregistered-file`: register the skill in
+  `.agents/skills/registry.md`, then regenerate structured artifacts.
+- `managed/content-drift`: a managed file changed locally; review it before
+  running an update. This is a warning, not an automatic overwrite.
+
+Regenerate and verify the skill registry with:
+
+```bash
+node scripts/sync-skill-registry.mjs --write
+npm run check:workflow
+```
+
 ## Update fails with "No install state found"
 
 Your repo was likely installed before state tracking was introduced. Bootstrap baseline state without overwriting current files:

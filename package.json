@@ -11,6 +11,7 @@
   "scripts": {
     "check": "node scripts/validate-scaffold.mjs",
     "check:templates": "node scripts/validate-template-packs.mjs",
+    "check:workflow": "node scripts/sync-skill-registry.mjs --check && node scripts/validate-template-packs.mjs",
     "check:release": "node scripts/validate-release-readiness.mjs",
     "check:docs": "node scripts/validate-docs.mjs",
     "check:legal": "node scripts/validate-legal-readiness.mjs",

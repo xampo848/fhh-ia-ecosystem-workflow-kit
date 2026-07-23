@@ -10,6 +10,7 @@
 | `source_policy` | User-requested explicit GitHub source |
 | `availability` | installable / repo-local skill mirror already present |
 | `scope` | hybrid: global install per runtime, repo/project attach policy |
+| `runtime_support` | Codex, GitHub Copilot, Claude Code, and Antigravity when installed or exposed |
 | `install_mode` | conditional: install only after explicit confirmation; attach-only if already available |
 | `owner_layer` | repo-overlay capability manifest; external tool owns installer and runtime files |
 | `status` | optional / attachable |

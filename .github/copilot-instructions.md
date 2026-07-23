@@ -2,7 +2,11 @@
 
 This is a thin GitHub Copilot runtime adapter.
 
-Read `.agents/instructions.md` first and follow it as the source of truth. Use `.agents/skills/registry.md` for skill discovery. Always run router intake for each new user prompt/question before choosing a workflow skill. Do not duplicate workflow logic here.
+For every new user prompt, read and apply `.agents/instructions.md` first and
+treat it as the source of truth. Use `.agents/skills/registry.md` for
+just-in-time discovery. If the user explicitly invokes a skill, load it
+directly; otherwise use lightweight intake and load `workflow-router` for
+non-trivial freeform work. Do not duplicate workflow logic here.
 
 For model routing, read `.agents/model-routing/README.md`. Use the Copilot model
 picker as the source of truth for models allowed to the active user. Organization

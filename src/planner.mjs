@@ -8,10 +8,10 @@ const templatesRoot = path.join(packageRoot, 'templates');
 export const installStateRelativePath = '.agents/workflow-kit/install-state.json';
 const installStateSchemaVersion = '1.0.0';
 const runtimeTemplatePaths = {
-  codex: 'runtime-adapters/codex',
-  copilot: 'runtime-adapters/copilot',
-  claude: 'runtime-adapters/claude',
-  antigravity: 'runtime-adapters/antigravity'
+  codex: ['runtime-adapters/agents-md', 'runtime-adapters/codex'],
+  copilot: ['runtime-adapters/agents-md', 'runtime-adapters/copilot'],
+  claude: ['runtime-adapters/claude'],
+  antigravity: ['runtime-adapters/antigravity']
 };
 
 export function parseRuntimeList(value = 'neutral') {
@@ -47,6 +47,7 @@ async function collectTemplateFiles(templateRelativePath) {
       } else if (entry.isFile()) {
         const relativePath = path.relative(root, absolutePath);
         if (relativePath === 'README.md') continue;
+        if (relativePath.startsWith(`${path.join('.agents', 'workflow-kit')}${path.sep}`)) continue;
         files.push({
           sourcePath: absolutePath,
           relativePath
@@ -64,7 +65,9 @@ export async function selectedTemplateFiles({ runtimes = ['neutral'], overlay = 
 
   for (const runtime of runtimes) {
     if (runtime === 'neutral') continue;
-    selected.push(...await collectTemplateFiles(runtimeTemplatePaths[runtime]));
+    for (const templatePath of runtimeTemplatePaths[runtime]) {
+      selected.push(...await collectTemplateFiles(templatePath));
+    }
   }
 
   const deduped = new Map();

@@ -10,6 +10,7 @@
 | `source_policy` | repo-owned |
 | `availability` | repo-local |
 | `scope` | repo/project |
+| `runtime_support` | Codex, GitHub Copilot, Claude Code, and Antigravity when repo helper skills are exposed |
 | `install_mode` | attach-only |
 | `owner_layer` | repo-overlay capability manifest |
 | `status` | optional / attached when helper skills are available |

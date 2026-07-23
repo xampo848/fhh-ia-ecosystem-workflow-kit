@@ -1,0 +1,62 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import test from 'node:test';
+import { applyInstallPlan } from '../src/apply.mjs';
+import { buildInstallPlan } from '../src/planner.mjs';
+import { validateWorkflowContract } from '../src/workflow-contract/index.mjs';
+import { makeTempRepo } from './helpers.mjs';
+
+async function installedTarget() {
+  const target = await makeTempRepo();
+  const plan = await buildInstallPlan({
+    targetPath: target,
+    runtime: 'codex,copilot,claude,antigravity'
+  });
+  await applyInstallPlan(plan);
+  return target;
+}
+
+test('valid all-runtime installation satisfies workflow contract', async () => {
+  const target = await installedTarget();
+  const result = await validateWorkflowContract({
+    root: target,
+    runtimes: ['codex', 'copilot', 'claude', 'antigravity']
+  });
+  assert.equal(result.ok, true, JSON.stringify(result.diagnostics, null, 2));
+});
+
+test('validator reports invalid Copilot front matter', async () => {
+  const target = await installedTarget();
+  const file = path.join(target, '.github/instructions/ai-workflow.instructions.md');
+  await fs.writeFile(file, '# no front matter\n', 'utf8');
+  const result = await validateWorkflowContract({ root: target, runtimes: ['copilot'] });
+  assert.ok(result.diagnostics.some((item) => item.code === 'copilot/missing-apply-to'));
+});
+
+test('validator reports unregistered skills', async () => {
+  const target = await installedTarget();
+  const file = path.join(target, '.agents/skills/local/example/SKILL.md');
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, '# Example\n', 'utf8');
+  const result = await validateWorkflowContract({ root: target });
+  assert.ok(result.diagnostics.some((item) => item.code === 'skills/unregistered-file'));
+});
+
+test('validator reports malformed capability manifests', async () => {
+  const target = await installedTarget();
+  const file = path.join(target, '.agents/capabilities/manifests/broken.md');
+  await fs.writeFile(file, '# Capability manifest: broken\n', 'utf8');
+  const result = await validateWorkflowContract({ root: target });
+  assert.ok(result.diagnostics.some((item) => item.code === 'capabilities/malformed-manifest'));
+});
+
+test('package canonical files match the installable overlay', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const result = await validateWorkflowContract({ root, checkOverlayDrift: true });
+  assert.equal(
+    result.diagnostics.some((item) => item.code === 'overlay/content-drift'),
+    false,
+    JSON.stringify(result.diagnostics, null, 2)
+  );
+});
