@@ -1,0 +1,3 @@
+interface:
+  display_name: "Pixel Ninja"
+  short_description: "Implement owned React frontend PRD slices"

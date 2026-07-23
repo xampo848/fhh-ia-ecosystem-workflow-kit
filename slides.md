@@ -16,10 +16,10 @@ aspectRatio: 16/9
 canvasWidth: 1440
 transition: fade
 themeConfig:
-  primary: '#33d6ff'
+  primary: '#e0995e'
 fonts:
-  sans: Inter
-  serif: Inter
+  sans: Archivo
+  serif: Archivo
   mono: JetBrains Mono
 defaults:
   layout: default
@@ -27,7 +27,7 @@ defaults:
 
 <div class="cover">
   <div>
-    <div class="cover-title">FHH IA Ecosystem Workflow<br>Documentación Oficial</div>
+    <div class="cover-title">FHH IA Ecosystem Workflow<br><span class="accent">Documentación Oficial</span></div>
     <div class="cover-sub">Flujo completo para diseñar, implementar, validar y documentar software con IA</div>
     <p class="cover-copy">
       Esta presentación funciona como guía operativa integral: qué hace cada módulo, cuándo se usa, qué entrada espera, qué salida produce y qué evidencia exige para cerrar con calidad.
@@ -135,30 +135,36 @@ defaults:
   <div class="band b-amber">06 Patrones</div>
 </div>
 
-<div class="grid grid-3 mt-2">
-  <div class="card accent-amber">
-    <div class="card-title">Router</div>
-    <div class="card-copy">Clasifica intención, riesgo y ruta mínima segura antes de ejecutar cualquier flujo.</div>
+<div class="manifest mt-2">
+  <div class="manifest-row">
+    <div class="manifest-num">00</div>
+    <div class="manifest-title">Router</div>
+    <div class="manifest-copy">Clasifica intención, riesgo y ruta mínima segura antes de ejecutar cualquier flujo.</div>
   </div>
-  <div class="card accent-cyan">
-    <div class="card-title">Producto</div>
-    <div class="card-copy">Convierte incertidumbre en decisión: estrategia, épica y PRD ejecutable.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">01</div>
+    <div class="manifest-title">Producto</div>
+    <div class="manifest-copy">Convierte incertidumbre en decisión: estrategia, épica y PRD ejecutable.</div>
   </div>
-  <div class="card accent-mint">
-    <div class="card-title">Implementación</div>
-    <div class="card-copy">Orquesta slices técnicos, delegación, validación focalizada y handoff de QA.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">02</div>
+    <div class="manifest-title">Implementación</div>
+    <div class="manifest-copy">Orquesta slices técnicos, delegación, validación focalizada y handoff de QA.</div>
   </div>
-  <div class="card accent-blue">
-    <div class="card-title">Calidad</div>
-    <div class="card-copy">Verifica evidencia técnica y documental, incluyendo pruebas E2E cuando aplica.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">03</div>
+    <div class="manifest-title">Calidad</div>
+    <div class="manifest-copy">Verifica evidencia técnica y documental, incluyendo pruebas E2E cuando aplica.</div>
   </div>
-  <div class="card accent-magenta">
-    <div class="card-title">Crosscutting</div>
-    <div class="card-copy">Aceleradores transversales para diseño, mentoría y resolución de comentarios.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">04</div>
+    <div class="manifest-title">Crosscutting</div>
+    <div class="manifest-copy">Aceleradores transversales para diseño, mentoría y resolución de comentarios.</div>
   </div>
-  <div class="card accent-amber">
-    <div class="card-title">Patrones</div>
-    <div class="card-copy">Contrato reusable para mapear slices a skills requeridas y evidencia de salida.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">06</div>
+    <div class="manifest-title">Patrones</div>
+    <div class="manifest-copy">Contrato reusable para mapear slices a skills requeridas y evidencia de salida.</div>
   </div>
 </div>
 
@@ -174,30 +180,36 @@ defaults:
   <div class="sub">Separación explícita entre contrato neutral, ejecución de skills, extensiones, memoria y adapters.</div>
 </div>
 
-<div class="grid grid-3">
-  <div class="card accent-cyan">
-    <div class="card-title">Contrato neutral</div>
-    <div class="card-copy">.agents/instructions.md define jerarquía, loading rules, routing policy y límites de wrappers.</div>
+<div class="manifest">
+  <div class="manifest-row">
+    <div class="manifest-num">01</div>
+    <div class="manifest-title">Contrato neutral</div>
+    <div class="manifest-copy">.agents/instructions.md define jerarquía, loading rules, routing policy y límites de wrappers.</div>
   </div>
-  <div class="card accent-blue">
-    <div class="card-title">Ejecución del flujo</div>
-    <div class="card-copy">.agents/skills/** organiza workflows, delegados, quality y patterns con descubrimiento just-in-time.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">02</div>
+    <div class="manifest-title">Ejecución del flujo</div>
+    <div class="manifest-copy">.agents/skills/** organiza workflows, delegados, quality y patterns con descubrimiento just-in-time.</div>
   </div>
-  <div class="card accent-mint">
-    <div class="card-title">Extensiones gobernadas</div>
-    <div class="card-copy">.agents/integrations/** y .agents/capabilities/** separan install, attach y activación.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">03</div>
+    <div class="manifest-title">Extensiones gobernadas</div>
+    <div class="manifest-copy">.agents/integrations/** y .agents/capabilities/** separan install, attach y activación.</div>
   </div>
-  <div class="card accent-magenta">
-    <div class="card-title">Routing y costo</div>
-    <div class="card-copy">.agents/model-routing/README.md establece lean, balanced, premium y delegación por riesgo.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">04</div>
+    <div class="manifest-title">Routing y costo</div>
+    <div class="manifest-copy">.agents/model-routing/README.md establece lean, balanced, premium y delegación por riesgo.</div>
   </div>
-  <div class="card accent-amber">
-    <div class="card-title">Memoria y paridad</div>
-    <div class="card-copy">.agents/memory/** define shareability, sensibilidad y revisión cross-runtime.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">05</div>
+    <div class="manifest-title">Memoria y paridad</div>
+    <div class="manifest-copy">.agents/memory/** define shareability, sensibilidad y revisión cross-runtime.</div>
   </div>
-  <div class="card accent-cyan">
-    <div class="card-title">Adopción reusable</div>
-    <div class="card-copy">workflow-kit instala el overlay completo, valida los packs y agrega adapters de runtime cuando se solicitan.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">06</div>
+    <div class="manifest-title">Adopción reusable</div>
+    <div class="manifest-copy">workflow-kit instala el overlay completo, valida los packs y agrega adapters de runtime cuando se solicitan.</div>
   </div>
 </div>
 
@@ -291,22 +303,26 @@ defaults:
   <div class="sub">Ante cada señal, el router decide si puede avanzar, qué ruta aplicar o cuándo detenerse para pedir la mínima aclaración necesaria.</div>
 </div>
 
-<div class="grid grid-2">
-  <div class="card accent-amber">
-    <div class="card-title">¿La especificación es suficiente?</div>
-    <div class="card-copy"><strong>No:</strong> enrutar a create-prd o generate-pm-ticket. <strong>Sí:</strong> permitir implement-prd con una base verificable.</div>
+<div class="manifest">
+  <div class="manifest-row">
+    <div class="manifest-num">01</div>
+    <div class="manifest-title">¿La especificación es suficiente?</div>
+    <div class="manifest-copy"><strong>No:</strong> enrutar a create-prd o generate-pm-ticket. <strong>Sí:</strong> permitir implement-prd con una base verificable.</div>
   </div>
-  <div class="card accent-amber">
-    <div class="card-title">¿El cambio es realmente quirúrgico?</div>
-    <div class="card-copy"><strong>Sí:</strong> editar con validación focalizada. <strong>No:</strong> volver a la especificación antes de abrir una implementación no trivial.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">02</div>
+    <div class="manifest-title">¿El cambio es realmente quirúrgico?</div>
+    <div class="manifest-copy"><strong>Sí:</strong> editar con validación focalizada. <strong>No:</strong> volver a la especificación antes de abrir una implementación no trivial.</div>
   </div>
-  <div class="card accent-amber">
-    <div class="card-title">¿Qué superficie cambió?</div>
-    <div class="card-copy">Elegir solo la validación aplicable: contrato para API/UI, react-doctor para React, Playwright para E2E o revisión inline cuando basta.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">03</div>
+    <div class="manifest-title">¿Qué superficie cambió?</div>
+    <div class="manifest-copy">Elegir solo la validación aplicable: contrato para API/UI, react-doctor para React, Playwright para E2E o revisión inline cuando basta.</div>
   </div>
-  <div class="card accent-amber">
-    <div class="card-title">¿Falta una decisión crítica?</div>
-    <div class="card-copy"><strong>Sí:</strong> detenerse y preguntar. La salida no es adivinar: es una pregunta concreta que cambie la ruta o el resultado.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">04</div>
+    <div class="manifest-title">¿Falta una decisión crítica?</div>
+    <div class="manifest-copy"><strong>Sí:</strong> detenerse y preguntar. La salida no es adivinar: es una pregunta concreta que cambie la ruta o el resultado.</div>
   </div>
 </div>
 
@@ -695,33 +711,36 @@ defaults:
   <div class="sub">Calidad no es opinión: se demuestra con evidencia técnica y documental.</div>
 </div>
 
-<div class="grid grid-3">
-  <div class="card accent-cyan">
-    <div class="card-title">Cumplimiento de aceptación</div>
-    <div class="card-copy">Cada criterio Given/When/Then debe tener evidencia esperada.</div>
+<div class="manifest">
+  <div class="manifest-row">
+    <div class="manifest-num">01</div>
+    <div class="manifest-title">Cumplimiento de aceptación</div>
+    <div class="manifest-copy">Cada criterio Given/When/Then debe tener evidencia esperada.</div>
   </div>
-  <div class="card accent-blue">
-    <div class="card-title">Validación ejecutable</div>
-    <div class="card-copy">Comandos concretos por slice, no validaciones genéricas o ambiguas.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">02</div>
+    <div class="manifest-title">Validación ejecutable</div>
+    <div class="manifest-copy">Comandos concretos por slice, no validaciones genéricas o ambiguas.</div>
   </div>
-  <div class="card accent-mint">
-    <div class="card-title">Calidad estructural</div>
-    <div class="card-copy">Tenancy, contratos, reglas de negocio, i18n y consistencia de arquitectura.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">03</div>
+    <div class="manifest-title">Calidad estructural</div>
+    <div class="manifest-copy">Tenancy, contratos, reglas de negocio, i18n y consistencia de arquitectura.</div>
   </div>
-</div>
-
-<div class="grid grid-3 mt-4">
-  <div class="card accent-magenta">
-    <div class="card-title">Cobertura documental</div>
-    <div class="card-copy">Document-development deja conocimiento durable para dev, QA, soporte y producto.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">04</div>
+    <div class="manifest-title">Cobertura documental</div>
+    <div class="manifest-copy">Document-development deja conocimiento durable para dev, QA, soporte y producto.</div>
   </div>
-  <div class="card accent-amber">
-    <div class="card-title">Cobertura E2E</div>
-    <div class="card-copy">Playwright-testing verifica flujos críticos de usuario en entorno controlado.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">05</div>
+    <div class="manifest-title">Cobertura E2E</div>
+    <div class="manifest-copy">Playwright-testing verifica flujos críticos de usuario en entorno controlado.</div>
   </div>
-  <div class="card accent-blue">
-    <div class="card-title">Salud React</div>
-    <div class="card-copy">react-doctor acelera diagnóstico de problemas frecuentes en frontend React.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">06</div>
+    <div class="manifest-title">Salud React</div>
+    <div class="manifest-copy">react-doctor acelera diagnóstico de problemas frecuentes en frontend React.</div>
   </div>
 </div>
 
@@ -827,22 +846,26 @@ defaults:
   <div class="sub">Skills que se insertan por una necesidad concreta. Complementan una fase activa; no sustituyen router, Producto, Implementación ni Quality.</div>
 </div>
 
-<div class="grid grid-2">
-  <div class="card accent-magenta">
-    <div class="card-title">Decisión técnica difícil</div>
-    <div class="card-copy"><strong>engineering-mentor</strong> entra cuando hay trade-offs; deja una recomendación razonada sin alterar el contrato principal.</div>
+<div class="manifest">
+  <div class="manifest-row">
+    <div class="manifest-num">01</div>
+    <div class="manifest-title">Decisión técnica difícil</div>
+    <div class="manifest-copy"><strong>engineering-mentor</strong> entra cuando hay trade-offs; deja una recomendación razonada sin alterar el contrato principal.</div>
   </div>
-  <div class="card accent-magenta">
-    <div class="card-title">Diseño de una superficie UI</div>
-    <div class="card-copy"><strong>frontend-design</strong> entra antes de construir; deja dirección visual y criterios UX para reducir retrabajo.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">02</div>
+    <div class="manifest-title">Diseño de una superficie UI</div>
+    <div class="manifest-copy"><strong>frontend-design</strong> entra antes de construir; deja dirección visual y criterios UX para reducir retrabajo.</div>
   </div>
-  <div class="card accent-magenta">
-    <div class="card-title">Hardening visual de alto impacto</div>
-    <div class="card-copy"><strong>impeccable</strong> entra cuando la experiencia requiere un estándar visual superior; deja hallazgos y mejoras priorizadas.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">03</div>
+    <div class="manifest-title">Hardening visual de alto impacto</div>
+    <div class="manifest-copy"><strong>impeccable</strong> entra cuando la experiencia requiere un estándar visual superior; deja hallazgos y mejoras priorizadas.</div>
   </div>
-  <div class="card accent-magenta">
-    <div class="card-title">Feedback de revisión</div>
-    <div class="card-copy"><strong>pr-comments-resolution</strong> entra tras review; resuelve comentarios con trazabilidad a la intención y evidencia original.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">04</div>
+    <div class="manifest-title">Feedback de revisión</div>
+    <div class="manifest-copy"><strong>pr-comments-resolution</strong> entra tras review; resuelve comentarios con trazabilidad a la intención y evidencia original.</div>
   </div>
 </div>
 
@@ -1013,22 +1036,26 @@ defaults:
   <div class="sub">Preguntas que un equipo se hace al adoptar el workflow por primera vez.</div>
 </div>
 
-<div class="grid grid-2">
-  <div class="card accent-cyan">
-    <div class="card-title">¿Puedo implementar sin PRD?</div>
-    <div class="card-copy">Solo en casos quirúrgicos de bajo riesgo. Para trabajo no trivial, primero create-prd.</div>
+<div class="manifest">
+  <div class="manifest-row">
+    <div class="manifest-num">Q1</div>
+    <div class="manifest-title">¿Puedo implementar sin PRD?</div>
+    <div class="manifest-copy">Solo en casos quirúrgicos de bajo riesgo. Para trabajo no trivial, primero create-prd.</div>
   </div>
-  <div class="card accent-blue">
-    <div class="card-title">¿Install ya significa activo?</div>
-    <div class="card-copy">No. Debe estar attached al flujo y documentado como capability activa.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">Q2</div>
+    <div class="manifest-title">¿Install ya significa activo?</div>
+    <div class="manifest-copy">No. Debe estar attached al flujo y documentado como capability activa.</div>
   </div>
-  <div class="card accent-mint">
-    <div class="card-title">¿Paridad implica mismo modelo exacto?</div>
-    <div class="card-copy">No. Implica misma semántica de riesgo/tier/postura, no identidad de proveedor.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">Q3</div>
+    <div class="manifest-title">¿Paridad implica mismo modelo exacto?</div>
+    <div class="manifest-copy">No. Implica misma semántica de riesgo/tier/postura, no identidad de proveedor.</div>
   </div>
-  <div class="card accent-amber">
-    <div class="card-title">¿Qué evita más retrabajo?</div>
-    <div class="card-copy">Router bien aplicado + PRD granular + validación focalizada + documentación de cierre.</div>
+  <div class="manifest-row">
+    <div class="manifest-num">Q4</div>
+    <div class="manifest-title">¿Qué evita más retrabajo?</div>
+    <div class="manifest-copy">Router bien aplicado + PRD granular + validación focalizada + documentación de cierre.</div>
   </div>
 </div>
 

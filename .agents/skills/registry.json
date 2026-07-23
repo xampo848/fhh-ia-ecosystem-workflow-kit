@@ -1,0 +1,420 @@
+{
+  "schema_version": "1.0.0",
+  "canonical_source": ".agents/skills/registry.md",
+  "derived_artifact": true,
+  "generated_by": "scripts/validate_skill_registry.py",
+  "skills": [
+    {
+      "name": "workflow-router",
+      "class": "Workflow",
+      "path": ".agents/skills/00-router/workflow-router/SKILL.md",
+      "trigger": "Freeform non-trivial request without explicit skill",
+      "loading_posture": "Startup-minimal",
+      "cost_hint": "lean",
+      "key": "workflow-router",
+      "runtime_notes": "Default entrypoint; load full skill only when routing is needed."
+    },
+    {
+      "name": "product-studio",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/product-studio/SKILL.md",
+      "trigger": "Product strategy, discovery, JTBD, prioritization, roadmap, or deciding what should exist",
+      "loading_posture": "Explicit-only",
+      "cost_hint": "balanced",
+      "key": "product-studio",
+      "runtime_notes": "May route to product sub-workflows."
+    },
+    {
+      "name": "create-epic",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/create-epic/SKILL.md",
+      "trigger": "Large initiative needing research, appetite, phases, or multiple PRDs",
+      "loading_posture": "Explicit-only",
+      "cost_hint": "balanced",
+      "key": "create-epic",
+      "runtime_notes": "Use before PRD queue creation."
+    },
+    {
+      "name": "create-prd",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/create-prd/SKILL.md",
+      "trigger": "Feature/ticket/spec needs formal PRD before implementation",
+      "loading_posture": "Explicit-only",
+      "cost_hint": "balanced",
+      "key": "create-prd",
+      "runtime_notes": "Expected predecessor to `implement-prd`."
+    },
+    {
+      "name": "generate-pm-ticket",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/generate-pm-ticket/SKILL.md",
+      "trigger": "User needs a backlog/Jira-style ticket rather than full PRD",
+      "loading_posture": "Explicit-only",
+      "cost_hint": "lean",
+      "key": "generate-pm-ticket",
+      "runtime_notes": "Smaller planning artifact than PRD."
+    },
+    {
+      "name": "discovery-process",
+      "class": "Product sub-workflow",
+      "path": ".agents/skills/01-product/product-studio/discovery-process/SKILL.md",
+      "trigger": "Product discovery cycle from hypothesis to experiments",
+      "loading_posture": "Just-in-time",
+      "cost_hint": "balanced",
+      "key": "discovery-process",
+      "runtime_notes": "Usually loaded by `product-studio`."
+    },
+    {
+      "name": "jobs-to-be-done",
+      "class": "Product sub-workflow",
+      "path": ".agents/skills/01-product/product-studio/jobs-to-be-done/SKILL.md",
+      "trigger": "Clarify customer jobs, pains, and gains",
+      "loading_posture": "Just-in-time",
+      "cost_hint": "balanced",
+      "key": "jobs-to-be-done",
+      "runtime_notes": "Usually loaded by `product-studio`."
+    },
+    {
+      "name": "prioritization-advisor",
+      "class": "Product sub-workflow",
+      "path": ".agents/skills/01-product/product-studio/prioritization-advisor/SKILL.md",
+      "trigger": "Choose prioritization framework or scoring approach",
+      "loading_posture": "Just-in-time",
+      "cost_hint": "lean",
+      "key": "prioritization-advisor",
+      "runtime_notes": "Usually loaded by `product-studio`."
+    },
+    {
+      "name": "product-strategy-session",
+      "class": "Product sub-workflow",
+      "path": ".agents/skills/01-product/product-studio/product-strategy-session/SKILL.md",
+      "trigger": "End-to-end product strategy across positioning/discovery/roadmap",
+      "loading_posture": "Just-in-time",
+      "cost_hint": "balanced",
+      "key": "product-strategy-session",
+      "runtime_notes": "Usually loaded by `product-studio`."
+    },
+    {
+      "name": "roadmap-planning",
+      "class": "Product sub-workflow",
+      "path": ".agents/skills/01-product/product-studio/roadmap-planning/SKILL.md",
+      "trigger": "Turn strategy into roadmap or release sequence",
+      "loading_posture": "Just-in-time",
+      "cost_hint": "balanced",
+      "key": "roadmap-planning",
+      "runtime_notes": "Usually loaded by `product-studio`."
+    },
+    {
+      "name": "user-story",
+      "class": "Product sub-workflow",
+      "path": ".agents/skills/01-product/product-studio/user-story/SKILL.md",
+      "trigger": "Convert needs into user stories and Gherkin acceptance criteria",
+      "loading_posture": "Just-in-time",
+      "cost_hint": "lean",
+      "key": "user-story",
+      "runtime_notes": "Usually loaded by `product-studio`."
+    },
+    {
+      "name": "workshop-facilitation",
+      "class": "Product sub-workflow",
+      "path": ".agents/skills/01-product/product-studio/workshop-facilitation/SKILL.md",
+      "trigger": "PM workflow needs one-question-at-a-time facilitation",
+      "loading_posture": "Just-in-time",
+      "cost_hint": "lean",
+      "key": "workshop-facilitation",
+      "runtime_notes": "Shared facilitation protocol."
+    },
+    {
+      "name": "implement-prd",
+      "class": "Workflow",
+      "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
+      "trigger": "Approved PRD needs implementation",
+      "loading_posture": "Explicit-only",
+      "cost_hint": "balanced",
+      "key": "implement-prd",
+      "runtime_notes": "Orchestrator for delegate-only implementation skills."
+    },
+    {
+      "name": "prd-readiness-review",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/prd-readiness-review/SKILL.md",
+      "trigger": "`implement-prd` needs readiness/go-stop review",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "lean",
+      "key": "prd-readiness-review",
+      "runtime_notes": "Owned by `implement-prd`."
+    },
+    {
+      "name": "codebase-discovery",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/codebase-discovery/SKILL.md",
+      "trigger": "`implement-prd` needs targeted codebase discovery",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "balanced",
+      "key": "codebase-discovery",
+      "runtime_notes": "Owned by `implement-prd`."
+    },
+    {
+      "name": "implementation-slicing",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/implementation-slicing/SKILL.md",
+      "trigger": "`implement-prd` needs executable slice plan",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "balanced",
+      "key": "implementation-slicing",
+      "runtime_notes": "Owned by `implement-prd`."
+    },
+    {
+      "name": "implementation-skill-matcher",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/implementation-skill-matcher/SKILL.md",
+      "trigger": "`implement-prd` needs slice-to-pattern-skill matching after slicing and before coding",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "balanced",
+      "key": "implementation-skill-matcher",
+      "runtime_notes": "Owned by `implement-prd`; classifies reusable knowledge/capabilities without changing slice ownership."
+    },
+    {
+      "name": "backend-phase-implementer",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/backend-phase-implementer/SKILL.md",
+      "trigger": "Backend slice assigned by implementation plan",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "balanced",
+      "key": "backend-phase-implementer",
+      "runtime_notes": "Owned by `implement-prd`; writes assigned backend files only."
+    },
+    {
+      "name": "frontend-phase-implementer",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/frontend-phase-implementer/SKILL.md",
+      "trigger": "Frontend slice assigned by implementation plan",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "balanced",
+      "key": "frontend-phase-implementer",
+      "runtime_notes": "Owned by `implement-prd`; writes assigned frontend files only."
+    },
+    {
+      "name": "acceptance-test-engineer",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/acceptance-test-engineer/SKILL.md",
+      "trigger": "Acceptance criteria require focused tests",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "lean",
+      "key": "acceptance-test-engineer",
+      "runtime_notes": "Owned by `implement-prd`."
+    },
+    {
+      "name": "contract-verifier",
+      "class": "Quality/validation",
+      "path": ".agents/skills/02-implement/contract-verifier/SKILL.md",
+      "trigger": "Backend response feeds frontend or API contract changes",
+      "loading_posture": "Just-in-time",
+      "cost_hint": "lean",
+      "key": "contract-verifier",
+      "runtime_notes": "Bridges quality validation and standards/pattern procedure."
+    },
+    {
+      "name": "validation-runner",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/validation-runner/SKILL.md",
+      "trigger": "`implement-prd` needs focused validation/failure triage",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "lean",
+      "key": "validation-runner",
+      "runtime_notes": "Owned by `implement-prd`."
+    },
+    {
+      "name": "qa-handoff-review",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/qa-handoff-review/SKILL.md",
+      "trigger": "Final fresh-context QA is required for implementation handoff",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "balanced",
+      "key": "qa-handoff-review",
+      "runtime_notes": "Owned by `implement-prd`."
+    },
+    {
+      "name": "document-development",
+      "class": "Workflow",
+      "path": ".agents/skills/03-quality/document-development/SKILL.md",
+      "trigger": "Feature/system is complete and needs durable internal documentation",
+      "loading_posture": "Explicit-only",
+      "cost_hint": "lean",
+      "key": "document-development",
+      "runtime_notes": "Expected after substantial delivered changes."
+    },
+    {
+      "name": "playwright-testing",
+      "class": "Quality/validation",
+      "path": ".agents/skills/03-quality/playwright-testing/SKILL.md",
+      "trigger": "User asks for Playwright tests or E2E validation is required",
+      "loading_posture": "Just-in-time",
+      "cost_hint": "balanced",
+      "key": "playwright-testing",
+      "runtime_notes": "Requires Playwright tooling if used."
+    },
+    {
+      "name": "react-doctor",
+      "class": "Quality/validation",
+      "path": ".agents/skills/03-quality/react-doctor/SKILL.md",
+      "trigger": "Meaningful React changes need post-change audit",
+      "loading_posture": "Just-in-time",
+      "cost_hint": "balanced",
+      "key": "react-doctor",
+      "runtime_notes": "External command/tool availability follows runtime/tool policy."
+    },
+    {
+      "name": "engineering-mentor",
+      "class": "Cross-cutting overlay",
+      "path": ".agents/skills/04-crosscutting/engineering-mentor/SKILL.md",
+      "trigger": "Task benefits from teaching, challenge, and better engineering judgment",
+      "loading_posture": "Overlay",
+      "cost_hint": "balanced",
+      "key": "engineering-mentor",
+      "runtime_notes": "Overlay only; does not replace primary workflow."
+    },
+    {
+      "name": "frontend-design",
+      "class": "Cross-cutting overlay",
+      "path": ".agents/skills/04-crosscutting/frontend-design/SKILL.md",
+      "trigger": "Need early visual direction or aesthetic shaping",
+      "loading_posture": "Overlay",
+      "cost_hint": "lean",
+      "key": "frontend-design",
+      "runtime_notes": "Usually before frontend implementation."
+    },
+    {
+      "name": "impeccable",
+      "class": "Cross-cutting overlay",
+      "path": ".agents/skills/04-crosscutting/impeccable/SKILL.md",
+      "trigger": "UI/design craft, audit, polish, redesign, live visual iteration",
+      "loading_posture": "Overlay",
+      "cost_hint": "balanced",
+      "key": "impeccable",
+      "runtime_notes": "May use external design tooling; see integrations contract for install/attach requests."
+    },
+    {
+      "name": "pr-comments-resolution",
+      "class": "Cross-cutting overlay",
+      "path": ".agents/skills/04-crosscutting/pr-comments-resolution/SKILL.md",
+      "trigger": "Resolve or review PR comments in an orderly way",
+      "loading_posture": "Overlay",
+      "cost_hint": "balanced",
+      "key": "pr-comments-resolution",
+      "runtime_notes": "GitHub tooling availability is runtime-specific."
+    },
+    {
+      "name": "cavecrew",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/cavecrew/SKILL.md",
+      "trigger": "User asks to delegate to cavecrew or use caveman-compressed subagents",
+      "loading_posture": "Explicit-only",
+      "cost_hint": "lean",
+      "key": "cavecrew",
+      "runtime_notes": "Decision guide for cavecrew helpers."
+    },
+    {
+      "name": "cavecrew-investigator",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/cavecrew-investigator/SKILL.md",
+      "trigger": "Need compressed read-only code location or pattern lookup",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "lean",
+      "key": "cavecrew-investigator",
+      "runtime_notes": "Helper delegate; no writes."
+    },
+    {
+      "name": "cavecrew-builder",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/cavecrew-builder/SKILL.md",
+      "trigger": "Need surgical 1-2 file mechanical edit with known scope",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "lean",
+      "key": "cavecrew-builder",
+      "runtime_notes": "Helper delegate; bounded writes only."
+    },
+    {
+      "name": "cavecrew-reviewer",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/cavecrew-reviewer/SKILL.md",
+      "trigger": "Need terse diff/file review",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "lean",
+      "key": "cavecrew-reviewer",
+      "runtime_notes": "Helper delegate; review only unless assigned otherwise."
+    },
+    {
+      "name": "caveman",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman/SKILL.md",
+      "trigger": "User asks for caveman mode/less tokens, or installed runtime selects quality-preserving token-saving mode",
+      "loading_posture": "Helper/mode",
+      "cost_hint": "lean",
+      "key": "caveman",
+      "runtime_notes": "External optional communication capability; use only when clarity is preserved."
+    },
+    {
+      "name": "caveman-commit",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-commit/SKILL.md",
+      "trigger": "User asks for commit message or staging/commit helper output",
+      "loading_posture": "Helper/mode",
+      "cost_hint": "lean",
+      "key": "caveman-commit",
+      "runtime_notes": "Conventional commit helper."
+    },
+    {
+      "name": "caveman-compress",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-compress/SKILL.md",
+      "trigger": "User asks to compress a memory/instruction file",
+      "loading_posture": "Helper/mode",
+      "cost_hint": "lean",
+      "key": "caveman-compress",
+      "runtime_notes": "Rewrites target memory file and creates backup per skill."
+    },
+    {
+      "name": "caveman-help",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-help/SKILL.md",
+      "trigger": "User asks for caveman help or command reference",
+      "loading_posture": "Helper/mode",
+      "cost_hint": "lean",
+      "key": "caveman-help",
+      "runtime_notes": "One-shot help."
+    },
+    {
+      "name": "caveman-review",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-review/SKILL.md",
+      "trigger": "User asks for compressed PR/code review comments",
+      "loading_posture": "Helper/mode",
+      "cost_hint": "lean",
+      "key": "caveman-review",
+      "runtime_notes": "Review format helper."
+    },
+    {
+      "name": "caveman-stats",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-stats/SKILL.md",
+      "trigger": "User invokes `/caveman-stats` for real token usage stats",
+      "loading_posture": "Helper/mode",
+      "cost_hint": "lean",
+      "key": "caveman-stats",
+      "runtime_notes": "Depends on session log/hook availability."
+    }
+  ],
+  "pattern_skills": [
+    {
+      "name": "add-project-pattern",
+      "class": "Standards/pattern",
+      "path": ".agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md",
+      "trigger": "User asks to create/register project-specific pattern skills in repo overlay",
+      "loading_posture": "Explicit-only",
+      "cost_hint": "lean",
+      "key": "pattern-authoring-add-project-pattern",
+      "runtime_notes": "Bootstrap helper for local pattern authoring and registry sync."
+    }
+  ]
+}

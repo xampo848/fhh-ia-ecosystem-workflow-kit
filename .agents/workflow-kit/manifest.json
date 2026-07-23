@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0.0",
+  "name": "fhh-ia-ecosystem-workflow-kit",
+  "derived_artifact": false,
+  "not_an_installer": true,
+  "description": "Packaging boundary for reusing the FHH IA Ecosystem AI workflow without copying repo-specific product rules as portable core.",
+  "portable_core": [
+    ".agents/instructions.md",
+    ".agents/skills/registry.md",
+    ".agents/skills/registry.schema.json",
+    ".agents/skills/registry.json",
+    ".agents/skills/registry.cache.json",
+    ".agents/skills/00-router/workflow-router/SKILL.md",
+    ".agents/skills/01-product/create-epic/SKILL.md",
+    ".agents/skills/01-product/create-prd/SKILL.md",
+    ".agents/skills/01-product/generate-pm-ticket/SKILL.md",
+    ".agents/skills/01-product/product-studio/SKILL.md",
+    ".agents/skills/02-implement/implement-prd/SKILL.md",
+    ".agents/capabilities/README.md",
+    ".agents/integrations/README.md",
+    ".agents/model-routing/README.md",
+    ".agents/memory/README.md"
+  ],
+  "repo_overlay": [
+    ".agents/skills/06-patterns/README.md",
+    ".agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md",
+    ".agents/skills/06-patterns/authoring/pattern-skill-template.md",
+    ".agents/capabilities/registry.md",
+    ".agents/capabilities/manifests/context7.md",
+    ".agents/capabilities/manifests/engram.md",
+    ".agents/capabilities/manifests/impeccable.md",
+    ".agents/capabilities/manifests/caveman.md",
+    ".agents/capabilities/manifests/cavecrew.md"
+  ],
+  "runtime_adapters": [
+    "AGENTS.md",
+    ".github/copilot-instructions.md",
+    ".codex/agents"
+  ],
+  "derived_artifacts": [
+    ".agents/skills/registry.json",
+    ".agents/skills/registry.cache.json"
+  ],
+  "validation_commands": [
+    "python3 scripts/validate_skill_registry.py --check",
+    "python3 scripts/refresh_skill_registry_cache.py --check",
+    "python3 scripts/validate_workflow_kit.py --check"
+  ],
+  "excluded_from_portable_core": [
+    "backend/",
+    "front/",
+    "docs/epics/",
+    "docs/prd/",
+    "docs/internal-documentation/"
+  ],
+  "adoption_sequence": [
+    "Copy or vendor the portable core.",
+    "Create a repo overlay for local domain rules and pattern skills.",
+    "Wire runtime adapters as thin wrappers over the neutral contract.",
+    "Regenerate and validate structured registry artifacts.",
+    "Run the adoption checklist before using implement-prd in the target repo."
+  ]
+}

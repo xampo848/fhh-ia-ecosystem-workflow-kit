@@ -1,0 +1,3 @@
+interface:
+  display_name: "Arquitecta Fases"
+  short_description: "Split PRDs into owned implementation slices"
