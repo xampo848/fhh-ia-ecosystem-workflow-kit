@@ -42,20 +42,6 @@ test('init --apply --yes writes selected templates', async () => {
   await fs.access(path.join(target, '.agents/skills/06-patterns/README.md'));
 });
 
-test('init can relocate legacy docs when migrate-legacy-docs is enabled', async () => {
-  const target = await makeTempRepo();
-  await fs.mkdir(path.join(target, 'docs/backend'), { recursive: true });
-  await fs.writeFile(path.join(target, 'docs/backend/api-guidelines.md'), '# API Guidelines\n', 'utf8');
-  const io = createMemoryIo();
-
-  const code = await runCli(['init', '--target', target, '--runtime', 'neutral', '--migrate-legacy-docs', '--apply', '--yes'], io);
-
-  assert.equal(code, 0);
-  assert.match(io.output.stdout, /Legacy docs relocated: 1/);
-  await fs.access(path.join(target, 'docs/workflow/standards/imported-backend/api-guidelines.md'));
-  await assert.rejects(fs.access(path.join(target, 'docs/backend/api-guidelines.md')), { code: 'ENOENT' });
-});
-
 test('init apply creates backup before overwriting changed file', async () => {
   const target = await makeTempRepo();
   await fs.writeFile(path.join(target, 'AGENTS.md'), 'existing local instructions\n', 'utf8');

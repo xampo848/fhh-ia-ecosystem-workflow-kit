@@ -143,20 +143,6 @@ test('buildInstallPlan does not regenerate legacy docs migration map after first
   assert.equal(migrationMapOperation, undefined);
 });
 
-test('buildInstallPlan can plan legacy docs relocation when explicitly enabled', async () => {
-  const target = await makeTempRepo();
-  await fs.mkdir(path.join(target, 'docs/backend'), { recursive: true });
-  await fs.writeFile(path.join(target, 'docs/backend/api-guidelines.md'), '# API Guidelines\n', 'utf8');
-
-  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral', migrateLegacyDocs: true });
-  const relocation = plan.operations.find((item) => item.operation === 'move_with_backup');
-
-  assert.ok(relocation);
-  assert.equal(relocation.fromRelativePath, 'docs/backend/api-guidelines.md');
-  assert.equal(relocation.relativePath, 'docs/workflow/standards/imported-backend/api-guidelines.md');
-  assert.equal(plan.summary.move_with_backup, 1);
-});
-
 test('buildInstallPlan defaults to complete fhh-ia-ecosystem overlay without duplicate paths', async () => {
   const target = await makeTempRepo();
   const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });

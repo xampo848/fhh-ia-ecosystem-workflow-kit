@@ -144,9 +144,6 @@ export async function buildInstallPlan(options = {}) {
   }
 
   operations.push(...await buildOneTimeDocsMigrationOperations({ targetPath }));
-  if (options.migrateLegacyDocs) {
-    operations.push(...await buildLegacyDocsMoveOperations({ targetPath }));
-  }
 
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 
@@ -168,7 +165,6 @@ export async function buildInstallPlan(options = {}) {
     runtimes,
     overlay,
     discoveredSkillEntries,
-    migrateLegacyDocs: Boolean(options.migrateLegacyDocs),
     operations,
     summary: summarizeOperations(operations)
   };
@@ -318,10 +314,6 @@ export async function buildUpdatePlan(options = {}) {
     }
   }
 
-  if (options.migrateLegacyDocs) {
-    operations.push(...await buildLegacyDocsMoveOperations({ targetPath }));
-  }
-
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 
   const nextInstallState = buildNextInstallState({
@@ -343,7 +335,6 @@ export async function buildUpdatePlan(options = {}) {
     runtimes,
     overlay,
     discoveredSkillEntries,
-    migrateLegacyDocs: Boolean(options.migrateLegacyDocs),
     operations,
     summary: summarizeOperations(operations)
   };
@@ -357,7 +348,6 @@ export function summarizeOperations(operations) {
   const summary = {
     create: 0,
     unchanged: 0,
-    move_with_backup: 0,
     merge_with_backup: 0,
     overwrite_with_backup: 0,
     skip_modified: 0,
@@ -384,15 +374,10 @@ export function formatPlan(plan) {
   ];
 
   for (const item of plan.operations) {
-    if (item.operation === 'move_with_backup' && item.fromRelativePath) {
-      lines.push(`- ${item.operation}: ${item.fromRelativePath} -> ${item.relativePath}`);
-      continue;
-    }
-
     lines.push(`- ${item.operation}: ${item.relativePath}`);
   }
 
-  lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, move_with_backup=${plan.summary.move_with_backup}, merge_with_backup=${plan.summary.merge_with_backup}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}`);
+  lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, merge_with_backup=${plan.summary.merge_with_backup}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}`);
   return lines.join('\n');
 }
 
@@ -708,55 +693,6 @@ async function buildOneTimeDocsMigrationOperations({ targetPath }) {
   return operations;
 }
 
-async function buildLegacyDocsMoveOperations({ targetPath }) {
-  const docsRoot = path.join(targetPath, 'docs');
-  const legacyDocs = await collectLegacyDocsForMigration({ docsRoot });
-  const operations = [];
-
-  for (const item of legacyDocs) {
-    const sourceFile = path.join(docsRoot, item.relative);
-    const targetFile = path.join(targetPath, item.suggested);
-    const relativePath = item.suggested;
-    const fromRelativePath = `docs/${item.relative}`;
-
-    let targetExists = false;
-    try {
-      await fs.access(targetFile);
-      targetExists = true;
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-    }
-
-    if (targetExists) {
-      operations.push({
-        operation: 'skip_unmanaged',
-        relativePath,
-        fromRelativePath,
-        targetFile,
-        sourceFile,
-        content: null,
-        sourceChecksum: null,
-        plannedChecksum: null
-      });
-      continue;
-    }
-
-    const content = await fs.readFile(sourceFile, 'utf8');
-    operations.push({
-      operation: 'move_with_backup',
-      relativePath,
-      fromRelativePath,
-      targetFile,
-      sourceFile,
-      sourcePath: null,
-      content,
-      sourceChecksum: computeChecksum(content),
-      plannedChecksum: computeChecksum(content)
-    });
-  }
-
-  return operations;
-}
 
 async function collectLegacyDocsForMigration({ docsRoot }) {
   const files = [];
