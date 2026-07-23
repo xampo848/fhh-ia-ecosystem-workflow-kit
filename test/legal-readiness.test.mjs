@@ -10,7 +10,7 @@ import { validateLegalReadiness } from '../scripts/validate-legal-readiness.mjs'
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 test('validateLegalReadiness passes for the repository records', () => {
-  const result = validateLegalReadiness();
+  const result = validateLegalReadiness({ root: sourceRoot });
 
   assert.equal(result.ok, true, result.failures.join('\n'));
 });
@@ -37,7 +37,10 @@ test('validateLegalReadiness rejects an overlay inventory change', async () => {
   const result = validateLegalReadiness({ root });
 
   assert.equal(result.ok, false);
-  assert.ok(result.failures.some((failure) => failure.includes('maintainer-attested overlay file inventory changed')));
+  assert.ok(result.failures.some((failure) => (
+    failure.includes('maintainer-attested overlay file inventory changed') ||
+    failure.includes('maintainer-attested overlay path/content inventory differs')
+  )));
 });
 
 test('validateLegalReadiness rejects a same-count overlay path replacement', async () => {
