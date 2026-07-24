@@ -157,16 +157,14 @@ stacks, or implementation gates that can drift.
 
 Router-first enforcement:
 
-- For any non-trivial request, run `workflow-router` before planning, editing,
-or implementing.
+- For any non-trivial request, run `workflow-router` before planning, editing, or implementing.
 - Do not skip router execution by jumping directly into coding or PRD creation.
 - If router is unavailable, stop non-trivial execution and report the missing file/tool.
 
 User-owned PRD decision enforcement:
 
 - The AI must never decide unilaterally to create a PRD, epic, or PM ticket.
-- When the route could be `create-prd`, `create-epic`, or `generate-pm-ticket`,
-present options and wait for explicit user choice.
+- When the route could be `create-prd`, `create-epic`, or `generate-pm-ticket`, present options and wait for explicit user choice.
 - The only exception is an explicit user command naming that workflow.
 
 1. If the user explicitly invokes a skill, load that skill and follow it.
