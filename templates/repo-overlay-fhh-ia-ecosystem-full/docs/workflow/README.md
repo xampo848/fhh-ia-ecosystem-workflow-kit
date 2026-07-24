@@ -21,5 +21,6 @@ This folder is reserved for documents that support the installed AI workflow.
 
 - `decisions/2026-01-01-workflow-adoption-baseline.md`
 - `runbooks/update-skill-registry.md`
+- `runbooks/router-skill-enforcement-manual-checklist.md`
 - `handoffs/template-installation.md`
 - `standards/setup-and-migration.md`

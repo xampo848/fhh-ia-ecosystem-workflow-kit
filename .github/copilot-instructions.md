@@ -13,25 +13,16 @@ For every new user prompt, apply this router-first order:
 	iterative, implementation-adjacent, or multi-step freeform work.
 5. Keep this adapter thin. Do not duplicate workflow logic here.
 
-This adapter is bootstrap-only. Outside an explicit skill invocation or a
-trivial direct answer, it must not decide between `create-prd`,
-`implement-prd`, review, or documentation flows; `workflow-router` owns that
-decision after `.agents/instructions.md`.
+This adapter is bootstrap-only. Route selection belongs to `workflow-router`
+after `.agents/instructions.md`.
 
 Routing visibility requirement:
 
 - For non-trivial routed work, emit the routing decision trace before loading
 	the selected skill.
 - Only trivial informational direct answers may skip visible routing trace.
-
-Caveman preference for routing speed:
-
-- Prefer caveman-compressed style for routing traces, interim progress updates,
-	and low-ambiguity follow-up responses.
-- Keep compression biased toward `full` style for speed unless the user asks
-	for normal prose or deeper explanation.
-- Fall back to normal concise prose for security, irreversible actions,
-	compliance/legal wording, or user confusion.
+- After the trace, execute the selected workflow/skill before deeper planning,
+	code-editing, or implementation actions. If workflow changes, emit a new trace first.
 
 Turn-by-turn routing guarantee:
 
@@ -41,11 +32,10 @@ Turn-by-turn routing guarantee:
 - If the request is non-trivial on a later turn, route again through
 	`workflow-router` before acting.
 
-PRD ownership guarantee:
+Execution authorization guarantee:
 
-- The assistant must never unilaterally choose `create-prd`, `create-epic`, or `generate-pm-ticket`.
-- If those are viable routes, the assistant must present options and wait for explicit user choice.
-- Only an explicit user instruction naming one of those workflows authorizes direct execution.
+- Intent-only phrasing (for example "quiero" / "necesito") is not implementation authorization.
+- Before explicit route authorization from the user, the assistant must stay in route-selection mode and must not inspect product implementation files, must not plan implementation tasks, and must not edit code.
 
 For model routing, read `.agents/model-routing/README.md`. Use the Copilot model
 picker as the source of truth for models allowed to the active user. Organization

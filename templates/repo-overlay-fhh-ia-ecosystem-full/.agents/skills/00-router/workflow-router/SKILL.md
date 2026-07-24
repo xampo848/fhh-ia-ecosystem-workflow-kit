@@ -54,13 +54,36 @@ For every non-trivial freeform request:
 3. Consider AI cost across input context, output length, subagents, validation, and rework risk, then recommend the lowest safe cost posture: `lean`, `balanced`, or `premium`.
 4. Explain the selected path in one plain sentence.
 5. Emit the routing decision trace.
-6. Load the selected skill and follow it.
-7. Ask only one clarifying question when ambiguity materially changes the workflow.
+6. If the route requires user choice, stop in `awaiting-user-choice` and ask for explicit authorization.
+7. Load the selected skill and follow it only after route authorization.
+8. Ask only one clarifying question when ambiguity materially changes the workflow.
+
+## Skill execution lock (mandatory)
+
+After emitting a routing decision trace with a selected workflow or skill:
+
+1. The selected workflow is execution-binding for the next non-trivial action.
+2. The agent must load and execute that workflow before performing deeper planning, code exploration for implementation, or file edits.
+3. If the agent needs to switch workflows, it must emit a new routing trace first and satisfy any required authorization gate.
+4. The agent must not advertise one workflow and execute another in the same step.
+
+Natural-language binding examples:
+
+- "usa create-prd" -> load and run `create-prd`.
+- "implementa este PRD" -> load and run `implement-prd`.
+- "haz el ticket" after options -> load and run `generate-pm-ticket`.
 
 User choice constraint:
 
 - For `create-prd`, `create-epic`, and `generate-pm-ticket`, do not auto-load the skill unless the user explicitly requested it or explicitly selected it from options presented by the router.
 - If those are candidate routes, the router must present the options and wait for the user's decision.
+
+Execution authorization gate (mandatory):
+
+- Treat user intent language (for example: "quiero", "necesito", "hagamos") as routing input, not as execution authorization.
+- Before explicit route authorization, stay in `awaiting-user-choice`.
+- In `awaiting-user-choice`, do not inspect product implementation files, do not generate implementation plans, and do not edit code.
+- Start execution only after an explicit authorization utterance for a route (for example: "procede", "usa create-prd", "implementa este PRD", "haz el ticket").
 
 Do not stay generic. The output of this skill is a routing decision, cost posture, plus the next action.
 
@@ -287,7 +310,7 @@ Mandatory user decision rule:
 
 - Present the alternatives in plain language and wait for explicit user selection.
 - Do not auto-run `create-prd`, `create-epic`, or `generate-pm-ticket`.
-- If the user says they do not want PRD/epic/ticket, continue with the smallest safe non-PRD path allowed by policy and state the risk.
+- If the user says they do not want PRD/epic/ticket, ask for explicit authorization of an alternative route and do not move into implementation by default.
 
 Say:
 
@@ -434,14 +457,14 @@ Behavior:
 - Show the three-option menu.
 - Recommend a default.
 - Prefer the smallest safe workflow.
-- Wait for the user or proceed with the safest smallest path if the user requested speed/autonomy.
+- Wait for explicit route authorization; do not auto-proceed on speed/autonomy wording alone.
 
 ## Trigger examples
 
 | User says | Route | Cost posture |
 | --- | --- | --- |
 | "Explícame si esta idea tiene sentido" | Direct answer or `create-prd` if the user wants a spec-ready decision | `lean` or `balanced` |
-| "Quiero agregar un dashboard de métricas DORA" | `create-prd` unless explicitly broad/multi-phase | `balanced` |
+| "Quiero agregar un dashboard de métricas DORA" | Propose `create-prd` (or `generate-pm-ticket` if tiny) and wait for explicit authorization | `balanced` |
 | "Implementa este PRD" | `implement-prd` | `balanced` |
 | "Crea la épica para GitHub Intelligence" | `create-epic` | `balanced`; `premium` if architecture impact is high |
 | "Arregla este bug en frontend" | `implement-prd` if non-trivial; surgical exception only if very small and clear | `lean` for surgical, otherwise `balanced` |
@@ -460,6 +483,7 @@ Before loading the selected skill, produce a short routing note:
 Ruta recomendada: `[skill]`
 Por qué: [una frase simple]
 Cost posture: `lean | balanced | premium`
+Estado: `routing | awaiting-user-choice | executing:<skill>`
 Siguiente acción: [leer skill / pedir una aclaración / responder directo]
 ```
 
@@ -484,6 +508,8 @@ Do not:
 - Produce long routing explanations when a short route plus trace is enough.
 - Invoke subagents for ceremony when inline work is safer and cheaper.
 - Skip the delegation decision entirely and later justify it only after the fact.
+- Start code exploration, implementation planning, or edits before explicit route authorization.
+- Reinterpret intent language as automatic permission to execute.
 
 ## Definition of done
 
@@ -499,3 +525,4 @@ Routing is complete when:
 - For `implement-prd`, the routing trace also makes explicit whether the decision was driven by phase count, ownership boundaries, or context-window protection.
 - AI cost efficiency was considered without sacrificing quality, safety, or maintainability.
 - The interaction leaves the user a little sharper than before, not just unblocked.
+- The route authorization state is explicit, and execution does not start before authorization.

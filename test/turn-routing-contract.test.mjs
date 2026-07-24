@@ -22,6 +22,10 @@ test('neutral instructions define mandatory per-turn intake', async () => {
   assert.match(instructions, /(?:do|must) not assume.*previous prompt/is);
   assert.match(instructions, /reuse.*context/is);
   assert.match(instructions, /cannot load.*workflow-router/is);
+  assert.match(instructions, /Execution authorization gate/i);
+  assert.match(instructions, /intent language[\s\S]*not execution authorization/i);
+  assert.match(instructions, /awaiting-user-choice/i);
+  assert.match(instructions, /must not inspect product code[\s\S]*must not edit files/i);
 });
 
 test('router distinguishes intake from full routing and visible traces', async () => {
@@ -31,6 +35,9 @@ test('router distinguishes intake from full routing and visible traces', async (
   assert.match(router, /full router.*non-trivial/is);
   assert.match(router, /direct answer.*without.*visible.*trace/is);
   assert.match(router, /workflow,[\s\S]*skill,[\s\S]*capability,[\s\S]*cost,[\s\S]*delegation,[\s\S]*risk decision/i);
+  assert.match(router, /Execution authorization gate/i);
+  assert.match(router, /stay in `awaiting-user-choice`/i);
+  assert.match(router, /do not inspect product implementation files[\s\S]*do not edit code/i);
 });
 
 test('canonical instructions and router match the installable overlay', async () => {
@@ -82,9 +89,10 @@ test('Copilot wrappers require visible routing trace for non-trivial work', asyn
     assert.match(content, /trivial informational direct answers/i, relativePath);
     assert.match(content, /do not reuse or cache the previous workflow decision across turns/i, relativePath);
     assert.match(content, /including follow-ups[\s\S]*same conversation/i, relativePath);
-    assert.match(content, /caveman preference for routing speed/i, relativePath);
-    assert.match(content, /prefer caveman-compressed style[\s\S]*routing traces/i, relativePath);
-    assert.match(content, /biased toward `full` style/i, relativePath);
+    assert.match(content, /keep this adapter thin/i, relativePath);
+    assert.match(content, /selected workflow\/skill[\s\S]*If workflow changes[\s\S]*new trace/i, relativePath);
+    assert.match(content, /Execution authorization guarantee/i, relativePath);
+    assert.match(content, /Intent-only phrasing[\s\S]*not implementation authorization/i, relativePath);
   }
 });
 
@@ -98,8 +106,9 @@ test('Copilot scoped instructions enforce re-routing on follow-up turns', async 
     assert.match(content, /including follow-up[\s\S]*same chat/i, relativePath);
     assert.match(content, /never assume the workflow selected in a previous turn is still valid/i, relativePath);
     assert.match(content, /re-enter `workflow-router`/i, relativePath);
-    assert.match(content, /caveman response posture/i, relativePath);
-    assert.match(content, /prefer caveman-compressed[\s\S]*reduce latency/i, relativePath);
-    assert.match(content, /caveman `full` style/i, relativePath);
+    assert.match(content, /bootstrap-only/i, relativePath);
+    assert.match(content, /selected workflow is binding[\s\S]*new trace/i, relativePath);
+    assert.match(content, /Execution Authorization Gate/i, relativePath);
+    assert.match(content, /Intent phrasing alone[\s\S]*not authorization/i, relativePath);
   }
 });

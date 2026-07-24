@@ -167,6 +167,25 @@ User-owned PRD decision enforcement:
 - When the route could be `create-prd`, `create-epic`, or `generate-pm-ticket`, present options and wait for explicit user choice.
 - The only exception is an explicit user command naming that workflow.
 
+Execution authorization gate:
+
+- Intent language from the user (for example: "quiero", "necesito", "hagamos") is not execution authorization by itself.
+- Before explicit route authorization, the agent must stay in `awaiting-user-choice` for route-selection turns.
+- While in `awaiting-user-choice`, the agent must not inspect product code for implementation, must not plan implementation tasks, and must not edit files.
+- Execution starts only after the user explicitly authorizes the selected route (for example: "usa create-prd", "implementa este PRD", "haz el ticket", "procede con esa ruta").
+
+Routing-to-execution binding (mandatory):
+
+- For non-trivial work, the workflow or skill selected in the latest routing trace is binding for the next execution step.
+- The agent must load and follow that selected skill before planning, editing, or implementing beyond intake.
+- If the agent must change workflow because of new information, risk, or user redirect, it must emit a new routing trace first and apply the same authorization gate.
+- Never announce one workflow (for example `implement-prd`) and execute a different path in the same step.
+
+Natural-language skill invocation binding:
+
+- Treat explicit natural-language directives as explicit skill invocation, for example: "usa create-prd", "implementa este PRD", "run implement-prd".
+- Once invoked, the agent must execute that skill's protocol until completion or an explicit user redirect.
+
 1. If the user explicitly invokes a skill, load that skill and follow it.
 2. Otherwise perform structured per-turn intake before answering, planning, or editing.
 3. A direct answer may proceed without loading the full router only when the request is trivial,
