@@ -17,10 +17,8 @@ For every new user prompt, apply this router-first order:
 	multi-step freeform work, load `workflow-router` before acting.
 5. Keep this adapter thin.
 
-This instruction file is a bootstrap wrapper, not a second workflow policy.
-Outside an explicit skill invocation or a trivial direct answer, the selected
-path must come from `workflow-router` after `.agents/instructions.md`, not from
-hardcoded flow stacks in this adapter.
+This instruction file is bootstrap-only. Workflow policy remains in
+`.agents/instructions.md` and `workflow-router`.
 
 ## Routing trace guarantee
 
@@ -29,6 +27,8 @@ hardcoded flow stacks in this adapter.
 - Only trivial informational direct answers may skip that visible trace.
 - The trace format is defined by `workflow-router` and must include at least:
 	selected path and cost posture.
+- After the trace, the selected workflow is binding for the next non-trivial
+	action. If the workflow must change, emit a new trace before proceeding.
 
 ## Turn-by-turn re-routing
 
@@ -38,25 +38,10 @@ hardcoded flow stacks in this adapter.
 - For any later non-trivial prompt, re-enter `workflow-router` before planning,
 	editing, or running implementation steps.
 
-## User-owned PRD decision
-
-- The assistant must not decide on its own to run `create-prd`, `create-epic`, or `generate-pm-ticket`.
-- When those routes are candidates, present options and wait for explicit user choice.
-- Only explicit user request can auto-authorize one of those workflows.
-
 ## Execution Authorization Gate
 
 - Intent phrasing alone (for example "quiero" / "necesito") is not authorization to execute implementation work.
 - Until the user explicitly authorizes the selected route, stay in route-selection mode and do not inspect product implementation files, do not plan implementation tasks, and do not edit code.
-
-## Caveman response posture
-
-- For routing traces and short progress updates, prefer caveman-compressed
-	responses to reduce latency and token pressure.
-- Default to caveman `full` style in low-ambiguity turns unless the user asks
-	for expanded prose.
-- Switch back to normal concise prose when clarity or safety wording is
-	critical (security, destructive actions, legal/compliance, or confusion).
 
 ## Standards and documentation loading
 

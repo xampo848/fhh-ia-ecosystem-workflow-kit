@@ -13,8 +13,10 @@ Router-first startup for every new user prompt:
 4. Otherwise run structured intake. If the request is non-trivial, iterative,
    implementation-adjacent, or multi-step freeform work, load
    `.agents/skills/00-router/workflow-router/SKILL.md` before acting.
-5. Keep runtime adapters thin and avoid duplicating workflow logic.
-6. Reuse already-loaded context when its source file has not changed.
+5. Treat the selected workflow from the latest routing trace as binding for the
+   next non-trivial action. If the route changes, emit a new trace first.
+6. Keep runtime adapters thin and avoid duplicating workflow logic.
+7. Reuse already-loaded context when its source file has not changed.
    Do not bulk-load every skill or pattern.
 
 This bootstrap does not decide whether the work should become `create-prd`,

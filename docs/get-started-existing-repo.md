@@ -57,6 +57,15 @@ workflow-kit doctor --target /path/to/repo --runtime codex,copilot
 
 If diagnostics appear, jump to [Troubleshooting](troubleshooting.md).
 
+## 3.1) Manual routing smoke check
+
+Before rolling the workflow to a team, run one manual interaction check in the target runtime:
+
+1. Send one non-trivial natural-language request.
+2. Confirm a routing trace appears before implementation actions.
+3. Confirm the selected workflow is the one actually executed next.
+4. If route changes, confirm a new routing trace appears first.
+
 ## 4) Existing skills: what is merged vs preserved
 
 During init on an existing repository:

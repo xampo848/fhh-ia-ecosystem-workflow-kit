@@ -58,6 +58,21 @@ For every non-trivial freeform request:
 7. Load the selected skill and follow it only after route authorization.
 8. Ask only one clarifying question when ambiguity materially changes the workflow.
 
+## Skill execution lock (mandatory)
+
+After emitting a routing decision trace with a selected workflow or skill:
+
+1. The selected workflow is execution-binding for the next non-trivial action.
+2. The agent must load and execute that workflow before performing deeper planning, code exploration for implementation, or file edits.
+3. If the agent needs to switch workflows, it must emit a new routing trace first and satisfy any required authorization gate.
+4. The agent must not advertise one workflow and execute another in the same step.
+
+Natural-language binding examples:
+
+- "usa create-prd" -> load and run `create-prd`.
+- "implementa este PRD" -> load and run `implement-prd`.
+- "haz el ticket" after options -> load and run `generate-pm-ticket`.
+
 User choice constraint:
 
 - For `create-prd`, `create-epic`, and `generate-pm-ticket`, do not auto-load the skill unless the user explicitly requested it or explicitly selected it from options presented by the router.

@@ -132,6 +132,22 @@ If failure is `overlay/content-drift` for `.agents/skills/00-router/workflow-rou
 
 The failure message should name the missing file, unsafe script, invalid template pack, or missing documentation phrase.
 
+## Agent announces a skill but executes a different path
+
+If a runtime shows a routing trace selecting one workflow but execution continues through another path, treat this as a workflow-contract drift issue.
+
+Recommended action:
+
+1. Verify these files exist and remain aligned in the target repo:
+  - `AGENTS.md`
+  - `.agents/instructions.md`
+  - `.agents/skills/00-router/workflow-router/SKILL.md`
+  - `.github/copilot-instructions.md`
+  - `.github/instructions/ai-workflow.instructions.md`
+2. Re-apply workflow-kit in dry-run and then apply mode for the active runtime.
+3. Confirm the latest routing trace remains execution-binding for the next non-trivial action.
+4. If workflow selection must change, require a new routing trace before implementation actions.
+
 ## I accidentally applied over a file
 
 Look for a backup next to the overwritten file:

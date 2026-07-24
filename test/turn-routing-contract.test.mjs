@@ -89,9 +89,8 @@ test('Copilot wrappers require visible routing trace for non-trivial work', asyn
     assert.match(content, /trivial informational direct answers/i, relativePath);
     assert.match(content, /do not reuse or cache the previous workflow decision across turns/i, relativePath);
     assert.match(content, /including follow-ups[\s\S]*same conversation/i, relativePath);
-    assert.match(content, /caveman preference for routing speed/i, relativePath);
-    assert.match(content, /prefer caveman-compressed style[\s\S]*routing traces/i, relativePath);
-    assert.match(content, /biased toward `full` style/i, relativePath);
+    assert.match(content, /keep this adapter thin/i, relativePath);
+    assert.match(content, /selected workflow\/skill[\s\S]*If workflow changes[\s\S]*new trace/i, relativePath);
     assert.match(content, /Execution authorization guarantee/i, relativePath);
     assert.match(content, /Intent-only phrasing[\s\S]*not implementation authorization/i, relativePath);
   }
@@ -107,9 +106,8 @@ test('Copilot scoped instructions enforce re-routing on follow-up turns', async 
     assert.match(content, /including follow-up[\s\S]*same chat/i, relativePath);
     assert.match(content, /never assume the workflow selected in a previous turn is still valid/i, relativePath);
     assert.match(content, /re-enter `workflow-router`/i, relativePath);
-    assert.match(content, /caveman response posture/i, relativePath);
-    assert.match(content, /prefer caveman-compressed[\s\S]*reduce latency/i, relativePath);
-    assert.match(content, /caveman `full` style/i, relativePath);
+    assert.match(content, /bootstrap-only/i, relativePath);
+    assert.match(content, /selected workflow is binding[\s\S]*new trace/i, relativePath);
     assert.match(content, /Execution Authorization Gate/i, relativePath);
     assert.match(content, /Intent phrasing alone[\s\S]*not authorization/i, relativePath);
   }
