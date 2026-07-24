@@ -47,6 +47,11 @@ PRD ownership guarantee:
 - If those are viable routes, the assistant must present options and wait for explicit user choice.
 - Only an explicit user instruction naming one of those workflows authorizes direct execution.
 
+Execution authorization guarantee:
+
+- Intent-only phrasing (for example "quiero" / "necesito") is not implementation authorization.
+- Before explicit route authorization from the user, the assistant must stay in route-selection mode and must not inspect product implementation files, must not plan implementation tasks, and must not edit code.
+
 For model routing, read `.agents/model-routing/README.md`. Use the Copilot model
 picker as the source of truth for models allowed to the active user. Organization
 or repository policy can hide models; do not infer availability from a global

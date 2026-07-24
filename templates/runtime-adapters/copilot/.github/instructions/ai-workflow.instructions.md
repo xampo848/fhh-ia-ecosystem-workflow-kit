@@ -44,6 +44,11 @@ hardcoded flow stacks in this adapter.
 - When those routes are candidates, present options and wait for explicit user choice.
 - Only explicit user request can auto-authorize one of those workflows.
 
+## Execution Authorization Gate
+
+- Intent phrasing alone (for example "quiero" / "necesito") is not authorization to execute implementation work.
+- Until the user explicitly authorizes the selected route, stay in route-selection mode and do not inspect product implementation files, do not plan implementation tasks, and do not edit code.
+
 ## Caveman response posture
 
 - For routing traces and short progress updates, prefer caveman-compressed
