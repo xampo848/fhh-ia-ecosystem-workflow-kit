@@ -57,6 +57,11 @@ For every non-trivial freeform request:
 6. Load the selected skill and follow it.
 7. Ask only one clarifying question when ambiguity materially changes the workflow.
 
+User choice constraint:
+
+- For `create-prd`, `create-epic`, and `generate-pm-ticket`, do not auto-load the skill unless the user explicitly requested it or explicitly selected it from options presented by the router.
+- If those are candidate routes, the router must present the options and wait for the user's decision.
+
 Do not stay generic. The output of this skill is a routing decision, cost posture, plus the next action.
 
 ## Routing decision trace
@@ -98,12 +103,12 @@ Requirements for FULL trace:
 | Request class | Signals | Primary action | Confirmation required? | Default cost posture |
 | --- | --- | --- | --- | --- |
 | Direct answer | Explanation, advice, comparison, small command, no repo changes | Answer directly | No | `lean` |
-| Product ambiguity | Problem, user need, strategy, priority, roadmap, JTBD, unclear direction | `create-epic` for broad ambiguity, otherwise `create-prd` | Ask one question only if scope is unclear | `balanced` |
+| Product ambiguity | Problem, user need, strategy, priority, roadmap, JTBD, unclear direction | propose `create-epic` or `create-prd` and wait for user choice | Yes (always) | `balanced` |
 | Broad initiative | Multi-phase work, major capability, research, roadmap, appetite, multiple PRDs | `create-epic` | Yes unless user explicitly asked for epic/initiative/research | `balanced`; `premium` only for major architecture or commercial risk |
-| Feature specification | Clear feature, business rules, UX states, API/data impact, acceptance criteria needed | `create-prd` | No, unless user only wanted a quick answer | `balanced` |
-| Tiny backlog item | Small task, no full PRD needed, clear AC expected | `generate-pm-ticket` | No | `lean` |
+| Feature specification | Clear feature, business rules, UX states, API/data impact, acceptance criteria needed | propose `create-prd` and wait for user choice | Yes (always) | `balanced` |
+| Tiny backlog item | Small task, no full PRD needed, clear AC expected | propose `generate-pm-ticket` and wait for user choice | Yes (always) | `lean` |
 | Workflow extension maintenance | User asks how to add/edit router rules, skill registry entries, or custom `.agents/skills/**` skills; or asks the AI to perform those edits | Direct workflow-maintenance edits with validation (or explanation-only if requested) | No | `lean` |
-| Production code change | Build, implement, develop, fix behavior, add UI, change backend/frontend, modify tests | `implement-prd` if PRD exists; otherwise route to `create-prd` or `generate-pm-ticket` first | Ask only if PRD/ticket path is unclear | `balanced`; `premium` for high-risk architecture or debugging |
+| Production code change | Build, implement, develop, fix behavior, add UI, change backend/frontend, modify tests | `implement-prd` if PRD exists; otherwise propose `create-prd` or `generate-pm-ticket` and wait for user choice | Yes (always when no PRD) | `balanced`; `premium` for high-risk architecture or debugging |
 | PRD implementation | User references PRD path or says implement this PRD | `implement-prd` | No | `balanced` |
 | Review / QA | Review PR, review diff, validate quality, inspect frontend, audit UI, or sharpen visual direction | stack-gated review skill (`frontend-design`, `react-doctor`, `impeccable`, `pr-comments-resolution`, `playwright-testing`, `contract-verifier`, or inline review) | No | `lean` for pure visual direction, otherwise `balanced`; `premium` for large or release-critical diffs |
 | Documentation | Explain delivered feature, write guide, preserve knowledge | `document-development` | No | `lean` |
@@ -272,16 +277,22 @@ Then load `.agents/skills/02-implement/implement-prd/SKILL.md`.
 
 ### When no PRD exists
 
-Do not silently code. Choose the smallest predecessor:
+Do not silently code. Suggest the smallest predecessor, but do not choose it for the user:
 
 - Use `generate-pm-ticket` for tiny backlog-sized changes.
 - Use `create-prd` for feature work with business rules, UX, API, data, tests, acceptance criteria, tenancy, or cross-layer impact.
 - Use `create-epic` only for a broad initiative that needs research, phases, appetite, and multiple PRDs.
 
+Mandatory user decision rule:
+
+- Present the alternatives in plain language and wait for explicit user selection.
+- Do not auto-run `create-prd`, `create-epic`, or `generate-pm-ticket`.
+- If the user says they do not want PRD/epic/ticket, continue with the smallest safe non-PRD path allowed by policy and state the risk.
+
 Say:
 
 ```text
-Antes de implementar necesito dejar el alcance ejecutable. Recomiendo [create-prd/generate-pm-ticket] porque [razón breve].
+Antes de implementar necesito tu decisión de formato. Puedo seguir como [create-prd], [generate-pm-ticket] o [create-epic] según alcance. Elige una opción y la ejecuto.
 ```
 
 ## Surgical edit exception
@@ -312,7 +323,7 @@ If unclear, ask:
 Puedo tomar esto como PRD acotado o como épica completa. ¿Prefieres una especificación pequeña para implementar o una investigación con fases?
 ```
 
-When autonomy is preferred and the request can still fit safely in one feature spec, default to `create-prd`, not `create-epic`.
+When autonomy is preferred and the request can still fit safely in one feature spec, propose `create-prd` as recommendation, but wait for explicit user choice.
 
 ## Plain-language guidance
 
@@ -327,7 +338,7 @@ Puedo tomar esto de 3 formas:
 Mi recomendación: [opción], porque [razón breve].
 ```
 
-If the user says "no sé" or gives no preference, choose the safest smallest workflow and state the assumption.
+If the user says "no sé" or gives no preference, offer one recommended option and ask for explicit confirmation before loading that workflow.
 
 ## Teach, challenge, improve
 

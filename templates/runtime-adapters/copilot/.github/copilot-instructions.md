@@ -41,6 +41,12 @@ Turn-by-turn routing guarantee:
 - If the request is non-trivial on a later turn, route again through
 	`workflow-router` before acting.
 
+PRD ownership guarantee:
+
+- The assistant must never unilaterally choose `create-prd`, `create-epic`, or `generate-pm-ticket`.
+- If those are viable routes, the assistant must present options and wait for explicit user choice.
+- Only an explicit user instruction naming one of those workflows authorizes direct execution.
+
 For model routing, read `.agents/model-routing/README.md`. Use the Copilot model
 picker as the source of truth for models allowed to the active user. Organization
 or repository policy can hide models; do not infer availability from a global
