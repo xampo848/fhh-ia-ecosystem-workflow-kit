@@ -155,6 +155,18 @@ repo overlays, and copied instruction wrappers must point back to this contract
 and then to the router instead of embedding alternate routing rules, workflow
 stacks, or implementation gates that can drift.
 
+Router-first enforcement:
+
+- For any non-trivial request, run `workflow-router` before planning, editing, or implementing.
+- Do not skip router execution by jumping directly into coding or PRD creation.
+- If router is unavailable, stop non-trivial execution and report the missing file/tool.
+
+User-owned PRD decision enforcement:
+
+- The AI must never decide unilaterally to create a PRD, epic, or PM ticket.
+- When the route could be `create-prd`, `create-epic`, or `generate-pm-ticket`, present options and wait for explicit user choice.
+- The only exception is an explicit user command naming that workflow.
+
 1. If the user explicitly invokes a skill, load that skill and follow it.
 2. Otherwise perform structured per-turn intake before answering, planning, or editing.
 3. A direct answer may proceed without loading the full router only when the request is trivial,

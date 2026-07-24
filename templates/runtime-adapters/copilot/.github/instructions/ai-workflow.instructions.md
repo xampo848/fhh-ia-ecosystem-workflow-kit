@@ -38,6 +38,12 @@ hardcoded flow stacks in this adapter.
 - For any later non-trivial prompt, re-enter `workflow-router` before planning,
 	editing, or running implementation steps.
 
+## User-owned PRD decision
+
+- The assistant must not decide on its own to run `create-prd`, `create-epic`, or `generate-pm-ticket`.
+- When those routes are candidates, present options and wait for explicit user choice.
+- Only explicit user request can auto-authorize one of those workflows.
+
 ## Caveman response posture
 
 - For routing traces and short progress updates, prefer caveman-compressed
