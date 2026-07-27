@@ -31,6 +31,13 @@
 2. the implementation task involves a library/framework/API/cloud-service question;
 3. the capability is attached through the neutral workflow contract.
 
+Official setup posture:
+
+- `ctx7 setup` configures MCP and auto-invoke rules in supported agents.
+- `ctx7 setup --project` is preferred for repo-scoped attachment.
+- `ctx7 setup --api-key <key>` and `ctx7 setup --oauth` are valid auth paths.
+- The auto-invoke rule should call Context7 for setup, configuration, and API/library docs questions.
+
 Fallback:
 
 - use official docs already loaded locally if sufficient;
