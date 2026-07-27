@@ -93,6 +93,9 @@ test('Copilot wrappers require visible routing trace for non-trivial work', asyn
     assert.match(content, /selected workflow\/skill[\s\S]*If workflow changes[\s\S]*new trace/i, relativePath);
     assert.match(content, /Execution authorization guarantee/i, relativePath);
     assert.match(content, /Intent-only phrasing[\s\S]*not implementation authorization/i, relativePath);
+    assert.match(content, /PR comments hard trigger safeguard/i, relativePath);
+    assert.match(content, /resolve, review, process, or close PR\/review comments/i, relativePath);
+    assert.match(content, /execute the selected `pr-comments-resolution` path/i, relativePath);
   }
 });
 
@@ -110,5 +113,8 @@ test('Copilot scoped instructions enforce re-routing on follow-up turns', async 
     assert.match(content, /selected workflow is binding[\s\S]*new trace/i, relativePath);
     assert.match(content, /Execution Authorization Gate/i, relativePath);
     assert.match(content, /Intent phrasing alone[\s\S]*not authorization/i, relativePath);
+    assert.match(content, /PR Comments Hard Trigger Safeguard/i, relativePath);
+    assert.match(content, /resolve, review, process, or close PR\/review comments/i, relativePath);
+    assert.match(content, /execute the selected `pr-comments-resolution` path/i, relativePath);
   }
 });

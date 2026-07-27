@@ -32,6 +32,14 @@ Turn-by-turn routing guarantee:
 - If the request is non-trivial on a later turn, route again through
 	`workflow-router` before acting.
 
+PR comments hard trigger safeguard:
+
+- If a prompt asks to resolve, review, process, or close PR/review comments,
+	treat it as non-trivial and route through `workflow-router` in that turn,
+	even in long follow-up conversations.
+- After routing, execute the selected `pr-comments-resolution` path before
+	performing other non-trivial implementation-adjacent actions.
+
 Execution authorization guarantee:
 
 - Intent-only phrasing (for example "quiero" / "necesito") is not implementation authorization.
