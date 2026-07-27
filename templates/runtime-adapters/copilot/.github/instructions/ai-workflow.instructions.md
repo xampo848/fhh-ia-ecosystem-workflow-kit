@@ -38,6 +38,14 @@ This instruction file is bootstrap-only. Workflow policy remains in
 - For any later non-trivial prompt, re-enter `workflow-router` before planning,
 	editing, or running implementation steps.
 
+## PR Comments Hard Trigger Safeguard
+
+- If the user asks to resolve, review, process, or close PR/review comments,
+	treat the prompt as non-trivial and re-enter `workflow-router` in that turn,
+	even in long follow-up chats.
+- After routing, execute the selected `pr-comments-resolution` path before
+	other non-trivial implementation-adjacent actions.
+
 ## Execution Authorization Gate
 
 - Intent phrasing alone (for example "quiero" / "necesito") is not authorization to execute implementation work.
