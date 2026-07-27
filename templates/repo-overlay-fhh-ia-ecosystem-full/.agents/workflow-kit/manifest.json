@@ -28,6 +28,7 @@
     ".agents/capabilities/registry.md",
     ".agents/capabilities/manifests/context7.md",
     ".agents/capabilities/manifests/engram.md",
+    ".agents/capabilities/manifests/codebase-memory-mcp.md",
     ".agents/capabilities/manifests/impeccable.md",
     ".agents/capabilities/manifests/caveman.md",
     ".agents/capabilities/manifests/cavecrew.md"
