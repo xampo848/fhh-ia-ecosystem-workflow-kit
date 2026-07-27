@@ -45,6 +45,76 @@
       "runtime_notes": "Smaller planning artifact than PRD."
     },
     {
+      "name": "project-formation",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/project-formation/SKILL.md",
+      "trigger": "PM needs end-to-end project shaping from discovery through GTM and dossier handoff",
+      "loading_posture": "Explicit-only",
+      "cost_hint": "balanced",
+      "key": "project-formation",
+      "runtime_notes": "Clean-room product workflow for project formation without external copied content."
+    },
+    {
+      "name": "project-formation-router",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/router/SKILL.md",
+      "trigger": "`project-formation` needs per-turn internal stage routing and anti-skip gating",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "lean",
+      "key": "project-formation-router",
+      "runtime_notes": "Owned by `project-formation`."
+    },
+    {
+      "name": "project-formation-discovery",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/discovery/SKILL.md",
+      "trigger": "`project-formation` needs user/stakeholder discovery and question design",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "lean",
+      "key": "project-formation-discovery",
+      "runtime_notes": "Owned by `project-formation`."
+    },
+    {
+      "name": "project-formation-shaping",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/shaping/SKILL.md",
+      "trigger": "`project-formation` needs appetite-based shaping and tradeoff decisions",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "balanced",
+      "key": "project-formation-shaping",
+      "runtime_notes": "Owned by `project-formation`."
+    },
+    {
+      "name": "project-formation-roadmap",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/roadmap/SKILL.md",
+      "trigger": "`project-formation` needs phased sequencing, dependencies, and risk gating",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "balanced",
+      "key": "project-formation-roadmap",
+      "runtime_notes": "Owned by `project-formation`."
+    },
+    {
+      "name": "project-formation-gtm",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/gtm/SKILL.md",
+      "trigger": "`project-formation` needs go-to-market planning and KPI framing",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "balanced",
+      "key": "project-formation-gtm",
+      "runtime_notes": "Owned by `project-formation`."
+    },
+    {
+      "name": "project-formation-dossier",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/dossier/SKILL.md",
+      "trigger": "`project-formation` needs complete project dossier assembly for execution handoff",
+      "loading_posture": "Delegated-only",
+      "cost_hint": "lean",
+      "key": "project-formation-dossier",
+      "runtime_notes": "Owned by `project-formation`."
+    },
+    {
       "name": "implement-prd",
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-prd/SKILL.md",

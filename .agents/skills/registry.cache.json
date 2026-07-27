@@ -6,11 +6,11 @@
   "compact_index": ".agents/skills/index.md",
   "structured_registry": ".agents/skills/registry.json",
   "source_hashes": {
-    ".agents/skills/index.md": "5692143e53154e4fbe65a51c08f287dc5676a5242eed9a6e5694a371bece6d89",
-    ".agents/skills/registry.md": "66de8035c7d35f777882444eaf4b324d61d60fb2ce9b8f025e620191c081180e",
-    ".agents/skills/registry.json": "8cf07e5e0b8641026dd1559b59df98021ef2a9c90fe123d4bdba997ca6656a8a"
+    ".agents/skills/index.md": "a3c1244dc8a279f16c1c4992b27fcd5d4cbd37e95759c43492f2215c9de07ee6",
+    ".agents/skills/registry.md": "f649fc7d1c1bf4e8471c1eb56fa96925f547e78d131ca9c0d79670f95e9e7f42",
+    ".agents/skills/registry.json": "98a23d7bf58ba3a0ae061a64a3de4147724f5870e6110b8a146961f737e0cb91"
   },
-  "entry_count": 33,
+  "entry_count": 40,
   "entries": [
     {
       "key": "acceptance-test-engineer",
@@ -272,6 +272,69 @@
       "path": ".agents/skills/02-implement/prd-readiness-review/SKILL.md",
       "loading_posture": "Delegated-only",
       "skill_sha256": "14f7c6106b486245f119ae03de3cdcb33ccfcf623cc7fb8246c2c61d920888cc"
+    },
+    {
+      "key": "project-formation",
+      "name": "project-formation",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/project-formation/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "6fa82cdd6f1215403963faf1da82163f2095036008edb4e5af5a1f968a9424fa"
+    },
+    {
+      "key": "project-formation-discovery",
+      "name": "project-formation-discovery",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/discovery/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "72fc527b535f9834702b6d65e902cca5425c68964731d451866211bd9ef625fa"
+    },
+    {
+      "key": "project-formation-dossier",
+      "name": "project-formation-dossier",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/dossier/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "896aa2ea2b367be45de1a29bf253241a05d7d00cdb3b206766d55e8b87e51c10"
+    },
+    {
+      "key": "project-formation-gtm",
+      "name": "project-formation-gtm",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/gtm/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "5ee819786f051992734be5a53264d2400f6c08df23c240d968c44a9b4b4ab140"
+    },
+    {
+      "key": "project-formation-roadmap",
+      "name": "project-formation-roadmap",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/roadmap/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "c239bda8febd643d98dc53c6cfba3a9f33c99a5d1fabaf1677f566e6042539e1"
+    },
+    {
+      "key": "project-formation-router",
+      "name": "project-formation-router",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/router/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "54f66a8b9c06b26d13685caa68a02225e5bce668b2be7d4aaa8222133b7ea8be"
+    },
+    {
+      "key": "project-formation-shaping",
+      "name": "project-formation-shaping",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/shaping/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "ec9400c01371001418960f284e43aef57ccff18e8fc5ce2088d2e41a1dd4a7b1"
     },
     {
       "key": "qa-handoff-review",
