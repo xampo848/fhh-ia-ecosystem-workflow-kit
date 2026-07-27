@@ -134,11 +134,14 @@ export function createCapabilityGuide({ capability, scope, intent, runtimes }) {
   }
 
   const commands = [
-    'Install package:',
-    'bun add -g codebase-memory-mcp',
+    'Run official installer (with UI):',
+    'curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash -s -- --ui',
     '',
     'Configure detected coding agents:',
     'codebase-memory-mcp install',
+    '',
+    'Index the current project:',
+    'codebase-memory-mcp cli index_repository --repo-path /absolute/path/to/repo',
     '',
     'Optional quick config:',
     'codebase-memory-mcp config set auto_index true',
@@ -155,7 +158,7 @@ export function createCapabilityGuide({ capability, scope, intent, runtimes }) {
   ];
 
   return {
-    source: 'DeusData/codebase-memory-mcp (README.md)',
+    source: 'DeusData/codebase-memory-mcp (install.sh + README.md)',
     effect: 'Adds structural code graph MCP tools for indexing/search/trace.',
     commands,
     notes: [

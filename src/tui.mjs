@@ -108,7 +108,7 @@ async function preferredPackageManager(commandExists) {
   throw new Error('bun is required to install optional capabilities.');
 }
 
-function buildCapabilityInstallSteps({ capability, intent, runtimes, packageManager }) {
+function buildCapabilityInstallSteps({ capability, intent, runtimes, packageManager, cwd }) {
   if (intent !== 'install+attach') {
     return {
       capability,
@@ -133,13 +133,22 @@ function buildCapabilityInstallSteps({ capability, intent, runtimes, packageMana
   }
 
   if (capability === 'codebase-memory-mcp') {
-    const installStep = { label: 'Install codebase-memory-mcp', command: 'bun', args: ['add', '-g', 'codebase-memory-mcp'] };
+    const installStep = {
+      label: 'Install codebase-memory-mcp (official installer with UI)',
+      command: 'bash',
+      args: ['-lc', 'curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash -s -- --ui']
+    };
 
     return {
       capability,
       steps: [
         installStep,
-        { label: 'Attach codebase-memory-mcp to detected runtimes', command: 'codebase-memory-mcp', args: ['install'] }
+        { label: 'Attach codebase-memory-mcp to detected runtimes', command: 'codebase-memory-mcp', args: ['install'] },
+        {
+          label: 'Index current project with codebase-memory-mcp',
+          command: 'codebase-memory-mcp',
+          args: ['cli', 'index_repository', JSON.stringify({ repo_path: cwd })]
+        }
       ],
       skipped: null,
       notes: []
@@ -191,7 +200,8 @@ async function runCapabilityAutoInstall({ selections, runtimes, cwd, write, pain
     capability: selection.capability,
     intent: selection.intent,
     runtimes: runtimeSetForInstall,
-    packageManager
+    packageManager,
+    cwd
   }));
 
   const skipped = queue

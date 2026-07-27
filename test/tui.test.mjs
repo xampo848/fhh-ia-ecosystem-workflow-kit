@@ -84,11 +84,12 @@ test('tui can auto-install install+attach optional capabilities in one confirmat
 
   assert.equal(result.applied, true);
   assert.deepEqual(executed, [
-    'bun add -g codebase-memory-mcp',
-    'codebase-memory-mcp install'
+    'bash -lc curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash -s -- --ui',
+    'codebase-memory-mcp install',
+    `codebase-memory-mcp cli index_repository ${JSON.stringify({ repo_path: target })}`
   ]);
-  assert.equal(result.capabilityInstallResult.attempted, 2);
-  assert.equal(result.capabilityInstallResult.succeeded, 2);
+  assert.equal(result.capabilityInstallResult.attempted, 3);
+  assert.equal(result.capabilityInstallResult.succeeded, 3);
   assert.equal(result.capabilityInstallResult.failed, 0);
 });
 
@@ -135,8 +136,9 @@ test('tui capabilities-only mode runs optional capabilities without applying wor
   assert.equal(result.mode, 'capabilities-only');
   assert.equal(result.applied, false);
   assert.deepEqual(executed, [
-    'bun add -g codebase-memory-mcp',
-    'codebase-memory-mcp install'
+    'bash -lc curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash -s -- --ui',
+    'codebase-memory-mcp install',
+    `codebase-memory-mcp cli index_repository ${JSON.stringify({ repo_path: target })}`
   ]);
   await assert.rejects(fs.access(path.join(target, '.agents/instructions.md')), { code: 'ENOENT' });
 });
