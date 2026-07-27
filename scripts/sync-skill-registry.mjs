@@ -17,6 +17,7 @@ const directRoutingKeys = new Set([
   'create-epic',
   'create-prd',
   'generate-pm-ticket',
+  'project-formation',
   'implement-prd',
   'document-development',
   'playwright-testing',

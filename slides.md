@@ -254,7 +254,7 @@ defaults:
   </thead>
   <tbody>
     <tr><td>Respuesta directa</td><td>Responder directamente</td><td>lean</td><td>No</td></tr>
-    <tr><td>Ambigüedad de producto</td><td>product-studio</td><td>balanced</td><td>No</td></tr>
+    <tr><td>Ambigüedad de producto</td><td>project-formation</td><td>balanced</td><td>No</td></tr>
     <tr><td>Iniciativa amplia</td><td>create-epic</td><td>balanced / premium por riesgo</td><td>Sí</td></tr>
     <tr><td>Especificación de feature</td><td>create-prd</td><td>balanced</td><td>No</td></tr>
     <tr><td>Backlog item acotado</td><td>generate-pm-ticket</td><td>lean</td><td>No</td></tr>
@@ -341,7 +341,7 @@ defaults:
 <table class="wk-table">
   <thead><tr><th>Prompt para probar</th><th>Ruta esperada</th><th>Qué debe demostrar</th></tr></thead>
   <tbody>
-    <tr><td>"No sabemos si priorizar alertas de gasto o reportes semanales para los administradores."</td><td>product-studio</td><td>Intake y ruta de discovery o priorización; no convertir la idea en una feature.</td></tr>
+    <tr><td>"No sabemos si priorizar alertas de gasto o reportes semanales para los administradores."</td><td>project-formation</td><td>Intake y ruta de discovery/shaping para no convertir una intuición en una feature prematura.</td></tr>
     <tr><td>"Queremos habilitar SSO SAML para clientes enterprise durante los próximos dos ciclos."</td><td>create-epic</td><td>Confirmación por iniciativa amplia, investigación y una cola de PRDs por fases.</td></tr>
     <tr><td>"Los administradores deben invitar miembros por correo, ver invitaciones pendientes y poder revocarlas."</td><td>create-prd</td><td>Exploración del código, preguntas bloqueantes, límites de scope y slices verificables.</td></tr>
     <tr><td>"Agrega texto de ayuda al filtro de fecha en la pantalla de reportes."</td><td>generate-pm-ticket</td><td>Artefacto pequeño con criterios de aceptación, sin abrir un PRD innecesario.</td></tr>
@@ -391,35 +391,35 @@ defaults:
 
 <div class="slide-head">
   <div class="eyebrow">Producto</div>
-  <h1>Producto: product-studio</h1>
-  <div class="sub">Hub de estrategia y discovery para convertir incertidumbre en decisiones accionables.</div>
+  <h1>Producto: project-formation</h1>
+  <div class="sub">Workflow conversacional de formación PM para convertir incertidumbre en una apuesta ejecutable end-to-end.</div>
 </div>
 
 <div class="grid grid-3">
   <div class="card accent-cyan">
     <div class="card-title">Diagnostica antes de elegir</div>
-    <div class="card-copy">Parte de una pregunta de producto vaga, identifica la decisión pendiente y selecciona el método mínimo útil.</div>
+    <div class="card-copy">Parte de una pregunta vaga, identifica la decisión pendiente y enruta a la etapa correcta con evidencia mínima útil.</div>
   </div>
   <div class="card accent-blue">
     <div class="card-title">Facilita la conversación</div>
-    <div class="card-copy">Guía una pregunta por turno, separa hechos, supuestos y recomendaciones, y no exige un brief perfecto.</div>
+    <div class="card-copy">Guía una pregunta por turno, separa hechos/supuestos/riesgos y mantiene continuidad con estado de sesión.</div>
   </div>
   <div class="card accent-mint">
     <div class="card-title">Produce un siguiente paso</div>
-    <div class="card-copy">Entrega artefactos concretos y recomienda el salto correcto a create-epic o create-prd cuando corresponde.</div>
+    <div class="card-copy">Entrega artefactos por etapa y cierra con dossier formal, con handoff opcional a create-epic cuando corresponde.</div>
   </div>
 </div>
 
 <div class="callout mt-4">
-  <strong>Posición en el flujo:</strong> es la capa de pensamiento previa a épicas y PRDs; no implementa código ni reemplaza una especificación ya clara.
+  <strong>Posición en el flujo:</strong> vive en la capa de Producto; prepara decisiones sólidas antes de create-prd e implementación.
 </div>
 
 ---
 
 <div class="slide-head">
   <div class="eyebrow">Producto</div>
-  <h1>Product-studio: cómo funciona</h1>
-  <div class="sub">Convierte una necesidad de producto poco definida en un único siguiente paso claro.</div>
+  <h1>Project-formation: cómo funciona</h1>
+  <div class="sub">Conduce la iniciativa por etapas: discovery, shaping, roadmap, GTM y dossier con gates de avance.</div>
 </div>
 
 <div class="product-journey">
@@ -429,39 +429,39 @@ defaults:
     <div class="journey-copy">Ejemplo: “No sabemos qué construir primero”.</div>
   </div>
   <div class="journey-stage journey-diagnose">
-    <div class="journey-kicker">2. Hace intake guiado</div>
-    <div class="journey-title">Resultado, evidencia, personas y horizonte</div>
-    <div class="journey-copy">Una pregunta por turno para identificar la decisión pendiente.</div>
+    <div class="journey-kicker">2. Enruta por etapa</div>
+    <div class="journey-title">Discovery o shaping según evidencia</div>
+    <div class="journey-copy">Una pregunta de alta señal por turno para mejorar la calidad de decisión.</div>
   </div>
   <div class="journey-stage journey-route">
-    <div class="journey-kicker">3. Elige una ruta</div>
-    <div class="journey-title">Explorar, decidir o especificar</div>
-    <div class="journey-copy">Selecciona strategy, discovery, jtbd, prioritize, roadmap o story.</div>
+    <div class="journey-kicker">3. Consolida la apuesta</div>
+    <div class="journey-title">Roadmap y GTM con riesgo visible</div>
+    <div class="journey-copy">Define secuencia, dependencias, métricas y condiciones de lanzamiento.</div>
   </div>
   <div class="journey-stage journey-output">
-    <div class="journey-kicker">4. Entrega y deriva</div>
-    <div class="journey-title">Artefacto y siguiente workflow</div>
-    <div class="journey-copy">Deja un brief, plan o historia; luego recomienda epic, PRD o ticket solo si aplica.</div>
+    <div class="journey-kicker">4. Cierra y transfiere</div>
+    <div class="journey-title">Dossier formal y handoff</div>
+    <div class="journey-copy">Entrega paquete ejecutable y, si aplica, salto dirigido a create-epic o create-prd.</div>
   </div>
 </div>
 
 <div class="callout mt-4">
-  <strong>Resultado:</strong> la persona no necesita conocer el framework; product-studio hace el diagnóstico y propone una sola ruta principal.
+  <strong>Resultado:</strong> la persona no necesita dominar la metodología; project-formation sostiene el hilo, evita saltos inseguros y deja decisiones trazables.
 </div>
 
 ---
 
 <div class="slide-head">
   <div class="eyebrow">Producto</div>
-  <h1>Product-studio: ejemplo de una decisión</h1>
+  <h1>Project-formation: ejemplo de una decisión</h1>
   <div class="sub">La misma conversación pasa de incertidumbre a una acción concreta, sin convertir la primera idea en una feature prematura.</div>
 </div>
 
 <div class="flow-row phase-product">
   <div class="step"><span class="s-num">1</span><div class="s-title">Entrada</div><div class="s-desc">“No sabemos qué construir primero”.</div></div>
   <div class="step"><span class="s-num">2</span><div class="s-title">Diagnóstico</div><div class="s-desc">¿Qué resultado importa, qué evidencia existe y qué decisión está bloqueada?</div></div>
-  <div class="step"><span class="s-num">3</span><div class="s-title">Ruta</div><div class="s-desc">prioritize si hay apuestas comparables; discovery si aún faltan señales.</div></div>
-  <div class="step"><span class="s-num">4</span><div class="s-title">Salida</div><div class="s-desc">Criterio de priorización y una apuesta seleccionada, con supuestos visibles.</div></div>
+  <div class="step"><span class="s-num">3</span><div class="s-title">Ruta</div><div class="s-desc">discovery si falta claridad; shaping si el problema ya está acotado.</div></div>
+  <div class="step"><span class="s-num">4</span><div class="s-title">Salida</div><div class="s-desc">Apuesta recomendada con tradeoffs, riesgos y siguiente etapa definida.</div></div>
 </div>
 
 <div class="callout mt-4">
@@ -472,43 +472,73 @@ defaults:
 
 <div class="slide-head">
   <div class="eyebrow">Producto</div>
-  <h1>Product-studio: seis rutas de trabajo</h1>
-  <div class="sub">Las rutas se agrupan por la decisión que el equipo necesita tomar ahora, no por el nombre de una metodología.</div>
+  <h1>Project-formation: cinco etapas de trabajo</h1>
+  <div class="sub">El progreso se organiza por madurez de evidencia y gates de decisión, no por listas de features.</div>
 </div>
 
 <div class="grid grid-3">
   <div class="card accent-cyan">
-    <div class="card-title">Explorar</div>
-    <div class="card-copy"><strong>strategy</strong>: alinear dirección.<br><strong>discovery</strong>: validar problema y supuestos.<br><strong>jtbd</strong>: entender jobs, pains y gains.</div>
+    <div class="card-title">Discovery</div>
+    <div class="card-copy">Usuarios, stakeholders, pains, riesgos y appetite inicial para acotar el problema.</div>
   </div>
   <div class="card accent-cyan">
-    <div class="card-title">Decidir</div>
-    <div class="card-copy"><strong>prioritize</strong>: elegir cómo ordenar apuestas.<br><strong>roadmap</strong>: secuenciar temas, releases o iniciativas.</div>
+    <div class="card-title">Shaping + Roadmap</div>
+    <div class="card-copy">Alternativas, tradeoffs, no-go areas, secuencia por fases y dependencias.</div>
   </div>
   <div class="card accent-cyan">
-    <div class="card-title">Especificar</div>
-    <div class="card-copy"><strong>story</strong>: convertir una necesidad en user story lista para desarrollo y criterios de aceptación.</div>
+    <div class="card-title">GTM + Dossier</div>
+    <div class="card-copy">Lanzamiento medible, KPI thresholds y paquete formal listo para handoff.</div>
   </div>
 </div>
 
 <div class="compare mt-4">
   <div class="panel p-now">
-    <div class="p-tag">Cuando terminar aquí</div>
-    <div class="p-title">Decisión de producto tomada</div>
+    <div class="p-tag">Cuando cerrar etapa</div>
+    <div class="p-title">Gate de evidencia en pass</div>
     <ul>
-      <li>Se logró alineación o aprendizaje suficiente.</li>
-      <li>Hay una secuencia priorizada o una historia clara.</li>
+      <li>Supuestos críticos explícitos y tratables.</li>
+      <li>Riesgos visibles con control y criterio de avance.</li>
     </ul>
   </div>
   <div class="panel p-ref">
     <div class="p-tag">Cuando continuar</div>
     <div class="p-title">Handoff proporcional</div>
     <ul>
-      <li>create-epic para una iniciativa amplia ya definida.</li>
-      <li>create-prd para una feature lista para especificar.</li>
-      <li>generate-pm-ticket para un backlog item acotado.</li>
+      <li>create-epic para formalizar una iniciativa amplia ya consolidada.</li>
+      <li>create-prd para bajar una fase específica a contrato de ejecución.</li>
+      <li>generate-pm-ticket para acciones puntuales fuera del flujo completo.</li>
     </ul>
   </div>
+</div>
+
+---
+
+<div class="slide-head">
+  <div class="eyebrow">Producto</div>
+  <h1>Complemento: project-formation</h1>
+  <div class="sub">Workflow conversacional clean-room para iniciativas PM end-to-end. Complementa create-epic y create-prd cuando se necesita una formación guiada completa antes del handoff.</div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card accent-cyan">
+    <div class="card-title">Cuándo activarlo</div>
+    <div class="card-copy">Cuando el equipo necesita discovery, shaping, roadmap, GTM y dossier formal en una misma secuencia guiada.</div>
+  </div>
+  <div class="card accent-blue">
+    <div class="card-title">Qué agrega al ecosistema</div>
+    <div class="card-copy">Router interno por etapa, protocolo de continuidad de sesión, skip-guard y recovery mode para evitar saltos inseguros.</div>
+  </div>
+</div>
+
+<div class="flow-row phase-product mt-4">
+  <div class="step"><span class="s-num">1</span><div class="s-title">Discovery</div><div class="s-desc">Problema acotado, appetite y riesgos.</div></div>
+  <div class="step"><span class="s-num">2</span><div class="s-title">Shaping</div><div class="s-desc">Alternativas y tradeoffs explícitos.</div></div>
+  <div class="step"><span class="s-num">3</span><div class="s-title">Roadmap</div><div class="s-desc">Fases con dependencias y confianza.</div></div>
+  <div class="step"><span class="s-num">4</span><div class="s-title">GTM + Dossier</div><div class="s-desc">Lanzamiento medible y handoff formal.</div></div>
+</div>
+
+<div class="callout mt-4">
+  <strong>Posición en la arquitectura:</strong> project-formation amplía la capa de Producto; no reemplaza el enfoque transversal de Router, Implementación, Calidad y Governance.
 </div>
 
 ---
@@ -548,7 +578,7 @@ defaults:
 <div class="grid grid-2 mt-4">
   <div class="card accent-cyan">
     <div class="card-title">Lo que recibe</div>
-    <div class="card-copy">Una necesidad ya priorizada: desde product-studio, una épica o una solicitud de feature suficientemente concreta.</div>
+    <div class="card-copy">Una necesidad ya priorizada: desde project-formation, una épica o una solicitud de feature suficientemente concreta.</div>
   </div>
   <div class="card accent-mint">
     <div class="card-title">Lo que entrega</div>
@@ -1017,7 +1047,7 @@ defaults:
 
 <div class="flow-row">
   <div class="step"><span class="s-num">1</span><div class="s-title">Intake</div><div class="s-desc">Solicitud entra al router.</div></div>
-  <div class="step"><span class="s-num">2</span><div class="s-title">Dar forma</div><div class="s-desc">Product-studio entrega una decisión, historia, roadmap o brief.</div></div>
+  <div class="step"><span class="s-num">2</span><div class="s-title">Dar forma</div><div class="s-desc">Project-formation entrega decisiones, roadmap, GTM y dossier según madurez.</div></div>
   <div class="step"><span class="s-num">3</span><div class="s-title">Especificar</div><div class="s-desc">create-prd convierte una feature en slices y evidencia.</div></div>
   <div class="step"><span class="s-num">4</span><div class="s-title">Construir</div><div class="s-desc">implement-prd elige modo y gobierna ownership.</div></div>
   <div class="step"><span class="s-num">5</span><div class="s-title">Validar</div><div class="s-desc">Evidence proporcional: contrato, tests, E2E o QA.</div></div>
