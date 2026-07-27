@@ -127,7 +127,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/codebase-discovery/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "0ae5cd4a244a167d1ee633fd3f4d002262d0cd4903e06279eecb19e04ff2cc48"
+      "skill_sha256": "34f77f23fc68a6432bcb4b4ad00c77ac3a7d2242ed77852797a614da36364a72"
     },
     {
       "key": "contract-verifier",
