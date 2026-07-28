@@ -45,7 +45,7 @@ defaults:
     </div>
     <div class="stack-item s-cyan">
       <div class="st-tag">Skills del workflow</div>
-      <div class="st-title">41 SKILL.md en 7 áreas (40 en registry.json)</div>
+      <div class="st-title">40 SKILL.md en 7 áreas (39 skills + 1 pattern skill en registry.json)</div>
       <div class="st-desc">Desde routing hasta patterns</div>
     </div>
     <div class="stack-item s-blue">
@@ -114,19 +114,7 @@ defaults:
   </div>
 </div>
 
-<div class="callout mt-4">
-  <strong>Regla de lectura:</strong> no cargar todo al inicio. Navega desde la capa y el trigger hacia la fuente exacta que necesitas para decidir o ejecutar.
-</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow blue">General</div>
-  <h1>Mapa operativo por fases</h1>
-  <div class="sub">Lectura recomendada: seguir el color para ubicar rápidamente en qué parte del ciclo estás trabajando.</div>
-</div>
-
-<div class="phase-band">
+<div class="phase-band mt-4">
   <div class="band b-amber">00 Router</div>
   <div class="band b-cyan">01 Producto</div>
   <div class="band b-mint">02 Implementación</div>
@@ -135,41 +123,8 @@ defaults:
   <div class="band b-amber">06 Patrones</div>
 </div>
 
-<div class="manifest mt-2">
-  <div class="manifest-row">
-    <div class="manifest-num">00</div>
-    <div class="manifest-title">Router</div>
-    <div class="manifest-copy">Clasifica intención, riesgo y ruta mínima segura antes de ejecutar cualquier flujo.</div>
-  </div>
-  <div class="manifest-row">
-    <div class="manifest-num">01</div>
-    <div class="manifest-title">Producto</div>
-    <div class="manifest-copy">Convierte incertidumbre en decisión: estrategia, épica y PRD ejecutable.</div>
-  </div>
-  <div class="manifest-row">
-    <div class="manifest-num">02</div>
-    <div class="manifest-title">Implementación</div>
-    <div class="manifest-copy">Orquesta slices técnicos, delegación, validación focalizada y handoff de QA.</div>
-  </div>
-  <div class="manifest-row">
-    <div class="manifest-num">03</div>
-    <div class="manifest-title">Calidad</div>
-    <div class="manifest-copy">Verifica evidencia técnica y documental, incluyendo pruebas E2E cuando aplica.</div>
-  </div>
-  <div class="manifest-row">
-    <div class="manifest-num">04</div>
-    <div class="manifest-title">Crosscutting</div>
-    <div class="manifest-copy">Aceleradores transversales para diseño, mentoría y resolución de comentarios.</div>
-  </div>
-  <div class="manifest-row">
-    <div class="manifest-num">06</div>
-    <div class="manifest-title">Patrones</div>
-    <div class="manifest-copy">Contrato reusable para mapear slices a skills requeridas y evidencia de salida.</div>
-  </div>
-</div>
-
-<div class="callout amber mt-4">
-  <strong>Nota:</strong> 05-caveman existe en el repo como modo/capability opcional de ahorro de tokens; no reemplaza las fases core del flujo.
+<div class="callout mt-4">
+  <strong>Regla de lectura:</strong> no cargar todo al inicio. Navega desde la capa y el trigger hacia la fuente exacta que necesitas para decidir o ejecutar.
 </div>
 
 ---
@@ -272,33 +227,6 @@ defaults:
 
 <div class="slide-head">
   <div class="eyebrow amber">Router</div>
-  <h1>Costo, tier y delegación</h1>
-  <div class="sub">El router no selecciona un proveedor por nombre: decide el nivel de esfuerzo seguro para la tarea y lo adapta al runtime disponible.</div>
-</div>
-
-<div class="grid grid-3">
-  <div class="card accent-amber">
-    <div class="card-title">Postura de costo</div>
-    <div class="card-copy"><strong>lean</strong> para trabajo acotado; <strong>balanced</strong> para planificación e implementación; <strong>premium</strong> solo ante riesgo explícito.</div>
-  </div>
-  <div class="card accent-amber">
-    <div class="card-title">Tier de razonamiento</div>
-    <div class="card-copy">Liviano, Mediano o Grande. Es el contrato semántico; el modelo exacto puede diferir por runtime.</div>
-  </div>
-  <div class="card accent-amber">
-    <div class="card-title">Decisión de delegación</div>
-    <div class="card-copy">Avoided, recommended o required según riesgo, ownership, contexto y necesidad de revisión independiente.</div>
-  </div>
-</div>
-
-<div class="callout amber mt-4">
-  <strong>Regla de seguridad:</strong> el sistema usa fallback explícito y no puede degradar silenciosamente una preferencia de usuario por un tier más fuerte.
-</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow amber">Router</div>
   <h1>Router: cuatro decisiones que evitan retrabajo</h1>
   <div class="sub">Ante cada señal, el router decide si puede avanzar, qué ruta aplicar o cuándo detenerse para pedir la mínima aclaración necesaria.</div>
 </div>
@@ -326,8 +254,23 @@ defaults:
   </div>
 </div>
 
+<div class="grid grid-3 mt-4">
+  <div class="card accent-amber">
+    <div class="card-title">Postura de costo</div>
+    <div class="card-copy"><strong>lean</strong> para trabajo acotado; <strong>balanced</strong> para planificación e implementación; <strong>premium</strong> solo ante riesgo explícito.</div>
+  </div>
+  <div class="card accent-amber">
+    <div class="card-title">Tier de razonamiento</div>
+    <div class="card-copy">Liviano, Mediano o Grande. Es el contrato semántico; el modelo exacto puede diferir por runtime.</div>
+  </div>
+  <div class="card accent-amber">
+    <div class="card-title">Decisión de delegación</div>
+    <div class="card-copy">Avoided, recommended o required según riesgo, ownership, contexto y necesidad de revisión independiente.</div>
+  </div>
+</div>
+
 <div class="callout amber mt-4">
-  <strong>Propósito de la slide:</strong> mostrar cómo el router reduce cuatro fuentes de retrabajo: código prematuro, scope oculto, validación irrelevante y supuestos críticos.
+  <strong>Propósito de la slide:</strong> mostrar cómo el router reduce retrabajo y aplica costo/delegación proporcional sin degradar seguridad.
 </div>
 
 ---
@@ -392,7 +335,7 @@ defaults:
 <div class="slide-head">
   <div class="eyebrow">Producto</div>
   <h1>Producto: project-formation</h1>
-  <div class="sub">Workflow conversacional de formación PM para convertir incertidumbre en una apuesta ejecutable end-to-end.</div>
+  <div class="sub">Workflow conversacional de formación PM para convertir incertidumbre en una apuesta ejecutable end-to-end, con desambiguación explícita en cada etapa.</div>
 </div>
 
 <div class="grid grid-3">
@@ -402,7 +345,7 @@ defaults:
   </div>
   <div class="card accent-blue">
     <div class="card-title">Facilita la conversación</div>
-    <div class="card-copy">Guía una pregunta por turno, separa hechos/supuestos/riesgos y mantiene continuidad con estado de sesión.</div>
+    <div class="card-copy">Guía una pregunta por turno, separa hechos/supuestos/riesgos y resuelve una ambigüedad crítica antes de avanzar.</div>
   </div>
   <div class="card accent-mint">
     <div class="card-title">Produce un siguiente paso</div>
@@ -418,127 +361,55 @@ defaults:
 
 <div class="slide-head">
   <div class="eyebrow">Producto</div>
-  <h1>Project-formation: cómo funciona</h1>
-  <div class="sub">Conduce la iniciativa por etapas: discovery, shaping, roadmap, GTM y dossier con gates de avance.</div>
-</div>
-
-<div class="product-journey">
-  <div class="journey-stage journey-input">
-    <div class="journey-kicker">1. Entra una necesidad</div>
-    <div class="journey-title">Idea, problema o desacuerdo</div>
-    <div class="journey-copy">Ejemplo: “No sabemos qué construir primero”.</div>
-  </div>
-  <div class="journey-stage journey-diagnose">
-    <div class="journey-kicker">2. Enruta por etapa</div>
-    <div class="journey-title">Discovery o shaping según evidencia</div>
-    <div class="journey-copy">Una pregunta de alta señal por turno para mejorar la calidad de decisión.</div>
-  </div>
-  <div class="journey-stage journey-route">
-    <div class="journey-kicker">3. Consolida la apuesta</div>
-    <div class="journey-title">Roadmap y GTM con riesgo visible</div>
-    <div class="journey-copy">Define secuencia, dependencias, métricas y condiciones de lanzamiento.</div>
-  </div>
-  <div class="journey-stage journey-output">
-    <div class="journey-kicker">4. Cierra y transfiere</div>
-    <div class="journey-title">Dossier formal y handoff</div>
-    <div class="journey-copy">Entrega paquete ejecutable y, si aplica, salto dirigido a create-epic o create-prd.</div>
-  </div>
-</div>
-
-<div class="callout mt-4">
-  <strong>Resultado:</strong> la persona no necesita dominar la metodología; project-formation sostiene el hilo, evita saltos inseguros y deja decisiones trazables.
-</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow">Producto</div>
-  <h1>Project-formation: ejemplo de una decisión</h1>
-  <div class="sub">La misma conversación pasa de incertidumbre a una acción concreta, sin convertir la primera idea en una feature prematura.</div>
+  <h1>Project-formation: operación en una vista</h1>
+  <div class="sub">Flujo completo con pregunta anti-ambigüedad, Interview Prep opcional y salida ejecutable para handoff.</div>
 </div>
 
 <div class="flow-row phase-product">
-  <div class="step"><span class="s-num">1</span><div class="s-title">Entrada</div><div class="s-desc">“No sabemos qué construir primero”.</div></div>
-  <div class="step"><span class="s-num">2</span><div class="s-title">Diagnóstico</div><div class="s-desc">¿Qué resultado importa, qué evidencia existe y qué decisión está bloqueada?</div></div>
-  <div class="step"><span class="s-num">3</span><div class="s-title">Ruta</div><div class="s-desc">discovery si falta claridad; shaping si el problema ya está acotado.</div></div>
-  <div class="step"><span class="s-num">4</span><div class="s-title">Salida</div><div class="s-desc">Apuesta recomendada con tradeoffs, riesgos y siguiente etapa definida.</div></div>
-</div>
-
-<div class="callout mt-4">
-  <strong>Handoff correcto:</strong> solo cuando la apuesta queda suficientemente definida se abre create-epic, create-prd o generate-pm-ticket.
-</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow">Producto</div>
-  <h1>Project-formation: cinco etapas de trabajo</h1>
-  <div class="sub">El progreso se organiza por madurez de evidencia y gates de decisión, no por listas de features.</div>
-</div>
-
-<div class="grid grid-3">
-  <div class="card accent-cyan">
-    <div class="card-title">Discovery</div>
-    <div class="card-copy">Usuarios, stakeholders, pains, riesgos y appetite inicial para acotar el problema.</div>
-  </div>
-  <div class="card accent-cyan">
-    <div class="card-title">Shaping + Roadmap</div>
-    <div class="card-copy">Alternativas, tradeoffs, no-go areas, secuencia por fases y dependencias.</div>
-  </div>
-  <div class="card accent-cyan">
-    <div class="card-title">GTM + Dossier</div>
-    <div class="card-copy">Lanzamiento medible, KPI thresholds y paquete formal listo para handoff.</div>
-  </div>
+  <div class="step"><span class="s-num">1</span><div class="s-title">Entrada</div><div class="s-desc">Problema o desacuerdo de producto.</div></div>
+  <div class="step"><span class="s-num">2</span><div class="s-title">Desambiguar</div><div class="s-desc">Una pregunta crítica por turno para limpiar término, scope o métrica.</div></div>
+  <div class="step"><span class="s-num">3</span><div class="s-title">Descubrir y dar forma</div><div class="s-desc">Discovery -> Shaping -> Roadmap según evidencia y riesgo.</div></div>
+  <div class="step"><span class="s-num">4</span><div class="s-title">Lanzar y cerrar</div><div class="s-desc">GTM + Dossier con handoff a create-epic/create-prd.</div></div>
 </div>
 
 <div class="compare mt-4">
   <div class="panel p-now">
-    <div class="p-tag">Cuando cerrar etapa</div>
-    <div class="p-title">Gate de evidencia en pass</div>
+    <div class="p-tag">Reglas de avance</div>
+    <div class="p-title">Ambigüedad y confianza</div>
     <ul>
-      <li>Supuestos críticos explícitos y tratables.</li>
-      <li>Riesgos visibles con control y criterio de avance.</li>
+      <li>High: no avanza, pregunta de precisión obligatoria.</li>
+      <li>Partial: avanza solo con riesgos y controles explícitos.</li>
+      <li>Clear: puede transicionar si el skip-guard está en pass.</li>
     </ul>
   </div>
   <div class="panel p-ref">
-    <div class="p-tag">Cuando continuar</div>
-    <div class="p-title">Handoff proporcional</div>
+    <div class="p-tag">Discovery reforzado</div>
+    <div class="p-title">Interview Prep opcional</div>
     <ul>
-      <li>create-epic para formalizar una iniciativa amplia ya consolidada.</li>
-      <li>create-prd para bajar una fase específica a contrato de ejecución.</li>
-      <li>generate-pm-ticket para acciones puntuales fuera del flujo completo.</li>
+      <li>Se activa con evidencia débil o contradictoria.</li>
+      <li>Prepara objetivo, perfil, preguntas y supuestos a validar.</li>
+      <li>Cierra cuando vuelve evidencia útil al discovery.</li>
     </ul>
   </div>
 </div>
 
----
-
-<div class="slide-head">
-  <div class="eyebrow">Producto</div>
-  <h1>Complemento: project-formation</h1>
-  <div class="sub">Workflow conversacional clean-room para iniciativas PM end-to-end. Complementa create-epic y create-prd cuando se necesita una formación guiada completa antes del handoff.</div>
-</div>
-
-<div class="grid grid-2">
-  <div class="card accent-cyan">
-    <div class="card-title">Cuándo activarlo</div>
-    <div class="card-copy">Cuando el equipo necesita discovery, shaping, roadmap, GTM y dossier formal en una misma secuencia guiada.</div>
+<div class="grid grid-3">
+  <div class="card accent-mint">
+    <div class="card-title">SaaS B2B: churn SMB</div>
+    <div class="card-copy">Señal: cancelaciones por sobreconsumo inesperado. Ruta: discovery -> shaping de alertas tempranas. Resultado: bet con KPI de retención y falsos positivos.</div>
   </div>
   <div class="card accent-blue">
-    <div class="card-title">Qué agrega al ecosistema</div>
-    <div class="card-copy">Router interno por etapa, protocolo de continuidad de sesión, skip-guard y recovery mode para evitar saltos inseguros.</div>
+    <div class="card-title">E-commerce: checkout móvil</div>
+    <div class="card-copy">Señal: abandono alto en pago. Ruta: discovery con entrevistas rápidas y roadmap por fricción crítica. Resultado: fases con hipótesis de conversión medibles.</div>
   </div>
-</div>
-
-<div class="flow-row phase-product mt-4">
-  <div class="step"><span class="s-num">1</span><div class="s-title">Discovery</div><div class="s-desc">Problema acotado, appetite y riesgos.</div></div>
-  <div class="step"><span class="s-num">2</span><div class="s-title">Shaping</div><div class="s-desc">Alternativas y tradeoffs explícitos.</div></div>
-  <div class="step"><span class="s-num">3</span><div class="s-title">Roadmap</div><div class="s-desc">Fases con dependencias y confianza.</div></div>
-  <div class="step"><span class="s-num">4</span><div class="s-title">GTM + Dossier</div><div class="s-desc">Lanzamiento medible y handoff formal.</div></div>
+  <div class="card accent-cyan">
+    <div class="card-title">Fintech: baja activación</div>
+    <div class="card-copy">Señal: usuarios no activan alertas. Ruta: shaping de onboarding + GTM segmentado. Resultado: experimento de lanzamiento con umbrales de activación.</div>
+  </div>
 </div>
 
 <div class="callout mt-4">
-  <strong>Posición en la arquitectura:</strong> project-formation amplía la capa de Producto; no reemplaza el enfoque transversal de Router, Implementación, Calidad y Governance.
+  <strong>Resultado esperado:</strong> del síntoma ambiguo a una apuesta defendible con evidencia, tradeoffs y handoff proporcional.
 </div>
 
 ---
@@ -594,18 +465,18 @@ defaults:
 
 <div class="slide-head">
   <div class="eyebrow mint">Implementación</div>
-  <h1>Implementación: implement-prd</h1>
-  <div class="sub">Orquestador de ejecución técnica con modos, delegación y control de contexto.</div>
+  <h1>Implementación: implement-prd en una vista</h1>
+  <div class="sub">Orquesta ejecución técnica desde un PRD aprobado, ajustando coordinación y evidencia al riesgo real.</div>
 </div>
 
 <div class="grid grid-3">
   <div class="card accent-cyan">
     <div class="card-title">Modo de operación</div>
-    <div class="card-copy">Trabaja sobre PRD aprobado, con quick flow y reglas de parada.</div>
+    <div class="card-copy">Selecciona postura por riesgo: local, controlada o estándar; no todo cambio requiere el flujo completo.</div>
   </div>
   <div class="card accent-blue">
     <div class="card-title">Delegación</div>
-    <div class="card-copy">Activa especialistas de readiness, discovery, slicing, implementers, validation y QA handoff.</div>
+    <div class="card-copy">Activa readiness, discovery, slicing, implementers, validation y QA handoff según dependencia y ownership.</div>
   </div>
   <div class="card accent-mint">
     <div class="card-title">Context budget</div>
@@ -613,102 +484,49 @@ defaults:
   </div>
 </div>
 
-<div class="callout mint mt-4">
-  <strong>Resultado esperado:</strong> cambios implementados por slices con evidencia verificable y trazabilidad al PRD.
-</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow mint">Implementación</div>
-  <h1>Implement-prd: elegir el modo correcto</h1>
-  <div class="sub">El modo ajusta coordinación y evidencia al riesgo real; no todos los cambios requieren el flujo completo.</div>
-</div>
-
-<table class="wk-table">
+<table class="wk-table mt-4">
   <thead><tr><th>Modo</th><th>Cuándo aplica</th><th>Postura de ejecución</th></tr></thead>
   <tbody>
-    <tr><td>small/local</td><td>1–2 archivos, alcance y validación evidentes.</td><td>Trabajo local con validación focalizada.</td></tr>
-    <tr><td>controlled-lite</td><td>Una superficie y PRD claro, sin riesgo transversal.</td><td>Preflight compacto y ownership explícito.</td></tr>
-    <tr><td>controlled-implementation</td><td>Riesgo, dependencia o ownership parcialmente independiente.</td><td>Delegación selectiva y checkpoints.</td></tr>
-    <tr><td>standard</td><td>Cross-layer, contrato, migración o UI relevante.</td><td>Flujo completo, slices y gates de evidencia.</td></tr>
-    <tr><td>autonomous-safe</td><td>Trabajo suficientemente delimitado para delegar con seguridad.</td><td>Tracker, handoffs y barreras entre dependencias.</td></tr>
-    <tr><td>resume</td><td>Ejecución previamente interrumpida.</td><td>Reconstruir estado desde evidencia antes de continuar.</td></tr>
+    <tr><td>small/local</td><td>1–2 archivos, alcance evidente.</td><td>Validación focalizada y cierre rápido.</td></tr>
+    <tr><td>controlled-lite / controlled-implementation</td><td>Dependencias parciales o riesgo moderado.</td><td>Ownership explícito, delegación selectiva y checkpoints.</td></tr>
+    <tr><td>standard / autonomous-safe</td><td>Cross-layer, contrato, migración o UI relevante.</td><td>Slicing completo, gates de evidencia y handoffs formales.</td></tr>
+    <tr><td>resume</td><td>Ejecución interrumpida.</td><td>Reconstruir estado desde tracker y evidencia antes de continuar.</td></tr>
   </tbody>
 </table>
 
 <div class="callout mint mt-4">
-  <strong>Principio:</strong> aumentar el modo cuando aumentan riesgo, alcance, dependencia o necesidad de revisión independiente; no por preferencia de complejidad.
+  <strong>Principio:</strong> escalar el modo por riesgo, alcance, dependencia y necesidad de revisión independiente; no por preferencia de complejidad.
 </div>
 
 ---
 
 <div class="slide-head">
   <div class="eyebrow mint">Implementación</div>
-  <h1>Un slice no termina al escribir código</h1>
-  <div class="sub">Cada slice recorre estados observables. El progreso se acredita con evidencia, no con una declaración de avance.</div>
+  <h1>Implementación: ejecución por slices y evidencia</h1>
+  <div class="sub">Un slice progresa por estados observables y usa delegación segura: dependencia explícita, un writer por superficie y handoff verificable.</div>
 </div>
 
 <div class="flow-row phase-implement">
-  <div class="step"><span class="s-num">1</span><div class="s-title">NOT_STARTED</div><div class="s-desc">Scope, dependencia y owner definidos.</div></div>
-  <div class="step"><span class="s-num">2</span><div class="s-title">IMPLEMENTED</div><div class="s-desc">Cambio realizado dentro del write set acordado.</div></div>
-  <div class="step"><span class="s-num">3</span><div class="s-title">TESTED</div><div class="s-desc">Prueba focalizada ejecutada sobre el comportamiento.</div></div>
-  <div class="step"><span class="s-num">4</span><div class="s-title">VALIDATED</div><div class="s-desc">Comando, contrato o smoke check deja resultado verificable.</div></div>
-  <div class="step"><span class="s-num">5</span><div class="s-title">VERIFIED</div><div class="s-desc">Criterio de aceptación y handoff quedan listos para cierre.</div></div>
+  <div class="step"><span class="s-num">1</span><div class="s-title">NOT_STARTED</div><div class="s-desc">Scope, owner y dependencia definidos.</div></div>
+  <div class="step"><span class="s-num">2</span><div class="s-title">IMPLEMENTED</div><div class="s-desc">Cambio dentro del write set acordado.</div></div>
+  <div class="step"><span class="s-num">3</span><div class="s-title">TESTED</div><div class="s-desc">Prueba focalizada ejecutada sobre comportamiento.</div></div>
+  <div class="step"><span class="s-num">4</span><div class="s-title">VALIDATED</div><div class="s-desc">Comando o contrato deja resultado verificable.</div></div>
+  <div class="step"><span class="s-num">5</span><div class="s-title">VERIFIED</div><div class="s-desc">Aceptación y handoff listos para cierre.</div></div>
+</div>
+
+<div class="grid grid-2 mt-4">
+  <div class="card accent-mint">
+    <div class="card-title">Cadena de ejecución</div>
+    <div class="card-copy">Readiness -> Discovery -> Slicing -> Skill matching -> Build -> Contract check -> Validation -> QA handoff.</div>
+  </div>
+  <div class="card accent-mint">
+    <div class="card-title">Reglas de delegación segura</div>
+    <div class="card-copy">Un writer por superficie, paralelismo solo entre slices independientes y tracker como fuente de estado para resume.</div>
+  </div>
 </div>
 
 <div class="callout mint mt-4">
-  <strong>Regla de avance:</strong> un slice dependiente no empieza por intuición; espera la evidencia terminal del slice que necesita.
-</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow mint">Implementación</div>
-  <h1>Delegación segura: paralelismo con límites</h1>
-  <div class="sub">La delegación acelera solo cuando conserva ownership, orden de dependencia y capacidad de revalidación.</div>
-</div>
-
-<div class="grid grid-2">
-  <div class="card accent-mint">
-    <div class="card-title">Un writer por archivo</div>
-    <div class="card-copy">Cada write set tiene un owner. Dos implementers no editan la misma superficie en paralelo.</div>
-  </div>
-  <div class="card accent-mint">
-    <div class="card-title">Paralelo solo si es independiente</div>
-    <div class="card-copy">Se delegan slices cuando sus archivos, contratos y decisiones no se bloquean entre sí.</div>
-  </div>
-  <div class="card accent-mint">
-    <div class="card-title">Handoff antes de depender</div>
-    <div class="card-copy">El siguiente slice espera resultado, evidencia y estado terminal del trabajo precedente.</div>
-  </div>
-  <div class="card accent-mint">
-    <div class="card-title">Tracker como fuente de estado</div>
-    <div class="card-copy">Registra owner, dependencia, validación y progreso para que un resume no reconstruya el trabajo a ciegas.</div>
-  </div>
-</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow mint">Implementación</div>
-  <h1>Implementación: cadena detallada por fases</h1>
-  <div class="sub">Secuencia completa para modos con coordinación elevada; los modos ligeros conservan solo los gates que el riesgo justifica.</div>
-</div>
-
-<div class="flow phase-implement">
-  <div class="flow-row">
-    <div class="step"><span class="s-num">1</span><div class="s-title">Revisión de preparación</div><div class="s-desc">Go/stop sobre ejecutabilidad real.</div></div>
-    <div class="step"><span class="s-num">2</span><div class="s-title">Descubrimiento del código</div><div class="s-desc">Archivos, patrones, riesgos y restricciones.</div></div>
-    <div class="step"><span class="s-num">3</span><div class="s-title">Slicing de implementación</div><div class="s-desc">Orden, dependencias y ownership por slice.</div></div>
-    <div class="step"><span class="s-num">4</span><div class="s-title">Asignación de skills</div><div class="s-desc">Patterns y capabilities relevantes por slice.</div></div>
-  </div>
-  <div class="flow-row">
-    <div class="step"><span class="s-num">5</span><div class="s-title">Construcción</div><div class="s-desc">Implementers de backend y frontend.</div></div>
-    <div class="step"><span class="s-num">6</span><div class="s-title">Verificación de contrato</div><div class="s-desc">Consistencia API/UI y acoplamientos.</div></div>
-    <div class="step"><span class="s-num">7</span><div class="s-title">Ejecución de validación</div><div class="s-desc">Comandos focalizados que puedan falsar.</div></div>
-    <div class="step"><span class="s-num">8</span><div class="s-title">Revisión de handoff QA</div><div class="s-desc">Fresh-context independiente.</div></div>
-  </div>
+  <strong>Regla de avance:</strong> un slice dependiente no empieza por intuición; espera evidencia terminal verificable del slice previo.
 </div>
 
 ---
@@ -731,47 +549,6 @@ defaults:
 
 <div class="callout mt-4">
   <strong>Gate de aplicabilidad:</strong> antes de crear E2E se confirma UI navegable, intención o riesgo formal y tooling disponible; si no, se declara not-applicable y se usa evidencia proporcional.
-</div>
-
----
-
-<div class="slide-head">
-  <div class="eyebrow blue">Calidad</div>
-  <h1>Calidad: qué se mide en este workflow</h1>
-  <div class="sub">Calidad no es opinión: se demuestra con evidencia técnica y documental.</div>
-</div>
-
-<div class="manifest">
-  <div class="manifest-row">
-    <div class="manifest-num">01</div>
-    <div class="manifest-title">Cumplimiento de aceptación</div>
-    <div class="manifest-copy">Cada criterio Given/When/Then debe tener evidencia esperada.</div>
-  </div>
-  <div class="manifest-row">
-    <div class="manifest-num">02</div>
-    <div class="manifest-title">Validación ejecutable</div>
-    <div class="manifest-copy">Comandos concretos por slice, no validaciones genéricas o ambiguas.</div>
-  </div>
-  <div class="manifest-row">
-    <div class="manifest-num">03</div>
-    <div class="manifest-title">Calidad estructural</div>
-    <div class="manifest-copy">Tenancy, contratos, reglas de negocio, i18n y consistencia de arquitectura.</div>
-  </div>
-  <div class="manifest-row">
-    <div class="manifest-num">04</div>
-    <div class="manifest-title">Cobertura documental</div>
-    <div class="manifest-copy">Document-development deja conocimiento durable para dev, QA, soporte y producto.</div>
-  </div>
-  <div class="manifest-row">
-    <div class="manifest-num">05</div>
-    <div class="manifest-title">Cobertura E2E</div>
-    <div class="manifest-copy">Playwright-testing verifica flujos críticos de usuario en entorno controlado.</div>
-  </div>
-  <div class="manifest-row">
-    <div class="manifest-num">06</div>
-    <div class="manifest-title">Salud React</div>
-    <div class="manifest-copy">react-doctor acelera diagnóstico de problemas frecuentes en frontend React.</div>
-  </div>
 </div>
 
 ---
@@ -852,20 +629,20 @@ defaults:
 <div class="slide-head">
   <div class="eyebrow blue">Gobernanza</div>
   <h1>Control de drift del registry</h1>
-  <div class="sub">Segunda pasada de consistencia: inventario físico y registry derivado no están completamente sincronizados.</div>
+  <div class="sub">Paridad actual entre inventario físico y registry derivado, con separación explícita entre skills y pattern_skills.</div>
 </div>
 
 <table class="wk-table">
   <thead><tr><th>Chequeo</th><th>Valor</th><th>Impacto</th></tr></thead>
   <tbody>
-    <tr><td>Archivos SKILL.md detectados</td><td>41</td><td>Superficie real del repo.</td></tr>
-    <tr><td>Entradas registry.json</td><td>40</td><td>Descubrimiento automático incompleto.</td></tr>
-    <tr><td>Faltante</td><td>.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md</td><td>Riesgo de drift entre narrativa y ejecución.</td></tr>
+    <tr><td>Archivos SKILL.md detectados</td><td>40</td><td>Superficie real del repo.</td></tr>
+    <tr><td>Entradas skills en registry.json</td><td>39</td><td>Skills de descubrimiento principal.</td></tr>
+    <tr><td>Entradas pattern_skills en registry.json</td><td>1</td><td>Contrato reusable separado del inventario principal.</td></tr>
   </tbody>
 </table>
 
 <div class="callout amber mt-4">
-  <strong>Mejora recomendada:</strong> agregar check CI de paridad entre SKILL.md físicos y registry.json.
+  <strong>Mejora recomendada:</strong> mantener check CI de paridad para detectar drift automáticamente cuando se agregan o mueven skills.
 </div>
 
 ---

@@ -29,6 +29,12 @@ Roadmap output must be strategic and explainable to product, engineering, and st
 
 When uncertain, ask what must be true for each phase to succeed before locking sequence.
 
+When sequence ambiguity appears, ask one clarifier:
+
+- "What dependency can block this phase entirely?"
+- "What done signal closes this phase without debate?"
+- "What should move to later to protect appetite now?"
+
 ## Required structure
 
 For each phase capture:

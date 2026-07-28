@@ -29,6 +29,12 @@ Target output is a clear pitch candidate, not a full implementation spec.
 
 When a PM proposes a broad redesign, ask for a narrower user pain baseline before continuing.
 
+Before recommending a shape, remove one ambiguity with a direct question:
+
+- "What makes option A clearly better than B for this appetite?"
+- "What is explicitly out of scope in the recommended shape?"
+- "Which tradeoff are we accepting knowingly?"
+
 ## Shape Up artifacts
 
 Produce these artifacts:

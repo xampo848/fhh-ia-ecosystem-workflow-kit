@@ -48,6 +48,7 @@ This workflow is designed for production-grade project formation:
 5. Conversation-first: ask guiding questions and summarize progress every stage.
 6. Shape Up language: use appetite, shaping, rabbit holes, and bounded problem framing naturally.
 7. Always-orient rule: every turn must show where we are, what comes next, and what options the PM can choose.
+8. Ambiguity-first rule: when terms, scope, or success criteria are vague, ask one disambiguation question before recommending progression.
 
 ## Inputs
 
@@ -76,6 +77,7 @@ Router definition lives in `project-formation/router/SKILL.md` and its matrices 
 ## Workflow stages
 
 1. Discovery and question design (`project-formation-discovery`) at `project-formation/discovery/SKILL.md`.
+  - Optional mode: `Interview Prep` inside discovery when evidence is weak, contradictory, or stakeholder/user signals are missing.
 2. Shaping and alternatives (`project-formation-shaping`) at `project-formation/shaping/SKILL.md`.
 3. Sequencing and execution planning (`project-formation-roadmap`) at `project-formation/roadmap/SKILL.md`.
 4. Market activation and launch logic (`project-formation-gtm`) at `project-formation/gtm/SKILL.md`.
@@ -99,6 +101,7 @@ Stage map to keep visible in the conversation:
 - Ask short and practical questions.
 - Reflect back what the PM said before moving stages.
 - Offer 2 to 3 options when ambiguity is high.
+- Resolve one critical ambiguity per turn before adding new scope.
 - End every turn with the next recommended micro-step.
 
 Mandatory turn footer:
@@ -109,6 +112,7 @@ Mandatory turn footer:
 - `Recommended now`: one micro-step.
 
 For response patterns, use `project-formation/assets/facilitator-response-patterns.md`.
+For ambiguity reduction prompts, use `project-formation/assets/ambiguity-question-ladder.md`.
 
 ## Session continuity protocol
 
@@ -157,6 +161,7 @@ Keep full detail in the final dossier even when progress messages are compact.
 At minimum, produce:
 
 - Discovery map (users, stakeholders, pains, jobs, and risks).
+- Optional Interview Prep brief when discovery evidence is insufficient.
 - Alternatives matrix (options, tradeoffs, and recommendation).
 - Roadmap (phases, dependencies, milestones, and acceptance gates).
 - GTM plan (segment, positioning, channels, launch experiments, KPIs).
@@ -178,7 +183,10 @@ Also track:
 
 - likely next stage,
 - available user actions,
-- last explicit user choice.
+- last explicit user choice,
+- interview prep status (`not-needed`, `queued`, `in-progress`, `completed`),
+- ambiguity status (`high`, `partial`, `clear`),
+- top ambiguity to resolve next.
 
 State template: `project-formation/assets/session-state-template.md`.
 
