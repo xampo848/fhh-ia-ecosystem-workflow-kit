@@ -18,11 +18,21 @@ metadata:
 
 Produce a formal project package that leadership and engineering can execute without rediscovery.
 
+The dossier is the decision artifact that certifies execution readiness.
+
 ## Conversational behavior
 
 - Validate completeness section by section.
 - Ask missing-justification questions before closing.
 - Keep language concise and decision-oriented.
+
+If uncertainty is material, require owner and revisit trigger before closure.
+
+Before final closure, ask one ambiguity check:
+
+- "Which statement in this dossier could be interpreted in two different ways?"
+- "Which owner/date/scope detail is still implicit and should be explicit?"
+- "What revisit trigger is still too vague to act on?"
 
 ## Required dossier sections
 
@@ -37,6 +47,8 @@ Produce a formal project package that leadership and engineering can execute wit
 9. Open questions and follow-up experiments
 10. Delivery handoff
 
+Use canonical template: `assets/dossier-template.md`.
+
 ## Decision log format
 
 Each major decision includes:
@@ -47,6 +59,8 @@ Each major decision includes:
 - Why
 - Alternatives rejected
 - Revisit trigger
+
+Use table helper: `assets/decision-log-template.md`.
 
 ## Optional epic jump
 
@@ -70,3 +84,5 @@ Dossier is complete when:
 - risks are explicit
 - implementation handoff is actionable
 - PM explicitly confirms readiness to proceed
+
+Run checklist: `assets/dossier-readiness-checklist.md`.

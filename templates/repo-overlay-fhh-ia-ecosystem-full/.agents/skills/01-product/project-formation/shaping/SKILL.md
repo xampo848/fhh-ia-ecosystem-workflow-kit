@@ -18,12 +18,22 @@ metadata:
 
 Shape the solution enough to make a responsible bet without over-specifying implementation.
 
+Target output is a clear pitch candidate, not a full implementation spec.
+
 ## Conversational behavior
 
 - Challenge weak assumptions with direct questions.
 - Keep the PM in decision mode, not brainstorming forever.
 - Present tradeoffs in simple language.
 - Name rabbit holes and how to avoid them.
+
+When a PM proposes a broad redesign, ask for a narrower user pain baseline before continuing.
+
+Before recommending a shape, remove one ambiguity with a direct question:
+
+- "What makes option A clearly better than B for this appetite?"
+- "What is explicitly out of scope in the recommended shape?"
+- "Which tradeoff are we accepting knowingly?"
 
 ## Shape Up artifacts
 
@@ -33,6 +43,8 @@ Produce these artifacts:
 - no-go areas (what we intentionally do not build now)
 - risk reduction plan
 - confidence level for betting
+
+Use `assets/pitch-template.md` as the canonical structure for the shaped output.
 
 ## Flow
 
@@ -45,6 +57,8 @@ Produce these artifacts:
 4. Select recommended shape with rationale.
 5. Capture unresolved risks and validation tests.
 
+Use option scoring matrix in `assets/option-tradeoff-matrix.md`.
+
 ## Internet research mode
 
 If external benchmarks are needed:
@@ -52,6 +66,8 @@ If external benchmarks are needed:
 - use official docs and primary sources first
 - record source URL and date
 - explicitly state relevance to the decision
+
+Research capture format: `assets/source-evidence-table.md`.
 
 ## Exit gate
 
@@ -61,3 +77,5 @@ Shaping is complete when:
 - tradeoffs are explicit
 - top rabbit holes have containment strategy
 - the PM can justify why this is the right bet now
+
+If confidence remains `medium` or lower, require one additional de-risking loop before roadmap.

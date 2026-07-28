@@ -29,6 +29,12 @@ Treat GTM as a set of testable bets tied to measurable outcomes.
 
 Challenge vanity metrics and replace them with behavior or business-impact metrics.
 
+Before locking launch bets, clear one ambiguity:
+
+- "Which segment is primary for this first bet, and which one is deferred?"
+- "Which message claim is evidence-backed versus assumed?"
+- "What KPI threshold defines failure clearly?"
+
 ## Flow
 
 1. Define primary segment and secondary segment.

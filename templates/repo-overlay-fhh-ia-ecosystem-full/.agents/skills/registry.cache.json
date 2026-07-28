@@ -280,7 +280,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/project-formation/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "6fa82cdd6f1215403963faf1da82163f2095036008edb4e5af5a1f968a9424fa"
+      "skill_sha256": "dc40f57fbdba1f7e0cfb930d3ec1c31dc0390cfed89159834b36bc9f6cb15769"
     },
     {
       "key": "project-formation-discovery",
@@ -289,7 +289,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/01-product/project-formation/discovery/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "72fc527b535f9834702b6d65e902cca5425c68964731d451866211bd9ef625fa"
+      "skill_sha256": "a13f29cfc581111225255e37f26974cf608b804d9c929a57c555e12207b95693"
     },
     {
       "key": "project-formation-dossier",
@@ -298,7 +298,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/01-product/project-formation/dossier/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "896aa2ea2b367be45de1a29bf253241a05d7d00cdb3b206766d55e8b87e51c10"
+      "skill_sha256": "6cf99babfe2c584032e46bfffc568f1fcc58f6bb4d6ec54378ff065326cdcf6f"
     },
     {
       "key": "project-formation-gtm",
@@ -307,7 +307,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/01-product/project-formation/gtm/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "5ee819786f051992734be5a53264d2400f6c08df23c240d968c44a9b4b4ab140"
+      "skill_sha256": "a8dfff263fe047511bac4b8c142f3ade9e9ab6cd8e1bc8e7c52a87c3f1012bdd"
     },
     {
       "key": "project-formation-roadmap",
@@ -316,7 +316,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/01-product/project-formation/roadmap/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "c239bda8febd643d98dc53c6cfba3a9f33c99a5d1fabaf1677f566e6042539e1"
+      "skill_sha256": "a2b1a55c202d453e20589b82d768be1e8c87d6f60e4e14d8589cad9f7d80332f"
     },
     {
       "key": "project-formation-router",
@@ -325,7 +325,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/01-product/project-formation/router/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "54f66a8b9c06b26d13685caa68a02225e5bce668b2be7d4aaa8222133b7ea8be"
+      "skill_sha256": "fa11bed15efe9f2bde2f4035ebdf9c104d70cd3d6b560b21bb6dbb0186ddda55"
     },
     {
       "key": "project-formation-shaping",
@@ -334,7 +334,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/01-product/project-formation/shaping/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "ec9400c01371001418960f284e43aef57ccff18e8fc5ce2088d2e41a1dd4a7b1"
+      "skill_sha256": "59797948285197babeee21468256caddc15d6d8ff278a96f379f0994cdadeb03"
     },
     {
       "key": "qa-handoff-review",

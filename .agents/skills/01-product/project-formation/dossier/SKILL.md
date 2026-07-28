@@ -28,6 +28,12 @@ The dossier is the decision artifact that certifies execution readiness.
 
 If uncertainty is material, require owner and revisit trigger before closure.
 
+Before final closure, ask one ambiguity check:
+
+- "Which statement in this dossier could be interpreted in two different ways?"
+- "Which owner/date/scope detail is still implicit and should be explicit?"
+- "What revisit trigger is still too vague to act on?"
+
 ## Required dossier sections
 
 1. Executive summary

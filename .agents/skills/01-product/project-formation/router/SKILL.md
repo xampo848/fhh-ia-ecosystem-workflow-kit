@@ -29,6 +29,7 @@ Keep the PM in a guided conversation and route each turn to the right stage:
 - dossier
 
 Do not allow stage skipping unless a justified fast-track condition is met.
+Do not advance stages while critical ambiguity remains unresolved.
 
 Never let the PM lose orientation in-session.
 
@@ -48,11 +49,12 @@ Avoid heavy framework jargon. Keep language practical and PM-friendly.
 ## Routing rules
 
 1. If the user is still defining the problem, route to `project-formation-discovery`.
-2. If problem clarity is acceptable but solution direction is weak, route to `project-formation-shaping`.
-3. If solution direction is chosen but sequencing is unclear, route to `project-formation-roadmap`.
-4. If roadmap exists and launch/adoption is missing, route to `project-formation-gtm`.
-5. If prior stages are sufficiently complete, route to `project-formation-dossier`.
-6. If intent is unclear, stay in current stage and ask one recenter question.
+2. If discovery evidence is weak, contradictory, or missing real user/stakeholder signals, stay in `project-formation-discovery` and activate optional `Interview Prep` mode.
+3. If problem clarity is acceptable but solution direction is weak, route to `project-formation-shaping`.
+4. If solution direction is chosen but sequencing is unclear, route to `project-formation-roadmap`.
+5. If roadmap exists and launch/adoption is missing, route to `project-formation-gtm`.
+6. If prior stages are sufficiently complete, route to `project-formation-dossier`.
+7. If intent is unclear or core terminology is ambiguous, stay in current stage and ask one recenter question.
 
 ## Continuity and anti-drift protocol
 
@@ -72,6 +74,12 @@ Recovery mode output:
 - "Recommended move"
 
 In recovery mode, stage advancement is locked until the PM picks one option.
+
+If ambiguity is the blocker, ask one of these first:
+
+- "What exactly do we mean by [term] in this context?"
+- "How will we know this is successful, in one measurable sentence?"
+- "What is explicitly out of scope for this bet?"
 
 ## Stage machine
 
@@ -97,8 +105,16 @@ If the answer is no or uncertain, stay in the current stage and ask targeted fol
 Also ask:
 
 - "What evidence would change your mind on this decision?"
+- "Which unresolved ambiguity most threatens this decision quality right now?"
 
 If the PM cannot answer, confidence is capped at `medium` and the stage cannot close.
+
+If evidence remains weak after one targeted follow-up, trigger `Interview Prep` mode in discovery with:
+
+- target interview profile,
+- 6-8 high-signal questions,
+- assumptions to validate,
+- return condition to normal discovery flow.
 
 ## Conversational style contract
 
@@ -117,6 +133,11 @@ Score each stage as `low`, `medium`, or `high`:
 - `medium`: some evidence, unresolved high-risk unknowns.
 - `high`: evidence-backed with explicit risk controls and clear decision rationale.
 
+Ambiguity cap:
+
+- if ambiguity status is `high`, confidence is capped at `low`.
+- if ambiguity status is `partial`, confidence is capped at `medium`.
+
 Do not progress to dossier while any prior stage is `low`.
 
 ## Output format
@@ -132,6 +153,8 @@ Add:
 
 - Stage confidence
 - Skip-guard verdict (`pass` or `hold`)
+- Interview Prep trigger (`yes` or `no`) and rationale in one line
+- Ambiguity status (`high`, `partial`, `clear`) and the top ambiguity to resolve
 - `You are here` (current stage in the 5-stage map)
 - `What comes next` (next stage + condition)
 - `You can choose` (2-3 concrete user actions)
