@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { applyInstallPlan } from '../src/apply.mjs';
@@ -171,15 +172,19 @@ test('tui upgrade-toolkit mode runs the global upgrade command and exits without
     color: false,
     write: () => {},
     commandExists: async (command) => command === 'bun',
-    runCommand: async ({ command, args }) => {
-      executed.push(`${command} ${args.join(' ')}`);
+    runUpgradeExecutor: async (plan, { cwd }) => {
+      executed.push({ plan, cwd });
       return { ok: true, code: 0 };
     }
   });
 
   assert.equal(result.mode, 'upgrade-toolkit');
   assert.equal(result.applied, false);
-  assert.deepEqual(executed, ['bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#main']);
+  assert.equal(executed.length, 1);
+  assert.equal(executed[0].cwd, os.homedir());
+  assert.equal(executed[0].plan.command, 'bun');
+  assert.deepEqual(executed[0].plan.args, ['add', '-g', 'github:xampo848/fhh-ia-ecosystem-workflow-kit#main']);
+  assert.equal(executed[0].plan.spec, 'github:xampo848/fhh-ia-ecosystem-workflow-kit#main');
   await assert.rejects(fs.access(path.join(target, '.agents/instructions.md')), { code: 'ENOENT' });
 });
 

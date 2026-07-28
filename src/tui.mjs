@@ -21,7 +21,7 @@ import {
   renderSummary,
   supportsColor
 } from './tui/view.mjs';
-import { buildUpgradePlan, commandExists as upgradeCommandExists, currentToolkitMetadata, formatUpgradePlan, resolveUpgradePackageManager } from './upgrade.mjs';
+import { buildUpgradePlan, commandExists as upgradeCommandExists, currentToolkitMetadata, formatUpgradePlan, globalUpgradeWorkingDirectory, resolveUpgradePackageManager, runUpgradePlan } from './upgrade.mjs';
 
 const RUNTIME_OPTIONS = [
   { value: 'neutral', label: 'No extra adapters', description: 'Install full workflow content without runtime adapters.' },
@@ -398,6 +398,7 @@ export async function runTui(options = {}) {
   const scriptedMode = Boolean(options.ask);
   const commandExists = options.commandExists ?? defaultCommandExists;
   const runCommand = options.runCommand ?? defaultRunCommand;
+  const runUpgradeExecutor = options.runUpgradeExecutor ?? runUpgradePlan;
   const prompter = scriptedMode
     ? createScriptedPrompter({ ask: options.ask, write, paint })
     : createInteractivePrompter();
@@ -520,12 +521,10 @@ export async function runTui(options = {}) {
         return { code: 0, applied: false, mode, upgradePlan };
       }
 
-      const result = await runCommand({
-        command: upgradePlan.command,
-        args: upgradePlan.args,
-        cwd: process.cwd(),
-        write,
-        paint
+      const result = await runUpgradeExecutor(upgradePlan, {
+        cwd: globalUpgradeWorkingDirectory(),
+        stdout: { write: (chunk) => write(paint.dim(String(chunk))) },
+        stderr: { write: (chunk) => write(paint.yellow(String(chunk))) }
       });
 
       if (!result.ok) {

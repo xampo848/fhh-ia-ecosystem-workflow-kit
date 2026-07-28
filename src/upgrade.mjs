@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import os from 'node:os';
 import packageJson from '../package.json' with { type: 'json' };
 
 const workflowKitConfig = packageJson.workflowKit ?? {};
@@ -57,6 +58,11 @@ export function formatUpgradePlan(plan) {
   ].join('\n');
 }
 
+export function globalUpgradeWorkingDirectory({ fallback = process.cwd() } = {}) {
+  const home = String(os.homedir() ?? '').trim();
+  return home.length > 0 ? home : fallback;
+}
+
 export function commandExists(command) {
   return new Promise((resolve) => {
     const child = spawn(command, ['--version'], { stdio: 'ignore' });
@@ -83,19 +89,55 @@ export async function resolveUpgradePackageManager(preferred, exists = commandEx
   throw new Error('bun is required in PATH for toolkit upgrade.');
 }
 
-export function runUpgradePlan(plan, { cwd = process.cwd(), stdout = process.stdout, stderr = process.stderr } = {}) {
+export function isNonBlockingBunRemoveFailure({ stdout = '', stderr = '' } = {}) {
+  const output = `${stdout}\n${stderr}`.toLowerCase();
+  return output.includes('not found') || output.includes('no package') || output.includes('no such package');
+}
+
+export function runUpgradePlan(plan, { cwd = globalUpgradeWorkingDirectory(), stdout = process.stdout, stderr = process.stderr } = {}) {
   return new Promise((resolve) => {
-    const child = spawn(plan.command, plan.args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    const runCommand = (command, args) => new Promise((resolveCommand) => {
+      const child = spawn(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
 
-    child.stdout.on('data', (chunk) => stdout.write(String(chunk)));
-    child.stderr.on('data', (chunk) => stderr.write(String(chunk)));
+      let stdoutBuffer = '';
+      let stderrBuffer = '';
 
-    child.on('error', (error) => {
-      resolve({ ok: false, code: null, reason: String(error?.message ?? error) });
+      child.stdout.on('data', (chunk) => {
+        const text = String(chunk);
+        stdoutBuffer += text;
+        stdout.write(text);
+      });
+      child.stderr.on('data', (chunk) => {
+        const text = String(chunk);
+        stderrBuffer += text;
+        stderr.write(text);
+      });
+
+      child.on('error', (error) => {
+        resolveCommand({ ok: false, code: null, reason: String(error?.message ?? error), stdout: stdoutBuffer, stderr: stderrBuffer });
+      });
+
+      child.on('exit', (code) => {
+        resolveCommand({ ok: code === 0, code, reason: code === 0 ? null : `exit-${code}`, stdout: stdoutBuffer, stderr: stderrBuffer });
+      });
     });
 
-    child.on('exit', (code) => {
-      resolve({ ok: code === 0, code, reason: code === 0 ? null : `exit-${code}` });
-    });
+    const run = async () => {
+      if (plan.packageManager === 'bun') {
+        stdout.write(`Pre-cleaning previous global package: ${packageJson.name}\n`);
+        const preclean = await runCommand('bun', ['remove', '-g', packageJson.name]);
+        if (!preclean.ok && !isNonBlockingBunRemoveFailure(preclean)) {
+          return {
+            ok: false,
+            code: preclean.code,
+            reason: `preclean-failed:${preclean.reason}`
+          };
+        }
+      }
+
+      return runCommand(plan.command, plan.args);
+    };
+
+    run().then(resolve);
   });
 }
