@@ -30,6 +30,11 @@
 2. the task is narrow enough for compressed helper delegation;
 3. using cavecrew reduces context without obscuring risk.
 
+Default delegation preference:
+
+- for narrow helper tasks (locate, surgical edit, focused review), prefer cavecrew delegates by default;
+- fall back to normal delegates when nuance/prose depth is required or compressed output would hide important trade-offs.
+
 Fallback:
 
 - use normal delegate flow or inline execution with concise prose.

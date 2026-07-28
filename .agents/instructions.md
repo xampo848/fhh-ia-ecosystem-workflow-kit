@@ -264,6 +264,25 @@ Use judgment before activating compressed output:
 - do not claim a token-saving capability is active unless the runtime confirms
   it is installed/available and attached.
 
+Direct-answer defaults (automatic):
+
+- for trivial informational requests, prefer inline answers with `lean` posture;
+- target `0` tool calls when the answer is already reliable;
+- allow up to `2` focused read-only tool calls before escalating to non-trivial routing;
+- if more than `2` tool calls are needed, state the reason briefly and switch to explicit routed execution.
+
+Token-spike prevention defaults:
+
+- avoid wide-result tools as a first step (broad repo/web searches, full inventories, raw dumps);
+- prefer bounded output requests (top-N, precise include pattern, narrow symbol/file scopes);
+- avoid re-reading long policy files in the same turn when already loaded and unchanged;
+- summarize large tool payloads instead of echoing raw output.
+
+Compressed delegation preference:
+
+- when narrow helper delegation is needed (locate, surgical edit, focused review), prefer attached compressed helpers such as cavecrew;
+- fall back to verbose delegates or inline execution when compressed output could hide important nuance.
+
 ## Prompt-driven integration policy
 
 The neutral install/attach contract lives in `.agents/integrations/README.md`.

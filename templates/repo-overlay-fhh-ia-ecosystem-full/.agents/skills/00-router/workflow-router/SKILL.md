@@ -219,6 +219,18 @@ Typical examples:
 - `validation-runner` on clear failures
 - simple `contract-verifier` checks
 
+Default direct-answer guardrail:
+
+- direct informational requests should start in `lean` and remain inline whenever safe;
+- avoid broad context gathering unless the first answer would be materially unreliable without it;
+- keep tool usage intentionally small and targeted for these requests.
+
+Tool-budget defaults for direct-answer mode:
+
+- prefer `0` tool calls when the answer is already reliable;
+- allow up to `2` focused read-only tool calls before responding;
+- if more calls are needed, explain why and switch to explicit non-trivial routing.
+
 ### `balanced`
 
 Use when the task needs reliable reasoning but is not high-risk enough for a premium model.
@@ -404,6 +416,15 @@ Rules:
 - When delegation is avoided, name the concrete reason, for example single-writer continuity, tiny scope, focused validation, or docs-only work.
 - Prefer concise routing notes; do not output long policy explanations unless the user asks about efficiency.
 
+### Token-spike prevention defaults
+
+For direct-answer and lightweight routing turns, apply these defaults unless accuracy would suffer:
+
+- avoid wide-result tools first (broad repo/web searches, full inventories, raw dumps);
+- prefer narrow queries and bounded outputs (top-N, scoped include pattern, precise symbol/file filters);
+- avoid reading large policy files repeatedly in one turn when loaded context is still valid;
+- summarize tool findings instead of echoing large raw payloads.
+
 ### Delegation heuristics for routed implementation work
 
 When the selected route is `implement-prd`, do not leave delegation as a vague preference. Use these heuristics before loading the skill:
@@ -411,6 +432,8 @@ When the selected route is `implement-prd`, do not leave delegation as a vague p
 - Mark delegation as `required` when the work already implies multiple implementation phases/skills, cross-layer contracts, separate file owners, or enough moving parts that one agent would need to keep too many open threads in one context window.
 - Mark delegation as `recommended` when a focused delegate would clearly reduce exploration noise, isolate one slice, or preserve review independence, even if one agent could still finish the work inline.
 - Mark delegation as `avoided` only when the likely execution fits a compact preflight plus one writer path, with obvious validation and no meaningful benefit from phase separation.
+
+When delegation is `recommended` for narrow locate/edit/review tasks, prefer cavecrew-style compressed helpers before verbose delegates.
 
 Good signals that delegation should move upward:
 
