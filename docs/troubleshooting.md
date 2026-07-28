@@ -128,6 +128,13 @@ bun run check:release
 bun run check:docs
 ```
 
+If `bun test` reports runner-specific limitations or nested-test false negatives,
+run the canonical Node test runner to confirm real failures:
+
+```bash
+node --test
+```
+
 If failure is `overlay/content-drift` for `.agents/skills/00-router/workflow-router/SKILL.md`, align canonical and overlay skill contents before re-running validation.
 
 The failure message should name the missing file, unsafe script, invalid template pack, or missing documentation phrase.
