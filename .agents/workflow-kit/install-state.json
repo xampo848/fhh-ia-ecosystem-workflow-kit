@@ -1,16 +1,20 @@
 {
   "schemaVersion": "1.0.0",
   "managedBy": "fhh-ia-ecosystem-workflow-kit",
-  "toolkitVersion": "0.7.2-public-install-export",
-  "generatedAt": "2026-07-23T19:44:43.637Z",
+  "toolkitVersion": "0.7.10-project-formation",
+  "generatedAt": "2026-07-28T12:23:53.677Z",
   "runtimes": [
-    "neutral"
+    "neutral",
+    "copilot",
+    "codex",
+    "claude",
+    "antigravity"
   ],
   "overlay": "fhh-ia-ecosystem-full",
   "files": {
     ".agents/capabilities/manifests/cavecrew.md": "46a2154f0ea703e255a159c5c704b24a0294fa646b1c4b2eece749160176295e",
     ".agents/capabilities/manifests/caveman.md": "e59eaab7275e9e5a78b3a2469bc0c0589fa2dd636249535fe08bc23662b7e534",
-    ".agents/capabilities/manifests/context7.md": "e6f83076a99b1e56652b7896197b204c70e0bc1f2df1b0919dcbd608553c4c59",
+    ".agents/capabilities/manifests/context7.md": "2dc0d5480efb51bf293e2e93e0659c82ba13e269d58e46ea729efdfe95cebb71",
     ".agents/capabilities/manifests/engram.md": "56f3dcf985a0b22fff8a66eb53ffa96b26a3b0aca195b011a29c4e573ee43ce0",
     ".agents/capabilities/manifests/impeccable.md": "9d6712a2b2722b1585791c3e155f3b61df570f75358fc256369b1fead7e09b19",
     ".agents/capabilities/manifests/skills-sh.md": "c807e0a30797ca36112f6fdd953e8597bc90319557aec7470756e335a28a9170",
@@ -190,14 +194,22 @@
     ".agents/skills/06-patterns/authoring/pattern-skill-template.md": "7bab12d5a52a820442879e5352bab9acc63a76ec2aaa9e19c5888f12535cf164",
     ".agents/skills/06-patterns/README.md": "8666efe0e686d30512f6c16c33afe2ea2ca8941b0db7eea0ee35951c04598f45",
     ".agents/skills/README.md": "8428c08a60c73a029ba44b888e2bd35e9df4ab79f61708cf4bd4209a172dcc61",
-    ".agents/skills/registry.cache.json": "5887509e9ccb1f97b15dadc35a7d158a52d2884e1c51ea9fa2f271778059cb25",
     ".agents/skills/registry.json": "a9aa39dfb6105f5f1aa8ed2f33382d48b381937873abf0ee463e59d424b03f80",
-    ".agents/skills/registry.md": "29a1efac71b15adb7bc1d7bddf327fc65bfaba07aa0e291fe5aa8ff2faf9646b",
     ".agents/skills/registry.schema.json": "e3ab46aaeaf35817f5c5bd35bec208041c755fcb767cce660211a0f3d7ed4129",
     ".DS_Store": "5e3eea9d4bde8e2ee86b0bab1904107943c3bd8c62b00b9b908c54671f6cb739",
     ".github/copilot-instructions.md": "5cecdf03313029bc9215e220dda38d5c933ea7c4ca2a8097d313870123fc7f8d",
     ".github/instructions/ai-workflow.instructions.md": "ab0e4a52145a774eebff95cb4888c0b8ddb96da1a7ff8e45d4594c2334242867",
     "AGENTS.md": "f95434df609680430dbba49e69696cf00d071a0c2ee959557edaccb92cf73436",
-    ".agents/skills/index.md": "f05b066ef7b2983e1ad1bfd8c7e599cdc793aea520a72ec771ae420fba41a6eb"
+    ".agents/capabilities/manifests/codebase-memory-mcp.md": "c6870ea45d89a8f69758099de4c451e2f0a7711f6d92cdc5515a0b1895fa78b9",
+    ".antigravity/README.md": "221c8603add8628e701bf8f4b82f49febd747c5330e913560a98bd0f598b2952",
+    ".codex/README.md": "fa97fe4a50bad836994112929f0ab9d39070d8cd284a0266785be2819802f1ae",
+    "ANTIGRAVITY.md": "840aa8873d06549cd01bd05ac0e278f35cc139f54516a219948d042d7162693a",
+    "CLAUDE.md": "8d0b5090c37692a5b985687d0d9ada66d103c3cd379dbb337f1c34dd418f1a8e",
+    "docs/README.md": "2b549da6ddd8d8a7ee857345915415e820faac1fe805aebef9ccc0bd2bfee586",
+    "docs/workflow/README.md": "98b88f5aa1218431169a4da21b16ff19cde07379acd7e89aa0d2e7068a09563b",
+    "docs/workflow/runbooks/router-skill-enforcement-manual-checklist.md": "2e9ab55eb48d73e381268de7e7fb170d997c5bc10701e21fd4ec34321d8ee024",
+    "docs/workflow/standards/backend.md": "1cb694e81c828f05fdb32e1a810d00633eaa9a3872b5582e2bc9d0762ba33930",
+    "docs/workflow/standards/frontend.md": "fd8aea239d04b770b3adaa2a7afcde46119d25b4ad9de81d715ddf33547d98cf",
+    "docs/workflow/standards/setup-and-migration.md": "770161cff3386b8eaccab1da8a8861285bda5815ee93abe7a78e5df0639cee0e"
   }
 }
