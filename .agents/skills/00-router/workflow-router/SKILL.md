@@ -6,12 +6,12 @@ user-invocable: true
 license: MIT
 metadata:
   author: fhh-ia-ecosystem
-  version: "1.2"
+  version: "1.3"
 ---
 
 # Workflow Router
 
-Use this skill as the safe entrypoint when the user makes a freeform request and did not explicitly name a skill.
+Use this skill as the safe entrypoint when the user makes a non-trivial freeform request without an explicit skill, or asks for guidance to choose which route/skill to use.
 
 The router exists to solve three problems:
 
@@ -75,8 +75,28 @@ Natural-language binding examples:
 
 User choice constraint:
 
-- For `create-prd`, `create-epic`, and `generate-pm-ticket`, do not auto-load the skill unless the user explicitly requested it or explicitly selected it from options presented by the router.
+- For `project-formation`, `create-prd`, `create-epic`, and `generate-pm-ticket`, do not auto-load the skill unless the user explicitly requested it or explicitly selected it from options presented by the router.
 - If those are candidate routes, the router must present the options and wait for the user's decision.
+
+Mandatory route-options block:
+
+- When route selection includes product-shaping choices, present a compact menu with up to four options in plain language.
+- Each option must include: user-facing label, underlying skill name, expected artifact, and scope hint.
+- Mark exactly one option as "Recommended" and explain why in one short sentence.
+- End with an explicit selection prompt and stop in `awaiting-user-choice`.
+
+Example format:
+
+```text
+Puedo llevarlo por estas rutas:
+1) Formación integral del proyecto (`project-formation`) -> discovery + shaping + roadmap + GTM + dossier.
+2) PRD de una feature (`create-prd`) -> especificación implementable de una capacidad.
+3) Ticket acotado (`generate-pm-ticket`) -> backlog item pequeño con AC.
+4) Épica multi-fase (`create-epic`) -> investigación + fases + cola de PRDs.
+
+Recomendación: [opción] porque [razón breve].
+Elige una opción por número o por nombre de skill.
+```
 
 Execution authorization gate (mandatory):
 
@@ -126,6 +146,7 @@ Requirements for FULL trace:
 | Request class | Signals | Primary action | Confirmation required? | Default cost posture |
 | --- | --- | --- | --- | --- |
 | Direct answer | Explanation, advice, comparison, small command, no repo changes | Answer directly | No | `lean` |
+| Project formation | User asks to shape a project end-to-end, from discovery to roadmap/GTM/handoff; mentions initiative framing, stakeholder discovery, phased launch, or dossier-level planning | propose `project-formation` as preferred option and include `create-prd`, `generate-pm-ticket`, `create-epic` alternatives when relevant | Yes (always) | `balanced` |
 | Product ambiguity | Problem, user need, strategy, priority, roadmap, JTBD, unclear direction | propose `create-epic` or `create-prd` and wait for user choice | Yes (always) | `balanced` |
 | Broad initiative | Multi-phase work, major capability, research, roadmap, appetite, multiple PRDs | `create-epic` | Yes unless user explicitly asked for epic/initiative/research | `balanced`; `premium` only for major architecture or commercial risk |
 | Feature specification | Clear feature, business rules, UX states, API/data impact, acceptance criteria needed | propose `create-prd` and wait for user choice | Yes (always) | `balanced` |
@@ -146,6 +167,19 @@ Apply this decision order for every non-trivial freeform request before selectin
 4. If two classes still match, choose the smaller safe workflow and state the tie-break in the routing trace.
 
 ### Hard triggers
+
+#### Project formation hard trigger
+
+Route to `project-formation` as the recommended option (not auto-execution) when the user asks for end-to-end project shaping or formation, including discovery, scope shaping, phased roadmap, GTM planning, or dossier handoff.
+
+Intent examples:
+
+- "necesito formar el proyecto completo"
+- "quiero pasar de discovery a roadmap y go-to-market"
+- "armemos la formación del proyecto con handoff"
+- "project formation para esta iniciativa"
+
+Do not collapse this into `create-prd` unless the user explicitly narrows scope to one feature spec.
 
 #### PR comments hard trigger
 
@@ -168,9 +202,10 @@ When a prompt mentions more than one intent, resolve with this precedence:
 1. explicit skill invocation
 2. `pr-comments-resolution` hard trigger
 3. `implement-prd` / production implementation gates
-4. `create-prd` / `generate-pm-ticket` / `create-epic`
-5. review or documentation routes
-6. direct answer
+4. `project-formation` hard trigger
+5. `create-prd` / `generate-pm-ticket` / `create-epic`
+6. review or documentation routes
+7. direct answer
 
 Always include in the routing trace which precedence rule was applied.
 
@@ -317,6 +352,7 @@ Do not silently code. Suggest the smallest predecessor, but do not choose it for
 - Use `generate-pm-ticket` for tiny backlog-sized changes.
 - Use `create-prd` for feature work with business rules, UX, API, data, tests, acceptance criteria, tenancy, or cross-layer impact.
 - Use `create-epic` only for a broad initiative that needs research, phases, appetite, and multiple PRDs.
+- Use `project-formation` when the user needs end-to-end project shaping from discovery through GTM and dossier handoff.
 
 Mandatory user decision rule:
 
@@ -327,7 +363,7 @@ Mandatory user decision rule:
 Say:
 
 ```text
-Antes de implementar necesito tu decisión de formato. Puedo seguir como [create-prd], [generate-pm-ticket] o [create-epic] según alcance. Elige una opción y la ejecuto.
+Antes de implementar necesito tu decisión de formato. Puedo seguir como [project-formation], [create-prd], [generate-pm-ticket] o [create-epic] según alcance. Elige una opción y la ejecuto.
 ```
 
 ## Surgical edit exception
@@ -362,13 +398,14 @@ When autonomy is preferred and the request can still fit safely in one feature s
 
 ## Plain-language guidance
 
-When the user is unsure, do not dump the full skill catalog. Offer at most three options:
+When the user is unsure, do not dump the full skill catalog. Offer at most four options:
 
 ```text
-Puedo tomar esto de 3 formas:
+Puedo tomar esto de 4 formas:
 1. Respuesta rápida / análisis sin crear archivos.
-2. Ticket o PRD acotado para implementar.
-3. Épica completa con investigación y fases.
+2. Formación integral de proyecto (discovery -> roadmap -> GTM -> dossier).
+3. Ticket o PRD acotado para implementar.
+4. Épica completa con investigación y fases.
 
 Mi recomendación: [opción], porque [razón breve].
 ```
