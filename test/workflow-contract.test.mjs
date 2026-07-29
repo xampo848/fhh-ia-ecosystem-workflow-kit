@@ -89,3 +89,19 @@ test('workflow router keeps deterministic PR comments hard trigger policy', asyn
   assert.match(router, /PR comments hard trigger/);
   assert.match(router, /Route to `pr-comments-resolution` when the user intent is to resolve, process, close, or work through PR\/review comments/);
 });
+
+test('workflow router keeps deterministic project-formation trigger and route-options menu', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const routerPath = path.join(root, '.agents/skills/00-router/workflow-router/SKILL.md');
+  const registryPath = path.join(root, '.agents/skills/registry.md');
+  const [router, registry] = await Promise.all([
+    fs.readFile(routerPath, 'utf8'),
+    fs.readFile(registryPath, 'utf8')
+  ]);
+
+  assert.match(router, /Project formation hard trigger/);
+  assert.match(router, /Route to `project-formation` as the recommended option/);
+  assert.match(router, /Mandatory route-options block/);
+  assert.match(router, /Elige una opción por número o por nombre de skill/);
+  assert.match(registry, /`project-formation` \| Workflow \| `\.agents\/skills\/01-product\/project-formation\/SKILL\.md`/);
+});

@@ -6,9 +6,9 @@
   "compact_index": ".agents/skills/index.md",
   "structured_registry": ".agents/skills/registry.json",
   "source_hashes": {
-    ".agents/skills/index.md": "a3c1244dc8a279f16c1c4992b27fcd5d4cbd37e95759c43492f2215c9de07ee6",
-    ".agents/skills/registry.md": "f649fc7d1c1bf4e8471c1eb56fa96925f547e78d131ca9c0d79670f95e9e7f42",
-    ".agents/skills/registry.json": "98a23d7bf58ba3a0ae061a64a3de4147724f5870e6110b8a146961f737e0cb91"
+    ".agents/skills/index.md": "7c30dc59c94efab5f389ac624cf212df073feefbc8add2bb74325c21aee57770",
+    ".agents/skills/registry.md": "2cbf2f904c142ac498124653a5c6baba3a6ad1b4f9ba878684cb9b64d6853be7",
+    ".agents/skills/registry.json": "bdf5e6eacfe770874d4aea7a7d372c38ebd4aaa151f995c0aaf3d213cd878eca"
   },
   "entry_count": 40,
   "entries": [
@@ -370,7 +370,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "b4a4ca6770a26a3fcc1f43dbee27c1ac60e645a5ce155bb46709c9ae1bcf011e"
+      "skill_sha256": "1f23aa6269b079c4c70a21024468efba0468feded4b2b5edd3558ada5ce58cd5"
     }
   ]
 }
