@@ -37,7 +37,7 @@ export function installPackageDetails(overlay) {
     summary: overlay === 'fhh-ia-ecosystem-full'
       ? 'Full FHH IA Ecosystem flow selected (recommended).'
       : `Unsupported overlay "${overlay}" requested.`,
-    tone: overlay === 'fhh-ia-ecosystem-full' ? 'green' : 'red'
+    tone: overlay === 'fhh-ia-ecosystem-full' ? 'copper' : 'copperInk'
   };
 }
 

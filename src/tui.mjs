@@ -81,7 +81,7 @@ function defaultRunCommand({ command, args, cwd, write, paint }) {
     });
 
     child.stderr.on('data', (chunk) => {
-      write(`${paint.yellow(String(chunk))}`);
+      write(`${paint.copperInk(String(chunk))}`);
     });
 
     child.on('error', (error) => {
@@ -231,7 +231,7 @@ async function runCapabilityAutoInstall({ selections, runtimes, cwd, write, pain
     write(`${paint.bold(`\n- ${item.capability}`)}\n`);
     for (const step of item.steps) {
       attempted += 1;
-      write(`${paint.cyan(`  -> ${step.label}`)}\n`);
+      write(`${paint.indigo(`  -> ${step.label}`)}\n`);
       const result = await runCommand({
         command: step.command,
         args: step.args,
@@ -247,7 +247,7 @@ async function runCapabilityAutoInstall({ selections, runtimes, cwd, write, pain
       }
 
       succeeded += 1;
-      write(`${paint.green('  done')}\n`);
+      write(`${paint.copper('  done')}\n`);
     }
   }
 
@@ -278,7 +278,7 @@ async function withSpinner({ write, paint, label, enabled }, action) {
     const result = await action();
     active = false;
     clearInterval(timer);
-    write(`\r${paint.green(`${label} done`)}\n`);
+    write(`\r${paint.copper(`${label} done`)}\n`);
     return result;
   } catch (error) {
     active = false;
@@ -517,14 +517,14 @@ export async function runTui(options = {}) {
         : await prompter.confirm('Run toolkit upgrade now?', false);
 
       if (!shouldUpgrade) {
-        write(`${paint.yellow('Aborted. Toolkit binary was not changed.')}\n`);
+        write(`${paint.copperInk('Aborted. Toolkit binary was not changed.')}\n`);
         return { code: 0, applied: false, mode, upgradePlan };
       }
 
       const result = await runUpgradeExecutor(upgradePlan, {
         cwd: globalUpgradeWorkingDirectory(),
         stdout: { write: (chunk) => write(paint.dim(String(chunk))) },
-        stderr: { write: (chunk) => write(paint.yellow(String(chunk))) }
+        stderr: { write: (chunk) => write(paint.copperInk(String(chunk))) }
       });
 
       if (!result.ok) {
@@ -532,7 +532,7 @@ export async function runTui(options = {}) {
         return { code: 2, applied: false, mode, upgradePlan, upgradeResult: result };
       }
 
-      write(`${paint.green('Toolkit upgrade completed.')} ${renderChip(paint, 'RESTART NEXT', 'green')}\n`);
+      write(`${paint.copper('Toolkit upgrade completed.')} ${renderChip(paint, 'RESTART NEXT', 'copper')}\n`);
       write(`${paint.dim('Next step: launch workflow-kit again and run update for each target repository.') }\n`);
       return { code: 0, applied: false, mode, upgradePlan, upgradeResult: result };
     }
@@ -597,23 +597,23 @@ export async function runTui(options = {}) {
 
         write(`\n${paint.bold('Optional capabilities auto-install summary')}\n`);
         write(`Commands attempted: ${capabilityInstallResult.attempted}\n`);
-        write(`Commands succeeded: ${paint.green(String(capabilityInstallResult.succeeded))}\n`);
-        write(`Commands failed: ${capabilityInstallResult.failed > 0 ? paint.red(String(capabilityInstallResult.failed)) : paint.green('0')}\n`);
+        write(`Commands succeeded: ${paint.copper(String(capabilityInstallResult.succeeded))}\n`);
+        write(`Commands failed: ${capabilityInstallResult.failed > 0 ? paint.red(String(capabilityInstallResult.failed)) : paint.copper('0')}\n`);
         if (capabilityInstallResult.skipped.length > 0) {
-          write(`${paint.yellow('Skipped capabilities:')}\n`);
+          write(`${paint.copperInk('Skipped capabilities:')}\n`);
           capabilityInstallResult.skipped.forEach((item) => {
             write(`- ${item.capability}: ${item.reason}\n`);
           });
         }
         if (capabilityInstallResult.notes.length > 0) {
-          write(`${paint.yellow('Manual configuration required:')}\n`);
+          write(`${paint.copperInk('Manual configuration required:')}\n`);
           for (const note of capabilityInstallResult.notes) {
             write(`- ${note}\n`);
           }
         }
       }
 
-      write(`${paint.green('Capabilities flow completed.')} ${renderChip(paint, 'SYSTEM READY', 'green')}\n`);
+      write(`${paint.copper('Capabilities flow completed.')} ${renderChip(paint, 'SYSTEM READY', 'copper')}\n`);
       return {
         code: 0,
         applied: false,
@@ -732,7 +732,7 @@ export async function runTui(options = {}) {
         } catch (error) {
           if (!/No install state found\./.test(String(error?.message ?? ''))) throw error;
 
-          write(`\n${paint.yellow('No install state found for this repository.')}\n`);
+          write(`\n${paint.copperInk('No install state found for this repository.')}\n`);
           const adoptExisting = scriptedMode
             ? await prompter.confirm('Bootstrap a safe baseline with adopt-existing? Type yes to continue [no]: ')
             : await prompter.confirm('Bootstrap a safe baseline with adopt-existing?', true);
@@ -775,7 +775,7 @@ export async function runTui(options = {}) {
 
     if (showFullPreview) {
       const fullPreview = colorizeFullPlanPreview(paint, formatPlan(plan));
-      write(`\n${paint.cyan(paint.bold('Full preview'))}\n${fullPreview}\n\n`);
+      write(`\n${paint.indigo(paint.bold('Full preview'))}\n${fullPreview}\n\n`);
     }
 
     const { capabilitySelections, shouldAutoInstallCapabilities } = await collectCapabilitiesFlow({
@@ -802,7 +802,7 @@ export async function runTui(options = {}) {
     }
 
     if (!shouldApply) {
-      write(`${paint.yellow(mode === 'export' ? 'Aborted. No files were exported.' : 'Aborted. No files were written.')}\n`);
+      write(`${paint.copperInk(mode === 'export' ? 'Aborted. No files were exported.' : 'Aborted. No files were written.')}\n`);
       return { code: 0, applied: false, plan };
     }
 
@@ -812,13 +812,13 @@ export async function runTui(options = {}) {
     const modifiedSkips = applied.filter((item) => item.operation === 'skip_modified').length;
     const unmanagedSkips = applied.filter((item) => item.operation === 'skip_unmanaged').length;
     const adopted = applied.filter((item) => item.operation === 'adopt_existing').length;
-    write(`\n${paint.green(mode === 'export' ? 'Export completed successfully.' : 'Apply completed successfully.')} ${renderChip(paint, 'SYSTEM READY', 'green')}\n`);
-    write(`${mode === 'export' ? 'Exported files' : 'Applied writes'}: ${paint.green(String(writeCount))}\n`);
-    write(`Backups created: ${paint.yellow(String(backupCount))}\n`);
+    write(`\n${paint.copper(mode === 'export' ? 'Export completed successfully.' : 'Apply completed successfully.')} ${renderChip(paint, 'SYSTEM READY', 'copper')}\n`);
+    write(`${mode === 'export' ? 'Exported files' : 'Applied writes'}: ${paint.copper(String(writeCount))}\n`);
+    write(`Backups created: ${paint.copperInk(String(backupCount))}\n`);
     if (mode === 'update') {
-      write(`Protected local edits (skipped): ${paint.yellow(String(modifiedSkips))}\n`);
-      write(`Unmanaged files (skipped): ${paint.yellow(String(unmanagedSkips))}\n`);
-      write(`Adopted baseline files: ${paint.cyan(String(adopted))}\n`);
+      write(`Protected local edits (skipped): ${paint.copperInk(String(modifiedSkips))}\n`);
+      write(`Unmanaged files (skipped): ${paint.copperInk(String(unmanagedSkips))}\n`);
+      write(`Adopted baseline files: ${paint.indigo(String(adopted))}\n`);
     }
 
     let capabilityInstallResult = null;
@@ -835,16 +835,16 @@ export async function runTui(options = {}) {
 
       write(`\n${paint.bold('Optional capabilities auto-install summary')}\n`);
       write(`Commands attempted: ${capabilityInstallResult.attempted}\n`);
-      write(`Commands succeeded: ${paint.green(String(capabilityInstallResult.succeeded))}\n`);
-      write(`Commands failed: ${capabilityInstallResult.failed > 0 ? paint.red(String(capabilityInstallResult.failed)) : paint.green('0')}\n`);
+      write(`Commands succeeded: ${paint.copper(String(capabilityInstallResult.succeeded))}\n`);
+      write(`Commands failed: ${capabilityInstallResult.failed > 0 ? paint.red(String(capabilityInstallResult.failed)) : paint.copper('0')}\n`);
       if (capabilityInstallResult.skipped.length > 0) {
-        write(`${paint.yellow('Skipped capabilities:')}\n`);
+        write(`${paint.copperInk('Skipped capabilities:')}\n`);
         capabilityInstallResult.skipped.forEach((item) => {
           write(`- ${item.capability}: ${item.reason}\n`);
         });
       }
       if (capabilityInstallResult.notes.length > 0) {
-        write(`${paint.yellow('Manual configuration required:')}\n`);
+        write(`${paint.copperInk('Manual configuration required:')}\n`);
         for (const note of capabilityInstallResult.notes) {
           write(`- ${note}\n`);
         }

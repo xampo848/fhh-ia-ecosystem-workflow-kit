@@ -14,7 +14,7 @@ test('installPackageDetails returns recommended metadata for full overlay', () =
   assert.deepEqual(installPackageDetails('fhh-ia-ecosystem-full'), {
     label: 'Full FHH IA Ecosystem (recommended)',
     summary: 'Full FHH IA Ecosystem flow selected (recommended).',
-    tone: 'green'
+    tone: 'copper'
   });
 });
 
@@ -22,13 +22,13 @@ test('installPackageDetails returns error metadata for unsupported overlays', ()
   assert.deepEqual(installPackageDetails('starter'), {
     label: 'Full FHH IA Ecosystem (recommended)',
     summary: 'Unsupported overlay "starter" requested.',
-    tone: 'red'
+    tone: 'copperInk'
   });
 
   assert.deepEqual(installPackageDetails('none'), {
     label: 'Full FHH IA Ecosystem (recommended)',
     summary: 'Unsupported overlay "none" requested.',
-    tone: 'red'
+    tone: 'copperInk'
   });
 });
 
