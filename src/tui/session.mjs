@@ -38,7 +38,7 @@ async function chooseScriptedOption({ ask, write, paint, title, options, default
       return byValue.value;
     }
 
-    write(`${paint.yellow('Invalid choice. Please select one of the listed options.')}\n`);
+    write(`${paint.copperInk('Invalid choice. Please select one of the listed options.')}\n`);
   }
 }
 
@@ -67,7 +67,7 @@ async function chooseScriptedOptions({ ask, write, paint, title, options, defaul
       return [...new Set(values)];
     }
 
-    write(`${paint.yellow('Invalid choice. Use one or more listed numbers or values, separated by commas.')}\n`);
+    write(`${paint.copperInk('Invalid choice. Use one or more listed numbers or values, separated by commas.')}\n`);
   }
 }
 

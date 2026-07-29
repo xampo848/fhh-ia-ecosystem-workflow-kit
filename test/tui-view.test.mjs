@@ -3,7 +3,23 @@ import test from 'node:test';
 import { colorizeFullPlanPreview, createPainter, renderChip, renderStageHeader } from '../src/tui/view.mjs';
 
 function recordingPaint() {
-  const tones = ['bold', 'dim', 'cyan', 'magenta', 'green', 'yellow', 'red', 'blue', 'white'];
+  const tones = [
+    'bold',
+    'dim',
+    'copper',
+    'copperInk',
+    'indigo',
+    'indigoDeep',
+    'cream',
+    'slate',
+    'cyan',
+    'magenta',
+    'green',
+    'yellow',
+    'red',
+    'blue',
+    'white'
+  ];
   const paint = { rgb: (_r, _g, _b, value) => value };
   for (const tone of tones) {
     paint[tone] = (value) => `<${tone}>${value}</${tone}>`;
@@ -72,16 +88,16 @@ test('colorizeFullPlanPreview recolors key/value, operation and summary lines', 
   const result = colorizeFullPlanPreview(paint, formattedPlan);
   const lines = result.split('\n');
 
-  assert.equal(lines[0], '<cyan>Target:</cyan> <white>/tmp/repo</white>');
-  assert.equal(lines[1], '<cyan>Mode:</cyan> <magenta>init</magenta>');
-  assert.equal(lines[2], '<cyan>Runtimes:</cyan> <blue>codex,copilot</blue>');
-  assert.equal(lines[3], '<cyan>Overlay:</cyan> <magenta>fhh-ia-ecosystem-full</magenta>');
-  assert.equal(lines[4], '<cyan>Operations:</cyan>');
-  assert.equal(lines[5], '- <green>create</green>: <white>AGENTS.md</white>');
-  assert.equal(lines[6], '- <blue>unchanged</blue>: <white>.agents/instructions.md</white>');
+  assert.equal(lines[0], '<indigo>Target:</indigo> <cream>/tmp/repo</cream>');
+  assert.equal(lines[1], '<indigo>Mode:</indigo> <copper>init</copper>');
+  assert.equal(lines[2], '<indigo>Runtimes:</indigo> <indigo>codex,copilot</indigo>');
+  assert.equal(lines[3], '<indigo>Overlay:</indigo> <copper>fhh-ia-ecosystem-full</copper>');
+  assert.equal(lines[4], '<indigo>Operations:</indigo>');
+  assert.equal(lines[5], '- <copper>create</copper>: <cream>AGENTS.md</cream>');
+  assert.equal(lines[6], '- <indigo>unchanged</indigo>: <cream>.agents/instructions.md</cream>');
   assert.equal(
     lines[7],
-    '<cyan>Summary:</cyan> <green>create</green>=<bold>1</bold>, <blue>unchanged</blue>=<bold>1</bold>, <yellow>merge_with_backup</yellow>=<bold>0</bold>, <yellow>overwrite_with_backup</yellow>=<bold>0</bold>, <yellow>skip_modified</yellow>=<bold>0</bold>, <yellow>skip_unmanaged</yellow>=<bold>0</bold>, <cyan>adopt_existing</cyan>=<bold>0</bold>'
+    '<indigo>Summary:</indigo> <copper>create</copper>=<bold>1</bold>, <indigo>unchanged</indigo>=<bold>1</bold>, <copperInk>merge_with_backup</copperInk>=<bold>0</bold>, <copperInk>overwrite_with_backup</copperInk>=<bold>0</bold>, <copperInk>skip_modified</copperInk>=<bold>0</bold>, <copperInk>skip_unmanaged</copperInk>=<bold>0</bold>, <indigo>adopt_existing</indigo>=<bold>0</bold>'
   );
 });
 

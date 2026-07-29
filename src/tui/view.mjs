@@ -15,6 +15,12 @@ export function createPainter(enabled = true) {
     return {
       bold: (value) => value,
       dim: (value) => value,
+      copper: (value) => value,
+      copperInk: (value) => value,
+      indigo: (value) => value,
+      indigoDeep: (value) => value,
+      cream: (value) => value,
+      slate: (value) => value,
       cyan: (value) => value,
       magenta: (value) => value,
       green: (value) => value,
@@ -28,16 +34,33 @@ export function createPainter(enabled = true) {
 
   const wrap = (code, value) => `\u001b[${code}m${value}\u001b[0m`;
   const wrapRgb = (r, g, b, value) => `\u001b[38;2;${r};${g};${b}m${value}\u001b[0m`;
+  const IDENTITY = {
+    copper: [236, 128, 94],
+    copperInk: [95, 52, 42],
+    indigo: [102, 174, 206],
+    indigoDeep: [71, 127, 165],
+    cream: [242, 233, 210],
+    slate: [156, 165, 180],
+    coralAlert: [218, 103, 82]
+  };
+  const rgbTone = (tone, value) => wrapRgb(tone[0], tone[1], tone[2], value);
+
   return {
     bold: (value) => wrap(1, value),
     dim: (value) => wrap(2, value),
-    cyan: (value) => wrap(36, value),
-    magenta: (value) => wrap(35, value),
-    green: (value) => wrap(32, value),
-    yellow: (value) => wrap(33, value),
-    red: (value) => wrap(31, value),
-    blue: (value) => wrap(34, value),
-    white: (value) => wrap(37, value),
+    copper: (value) => rgbTone(IDENTITY.copper, value),
+    copperInk: (value) => rgbTone(IDENTITY.copperInk, value),
+    indigo: (value) => rgbTone(IDENTITY.indigo, value),
+    indigoDeep: (value) => rgbTone(IDENTITY.indigoDeep, value),
+    cream: (value) => rgbTone(IDENTITY.cream, value),
+    slate: (value) => rgbTone(IDENTITY.slate, value),
+    cyan: (value) => rgbTone(IDENTITY.indigo, value),
+    magenta: (value) => rgbTone(IDENTITY.copper, value),
+    green: (value) => rgbTone(IDENTITY.copper, value),
+    yellow: (value) => rgbTone(IDENTITY.copperInk, value),
+    red: (value) => rgbTone(IDENTITY.coralAlert, value),
+    blue: (value) => rgbTone(IDENTITY.indigoDeep, value),
+    white: (value) => rgbTone(IDENTITY.cream, value),
     rgb: (r, g, b, value) => wrapRgb(r, g, b, value)
   };
 }
@@ -57,7 +80,7 @@ function renderProgressBar(paint, current, total, width = 28) {
 }
 
 export function renderStageHeader(write, paint, { step, total, title, subtitle }) {
-  write(`${renderChip(paint, `STEP ${step}`, 'magenta')} ${paint.bold(title)}\n`);
+  write(`${renderChip(paint, `STEP ${step}`, 'copper')} ${paint.bold(title)}\n`);
   write(`${renderProgressBar(paint, step, total)}\n`);
   if (subtitle) write(`${paint.dim(subtitle)}\n`);
   write('\n');
@@ -65,10 +88,10 @@ export function renderStageHeader(write, paint, { step, total, title, subtitle }
 
 const INTRO_PALETTE = {
   cream: [242, 233, 210],
-  purple: [135, 117, 222],
-  blue: [95, 150, 236],
-  slate: [153, 157, 177],
-  deep: [49, 72, 121]
+  purple: [236, 128, 94],
+  blue: [102, 174, 206],
+  slate: [156, 165, 180],
+  deep: [61, 99, 128]
 };
 
 function introTone(paint, tone, text) {
@@ -272,21 +295,26 @@ export function renderSummary(write, paint, plan) {
 }
 
 export function colorizeFullPlanPreview(paint, formattedPlan) {
-  const toneForOperation = {
-    create: 'green',
-    unchanged: 'blue',
-    merge_with_backup: 'yellow',
-    overwrite_with_backup: 'yellow',
-    skip_modified: 'yellow',
-    skip_unmanaged: 'yellow',
-    adopt_existing: 'cyan'
+  const withTone = (tone, value, fallback = 'white') => {
+    const paintFn = paint[tone] ?? paint[fallback] ?? ((raw) => raw);
+    return paintFn(value);
   };
 
-  const colorKeyValueLine = (line, key, valueTone = 'white') => {
+  const toneForOperation = {
+    create: 'copper',
+    unchanged: 'indigo',
+    merge_with_backup: 'copperInk',
+    overwrite_with_backup: 'copperInk',
+    skip_modified: 'copperInk',
+    skip_unmanaged: 'copperInk',
+    adopt_existing: 'indigo'
+  };
+
+  const colorKeyValueLine = (line, key, valueTone = 'cream') => {
     const prefix = `${key}: `;
     if (!line.startsWith(prefix)) return null;
     const value = line.slice(prefix.length);
-    return `${paint.cyan(`${key}:`)} ${paint[valueTone](value)}`;
+    return `${withTone('indigo', `${key}:`, 'cyan')} ${withTone(valueTone, value, 'white')}`;
   };
 
   return String(formattedPlan)
@@ -297,35 +325,35 @@ export function colorizeFullPlanPreview(paint, formattedPlan) {
       const targetLine = colorKeyValueLine(line, 'Target');
       if (targetLine) return targetLine;
 
-      const modeLine = colorKeyValueLine(line, 'Mode', 'magenta');
+      const modeLine = colorKeyValueLine(line, 'Mode', 'copper');
       if (modeLine) return modeLine;
 
-      const runtimesLine = colorKeyValueLine(line, 'Runtimes', 'blue');
+      const runtimesLine = colorKeyValueLine(line, 'Runtimes', 'indigo');
       if (runtimesLine) return runtimesLine;
 
-      const overlayLine = colorKeyValueLine(line, 'Overlay', 'magenta');
+      const overlayLine = colorKeyValueLine(line, 'Overlay', 'copper');
       if (overlayLine) return overlayLine;
 
       if (line === 'Operations:') {
-        return paint.cyan('Operations:');
+        return withTone('indigo', 'Operations:', 'cyan');
       }
 
       const operationMatch = line.match(/^\-\s([^:]+):\s(.+)$/);
       if (operationMatch) {
         const operation = operationMatch[1];
         const relativePath = operationMatch[2];
-        const tone = toneForOperation[operation] ?? 'white';
-        return `- ${paint[tone](operation)}: ${paint.white(relativePath)}`;
+        const tone = toneForOperation[operation] ?? 'cream';
+        return `- ${withTone(tone, operation)}: ${withTone('cream', relativePath, 'white')}`;
       }
 
       if (line.startsWith('Summary: ')) {
         const payload = line.slice('Summary: '.length);
         const items = payload.split(', ').map((item) => {
           const [key, value] = item.split('=');
-          const tone = toneForOperation[key] ?? 'white';
-          return `${paint[tone](key)}=${paint.bold(value)}`;
+          const tone = toneForOperation[key] ?? 'cream';
+          return `${withTone(tone, key)}=${paint.bold(value)}`;
         });
-        return `${paint.cyan('Summary:')} ${items.join(', ')}`;
+        return `${withTone('indigo', 'Summary:', 'cyan')} ${items.join(', ')}`;
       }
 
       return paint.dim(line);
