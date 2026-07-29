@@ -396,6 +396,9 @@ export async function runTui(options = {}) {
   const paint = createPainter(colorEnabled);
   const animate = options.animate ?? !options.ask;
   const scriptedMode = Boolean(options.ask);
+  const introProfile = options.introProfile
+    ?? process.env.WK_TUI_INTRO_PROFILE
+    ?? (scriptedMode ? 'standard' : 'cinematic');
   const commandExists = options.commandExists ?? defaultCommandExists;
   const runCommand = options.runCommand ?? defaultRunCommand;
   const runUpgradeExecutor = options.runUpgradeExecutor ?? runUpgradePlan;
@@ -404,7 +407,7 @@ export async function runTui(options = {}) {
     : createInteractivePrompter();
 
   try {
-    await animateIntro(write, paint, { animate });
+    await animateIntro(write, paint, { animate, profile: introProfile });
 
     renderStageHeader(write, paint, {
       step: 1,

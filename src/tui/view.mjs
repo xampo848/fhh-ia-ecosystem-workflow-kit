@@ -15,6 +15,7 @@ export function createPainter(enabled = true) {
     return {
       bold: (value) => value,
       dim: (value) => value,
+      pureWhite: (value) => value,
       copper: (value) => value,
       copperInk: (value) => value,
       indigo: (value) => value,
@@ -35,19 +36,20 @@ export function createPainter(enabled = true) {
   const wrap = (code, value) => `\u001b[${code}m${value}\u001b[0m`;
   const wrapRgb = (r, g, b, value) => `\u001b[38;2;${r};${g};${b}m${value}\u001b[0m`;
   const IDENTITY = {
-    copper: [236, 128, 94],
-    copperInk: [95, 52, 42],
-    indigo: [102, 174, 206],
-    indigoDeep: [71, 127, 165],
-    cream: [242, 233, 210],
-    slate: [156, 165, 180],
-    coralAlert: [218, 103, 82]
+    copper: [255, 102, 163],
+    copperInk: [92, 34, 62],
+    indigo: [114, 182, 209],
+    indigoDeep: [72, 124, 151],
+    cream: [238, 231, 219],
+    slate: [150, 161, 174],
+    coralAlert: [255, 84, 153]
   };
   const rgbTone = (tone, value) => wrapRgb(tone[0], tone[1], tone[2], value);
 
   return {
     bold: (value) => wrap(1, value),
     dim: (value) => wrap(2, value),
+    pureWhite: (value) => wrap(97, value),
     copper: (value) => rgbTone(IDENTITY.copper, value),
     copperInk: (value) => rgbTone(IDENTITY.copperInk, value),
     indigo: (value) => rgbTone(IDENTITY.indigo, value),
@@ -87,11 +89,34 @@ export function renderStageHeader(write, paint, { step, total, title, subtitle }
 }
 
 const INTRO_PALETTE = {
-  cream: [242, 233, 210],
-  purple: [236, 128, 94],
-  blue: [102, 174, 206],
-  slate: [156, 165, 180],
-  deep: [61, 99, 128]
+  cream: [238, 231, 219],
+  copperBright: [255, 132, 188],
+  copper: [255, 102, 163],
+  ember: [186, 62, 122],
+  blue: [114, 182, 209],
+  slate: [150, 161, 174],
+  deep: [46, 66, 82]
+};
+
+const INTRO_PROFILES = {
+  standard: {
+    revealDelay: 30,
+    revealPause: 90,
+    frameStep: 3,
+    cinematicFrames: 9,
+    frameDurations: [98, 88, 82, 78, 82, 92, 108, 132, 168],
+    rail: false,
+    flowIntensity: 0.78
+  },
+  cinematic: {
+    revealDelay: 42,
+    revealPause: 120,
+    frameStep: 4,
+    cinematicFrames: 14,
+    frameDurations: [120, 102, 92, 84, 78, 74, 74, 78, 86, 96, 112, 134, 162, 204],
+    rail: true,
+    flowIntensity: 1
+  }
 };
 
 function introTone(paint, tone, text) {
@@ -119,26 +144,68 @@ function gradientText(paint, text, start, end) {
   return out;
 }
 
+function gradientTextWeighted(paint, text, start, end, exponent = 1) {
+  const length = Math.max(1, text.length - 1);
+  let out = '';
+
+  for (let index = 0; index < text.length; index += 1) {
+    const rawRatio = index / length;
+    const ratio = Math.pow(rawRatio, exponent);
+    const rgb = mixRgb(start, end, ratio);
+    out += paint.rgb(rgb[0], rgb[1], rgb[2], text[index]);
+  }
+
+  return out;
+}
+
 function renderSweepTitle(paint, title, frame) {
   const sweepCenter = frame % title.length;
   let out = '';
 
   for (let index = 0; index < title.length; index += 1) {
     const distance = Math.abs(index - sweepCenter);
-    const base = mixRgb(INTRO_PALETTE.deep, INTRO_PALETTE.blue, index / Math.max(1, title.length - 1));
-    const highlightStrength = Math.max(0, 1 - distance / 8);
-    const rgb = mixRgb(base, INTRO_PALETTE.cream, highlightStrength);
+    const base = mixRgb(INTRO_PALETTE.ember, INTRO_PALETTE.copper, index / Math.max(1, title.length - 1));
+    const highlightStrength = Math.max(0, 1 - distance / 7);
+    const rgb = mixRgb(base, INTRO_PALETTE.copperBright, highlightStrength * 0.7);
     out += paint.rgb(rgb[0], rgb[1], rgb[2], title[index]);
   }
 
   return out;
 }
 
-function renderLogoFrame(paint, frame = 0) {
+function renderBrandTitle(paint, frame, frameStep) {
+  const left = renderSweepTitle(paint, 'FHH ', frame * frameStep);
+  const ia = paint.pureWhite('IA');
+  const right = renderSweepTitle(paint, ' ECOSYSTEM', frame * frameStep + 5);
+  return `${left}${ia}${right}`;
+}
+
+function renderFlowLine(paint, frame, intensity = 1) {
+  const phases = ['target', 'runtimes', 'preview', 'apply'];
+  const active = frame % phases.length;
+  const rendered = phases.map((phase, index) => {
+    if (index === active) return introTone(paint, 'copperBright', phase);
+    if (index === (active + phases.length - 1) % phases.length && intensity > 0.7) return introTone(paint, 'copper', phase);
+    return introTone(paint, 'blue', phase);
+  });
+  return `${introTone(paint, 'slate', 'flow')} ${rendered.join(introTone(paint, 'slate', ' -> '))}`;
+}
+
+function resolveIntroProfile(profile) {
+  return INTRO_PROFILES[profile] ?? INTRO_PROFILES.standard;
+}
+
+function renderLogoFrame(paint, frame = 0, { profile = 'standard' } = {}) {
+  const introProfile = resolveIntroProfile(profile);
   const title = 'FHH IA ECOSYSTEM';
   const subtitle = 'ecosystem install presentation';
-  const borderChar = frame % 2 === 0 ? '=' : '-';
-  const border = gradientText(paint, borderChar.repeat(76), INTRO_PALETTE.purple, INTRO_PALETTE.blue);
+  const borderChars = ['=', '-', '='];
+  const borderChar = borderChars[frame % borderChars.length];
+  const borderStart = frame % 2 === 0 ? INTRO_PALETTE.copper : INTRO_PALETTE.ember;
+  const borderEnd = frame % 2 === 0
+    ? mixRgb(INTRO_PALETTE.copper, INTRO_PALETTE.blue, 0.24)
+    : mixRgb(INTRO_PALETTE.ember, INTRO_PALETTE.deep, 0.3);
+  const border = gradientTextWeighted(paint, borderChar.repeat(76), borderStart, borderEnd, 2.35);
   const hero = [
     '            ████████  ██   ██  ██   ██',
     '            ██        ██   ██  ██   ██',
@@ -155,39 +222,42 @@ function renderLogoFrame(paint, frame = 0) {
 
   const heroLines = hero.map((line, index) => {
     if (line.trim().length === 0) return line;
-    const start = mixRgb(INTRO_PALETTE.purple, INTRO_PALETTE.blue, ((frame + index) % 8) / 8);
-    const end = mixRgb(INTRO_PALETTE.blue, INTRO_PALETTE.cream, ((frame * 2 + index) % 10) / 10);
+    const sweepRatio = ((frame * 1.05 + index) % 12) / 12;
+    const start = mixRgb(INTRO_PALETTE.ember, INTRO_PALETTE.copper, sweepRatio * 0.62);
+    const end = mixRgb(INTRO_PALETTE.copper, INTRO_PALETTE.copperBright, 0.32 + sweepRatio * 0.22);
     return gradientText(paint, line, start, end);
   });
 
   return [
     border,
-    `${renderSweepTitle(paint, title, frame * 5)} ${introTone(paint, 'purple', '[live]')}`,
+    `${renderBrandTitle(paint, frame, introProfile.frameStep)} ${introTone(paint, 'copperBright', '[live]')}`,
     introTone(paint, 'slate', subtitle),
     '',
     ...heroLines,
     '',
-    `${introTone(paint, 'cream', 'flow')} ${introTone(paint, 'blue', 'target -> runtimes -> preview -> apply')}`,
+    renderFlowLine(paint, frame, introProfile.flowIntensity),
     border
   ];
 }
 
-export async function animateIntro(write, paint, { animate = true } = {}) {
+export async function animateIntro(write, paint, { animate = true, profile = 'standard' } = {}) {
+  const introProfile = resolveIntroProfile(profile);
+
   if (animate) {
-    const revealLines = renderLogoFrame(paint, 0);
+    const revealLines = renderLogoFrame(paint, 0, { profile });
 
     for (let index = 0; index < revealLines.length; index += 1) {
       write(`${paint.dim(revealLines[index])}\n`);
-      await sleep(58);
+      await sleep(introProfile.revealDelay);
     }
 
-    await sleep(170);
+    await sleep(introProfile.revealPause);
     write(`\u001b[${revealLines.length}A`);
 
-    const cinematicFrames = 10;
-    const frameDurations = [130, 110, 100, 95, 95, 100, 110, 130, 160, 210];
+    const cinematicFrames = introProfile.cinematicFrames;
+    const frameDurations = introProfile.frameDurations;
     for (let frame = 0; frame < cinematicFrames; frame += 1) {
-      const frameLines = renderLogoFrame(paint, frame + 1);
+      const frameLines = renderLogoFrame(paint, frame + 1, { profile });
       write(`${frameLines.join('\n')}\n`);
       if (frame < cinematicFrames - 1) {
         write(`\u001b[${frameLines.length}A`);
@@ -195,14 +265,12 @@ export async function animateIntro(write, paint, { animate = true } = {}) {
       }
     }
   } else {
-    const lines = renderLogoFrame(paint, 1);
+    const lines = renderLogoFrame(paint, 1, { profile });
     write(`${lines.join('\n')}\n`);
   }
 
-  write(`${paint.bold(introTone(paint, 'purple', 'FHH IA Ecosystem'))} ${paint.dim(':: launch console')}\n`);
-  write(`${introTone(paint, 'cream', 'mode:')} ${introTone(paint, 'blue', 'install')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'purple', 'update')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'blue', 'export')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'purple', 'doctor')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'blue', 'upgrade')} ${introTone(paint, 'slate', '|')} ${introTone(paint, 'purple', 'preview-first')}\n`);
-  write(`${paint.dim('High-fidelity workflow assistant: install, update, export, audit, or upgrade safely with previews and backups.')}\n`);
-  write(`${paint.dim('No files are written unless you explicitly confirm.')}\n\n`);
+  write(`${paint.bold(`${introTone(paint, 'copper', 'FHH ')}${paint.pureWhite('IA')}${introTone(paint, 'copper', ' Ecosystem')}`)} ${paint.dim(':: launch console')}\n`);
+  write(`${paint.dim('Presentacion del workflow: diseña, implementa y valida con IA de forma guiada.')}\n\n`);
 }
 
 function renderBox(write, paint, title, rows) {
