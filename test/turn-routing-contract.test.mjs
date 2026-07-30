@@ -118,3 +118,23 @@ test('Copilot scoped instructions enforce re-routing on follow-up turns', async 
     assert.match(content, /execute the selected `pr-comments-resolution` path/i, relativePath);
   }
 });
+
+test('Antigravity wrapper requires visible routing trace and workflow continuity for non-trivial work', async () => {
+  for (const relativePath of [
+    'ANTIGRAVITY.md',
+    'templates/runtime-adapters/antigravity/ANTIGRAVITY.md'
+  ]) {
+    const content = await read(relativePath);
+    assert.match(content, /routing decision trace/i, relativePath);
+    assert.match(content, /trivial informational direct answers/i, relativePath);
+    assert.match(content, /selected workflow\/skill[\s\S]*If workflow changes[\s\S]*new trace/i, relativePath);
+    assert.match(content, /including follow-ups[\s\S]*same conversation/i, relativePath);
+    assert.match(content, /do not reuse or cache the previous workflow decision across turns/i, relativePath);
+    assert.match(content, /Execution authorization guarantee/i, relativePath);
+    assert.match(content, /Intent-only phrasing[\s\S]*not implementation authorization/i, relativePath);
+    assert.match(content, /must not inspect product implementation files[\s\S]*must not edit code/i, relativePath);
+    assert.match(content, /Project formation continuity safeguard/i, relativePath);
+    assert.match(content, /project-formation[\s\S]*workflow binding active/i, relativePath);
+    assert.match(content, /stage router[\s\S]*continuity rules/i, relativePath);
+  }
+});

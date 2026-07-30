@@ -77,3 +77,22 @@ test('doctor warns when target was last applied with a different toolkit version
   assert.equal(code, 0);
   assert.match(doctorIo.output.stdout, /\[managed\/toolkit-version-mismatch\]/);
 });
+
+test('doctor fails with actionable Antigravity routing diagnostics', async () => {
+  const target = await makeTempRepo();
+  const installIo = createMemoryIo();
+  const doctorIo = createMemoryIo();
+  await runCli(['init', '--target', target, '--runtime', 'antigravity', '--apply', '--yes'], installIo);
+  await fs.writeFile(
+    path.join(target, 'ANTIGRAVITY.md'),
+    '# ANTIGRAVITY.md\n\nThis is a thin Antigravity runtime adapter.\n',
+    'utf8'
+  );
+
+  const code = await runCli(['doctor', '--target', target, '--runtime', 'antigravity'], doctorIo);
+
+  assert.equal(code, 1);
+  assert.match(doctorIo.output.stdout, /\[antigravity\/missing-routing-trace\]/);
+  assert.match(doctorIo.output.stdout, /\[antigravity\/missing-execution-gate\]/);
+  assert.match(doctorIo.output.stdout, /ANTIGRAVITY\.md/);
+});
