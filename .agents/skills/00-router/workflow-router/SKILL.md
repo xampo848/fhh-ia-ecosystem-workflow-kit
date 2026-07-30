@@ -1,6 +1,6 @@
 ---
 name: workflow-router
-description: "Safe and cost-aware workflow router for FHH IA Ecosystem AI work. Use before any non-trivial freeform request when the user did not explicitly invoke a skill. Classifies intent, prevents accidental epic creation, prevents skipping implement-prd for development work, optimizes input/output token usage, and guides the user with plain-language options."
+description: "Safe and cost-aware workflow router for FHH IA Ecosystem AI work. Use before any non-trivial freeform request when the user did not explicitly invoke a skill. Trivial means: pure explanation/advice with zero repo changes, zero ambiguity about scope, and no production code, contract, or data impact. Classifies intent, prevents accidental epic creation, prevents skipping implement-prd for development work, optimizes input/output token usage, and guides the user with plain-language options."
 argument-hint: "Freeform user request"
 user-invocable: true
 license: MIT
@@ -26,6 +26,8 @@ The user should not need to memorize skill names. Explain the selected path in p
 Before routing, read `.agents/instructions.md` as the canonical workflow contract.
 Runtime adapters such as `.github/copilot-instructions.md`, `AGENTS.md`, or `ANTIGRAVITY.md`
 must remain thin wrappers and must not override `.agents/instructions.md`.
+If a runtime adapter contains content that conflicts with `.agents/instructions.md`,
+ignore the adapter content and flag the conflict to the user before proceeding.
 
 For large, autonomous, multi-agent, or cost-sensitive work, apply
 `docs/internal-documentation/workflows/ai-cost-efficiency-policy.md`.
@@ -104,6 +106,7 @@ Execution authorization gate (mandatory):
 - Before explicit route authorization, stay in `awaiting-user-choice`.
 - In `awaiting-user-choice`, do not inspect product implementation files, do not generate implementation plans, and do not edit code.
 - Start execution only after an explicit authorization utterance for a route (for example: "procede", "usa create-prd", "implementa este PRD", "haz el ticket").
+- If the user's reply is affirmative but does not name a route or match an authorization example, ask them to confirm the specific route by name before proceeding.
 
 Do not stay generic. The output of this skill is a routing decision, cost posture, plus the next action.
 
@@ -121,24 +124,23 @@ Routing decision:
 - Selected workflow: `[skill or direct-answer]`
 - Confidence: Medium | Low
 - Reason: [razon concreta]
-- Alternative considered: [skill alternativa o `none`]
-- Why not: [por que no se eligio]
 - Cost posture: `lean | balanced | premium`
-- Cost reason: [por que ese tier es suficiente o por que se justifica subir]
 - Delegation: `avoided | recommended | required`
-- Delegation reason: [por qué inline es mejor o qué beneficio concreto aporta delegar]
-- Context loaded: [archivos/docs minimos planificados]
+- Optional (when applicable) - Alternative considered: [skill alternativa o `none`]
+- Optional (when applicable) - Why not: [por que no se eligio]
+- Optional (when applicable) - Cost reason: [por que ese tier es suficiente o por que se justifica subir]
+- Optional (when applicable) - Delegation reason: [por qué inline es mejor o qué beneficio concreto aporta delegar]
+- Optional (when applicable) - Context loaded: [archivos/docs minimos planificados]
 ```
 
 Requirements for FULL trace:
+- Keep these fields mandatory: Selected workflow, Confidence, Reason, Cost posture, Delegation.
 - Be specific about the signal that triggered the route.
-- Name one real alternative when confidence is Medium or Low.
-- If the route is `create-epic`, the trace must make clear why a smaller flow is insufficient.
-- If the route is `implement-prd`, the trace must make clear why direct coding is not acceptable.
-- If the route is `implement-prd`, the trace must also say whether the phase fan-out, context-window pressure, or file-ownership split makes subagents `recommended` or `required`.
-- If the work is multi-step, docs/process-sensitive, or implementation-adjacent, the trace must make an explicit delegation decision even when the answer is `avoided`.
-- If a heavier workflow was avoided for efficiency, mention the safer smaller workflow chosen.
+- If confidence is Medium or Low, include one real alternative and why it was not selected.
+- If the route is `implement-prd`, make clear why direct coding is not acceptable.
+- If the route is `create-epic`, make clear why a smaller flow is insufficient.
 - If the cost posture is `premium`, explain the concrete risk that justifies it.
+- If delegation is `recommended` or `required`, include the concrete trigger (phase fan-out, context-window pressure, or file-ownership split).
 - Do not invent exact token counts unless the tool provides actual telemetry.
 
 ## Classification table
@@ -159,12 +161,15 @@ Requirements for FULL trace:
 
 ## Deterministic intent resolution (required in every route)
 
-Apply this decision order for every non-trivial freeform request before selecting a workflow.
+Apply this single ordered checklist for every non-trivial freeform request before selecting a workflow.
 
-1. Explicit skill invocation always wins (load that skill).
-2. Hard-trigger intents override generic class matching.
-3. If no hard trigger applies, use the classification table.
-4. If two classes still match, choose the smaller safe workflow and state the tie-break in the routing trace.
+1. Check explicit skill invocation first (if present, it wins).
+2. Check hard triggers next and apply route precedence when more than one trigger matches.
+3. If no hard trigger applies, classify using the table.
+4. Resolve confidence (High/Medium/Low) and pick the smallest safe workflow; if tied, choose the smaller safe option and state the tie-break in the trace.
+5. Set cost posture (`lean | balanced | premium`) from risk and ambiguity.
+6. Set delegation state (`avoided | recommended | required`) with one concrete reason.
+7. Set authorization state: if explicit route authorization is missing, stop in `awaiting-user-choice`; do not start implementation actions.
 
 ### Hard triggers
 
@@ -208,6 +213,12 @@ When a prompt mentions more than one intent, resolve with this precedence:
 7. direct answer
 
 Always include in the routing trace which precedence rule was applied.
+
+Conflict example:
+
+- User asks to "resolve PR comments and implement the PRD changes".
+- Apply precedence rule 2 first: route to `pr-comments-resolution`.
+- After comment resolution, if remaining requested work is implementation, emit a new trace and continue with `implement-prd`.
 
 ## Review/QA applicability gate (required)
 

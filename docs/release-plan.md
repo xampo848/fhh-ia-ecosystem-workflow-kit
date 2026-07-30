@@ -20,4 +20,9 @@ Do not run GitHub repository creation, package publication, release uploads, or 
 
 ## Versioning intent
 
-Use semantic versioning after the first executable package exists. Until then, `0.0.0-scaffold` marks this as non-installable scaffold work.
+Use semantic versioning after the first executable package exists.
+
+Current release candidate:
+
+- `0.7.16-router-parity`
+- Scope: Antigravity routing parity, stricter runtime contract enforcement, and safer skill registry refresh behavior for installed repositories.

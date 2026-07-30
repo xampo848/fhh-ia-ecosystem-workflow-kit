@@ -16,9 +16,10 @@ The output is not a PRD. It is the parent project definition and investigation a
 - Shape committed delivery around an explicit appetite. The appetite is the investment boundary; scope is variable.
 - Do not invent implementation certainty. Separate evidence, inference, assumptions, and open questions.
 - Prefer slices that can become standalone `create-prd` inputs and later close with `document-development`.
-- Ask targeted questions only after initial discovery, unless the request is too vague to begin.
+- Ask targeted questions only after initial discovery, and ask before drafting only when the request is too vague to produce a useful draft.
 - Do not modify product code while creating the epic unless the user explicitly asks.
 - Save the final epic to `docs/epics/<feature-or-project>/<slug>.md` by default when the user asks to create a project artifact.
+- If a file already exists at this path, ask the user whether to overwrite, version, or merge before saving.
 
 ## Reference Files
 
@@ -51,7 +52,10 @@ Read the project instructions first:
 - Only relevant pattern docs from `docs/patterns/README.md`
 - Existing PRDs, guides, tests, models, services, controllers, hooks, pages, serializers, API modules, and i18n files related to the idea
 
+If any of these files are missing, note their absence in the epic's evidence section and proceed with available context.
+
 Use `rg`/`rg --files` first. Build a short evidence map of files and current behavior before making recommendations.
+If web research contradicts local code behavior, flag the discrepancy explicitly in the epic as a risk or open question rather than silently reconciling it.
 
 ### 3. Research the External Context
 
@@ -80,7 +84,7 @@ Use the narrative pattern from `docs/internal-documentation/business-metrics/val
 
 ### 5. Analyze the Project Professionally
 
-Cover every relevant dimension, but keep the result concise:
+Cover every relevant dimension in a compact table. Summarize each dimension in 1-3 sentences unless evidence requires more detail, and cap this section at about 2 short paragraphs worth of text plus the table.
 
 - Product outcome and success metrics
 - User journeys and UX states
@@ -94,7 +98,7 @@ Cover every relevant dimension, but keep the result concise:
 - Dependencies, unknowns, risks, and non-goals
 - Rollout, feature flags, documentation, and support impact
 
-Mark each item as `In scope`, `Out of scope`, `Future`, `Risk`, or `Open question` where useful.
+Use a table with `Dimension`, `Status`, and `Notes` columns. Mark each row as `In scope`, `Out of scope`, `Future`, `Risk`, or `Open question`, and keep each `Notes` cell to 1-2 sentences.
 
 ### 6. Design the Delivery Pipeline
 
@@ -130,11 +134,11 @@ Antes de cerrar la epica necesito resolver estas dudas:
 2. **[Tema]** Pregunta concreta y por que bloquea.
 ```
 
-If questions do not block a useful draft, produce the draft and list them as open questions.
+If questions do not block a useful draft, produce the draft and list them as open questions instead of stopping to ask.
 
 ### 8. Create the Epic
 
-Use `references/epic-template.md` for the final structure. Adapt headings when the project is smaller, but always include:
+Use `references/epic-template.md` for the final structure. If the appetite is a small bet (single sprint or less), you may merge the Architecture and Risks sections into one heading, but always include:
 
 - Clear objective and scope boundary
 - Evidence from code/docs

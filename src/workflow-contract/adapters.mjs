@@ -9,6 +9,12 @@ const runtimeEntrypoints = {
   antigravity: ['ANTIGRAVITY.md']
 };
 
+function pushIfMissing({ diagnostics, relativePath, content, pattern, code, message }) {
+  if (!pattern.test(content)) {
+    diagnostics.push(diagnostic({ code, path: relativePath, message }));
+  }
+}
+
 async function read(root, relativePath) {
   try {
     return await fs.readFile(path.join(root, relativePath), 'utf8');
@@ -43,6 +49,35 @@ export async function validateAdapterContracts({ root, runtimes = [] }) {
   }
 
   if (runtimes.includes('copilot')) {
+    const wrapperPath = '.github/copilot-instructions.md';
+    const wrapper = await read(root, wrapperPath);
+    if (wrapper !== null) {
+      pushIfMissing({
+        diagnostics,
+        relativePath: wrapperPath,
+        content: wrapper,
+        pattern: /routing decision trace/i,
+        code: 'copilot/missing-routing-trace',
+        message: 'Expected explicit routing decision trace guidance.'
+      });
+      pushIfMissing({
+        diagnostics,
+        relativePath: wrapperPath,
+        content: wrapper,
+        pattern: /do not reuse or cache the previous workflow decision across turns/i,
+        code: 'copilot/missing-rerouting-guarantee',
+        message: 'Expected explicit follow-up re-routing guarantee.'
+      });
+      pushIfMissing({
+        diagnostics,
+        relativePath: wrapperPath,
+        content: wrapper,
+        pattern: /Intent-only phrasing[\s\S]*not implementation authorization/i,
+        code: 'copilot/missing-execution-gate',
+        message: 'Expected explicit execution authorization guarantee.'
+      });
+    }
+
     const relativePath = '.github/instructions/ai-workflow.instructions.md';
     const content = await read(root, relativePath);
     if (content !== null && !/^---\napplyTo: "\*\*"\n---\n/.test(content)) {
@@ -51,6 +86,45 @@ export async function validateAdapterContracts({ root, runtimes = [] }) {
         path: relativePath,
         message: 'Expected applyTo: "**" front matter.'
       }));
+    }
+  }
+
+  if (runtimes.includes('antigravity')) {
+    const relativePath = 'ANTIGRAVITY.md';
+    const content = await read(root, relativePath);
+    if (content !== null) {
+      pushIfMissing({
+        diagnostics,
+        relativePath,
+        content,
+        pattern: /routing decision trace/i,
+        code: 'antigravity/missing-routing-trace',
+        message: 'Expected explicit routing decision trace guidance for non-trivial work.'
+      });
+      pushIfMissing({
+        diagnostics,
+        relativePath,
+        content,
+        pattern: /do not reuse or cache the previous workflow decision across turns/i,
+        code: 'antigravity/missing-rerouting-guarantee',
+        message: 'Expected explicit follow-up re-routing guarantee.'
+      });
+      pushIfMissing({
+        diagnostics,
+        relativePath,
+        content,
+        pattern: /Intent-only phrasing[\s\S]*not implementation authorization/i,
+        code: 'antigravity/missing-execution-gate',
+        message: 'Expected explicit execution authorization guarantee.'
+      });
+      pushIfMissing({
+        diagnostics,
+        relativePath,
+        content,
+        pattern: /Project formation continuity safeguard/i,
+        code: 'antigravity/missing-project-formation-continuity',
+        message: 'Expected explicit project-formation continuity safeguard.'
+      });
     }
   }
 

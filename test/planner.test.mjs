@@ -83,6 +83,47 @@ test('buildInstallPlan merges existing skills registry and preserves local skill
   assert.equal(markdownRegistryOperation.operation, 'skip_unmanaged');
 });
 
+test('buildInstallPlan refreshes built-in registry entries while preserving custom ones', async () => {
+  const target = await makeTempRepo();
+  const existingRegistry = {
+    schema_version: '1.0.0',
+    canonical_source: '.agents/skills/registry.md',
+    skills: [
+      {
+        name: 'workflow-router',
+        class: 'Workflow',
+        path: '.agents/skills/00-router/workflow-router/SKILL.md',
+        trigger: 'Outdated trigger text',
+        loading_posture: 'Explicit-only',
+        key: 'workflow-router',
+        runtime_notes: 'Outdated runtime note.'
+      },
+      {
+        name: 'custom-skill',
+        class: 'Workflow',
+        path: '.agents/skills/custom/SKILL.md',
+        trigger: 'Custom trigger',
+        loading_posture: 'Explicit-only',
+        key: 'custom-skill'
+      }
+    ],
+    pattern_skills: []
+  };
+
+  await fs.mkdir(path.join(target, '.agents/skills'), { recursive: true });
+  await fs.writeFile(path.join(target, '.agents/skills/registry.json'), `${JSON.stringify(existingRegistry, null, 2)}\n`, 'utf8');
+
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
+  const registryOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/registry.json');
+  const mergedRegistry = JSON.parse(registryOperation.content);
+  const workflowRouter = mergedRegistry.skills.find((entry) => entry.key === 'workflow-router');
+
+  assert.equal(workflowRouter.trigger.includes('Outdated trigger text'), false);
+  assert.equal(workflowRouter.loading_posture, 'Startup-minimal');
+  assert.match(workflowRouter.runtime_notes, /Intake runs every prompt/);
+  assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'custom-skill'), true);
+});
+
 test('buildInstallPlan auto-discovers local skills from the target repository and registers them', async () => {
   const target = await makeTempRepo();
   const localSkillPath = path.join(target, '.agents/skills/local/my-project-skill/SKILL.md');

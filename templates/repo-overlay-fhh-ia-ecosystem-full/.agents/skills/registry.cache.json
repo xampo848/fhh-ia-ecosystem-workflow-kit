@@ -145,7 +145,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-epic/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "c7517e34334fa87320e438c3de53d72962dc53b7e7df6e5d92543a2c750f5966"
+      "skill_sha256": "610f16f8cebbf277f4a23e79f297001ca4e641e66c296e7f7c440bb4864eab43"
     },
     {
       "key": "create-prd",
@@ -370,7 +370,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "1f23aa6269b079c4c70a21024468efba0468feded4b2b5edd3558ada5ce58cd5"
+      "skill_sha256": "78b43c358a1a7f4ca88291afa2ac8b4485ced26f02c351aaeb77cad9e625d8f2"
     }
   ]
 }

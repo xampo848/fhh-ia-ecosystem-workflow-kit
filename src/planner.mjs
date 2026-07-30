@@ -506,17 +506,19 @@ function mergeSkillRegistryJson({ existingContent, templateContent, discoveredSk
 }
 
 function mergeRegistryEntries(existingEntries, incomingEntries) {
+  const normalizedIncoming = normalizeRegistryEntries(incomingEntries);
+  const incomingKeys = new Set(normalizedIncoming.map((entry) => registryEntryIdentity(entry)));
   const merged = [];
   const seen = new Set();
 
   for (const entry of normalizeRegistryEntries(existingEntries)) {
     const key = registryEntryIdentity(entry);
-    if (seen.has(key)) continue;
+    if (incomingKeys.has(key) || seen.has(key)) continue;
     seen.add(key);
     merged.push(entry);
   }
 
-  for (const entry of normalizeRegistryEntries(incomingEntries)) {
+  for (const entry of normalizedIncoming) {
     const key = registryEntryIdentity(entry);
     if (seen.has(key)) continue;
     seen.add(key);
