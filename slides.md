@@ -64,6 +64,59 @@ defaults:
 ---
 
 <div class="slide-head">
+  <div class="eyebrow amber">Introducción</div>
+  <h1>La oportunidad: pasar de prompts sueltos a un sistema de trabajo</h1>
+  <div class="sub">No se trata de usar más IA, sino de operar con un workflow repetible, auditable y bajo control humano.</div>
+</div>
+
+<div class="callout mt-4">
+  <strong>La oportunidad no es “usar más IA”.</strong> Es convertir la IA en un sistema de trabajo repetible, auditable y controlado.
+</div>
+
+<div class="callout mt-4">
+  <strong>Sin un workflow común, cada agente inventa su forma de trabajar.</strong>
+</div>
+
+<div class="callout mt-4">
+  <strong>Top 6 problemas operativos que resuelve este workflow</strong>
+</div>
+
+<div class="manifest mt-4">
+  <div class="manifest-row">
+    <div class="manifest-num">01</div>
+    <div class="manifest-title">Contexto fragmentado</div>
+    <div class="manifest-copy">Sin memoria operativa se pierde continuidad entre turnos y repositorios, aumentando retrabajo y decisiones inconsistentes.</div>
+  </div>
+  <div class="manifest-row">
+    <div class="manifest-num">02</div>
+    <div class="manifest-title">Exceso de tokens y costo</div>
+    <div class="manifest-copy">Cuando no hay routing ni carga just-in-time, se reitera discovery y se consume contexto innecesario.</div>
+  </div>
+  <div class="manifest-row">
+    <div class="manifest-num">03</div>
+    <div class="manifest-title">Procesos no estandarizados</div>
+    <div class="manifest-copy">Cada agente ejecuta distinto; la variación de flujo rompe consistencia, trazabilidad y repetibilidad.</div>
+  </div>
+  <div class="manifest-row">
+    <div class="manifest-num">04</div>
+    <div class="manifest-title">Bajo control humano</div>
+    <div class="manifest-copy">Sin gates ni evidencia, la automatización avanza sin supervisión suficiente ni ownership claro.</div>
+  </div>
+  <div class="manifest-row">
+    <div class="manifest-num">05</div>
+    <div class="manifest-title">Scope creep silencioso</div>
+    <div class="manifest-copy">Tareas pequeñas escalan sin control cuando no se fuerza decisión de ruta y límites de entrega.</div>
+  </div>
+  <div class="manifest-row">
+    <div class="manifest-num">06</div>
+    <div class="manifest-title">Calidad inconsistente</div>
+    <div class="manifest-copy">Sin validación por superficie, aumentan regresiones y cada entrega termina con criterios distintos.</div>
+  </div>
+</div>
+
+---
+
+<div class="slide-head">
   <div class="eyebrow blue">General</div>
   <h1>Cómo leer esta documentación</h1>
   <div class="sub">Primero identifica qué capa estás leyendo y su fuente de verdad; después aplica la lectura adecuada para orientar o ejecutar trabajo.</div>

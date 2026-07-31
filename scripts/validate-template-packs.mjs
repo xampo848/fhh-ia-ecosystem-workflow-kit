@@ -9,6 +9,44 @@ const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const templatesRoot = path.join(packageRoot, 'templates');
 const manifestPath = path.join(templatesRoot, 'template-manifest.json');
 
+const runtimeAdapterMirrors = [
+  {
+    runtime: 'codex',
+    canonical: '.codex/README.md',
+    template: 'templates/runtime-adapters/codex/.codex/README.md'
+  },
+  {
+    runtime: 'copilot',
+    canonical: '.github/copilot-instructions.md',
+    template: 'templates/runtime-adapters/copilot/.github/copilot-instructions.md'
+  },
+  {
+    runtime: 'copilot',
+    canonical: '.github/instructions/ai-workflow.instructions.md',
+    template: 'templates/runtime-adapters/copilot/.github/instructions/ai-workflow.instructions.md'
+  },
+  {
+    runtime: 'claude',
+    canonical: 'CLAUDE.md',
+    template: 'templates/runtime-adapters/claude/CLAUDE.md'
+  },
+  {
+    runtime: 'agents-md',
+    canonical: 'AGENTS.md',
+    template: 'templates/runtime-adapters/agents-md/AGENTS.md'
+  },
+  {
+    runtime: 'antigravity',
+    canonical: 'ANTIGRAVITY.md',
+    template: 'templates/runtime-adapters/antigravity/ANTIGRAVITY.md'
+  },
+  {
+    runtime: 'antigravity',
+    canonical: '.antigravity/README.md',
+    template: 'templates/runtime-adapters/antigravity/.antigravity/README.md'
+  }
+];
+
 export async function validateTemplatePacks({ root = packageRoot } = {}) {
   const templateRoot = path.join(root, 'templates');
   const manifest = JSON.parse(await fs.readFile(path.join(templateRoot, 'template-manifest.json'), 'utf8'));
@@ -76,7 +114,38 @@ export async function validateTemplatePacks({ root = packageRoot } = {}) {
     }
   }
 
+  failures.push(...await validateRuntimeAdapterMirrors({ root }));
+
   return { ok: failures.length === 0, failures, manifest };
+}
+
+async function validateRuntimeAdapterMirrors({ root }) {
+  const failures = [];
+  for (const mirror of runtimeAdapterMirrors) {
+    const canonicalPath = path.join(root, mirror.canonical);
+    const templatePath = path.join(root, mirror.template);
+
+    let canonical;
+    let template;
+    try {
+      [canonical, template] = await Promise.all([
+        fs.readFile(canonicalPath, 'utf8'),
+        fs.readFile(templatePath, 'utf8')
+      ]);
+    } catch {
+      failures.push(
+        `Runtime adapter mirror missing for ${mirror.runtime}: ${mirror.canonical} <-> ${mirror.template}`
+      );
+      continue;
+    }
+
+    if (canonical !== template) {
+      failures.push(
+        `Runtime adapter drift for ${mirror.runtime}: ${mirror.canonical} does not match ${mirror.template}`
+      );
+    }
+  }
+  return failures;
 }
 
 async function collectFiles(root) {
