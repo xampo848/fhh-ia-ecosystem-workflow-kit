@@ -46,9 +46,36 @@ test('validateTemplatePacks catches adapters that do not reference neutral instr
   assert.ok(result.failures.some((failure) => failure.includes('Adapter file must reference .agents/instructions.md')));
 });
 
+test('validateTemplatePacks catches runtime wrapper drift against templates', async () => {
+  const root = await copyFixtureRepository();
+  const target = path.join(root, 'AGENTS.md');
+  await fs.appendFile(target, '\nDrifted content.\n', 'utf8');
+
+  const result = await validateTemplatePacks({ root });
+
+  assert.equal(result.ok, false);
+  assert.ok(result.failures.some((failure) => failure.includes('Runtime adapter drift for agents-md')));
+});
+
 async function copyFixturePackage() {
   const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const targetRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-template-pack-'));
   await fs.cp(path.join(sourceRoot, 'templates'), path.join(targetRoot, 'templates'), { recursive: true });
+  return targetRoot;
+}
+
+async function copyFixtureRepository() {
+  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const targetRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-repo-pack-'));
+  await fs.cp(sourceRoot, targetRoot, {
+    recursive: true,
+    filter(source) {
+      const relative = path.relative(sourceRoot, source);
+      if (relative === '') return true;
+      if (relative.startsWith('.git')) return false;
+      if (relative.startsWith('node_modules')) return false;
+      return true;
+    }
+  });
   return targetRoot;
 }
