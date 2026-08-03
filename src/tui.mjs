@@ -723,13 +723,14 @@ export async function runTui(options = {}) {
 
     }
 
-    const buildPlan = async () => {
+    const buildPlan = async ({ overwriteModified = false } = {}) => {
       if (mode === 'update') {
         try {
           return await buildUpdatePlan({
             targetPath,
             runtime,
             overlay,
+            overwriteModified,
             toolkitVersion: currentToolkitMetadata().version
           });
         } catch (error) {
@@ -747,6 +748,7 @@ export async function runTui(options = {}) {
             runtime,
             overlay,
             adoptExisting: true,
+            overwriteModified,
             toolkitVersion: currentToolkitMetadata().version
           });
         }
@@ -760,12 +762,43 @@ export async function runTui(options = {}) {
       });
     };
 
-    const plan = await withSpinner({
+    let plan = await withSpinner({
       write,
       paint,
       label: 'Building plan',
       enabled: animate
     }, buildPlan);
+
+    if (mode === 'update' && plan.summary.skip_modified > 0) {
+      write(`\n${paint.copperInk(`Detected ${plan.summary.skip_modified} managed file(s) with local edits.`)}\n`);
+
+      const modifiedPolicy = await prompter.chooseOption({
+        title: 'How should update handle managed files with local edits?',
+        defaultValue: 'protect',
+        defaultIndex: 0,
+        options: [
+          {
+            label: 'Protect local edits (recommended)',
+            value: 'protect',
+            description: 'Keep skip_modified behavior and do not overwrite those files.'
+          },
+          {
+            label: 'Overwrite with backup',
+            value: 'overwrite',
+            description: 'Apply toolkit updates to those files and create backups first.'
+          }
+        ]
+      });
+
+      if (modifiedPolicy === 'overwrite') {
+        plan = await withSpinner({
+          write,
+          paint,
+          label: 'Rebuilding plan with overwrite for modified files',
+          enabled: animate
+        }, () => buildPlan({ overwriteModified: true }));
+      }
+    }
 
     renderSummary(write, paint, plan);
 

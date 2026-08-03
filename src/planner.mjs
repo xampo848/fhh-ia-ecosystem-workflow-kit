@@ -255,8 +255,9 @@ export async function buildUpdatePlan(options = {}) {
     if (recordedChecksum) {
       const existingChecksum = computeChecksum(existingContent);
       if (existingChecksum !== recordedChecksum) {
+        const overwriteOperation = resolution.strategy === 'merged' ? 'merge_with_backup' : 'overwrite_with_backup';
         operations.push({
-          operation: 'skip_modified',
+          operation: options.overwriteModified ? overwriteOperation : 'skip_modified',
           relativePath: file.relativePath,
           targetFile,
           sourcePath: file.sourcePath,

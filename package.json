@@ -1,6 +1,6 @@
 {
   "name": "fhh-ia-ecosystem-workflow-kit",
-  "version": "0.7.17-prd-phase-gate",
+  "version": "0.7.18-tui-modified-choice",
   "private": true,
   "description": "Public GitHub-installable CLI/TUI workflow kit with safe install/export commands.",
   "license": "MIT",
@@ -51,8 +51,15 @@
     "@inquirer/prompts": "^8.5.2"
   },
   "devDependencies": {
-    "@slidev/cli": "^52.0.0",
+    "@slidev/cli": "^52.19.0",
     "@slidev/theme-default": "^0.25.0",
+    "hono": "^4.12.34",
     "yaml": "^2.9.0"
+  },
+  "overrides": {
+    "@hono/node-server": "^2.0.5",
+    "dompurify": "^3.4.12",
+    "hono": "^4.12.34",
+    "postcss": "^8.5.25"
   }
 }

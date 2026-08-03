@@ -104,6 +104,13 @@ After that, regular `workflow-kit update --apply --yes` runs will perform manage
 
 If you want that file managed, align content intentionally and re-run with review.
 
+In TUI update mode, when managed local edits are detected, workflow-kit now asks what to do:
+
+- protect local edits (keep `skip_modified`)
+- overwrite with backup (apply update and keep a restore copy)
+
+Choose overwrite only when you intentionally want toolkit content to replace local changes.
+
 ## Unsupported runtime
 
 Supported runtimes are:
