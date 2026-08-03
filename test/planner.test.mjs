@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { applyInstallPlan } from '../src/apply.mjs';
-import { buildInstallPlan, buildUpdatePlan, installStateRelativePath } from '../src/planner.mjs';
+import { buildInstallPlan, buildUpdatePlan, installStateRelativePath, selectPlanOperations } from '../src/planner.mjs';
 import manifest from '../templates/template-manifest.json' with { type: 'json' };
 import { makeTempRepo } from './helpers.mjs';
 
@@ -259,7 +259,7 @@ test('buildUpdatePlan can overwrite managed local edits when explicitly requeste
   const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex', toolkitVersion: '0.6.0-test' });
   await applyInstallPlan(installPlan);
 
-  const managedModified = path.join(target, 'AGENTS.md');
+  const managedModified = path.join(target, 'docs/workflow/README.md');
   await fs.writeFile(managedModified, 'local override\n', 'utf8');
 
   const updatePlan = await buildUpdatePlan({
@@ -269,10 +269,112 @@ test('buildUpdatePlan can overwrite managed local edits when explicitly requeste
     overwriteModified: true
   });
 
-  const agentsOperation = updatePlan.operations.find((item) => item.relativePath === 'AGENTS.md');
-  assert.equal(agentsOperation.operation, 'overwrite_with_backup');
+  const docsOperation = updatePlan.operations.find((item) => item.relativePath === 'docs/workflow/README.md');
+  assert.equal(docsOperation.operation, 'overwrite_with_backup');
   assert.equal(updatePlan.summary.skip_modified, 0);
   assert.equal(updatePlan.summary.overwrite_with_backup > 0, true);
+});
+
+test('buildUpdatePlan supports no-backup write operations', async () => {
+  const target = await makeTempRepo();
+  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex', toolkitVersion: '0.6.0-test' });
+  await applyInstallPlan(installPlan);
+
+  const managedModified = path.join(target, 'docs/workflow/README.md');
+  await fs.writeFile(managedModified, 'local override\n', 'utf8');
+
+  const updatePlan = await buildUpdatePlan({
+    targetPath: target,
+    runtime: 'codex',
+    toolkitVersion: '0.7.0-test',
+    overwriteModified: true,
+    backupMode: 'none'
+  });
+
+  const docsOperation = updatePlan.operations.find((item) => item.relativePath === 'docs/workflow/README.md');
+  assert.equal(docsOperation.operation, 'overwrite_no_backup');
+  assert.equal(updatePlan.summary.overwrite_no_backup > 0, true);
+});
+
+test('buildUpdatePlan preserves protected instruction customizations even with overwriteModified', async () => {
+  const target = await makeTempRepo();
+  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex,copilot', toolkitVersion: '0.6.0-test' });
+  await applyInstallPlan(installPlan);
+
+  await fs.writeFile(path.join(target, 'AGENTS.md'), 'local instruction customization\n', 'utf8');
+
+  const updatePlan = await buildUpdatePlan({
+    targetPath: target,
+    runtime: 'codex,copilot',
+    toolkitVersion: '0.7.0-test',
+    overwriteModified: true
+  });
+
+  const agentsOperation = updatePlan.operations.find((item) => item.relativePath === 'AGENTS.md');
+  assert.equal(agentsOperation.operation, 'skip_modified');
+  assert.equal(agentsOperation.reason, 'protected_customization');
+});
+
+test('buildUpdatePlan auto-merges modified registry.json and preserves user-added entries', async () => {
+  const target = await makeTempRepo();
+  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'neutral', toolkitVersion: '0.6.0-test' });
+  await applyInstallPlan(installPlan);
+
+  const registryPath = path.join(target, '.agents/skills/registry.json');
+  const registry = JSON.parse(await fs.readFile(registryPath, 'utf8'));
+  const workflowRouter = registry.skills.find((entry) => entry.key === 'workflow-router');
+  workflowRouter.trigger = 'Outdated trigger text';
+  registry.skills.push({
+    name: 'custom-skill',
+    class: 'Workflow',
+    path: '.agents/skills/custom/SKILL.md',
+    trigger: 'Custom trigger',
+    loading_posture: 'Explicit-only',
+    key: 'custom-skill'
+  });
+  await fs.writeFile(registryPath, `${JSON.stringify(registry, null, 2)}\n`, 'utf8');
+
+  const updatePlan = await buildUpdatePlan({
+    targetPath: target,
+    runtime: 'neutral',
+    toolkitVersion: '0.7.0-test'
+  });
+
+  const registryOperation = updatePlan.operations.find((item) => item.relativePath === '.agents/skills/registry.json');
+  assert.equal(registryOperation.operation, 'merge_with_backup');
+
+  const mergedRegistry = JSON.parse(registryOperation.content);
+  assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'custom-skill'), true);
+  assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'workflow-router' && entry.trigger === 'Outdated trigger text'), false);
+});
+
+test('selectPlanOperations allows partial apply without drifting managed state', async () => {
+  const target = await makeTempRepo();
+  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex', toolkitVersion: '0.6.0-test' });
+  await applyInstallPlan(installPlan);
+  const stateBeforePartialApply = JSON.parse(await fs.readFile(path.join(target, installStateRelativePath), 'utf8'));
+
+  await fs.writeFile(path.join(target, 'docs/workflow/README.md'), 'local override\n', 'utf8');
+  await fs.writeFile(path.join(target, '.agents/instructions.md'), 'local override\n', 'utf8');
+
+  const updatePlan = await buildUpdatePlan({
+    targetPath: target,
+    runtime: 'codex',
+    toolkitVersion: '0.7.0-test',
+    overwriteModified: true
+  });
+
+  const selected = selectPlanOperations(updatePlan, ['docs/workflow/README.md']);
+  await applyInstallPlan(selected);
+
+  const state = JSON.parse(await fs.readFile(path.join(target, installStateRelativePath), 'utf8'));
+  const currentDocsReadme = await fs.readFile(path.join(target, 'docs/workflow/README.md'), 'utf8');
+  const currentInstructions = await fs.readFile(path.join(target, '.agents/instructions.md'), 'utf8');
+
+  assert.notEqual(currentDocsReadme, 'local override\n');
+  assert.equal(currentInstructions, 'local override\n');
+  assert.equal(typeof state.files['docs/workflow/README.md'], 'string');
+  assert.equal(state.files['.agents/instructions.md'], stateBeforePartialApply.files['.agents/instructions.md']);
 });
 
 test('buildUpdatePlan can unmanage preserved skill catalog docs while keeping registry.json managed', async () => {

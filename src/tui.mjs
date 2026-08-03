@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { applyInstallPlan } from './apply.mjs';
 import { formatDoctorResult, runDoctor } from './doctor.mjs';
-import { buildInstallPlan, buildUpdatePlan, formatPlan } from './planner.mjs';
+import { buildInstallPlan, buildUpdatePlan, formatPlan, selectPlanOperations } from './planner.mjs';
 import {
   createCapabilityGuide,
   defaultIntentFor,
@@ -61,6 +61,13 @@ const TUI_MODE_OPTIONS = [
 ];
 
 const FULL_OVERLAY = 'fhh-ia-ecosystem-full';
+const WRITE_OPERATIONS = new Set([
+  'create',
+  'overwrite_with_backup',
+  'merge_with_backup',
+  'overwrite_no_backup',
+  'merge_no_backup'
+]);
 
 const defaultCommandExists = upgradeCommandExists;
 
@@ -69,6 +76,14 @@ function explainExistingRepoBehavior(write, paint) {
   write(`${paint.dim('- Local .agents/skills/**/SKILL.md files will be auto-registered into registry.json.')}\n`);
   write(`${paint.dim('- Old docs are never moved automatically by the TUI.')}\n`);
   write(`${paint.dim('- Review docs/workflow/migration/legacy-docs-map.md and relocate docs manually if needed.')}\n\n`);
+}
+
+function isWriteOperation(item) {
+  return WRITE_OPERATIONS.has(item.operation);
+}
+
+function selectedPathsFromPlan(plan) {
+  return plan.operations.map((item) => item.relativePath);
 }
 
 function defaultRunCommand({ command, args, cwd, write, paint }) {
@@ -396,6 +411,7 @@ export async function runTui(options = {}) {
   const paint = createPainter(colorEnabled);
   const animate = options.animate ?? !options.ask;
   const scriptedMode = Boolean(options.ask);
+  const advancedApplyPrompts = !scriptedMode || options.enableScriptedAdvancedPrompts === true;
   const introProfile = options.introProfile
     ?? process.env.WK_TUI_INTRO_PROFILE
     ?? (scriptedMode ? 'standard' : 'cinematic');
@@ -723,14 +739,18 @@ export async function runTui(options = {}) {
 
     }
 
-    const buildPlan = async ({ overwriteModified = false } = {}) => {
+    let overwriteModified = false;
+    let backupMode = 'required';
+
+    const buildPlan = async ({ overwriteModified: overwriteModifiedValue = false, backupMode: backupModeValue = 'required' } = {}) => {
       if (mode === 'update') {
         try {
           return await buildUpdatePlan({
             targetPath,
             runtime,
             overlay,
-            overwriteModified,
+            overwriteModified: overwriteModifiedValue,
+            backupMode: backupModeValue,
             toolkitVersion: currentToolkitMetadata().version
           });
         } catch (error) {
@@ -748,7 +768,8 @@ export async function runTui(options = {}) {
             runtime,
             overlay,
             adoptExisting: true,
-            overwriteModified,
+            overwriteModified: overwriteModifiedValue,
+            backupMode: backupModeValue,
             toolkitVersion: currentToolkitMetadata().version
           });
         }
@@ -758,6 +779,7 @@ export async function runTui(options = {}) {
         targetPath,
         runtime,
         overlay,
+        backupMode: backupModeValue,
         toolkitVersion: currentToolkitMetadata().version
       });
     };
@@ -767,7 +789,7 @@ export async function runTui(options = {}) {
       paint,
       label: 'Building plan',
       enabled: animate
-    }, buildPlan);
+    }, () => buildPlan({ overwriteModified, backupMode }));
 
     if (mode === 'update' && plan.summary.skip_modified > 0) {
       write(`\n${paint.copperInk(`Detected ${plan.summary.skip_modified} managed file(s) with local edits.`)}\n`);
@@ -791,12 +813,66 @@ export async function runTui(options = {}) {
       });
 
       if (modifiedPolicy === 'overwrite') {
+        overwriteModified = true;
         plan = await withSpinner({
           write,
           paint,
           label: 'Rebuilding plan with overwrite for modified files',
           enabled: animate
-        }, () => buildPlan({ overwriteModified: true }));
+        }, () => buildPlan({ overwriteModified, backupMode }));
+      }
+    }
+
+    if (advancedApplyPrompts) {
+      const selectedBackupMode = await prompter.chooseOption({
+        title: 'Backup mode for write operations',
+        defaultValue: backupMode,
+        defaultIndex: 0,
+        options: [
+          {
+            label: 'Safe (with backup) - recommended',
+            value: 'required',
+            description: 'Create a backup file before overwrite/merge writes.'
+          },
+          {
+            label: 'Fast (no backup)',
+            value: 'none',
+            description: 'Write directly without backup files.'
+          }
+        ]
+      });
+
+      if (selectedBackupMode !== backupMode) {
+        backupMode = selectedBackupMode;
+        plan = await withSpinner({
+          write,
+          paint,
+          label: `Rebuilding plan with backup mode: ${backupMode}`,
+          enabled: animate
+        }, () => buildPlan({ overwriteModified, backupMode }));
+      }
+
+      const writableOperations = plan.operations.filter((item) => isWriteOperation(item));
+      if (writableOperations.length > 0) {
+        const selectedWritablePaths = await prompter.chooseOptions({
+          title: 'Select files to modify',
+          options: writableOperations.map((item) => ({
+            label: `${item.relativePath} (${item.operation})`,
+            value: item.relativePath,
+            description: item.operation
+          })),
+          defaultValues: writableOperations.map((item) => item.relativePath)
+        });
+
+        const selectedWritableSet = new Set(selectedWritablePaths);
+        const selectedPaths = selectedPathsFromPlan(plan).filter((relativePath) => {
+          const operation = plan.operations.find((item) => item.relativePath === relativePath);
+          if (!operation) return false;
+          if (!isWriteOperation(operation)) return true;
+          return selectedWritableSet.has(relativePath);
+        });
+
+        plan = selectPlanOperations(plan, selectedPaths);
       }
     }
 

@@ -54,6 +54,26 @@ test('tui confirmed apply writes selected files through planner apply', async ()
   await fs.access(path.join(target, '.agents/skills/06-patterns/README.md'));
 });
 
+test('tui advanced apply prompts can disable backups and apply only selected files', async () => {
+  const target = await makeTempRepo();
+  let output = '';
+
+  const result = await runTui({
+    ask: scriptedAsk(['', target, '1', '2', '1', '', '', 'yes']),
+    color: false,
+    write: (message) => { output += message; },
+    enableScriptedAdvancedPrompts: true
+  });
+
+  assert.equal(result.code, 0);
+  assert.equal(result.applied, true);
+  assert.equal(result.plan.summary.overwrite_no_backup > 0 || result.plan.summary.merge_no_backup > 0 || result.plan.summary.create > 0, true);
+  assert.match(output, /Applied writes: 1/);
+  assert.match(output, /Backups created: 0/);
+  assert.equal(result.plan.operations.length, 1);
+  await fs.access(path.join(target, result.plan.operations[0].relativePath));
+});
+
 test('tui combines GitHub Copilot and Antigravity adapters', async () => {
   const target = await makeTempRepo();
 
@@ -167,7 +187,7 @@ test('tui update lets users choose overwrite for managed local edits', async () 
   const target = await makeTempRepo();
   const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex' });
   await applyInstallPlan(installPlan);
-  await fs.writeFile(path.join(target, 'AGENTS.md'), 'local override\n', 'utf8');
+  await fs.writeFile(path.join(target, 'docs/workflow/README.md'), 'local override\n', 'utf8');
 
   let output = '';
   const result = await runTui({
@@ -181,8 +201,8 @@ test('tui update lets users choose overwrite for managed local edits', async () 
   assert.match(output, /Detected 1 managed file\(s\) with local edits\./);
   assert.match(output, /Protected local edits \(skipped\): 0/);
 
-  const agentsContent = await fs.readFile(path.join(target, 'AGENTS.md'), 'utf8');
-  assert.notEqual(agentsContent, 'local override\n');
+  const docsContent = await fs.readFile(path.join(target, 'docs/workflow/README.md'), 'utf8');
+  assert.notEqual(docsContent, 'local override\n');
 });
 
 test('tui upgrade-toolkit mode runs the global upgrade command and exits without repo writes', async () => {

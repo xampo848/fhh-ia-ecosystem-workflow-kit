@@ -309,7 +309,9 @@ function renderDashboard(write, paint, plan) {
     `Create         : ${plan.summary.create}`,
     `No change      : ${plan.summary.unchanged}`,
     `Merge safe     : ${plan.summary.merge_with_backup}`,
-    `Overwrite safe : ${plan.summary.overwrite_with_backup}`
+    `Merge fast     : ${plan.summary.merge_no_backup}`,
+    `Overwrite safe : ${plan.summary.overwrite_with_backup}`,
+    `Overwrite fast : ${plan.summary.overwrite_no_backup}`
   );
 
   renderBox(write, paint, 'Mission control', rows);
@@ -318,7 +320,9 @@ function renderDashboard(write, paint, plan) {
   write(`${renderChip(paint, `${plan.summary.create} create`, 'green')} `);
   write(`${renderChip(paint, `${plan.summary.unchanged} unchanged`, 'blue')} `);
   write(`${renderChip(paint, `${plan.summary.merge_with_backup} backup merge`, 'yellow')} `);
-  write(`${renderChip(paint, `${plan.summary.overwrite_with_backup} backup overwrite`, 'yellow')}\n\n`);
+  write(`${renderChip(paint, `${plan.summary.merge_no_backup} direct merge`, 'copperInk')} `);
+  write(`${renderChip(paint, `${plan.summary.overwrite_with_backup} backup overwrite`, 'yellow')} `);
+  write(`${renderChip(paint, `${plan.summary.overwrite_no_backup} direct overwrite`, 'copperInk')}\n\n`);
 }
 
 export function renderSummary(write, paint, plan) {
@@ -372,7 +376,9 @@ export function colorizeFullPlanPreview(paint, formattedPlan) {
     create: 'copper',
     unchanged: 'indigo',
     merge_with_backup: 'copperInk',
+    merge_no_backup: 'copperInk',
     overwrite_with_backup: 'copperInk',
+    overwrite_no_backup: 'copperInk',
     skip_modified: 'copperInk',
     skip_unmanaged: 'copperInk',
     adopt_existing: 'indigo'
