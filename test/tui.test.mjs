@@ -163,6 +163,28 @@ test('tui update mode applies managed workflow updates without reinstall flow se
   assert.match(output, /Managed target/);
 });
 
+test('tui update lets users choose overwrite for managed local edits', async () => {
+  const target = await makeTempRepo();
+  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex' });
+  await applyInstallPlan(installPlan);
+  await fs.writeFile(path.join(target, 'AGENTS.md'), 'local override\n', 'utf8');
+
+  let output = '';
+  const result = await runTui({
+    ask: scriptedAsk(['2', target, '2', '2', '', '', 'yes']),
+    color: false,
+    write: (message) => { output += message; }
+  });
+
+  assert.equal(result.mode, 'update');
+  assert.equal(result.applied, true);
+  assert.match(output, /Detected 1 managed file\(s\) with local edits\./);
+  assert.match(output, /Protected local edits \(skipped\): 0/);
+
+  const agentsContent = await fs.readFile(path.join(target, 'AGENTS.md'), 'utf8');
+  assert.notEqual(agentsContent, 'local override\n');
+});
+
 test('tui upgrade-toolkit mode runs the global upgrade command and exits without repo writes', async () => {
   const target = await makeTempRepo();
   const executed = [];

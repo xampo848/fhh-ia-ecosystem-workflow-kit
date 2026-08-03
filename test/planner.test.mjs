@@ -254,6 +254,27 @@ test('buildUpdatePlan skips local edits and unmanaged files while keeping manage
   assert.equal(updatePlan.summary.skip_unmanaged > 0, true);
 });
 
+test('buildUpdatePlan can overwrite managed local edits when explicitly requested', async () => {
+  const target = await makeTempRepo();
+  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex', toolkitVersion: '0.6.0-test' });
+  await applyInstallPlan(installPlan);
+
+  const managedModified = path.join(target, 'AGENTS.md');
+  await fs.writeFile(managedModified, 'local override\n', 'utf8');
+
+  const updatePlan = await buildUpdatePlan({
+    targetPath: target,
+    runtime: 'codex',
+    toolkitVersion: '0.7.0-test',
+    overwriteModified: true
+  });
+
+  const agentsOperation = updatePlan.operations.find((item) => item.relativePath === 'AGENTS.md');
+  assert.equal(agentsOperation.operation, 'overwrite_with_backup');
+  assert.equal(updatePlan.summary.skip_modified, 0);
+  assert.equal(updatePlan.summary.overwrite_with_backup > 0, true);
+});
+
 test('buildUpdatePlan can unmanage preserved skill catalog docs while keeping registry.json managed', async () => {
   const target = await makeTempRepo();
   const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'neutral', toolkitVersion: '0.6.0-test' });
