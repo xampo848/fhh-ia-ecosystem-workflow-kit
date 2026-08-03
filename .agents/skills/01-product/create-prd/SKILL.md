@@ -40,12 +40,21 @@ Use this skill when:
 8. **Standards-aware PRDs** — PRDs must follow `BACKEND_STANDARDS.md`, including Minitest and `enumerate_it` conventions.
 9. **Evidence before completion** — every deliverable must name how it will be tested, validated, and verified. “Tests later” and phase-end-only validation are not acceptable.
 10. **Activation is part of scope** — when a PRD replaces a read path, materialization model, cache, projection, or persisted contract, it must define how existing data becomes visible after cutover (bootstrap, backfill, repair, smoke verification, and rollback if activation fails).
+11. **No phase skipping** — the workflow is strictly sequential. Do not skip, merge, or reorder phases. `Phase 3` is blocked until `Phase 1` and `Phase 2` are fully completed.
 
 ---
 
 ## 📋 Protocol
 
-### Phase 1: Codebase Exploration
+### Hard Gate: Phases Are Non-Skippable
+
+- Execute `Phase 1 -> Phase 2 -> Phase 3` in order.
+- Do not draft PRD content in `Phase 1`.
+- Do not start `Phase 3` before receiving and processing `Phase 2` answers.
+- If information is missing, stop and ask targeted questions; do not bypass the gate.
+
+### Phase\
+ 1: Codebase Exploration
 
 Before writing a single line of PRD, explore the relevant parts of the codebase:
 
@@ -129,6 +138,11 @@ Only ask about things that **block the design** or would cause **different imple
 ### Phase 3: Draft the PRD
 
 With all ambiguities resolved, produce the PRD using the standard structure below.
+
+Template source (mandatory): `.agents/skills/01-product/create-prd/PRD_TEMPLATE.md`
+
+- The PRD template must be loaded from that file.
+- Do not duplicate, inline, or maintain a second template copy inside this `SKILL.md`.
 
 **File location:** `docs/prd/<feature-or-project>/<YYYY-MM-DD>-<feature-name>/<feature-name>.md`
 
@@ -225,167 +239,9 @@ A slice advances only through this sequence:
 
 ## 📄 PRD Structure Template
 
-````markdown
-# PRD: [Feature Name]
+Use the canonical template at:
 
-**Ticket**: [User story or ticket reference]
-**Autor**: [Team or person]
-**Fecha**: [Date]
-**Estado**: Borrador | En revisión | Aprobado
-
----
-
-## 1. Contexto y Objetivo
-
-[2-3 sentences: what problem this solves, what the user wants to achieve]
-
-> **Alcance estricto**: [Clear statement of what IS and is NOT in scope for this PRD]
-
-### Estado Actual
-
-| Capa                | Componente  | Archivo           |
-| ------------------- | ----------- | ----------------- |
-| [Model/Service/...] | [ClassName] | [path/to/file.rb] |
-
-### Columnas/Estado Actuales en [TableName]
-
-[List existing columns/fields relevant to the feature]
-
----
-
-## 2. Requerimientos Funcionales
-
-### 2.1 [Requirement Group 1]
-
-[Table of new columns, fields, or parameters]:
-
-| Campo origen | Campo BD | Tipo | Nullable | Descripción |
-| ------------ | -------- | ---- | -------- | ----------- |
-| ...          | ...      | ...  | ...      | ...         |
-
-### 2.2 Regla de Negocio: [Name]
-
-> **Decisión confirmada**: [Exact business rule, in one clear paragraph]
-
-**Condición de aplicación**: [When does the rule trigger?]
-**Entidad de agrupación**: [What identifies a group? e.g. (id_elemento, month)]
-**Campos afectados**: [Exhaustive list]
-**Campos NO afectados**: [Exhaustive list with reason]
-**Almacenamiento**: [What gets persisted — raw, computed, or both]
-
-### 2.3 Criterios de Aceptación
-
-| ID | Given | When | Then | Evidence expected |
-| --- | --- | --- | --- | --- |
-| AC-1 | [Precondition] | [Action/event] | [Observable result] | [Test/contract/smoke evidence] |
-
----
-
-## 3. Modelo de Datos
-
-### 3.1 Migración Requerida
-
-```ruby
-# Pseudo-code of migration
-add_column :table_name, :column_name, :type, default: nil
-```
-
-### 3.2 Diagrama de Flujo
-
-```
-[ASCII or Mermaid diagram of data flow: CSV → RowProcessor → DB → Service]
-```
-
----
-
-## 4. Plan de Implementación por Fases
-
-### Fase 1 — [Name]
-
-**Objetivo**: [One-sentence goal]
-
-**Slices ejecutables**:
-
-| ID | Outcome | Depends on | Scope / likely files | Acceptance criteria | Tests | Validation | Evidence |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| P1-S1 | [One small result] | none | [One responsibility] | AC-1 | [Focused test] | `[exact command]` | [Passing output/diff/check] |
-| P1-S2 | [Next small result] | P1-S1 | [One responsibility] | AC-2 | [Focused test] | `[exact command]` | [Passing output/diff/check] |
-
-**Slice stop conditions**:
-
-- [Condition that requires clarification or replanning]
-
-**Definition of Done**:
-
-- Every slice is `VERIFIED`, not merely implemented
-- Acceptance criteria assigned to this phase have evidence
-- Focused tests and validations pass
-- Relevant quality checks (contract, tenancy/auth, i18n, performance, rollback) are satisfied or explicitly not applicable
-- No deferred cleanup or unexplained failure is hidden inside the next phase
-
----
-
-### Fase 2 — [Name]
-
-Repeat the complete phase structure above. Do not replace executable slices with a broad deliverables list.
-
----
-
-### Fase Futura — [Name] _(fuera de alcance de este PRD)_
-
-> Será abordada en PRD separado.
-
-- [Brief description of what will come later]
-
----
-
-## 5. Decisiones Tomadas
-
-| #   | Pregunta                                | Respuesta     | Impacto en diseño              |
-| --- | --------------------------------------- | ------------- | ------------------------------ |
-| 1   | ¿Solo para tipo X o todos los soportes? | Todos         | División aplica genéricamente  |
-| 2   | ¿Almacenar cruda o dividida?            | Solo dividida | No se persisten valores crudos |
-| 3   | ¿Feature flag?                          | No            | Implementación directa         |
-
----
-
-## 6. Preguntas Abiertas
-
-| #   | Pregunta           | Bloquea | Área   |
-| --- | ------------------ | ------- | ------ |
-| 1   | [Pending question] | Sí/No   | fase X |
-
-_(Vacío = PRD listo para implementar)_
-
----
-
-## 7. Riesgos y Mitigaciones
-
-| Riesgo                                        | Probabilidad | Impacto | Mitigación                                                    |
-| --------------------------------------------- | ------------ | ------- | ------------------------------------------------------------- |
-| [e.g. División por cero si unique_people = 0] | Media        | Alto    | Guard in service: skip calculation if denominator is 0 or nil |
-
----
-
-## 8. Definition of Done Global
-
-- [ ] Todas las fases completadas
-- [ ] `bundle exec rails test` en verde
-- [ ] `bundle exec rubocop` sin offenses
-- [ ] Retrocompatibilidad: archivos sin columnas nuevas siguen importando
-- [ ] Columnas BD en inglés
-- [ ] Sin queries N+1
-- [ ] Errores capturados con `Errors::CaptureExceptionService`
-
----
-
-## 9. Matriz de Trazabilidad
-
-| Acceptance criterion | Phase / slice | Test evidence | Validation evidence | Status |
-| --- | --- | --- | --- | --- |
-| AC-1 | P1-S1 | [test path/name] | [command/check] | Pending |
-
-````
+`.agents/skills/01-product/create-prd/PRD_TEMPLATE.md`
 
 ---
 
