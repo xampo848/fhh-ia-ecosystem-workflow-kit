@@ -13,6 +13,14 @@ const skillCatalogPreservePaths = new Set([
   '.agents/skills/registry.md',
   '.agents/skills/registry.cache.json'
 ]);
+const protectedCustomizationPaths = new Set([
+  '.agents/instructions.md',
+  'AGENTS.md',
+  'CLAUDE.md',
+  'ANTIGRAVITY.md',
+  '.github/copilot-instructions.md',
+  '.github/instructions/ai-workflow.instructions.md'
+]);
 const docsReadmePath = 'docs/README.md';
 const docsWorkflowMarkerStart = '<!-- workflow-kit:docs-workflow:start -->';
 const docsWorkflowMarkerEnd = '<!-- workflow-kit:docs-workflow:end -->';
@@ -23,6 +31,28 @@ const runtimeTemplatePaths = {
   claude: ['runtime-adapters/claude'],
   antigravity: ['runtime-adapters/antigravity']
 };
+
+const backupModes = new Set(['required', 'none']);
+
+function normalizeBackupMode(value = 'required') {
+  const mode = String(value ?? 'required').trim();
+  if (!backupModes.has(mode)) {
+    throw new Error(`Unsupported backup mode: ${mode}`);
+  }
+  return mode;
+}
+
+function writeOperationForResolution(strategy, backupMode) {
+  if (strategy === 'merged') {
+    return backupMode === 'none' ? 'merge_no_backup' : 'merge_with_backup';
+  }
+
+  return backupMode === 'none' ? 'overwrite_no_backup' : 'overwrite_with_backup';
+}
+
+function isProtectedCustomizationPath(relativePath) {
+  return protectedCustomizationPaths.has(relativePath);
+}
 
 export function parseRuntimeList(value = 'neutral') {
   const runtimes = new Set(String(value).split(',').map((item) => item.trim()).filter(Boolean));
@@ -92,6 +122,7 @@ export async function buildInstallPlan(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   const runtimes = parseRuntimeList(options.runtime ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
+  const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
   const files = await selectedTemplateFiles({ runtimes, overlay });
   const discoveredSkillEntries = await collectDiscoveredLocalSkillEntries(targetPath);
   const operations = [];
@@ -128,7 +159,7 @@ export async function buildInstallPlan(options = {}) {
       } else if (existingContent === resolution.content) {
         operation = 'unchanged';
       } else {
-        operation = resolution.strategy === 'merged' ? 'merge_with_backup' : 'overwrite_with_backup';
+        operation = writeOperationForResolution(resolution.strategy, backupMode);
       }
     }
 
@@ -166,7 +197,9 @@ export async function buildInstallPlan(options = {}) {
     overlay,
     discoveredSkillEntries,
     operations,
-    summary: summarizeOperations(operations)
+    summary: summarizeOperations(operations),
+    backupMode,
+    previousStateFiles: {}
   };
 }
 
@@ -176,6 +209,7 @@ export async function buildUpdatePlan(options = {}) {
   const existingState = await readInstallState(stateFilePath);
   const runtimes = parseRuntimeList(options.runtime ?? existingState?.runtimes?.join(',') ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? existingState?.overlay ?? 'fhh-ia-ecosystem-full');
+  const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
   const files = await selectedTemplateFiles({ runtimes, overlay });
   const discoveredSkillEntries = await collectDiscoveredLocalSkillEntries(targetPath);
   const previousHashes = new Map(Object.entries(existingState?.files ?? {}));
@@ -255,17 +289,23 @@ export async function buildUpdatePlan(options = {}) {
     if (recordedChecksum) {
       const existingChecksum = computeChecksum(existingContent);
       if (existingChecksum !== recordedChecksum) {
-        const overwriteOperation = resolution.strategy === 'merged' ? 'merge_with_backup' : 'overwrite_with_backup';
+        const overwriteOperation = writeOperationForResolution(resolution.strategy, backupMode);
+        const shouldAutoMerge = resolution.strategy === 'merged';
+        const isProtectedCustomization = isProtectedCustomizationPath(file.relativePath);
+
         operations.push({
-          operation: options.overwriteModified ? overwriteOperation : 'skip_modified',
+          operation: shouldAutoMerge
+            ? overwriteOperation
+            : (isProtectedCustomization ? 'skip_modified' : (options.overwriteModified ? overwriteOperation : 'skip_modified')),
           relativePath: file.relativePath,
           targetFile,
           sourcePath: file.sourcePath,
-          content,
+          content: resolution.content,
           sourceChecksum,
           existingChecksum,
           recordedChecksum,
-          plannedChecksum: computeChecksum(resolution.content)
+          plannedChecksum: computeChecksum(resolution.content),
+          reason: isProtectedCustomization ? 'protected_customization' : undefined
         });
       } else if (existingContent === resolution.content) {
         operations.push({
@@ -279,7 +319,7 @@ export async function buildUpdatePlan(options = {}) {
         });
       } else {
         operations.push({
-          operation: resolution.strategy === 'merged' ? 'merge_with_backup' : 'overwrite_with_backup',
+          operation: writeOperationForResolution(resolution.strategy, backupMode),
           relativePath: file.relativePath,
           targetFile,
           sourcePath: file.sourcePath,
@@ -337,7 +377,29 @@ export async function buildUpdatePlan(options = {}) {
     overlay,
     discoveredSkillEntries,
     operations,
-    summary: summarizeOperations(operations)
+    summary: summarizeOperations(operations),
+    backupMode,
+    previousStateFiles: { ...(existingState?.files ?? {}) }
+  };
+}
+
+export function selectPlanOperations(plan, selectedRelativePaths = []) {
+  const selected = new Set(selectedRelativePaths);
+  const operations = plan.operations.filter((item) => selected.has(item.relativePath));
+
+  const nextInstallState = buildNextInstallState({
+    previousState: { files: { ...(plan.previousStateFiles ?? {}) } },
+    operations,
+    runtimes: plan.runtimes,
+    overlay: plan.overlay,
+    toolkitVersion: plan.toolkitVersion
+  });
+
+  return {
+    ...plan,
+    operations,
+    summary: summarizeOperations(operations),
+    nextInstallState
   };
 }
 
@@ -350,7 +412,9 @@ export function summarizeOperations(operations) {
     create: 0,
     unchanged: 0,
     merge_with_backup: 0,
+    merge_no_backup: 0,
     overwrite_with_backup: 0,
+    overwrite_no_backup: 0,
     skip_modified: 0,
     skip_unmanaged: 0,
     adopt_existing: 0
@@ -378,7 +442,7 @@ export function formatPlan(plan) {
     lines.push(`- ${item.operation}: ${item.relativePath}`);
   }
 
-  lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, merge_with_backup=${plan.summary.merge_with_backup}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}`);
+  lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, merge_with_backup=${plan.summary.merge_with_backup}, merge_no_backup=${plan.summary.merge_no_backup}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, overwrite_no_backup=${plan.summary.overwrite_no_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}`);
   return lines.join('\n');
 }
 

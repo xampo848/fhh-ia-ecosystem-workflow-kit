@@ -40,6 +40,14 @@ test('parseArgs parses upgrade ref and package manager flags', () => {
   assert.equal(options.yes, true);
 });
 
+test('parseArgs parses backup mode for install and update flows', () => {
+  const initOptions = parseArgs(['init', '--backup-mode', 'none']);
+  const updateOptions = parseArgs(['update', '--backup-mode', 'required']);
+
+  assert.equal(initOptions.backupMode, 'none');
+  assert.equal(updateOptions.backupMode, 'required');
+});
+
 test('parseArgs marks help flag for --help and -h', () => {
   assert.equal(parseArgs(['init', '--help']).help, true);
   assert.equal(parseArgs(['init', '-h']).help, true);
@@ -58,4 +66,5 @@ test('printHelp documents all commands', () => {
   assert.match(help, /workflow-kit export/);
   assert.match(help, /workflow-kit doctor/);
   assert.match(help, /workflow-kit tui/);
+  assert.match(help, /--backup-mode required\|none/);
 });
