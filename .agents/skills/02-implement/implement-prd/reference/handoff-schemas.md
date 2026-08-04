@@ -83,6 +83,7 @@ quality_gate:
 trade_off: <decision taken> | none
 learning: <concept>,<why-it-matters-in-fhh-ia-ecosystem> | none
 residual_risks[N]: <risk description> | none
+edge_cases_covered[N]: <scenario and evidence> | none
 next: validation-runner | contract-verifier | none
 ```
 
@@ -114,6 +115,7 @@ quality_gate:
 trade_off: <decision taken> | none
 learning: <concept>,<why-it-matters-in-fhh-ia-ecosystem> | none
 residual_risks[N]: <risk description> | none
+edge_cases_covered[N]: <scenario and evidence> | none
 next: validation-runner | contract-verifier | none
 ```
 
@@ -133,6 +135,7 @@ commands_executed[N]: <command>
 validation_result: PASS | FAIL
 passing_tests[N]: <test name>
 criteria_uncovered[N]: <ac-id and reason> | none
+edge_cases_covered[N]: <scenario and evidence> | none
 residual_risks[N]: <risk description> | none
 next: validation-runner | none
 ```
@@ -172,6 +175,8 @@ commands_executed[N]: <command>
 validation_result: PASS | FAIL
 failures[N]{file,error}: <path>,<error description> | none
 fixes_applied[N]{file,change}: <path>,<change description> | none
+regression_checks[N]: <command or scenario proved> | none
+standards_checks[N]: <instruction or gate checked> | none
 residual_risks[N]: <risk description> | none
 next: none | qa-handoff-review
 ```
@@ -191,6 +196,14 @@ findings[N]{severity,file,description,pattern_protected}:
 ac_evidence: COMPLETE | INCOMPLETE
 ac_gaps[N]: <ac-id and gap description> | none
 validation_status: PASS | FAIL | PARTIAL
+regression_status: PASS | FAIL | PARTIAL
+regression_gaps[N]: <scenario and gap> | none
+standards_status: PASS | FAIL | PARTIAL
+standards_gaps[N]: <rule and gap> | none
+test_gap_status: PASS | FAIL | PARTIAL
+test_gaps[N]: <missing test and why it matters> | none
+edge_case_status: PASS | FAIL | PARTIAL
+edge_case_gaps[N]: <scenario and gap> | none
 residual_risks[N]: <risk description> | none
 teaching_note: <concept>,<why-it-matters-in-fhh-ia-ecosystem>
 ready_to_close: yes | no
@@ -205,3 +218,4 @@ next: none | <specific follow-up>
 - Use `| none` for optional fields that have no value.
 - Do not add markdown prose or section headers to the handoff. Return the raw TOON block only.
 - The orchestrator will treat any missing required field as a `blocked` status and halt.
+- For closure, any `FAIL`, `PARTIAL`, `INCOMPLETE`, or `no` value in required QA fields blocks completion until the owning slice is repaired and the affected validation/QA is rerun.

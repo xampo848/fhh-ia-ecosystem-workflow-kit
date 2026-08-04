@@ -46,6 +46,19 @@ Before marking any implementation slice complete, validate the code quality gate
 
 Validation output must include a quality gate result in the delegate handoff or final response.
 
+## Production-Ready Closure Gate
+
+Before marking any PRD implementation done, record and satisfy all of these gates:
+
+- Acceptance criteria gate: every criterion is complete with code/test/validation/smoke evidence, or explicitly blocked with named residual risk.
+- Regression gate: the changed behavior and the most plausible adjacent regressions were checked with the narrowest reliable validation.
+- Standards gate: project patterns, code quality, and domain instructions pass without unresolved exceptions.
+- Test gate: required tests exist for the slice; any missing tests are justified concretely or block closure.
+- Edge-case gate: relevant empty, error, boundary, permission, rollout, migration, and failure states are verified or block closure.
+- QA gate: final QA ends with `ready_to_close: yes`.
+
+If any gate is `FAIL`, `PARTIAL`, `INCOMPLETE`, `MISSING`, or unsupported by evidence, closure is blocked and the workflow must return to the owning slice.
+
 ## Phase And Global Rules
 
 - A slice is complete only in state `VERIFIED`, after `IMPLEMENTED`, `TESTED`, and `VALIDATED` evidence is recorded.
@@ -60,6 +73,7 @@ Validation output must include a quality gate result in the delegate handoff or 
 - At the end, validate the global Definition of Done from the PRD.
 - Acceptance criteria require evidence: code path, test, validation output, smoke verification, or an explicit residual risk.
 - Code quality criteria require evidence: existing pattern reused, hardcoding check, SOLID/DRY/KISS notes, and new abstraction rationale if any.
+- Never treat "all current commands passed" as sufficient proof of production readiness when regressions, standards compliance, tests, or edge cases remain unverified.
 
 ## Stop Conditions
 
@@ -76,6 +90,7 @@ Stop and ask the user before continuing when:
 - The implementation would introduce a new abstraction not requested by the PRD.
 - A simpler existing pattern exists but the slice appears to require a divergent design.
 - The agent cannot map an acceptance criterion to testable evidence.
+- Any production-ready closure gate is unresolved: acceptance criteria, regressions, standards, tests, edge cases, or QA readiness.
 - The fix requires changing behavior outside the PRD's stated scope.
 - The agent would need to overwrite or revert unrelated user or agent changes.
 - The slice requires hardcoding a value that should belong in i18n, design tokens, config, constants, enums, permissions, serializers, environment variables, factories, or fixtures.
@@ -125,4 +140,5 @@ When resuming a partial PRD implementation:
 - Duplicating business rules, enum mappings, contract shapes, permission checks, or data transformations.
 - Marking acceptance criteria as complete without evidence.
 - Marking a slice complete without a code quality gate result.
+- Closing the PRD while any QA checklist item is incomplete, waived without evidence, or still phrased as a TODO.
 - Asking the user to approve routine phase transitions when autonomous-safe mode was requested.

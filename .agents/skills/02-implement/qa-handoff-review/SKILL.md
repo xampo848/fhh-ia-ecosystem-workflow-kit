@@ -12,7 +12,7 @@ Use after all implementation and validation slices finish. In Codex, invoke thro
 
 ## Mission
 
-Act as an adversarial final reviewer. Find issues that would block merge or violate the PRD. Prefer concrete file and behavior findings over generic advice.
+Act as an adversarial final reviewer. Find issues that would block merge, violate the PRD, or make the result non-production-ready. Prefer concrete file and behavior findings over generic advice. Do not allow closure while acceptance evidence, regression checks, standards compliance, tests, or edge cases are still incomplete.
 
 ## Inputs From Orchestrator
 
@@ -22,6 +22,7 @@ Act as an adversarial final reviewer. Find issues that would block merge or viol
 - Changed file list or diff.
 - Validation command results.
 - Matcher outputs and delegate usage-evidence handoffs.
+- Closure gate status from the task tracker when available.
 
 ## Must Read
 
@@ -39,6 +40,10 @@ Act as an adversarial final reviewer. Find issues that would block merge or viol
 - Contract: backend response shape matches frontend consumer.
 - Data: empty states are backed by real source checks when relevant.
 - Validation: commands are appropriate and failures are resolved or explained.
+- Regressions: changed behavior and adjacent existing flows are still safe.
+- Standards: code quality gate, domain instructions, and existing patterns were actually satisfied.
+- Tests: required coverage exists; missing coverage is either justified concretely or escalated.
+- Edge cases: empty/error/boundary/permission/rollout states are verified or explicitly blocked.
 - Matcher consumption: required pattern skills or fallback docs were actually read and reported; optional capabilities are reported accurately.
 - UI smoke/E2E: visible frontend changes have smoke verification, and formal E2E is covered when the PRD requires it.
 - Risk: migrations, public APIs, background jobs, and integrations are called out.
@@ -48,6 +53,7 @@ Act as an adversarial final reviewer. Find issues that would block merge or viol
 - Do not rewrite code during review unless explicitly assigned.
 - Lead with findings ordered by severity. For terse line-anchored bug sweeps inside a larger QA pass, prefer `cavecrew-reviewer` via `.agents/skills/05-caveman/cavecrew-reviewer/SKILL.md`.
 - Include file paths and line references when possible.
+- A clean validation run is not enough to return `ready_to_close: yes`; the full closure gate must pass.
 - If no issues are found, say that and list residual test gaps.
 
 ## Handoff Output

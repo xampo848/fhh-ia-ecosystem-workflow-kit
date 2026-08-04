@@ -5,7 +5,7 @@ argument-hint: "Path to the PRD file, for example docs/prd/github-intelligence/2
 license: MIT
 metadata:
   author: fhh-ia-ecosystem
-  version: "2.5"
+  version: "2.6"
 ---
 
 # Implement PRD
@@ -66,6 +66,8 @@ Choose the smallest mode that can safely satisfy the PRD.
 18. Treat phases as milestones and slices as the executable unit. Never compensate for coarse tasks by validating only at phase end.
 19. A dependent slice starts only after its predecessor is `VERIFIED`: implementation, focused tests, relevant validation, quality checks, and acceptance evidence are all present.
 20. For any architectural replacement, cutover, snapshot/read-model migration, or persisted read-path change, implementation is not closable until **activation on existing data** is handled explicitly: bootstrap/backfill/repair path, rollout command, recovery path, and at least one real-data smoke check or equivalent operational verification.
+21. Production-ready closure is a hard gate, not a best-effort aspiration: do not stop at "implemented and tests pass" while any acceptance gap, regression risk, standards violation, missing test, or unreviewed edge case remains open.
+22. Final QA is mandatory for every mode. The only variance is whether it runs inline or through a fresh-context reviewer; closure never skips the QA checklist itself.
 
 ## Delegation Heuristics
 
@@ -129,7 +131,7 @@ Load [reference/orchestration-flow.md](reference/orchestration-flow.md) only whe
 Right-sized flow:
 
 1. `small/local` - inline readiness, target read, edit, focused validation, close.
-2. `controlled-lite` - compact readiness/discovery/slicing preflight; one owner per slice; focused validation; skip final QA unless risk warrants it.
+2. `controlled-lite` - compact readiness/discovery/slicing preflight; one owner per slice; focused validation; mandatory QA checklist and closure evidence; escalate to fresh-context QA when risk triggers fire.
 3. `controlled-implementation` - targeted delegation for readiness/discovery/slicing/matching/implementation/validation where delegation lowers risk; no ceremonial subagents.
 4. `standard` and `autonomous-safe` - full delegated flow:
    - `prd-readiness-review` - Capitana Alcance.
@@ -140,7 +142,7 @@ Right-sized flow:
    - `contract-verifier` whenever backend responses feed frontend behavior.
    - `validation-runner` after each meaningful slice.
    - For non-trivial visible frontend UI, run `frontend-design` before coding when direction is not already sharp, and run `impeccable` before closure when premium craft or visual QA is still material.
-   - `qa-handoff-review` before final delivery for non-trivial or cross-layer work.
+  - `qa-handoff-review` before final delivery for non-trivial work and whenever closure needs a fresh-context adversarial review.
    - `react-doctor` after meaningful React changes; `playwright-testing` when formal E2E coverage is requested or required.
    - `document-development` as the next expected skill after implementation closure when durable knowledge changed.
 5. Before closure of any data-activation or cutover slice, verify the surface against **existing realistic data**, not only factories/fixtures. If direct environment verification is impossible, the handoff must include an executable repair/bootstrap command and a clearly named unverified risk.
@@ -148,7 +150,7 @@ Right-sized flow:
 Mode-specific execution:
 
 - In `small/local`, run readiness/discovery inline and skip delegation. This is the only mode where the task tracker may be skipped.
-- In `controlled-lite`, run a compact preflight inline or through one lightweight delegate. Run matcher inline or through one lightweight delegate when slice-to-pattern-skill matching reduces ambiguity, protects the context budget, or is needed to select exact reusable skill paths before coding. Record whether matching happened or was intentionally skipped. Implement inline or with one owner delegate per slice only after matcher output or explicit skip rationale exists. Do not invoke QA handoff, React doctor, Playwright, or document-development by default unless risk warrants it.
+- In `controlled-lite`, run a compact preflight inline or through one lightweight delegate. Run matcher inline or through one lightweight delegate when slice-to-pattern-skill matching reduces ambiguity, protects the context budget, or is needed to select exact reusable skill paths before coding. Record whether matching happened or was intentionally skipped. Implement inline or with one owner delegate per slice only after matcher output or explicit skip rationale exists. Always complete the QA checklist and closure checklist before closing; invoke QA handoff whenever the slice is not trivially local, changes contracts, touches user-visible behavior, or leaves any uncertainty about regressions, standards, tests, or edge cases.
 - In `controlled-implementation`, use delegates selectively for phases or slices where independent context, file ownership, or validation evidence reduces risk. Delegates may use cavecrew helpers for narrow locate/edit/review subtasks when that reduces context without changing ownership.
 - In `standard`, use the full delegated flow when available. Treat matcher completion as a blocking phase before any coding delegate starts on dependent slices.
 - In `standard`, the existence of multiple phase skills is itself a signal to keep the work partitioned unless a clearly documented exception says otherwise.
@@ -207,6 +209,19 @@ Keep it short. The goal is to improve the developer's judgment without slowing d
 
 Stop and ask the user before continuing when any stop condition in [reference/validation-and-stop-conditions.md](reference/validation-and-stop-conditions.md) applies.
 In autonomous-safe mode, this is the only required user gate.
+
+## Mandatory Closure Contract
+
+Do not declare the PRD complete until all of these are explicitly true:
+
+1. Every acceptance criterion is `COMPLETE` with linked evidence, or is called out as an intentional residual risk accepted by the user.
+2. Regression-sensitive behavior adjacent to the change has been checked, not just the happy path that was edited.
+3. The code-quality gate and project standards pass with evidence, not narrative confidence.
+4. Missing tests are either added, proven unnecessary with a concrete reason, or escalated as a blocker.
+5. Relevant edge cases, failure states, empty states, and rollout/cutover scenarios are verified or explicitly blocked.
+6. Final QA ends in `ready_to_close: yes`.
+
+If any item above is incomplete, the orchestrator must loop back through the owning slice, rerun the affected validation, and rerun QA until the checklist is satisfied.
 
 ## Final Response
 

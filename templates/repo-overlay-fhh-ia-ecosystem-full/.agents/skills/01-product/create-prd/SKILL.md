@@ -74,6 +74,12 @@ Before writing a single line of PRD, explore the relevant parts of the codebase:
 - Existing DB schema columns for affected tables (`db/schema.rb`)
 - Related tests to understand expected behaviors (`test/`)
 
+**Reference artifact calibration:**
+
+- If the repo already contains a recent PRD for a comparable scope, read exactly one as a structure anchor before drafting.
+- Use that anchor to calibrate tone, section density, table depth, and acceptance evidence expectations.
+- Do not copy business content from the anchor PRD. Reuse only structural patterns that improve consistency.
+
 **Key questions to answer from code:**
 
 - What columns already exist vs. need to be added?
@@ -243,6 +249,17 @@ Use the canonical template at:
 
 `.agents/skills/01-product/create-prd/PRD_TEMPLATE.md`
 
+## 🎯 Output Quality Bar
+
+The final PRD must read like a repository-native planning artifact, not a generic requirements dump.
+
+- The opening context should explain the real problem, why it matters now, and the strict scope boundary in concrete terms.
+- Current-state tables should name actual repo artifacts, not placeholders, whenever the exploration phase found them.
+- Requirement sections should state confirmed behavior, not hedged guesses.
+- Phase plans should feel implementable by `implement-prd` without inventing missing behavior, validation, or ownership boundaries.
+- Risks, future scope, and open questions should be specific enough that a reviewer can challenge them.
+- The document should be as short as the scope allows, but never so compressed that acceptance, sequencing, or evidence become ambiguous.
+
 ---
 
 ## 🔄 Iteration Rules
@@ -263,7 +280,10 @@ Before considering a PRD complete, verify:
 
 - [ ] No open questions remain
 - [ ] Scope is unambiguous (what IS and IS NOT included is explicit)
+- [ ] If a comparable repo PRD existed, one anchor artifact was used to calibrate structure and depth
 - [ ] All DB columns and Ruby identifiers are in English
+- [ ] The opening context explains problem, urgency, and scope without generic filler
+- [ ] Current-state tables reference real repo files or explicitly state when evidence was unavailable
 - [ ] Each phase has its own Definition of Done
 - [ ] Every non-trivial phase is decomposed into small executable slices, or its atomic exception is justified
 - [ ] Every slice has outcome, dependency, scope boundary, tests, exact validation, evidence, and stop conditions
@@ -277,6 +297,16 @@ Before considering a PRD complete, verify:
 - [ ] Data model section shows the migration pseudo-code
 - [ ] The flow diagram shows how data moves end-to-end
 - [ ] Verify against docs/architecture for any relevant patterns and standards to follow
+
+## 🧪 Final Self-Review
+
+Before delivering the PRD, challenge it with these checks:
+
+- Would `implement-prd` need to invent behavior, ownership, or validation details that the PRD should already specify?
+- Are any phases acting as large buckets instead of milestone boundaries with executable slices?
+- Does any acceptance criterion lack a concrete evidence path?
+- Could a reviewer clearly separate current scope, future scope, and blocked unknowns?
+- If this PRD replaced a similar one in the repo, would it look consistent in structure and rigor?
 
 
 ---

@@ -39,6 +39,24 @@ slices[N]{name,owner,files_owned,status,ac_covered}:
 # open_risks
 open_risks[N]: <description>
 
+# qa_gate
+qa_gate:
+  acceptance_criteria: COMPLETE | INCOMPLETE
+  regressions: PASS | FAIL | PARTIAL
+  standards: PASS | FAIL | PARTIAL
+  tests: PASS | FAIL | PARTIAL
+  edge_cases: PASS | FAIL | PARTIAL
+  ready_to_close: yes | no
+
+# closure_gate
+closure_gate[N]{item,status,evidence}:
+  acceptance-criteria,NOT_STARTED,none
+  regressions,NOT_STARTED,none
+  standards,NOT_STARTED,none
+  tests,NOT_STARTED,none
+  edge-cases,NOT_STARTED,none
+  qa-readiness,NOT_STARTED,none
+
 # handoff_log
 handoff_log[N]{phase,agent,timestamp,status,notes}:
   <phase>,<agent>,<ISO-datetime>,<VERIFIED|IMPLEMENTED|BLOCKED>,<brief>
@@ -63,3 +81,4 @@ handoff_log[N]{phase,agent,timestamp,status,notes}:
 - Distinguish slicing, matcher, and implementation handoffs in `handoff_log`.
 - Add to `open_risks` whenever a subagent returns a risk.
 - Mark `evidence` in `ac` when the acceptance criterion has concrete proof (test path, validation output, or explicit residual risk).
+- Update `qa_gate` and `closure_gate` after validation and QA; Phase 8 cannot be `VERIFIED` while any item is not passing with evidence.
