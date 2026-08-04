@@ -11,9 +11,9 @@ Before Phase 0, confirm the operating mode selected by the router or by `impleme
 | Mode | Execution contract |
 | --- | --- |
 | `small/local` | Inline only. No subagents. Validate the narrow local change and close. Task tracker may be skipped. |
-| `controlled-lite` | Compact preflight, one owner per slice, focused validation. Inline execution is allowed when it preserves one-writer ownership and context budget. Skip ceremonial subagents and final QA unless risk warrants them. |
+| `controlled-lite` | Compact preflight, one owner per slice, focused validation. Inline execution is allowed when it preserves one-writer ownership and context budget. Skip ceremonial subagents, but never skip the QA checklist or closure evidence. |
 | `controlled-implementation` | Targeted delegation. Delegate phases or slices when independent context, file ownership, validation, or review bias reduction materially lowers risk. Do not delegate merely because the task is non-trivial. |
-| `standard` | Full delegated flow when available. Use explicit ownership, contract verification, validation runner, and QA handoff when risk warrants it. |
+| `standard` | Full delegated flow when available. Use explicit ownership, contract verification, validation runner, and QA handoff as a closure gate. |
 | `autonomous-safe` | Standard flow without routine phase approvals. Stop only on stop conditions. |
 | `resume` | Reconstruct progress from PRD, diff, tests, and first incomplete acceptance criterion. Do not re-implement validated work. |
 
@@ -167,13 +167,25 @@ For frontend React changes, run `react-doctor` after meaningful implementation o
 
 Validation output must be captured as evidence. Do not mark an acceptance criterion complete from confidence alone.
 
+Validation must prove both the changed behavior and the most plausible adjacent regression paths. If the focused command only proves the happy path, add the narrowest extra check that could falsify regressions, missing standards enforcement, or relevant edge conditions.
+
 ## Phase 6: Final QA
 
-Delegate to `qa-handoff-review` for standard PRDs, cross-layer work, security/tenancy-sensitive work, or any diff that would benefit from fresh-context review. Do not run QA handoff by default for `small/local`, `controlled-lite`, or low-risk `controlled-implementation` unless risk warrants it. Inside review-only sweeps, prefer `cavecrew-reviewer` when terse line-anchored findings are enough.
+Run a final QA checklist for every PRD implementation before closure. Delegate to `qa-handoff-review` for standard PRDs, cross-layer work, security/tenancy-sensitive work, contract changes, user-visible changes, rollout-sensitive work, or any diff that would benefit from fresh-context review. Inline QA is allowed only for strictly local low-risk slices where the orchestrator can still prove the full checklist. Inside review-only sweeps, prefer `cavecrew-reviewer` when terse line-anchored findings are enough.
 
 If findings are returned, fix them through the relevant owner skill or inline with explicit ownership, then re-run the affected validation.
 
+The QA checklist must explicitly answer all of these before closure:
+
+- Acceptance criteria: complete or blocked with evidence.
+- Regressions: checked on adjacent flows and existing consumers.
+- Standards: project rules and quality gate pass without unresolved violations.
+- Tests: required coverage exists; missing coverage is justified or blocked.
+- Edge cases: relevant empty/error/boundary/rollout states are verified or blocked.
+
 QA review should report findings and also explain the pattern being protected, so it reinforces learning instead of only listing defects.
+
+Do not advance to closure while QA reports `ready_to_close: no`, `validation_status: FAIL | PARTIAL`, incomplete acceptance evidence, unresolved regressions, unresolved standards gaps, missing required tests, or unreviewed edge cases.
 
 ## Phase 7: Closure
 
@@ -185,5 +197,7 @@ Global closure checklist:
 - Run lint checks for touched files when available and relevant.
 - Validate the global Definition of Done from the PRD.
 - If frontend UI changed, perform smoke verification and use `playwright-testing` when formal E2E is required.
+- Confirm the QA checklist status for acceptance criteria, regressions, standards, tests, and edge cases is fully resolved.
+- If any closure item fails, return to the owning slice, fix the root cause, rerun the affected validation, and rerun QA before attempting closure again.
 - Summarize PRD phases completed, files changed, tests/lint results, acceptance criteria coverage, key trade-offs, learning notes, and open risks.
 - Recommend `document-development` only when implementation knowledge should be captured; do not force documentation handoff for small/local, controlled-lite, or controlled closures with no durable knowledge value.
