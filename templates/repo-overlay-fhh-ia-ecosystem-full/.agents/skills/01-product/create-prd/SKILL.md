@@ -53,6 +53,17 @@ Use this skill when:
 - Do not start `Phase 3` before receiving and processing `Phase 2` answers.
 - If information is missing, stop and ask targeted questions; do not bypass the gate.
 
+### Hard Gate: Use Cases, Test Strategy, and Edge Cases Are Non-Optional
+
+A PRD is never "ready to implement" on AC alone. Before delivering the final PRD:
+
+- Every PRD must contain a **Casos de Uso** table, a **Estrategia de Tests** table, and a **Matriz de Edge Cases** table (see Phase 3 and the canonical template).
+- Every acceptance criterion must link to at least one use case; every use case must link to at least one AC.
+- Every use case must link to at least one test in the test-strategy table.
+- The edge-case matrix must cover all six mandatory categories (datos vacíos, límites, errores, permisos/tenancy, concurrencia/orden, rollout/rollback). A category may be marked `No aplica` only with a one-line justification tied to the actual scope.
+- If any AC, use case, or edge-case category has no mapped row, stop drafting and either fill the gap or ask the user a targeted question. Do not deliver a PRD with an unmapped row and no justification.
+- This gate is verified again in the Quality Checklist and Final Self-Review before delivery.
+
 ### Phase\
  1: Codebase Exploration
 
@@ -163,6 +174,34 @@ Additional required sections:
 - Lifecycle rules
 - Tenant integrity rules
 - Cross-context dependency rules
+- Casos de Uso table (mandatory, see below)
+- Estrategia de Tests table (mandatory, see below)
+- Matriz de Edge Cases table (mandatory, see below)
+
+### Casos de Uso (mandatory)
+
+Every PRD must declare a canonical, verifiable use-case ledger before it can be considered ready to implement.
+
+- Format: `ID | Actor | Precondiciones | Flujo principal | Resultado observable (falsable) | AC vinculado`.
+- Every use case states at least one falsifiable observable result — not a vague intention.
+- Every use case links to one or more acceptance criteria; every acceptance criterion for a core behavior links to at least one use case.
+- Cover every actor/flow the PRD scope introduces or changes, including secondary actors (admin, background job, external system) when they participate in the flow.
+
+### Estrategia de Tests (mandatory)
+
+Tests are part of the design, not a follow-up activity.
+
+- Format: `Nivel (unidad/integración/contrato/smoke/e2e) | Objetivo | Caso de uso vinculado | Cobertura esperada | Comando o mecanismo de validación`.
+- Every use case links to at least one row in this table.
+- Each slice in the implementation plan must inherit its relevant rows from this table (see Section 4 slice fields).
+
+### Matriz de Edge Cases (mandatory)
+
+Edge cases must be classified and traceable, not merely narrated in prose.
+
+- Mandatory categories: **datos vacíos**, **límites**, **errores**, **permisos/tenancy**, **concurrencia/orden**, **rollout/rollback**.
+- Format: `Categoría | Descripción | Caso de uso vinculado | Validación (test/contrato/smoke/evidencia manual justificada) | Estado`.
+- Every row maps to at least one validation mechanism. A category with no applicable case must say `No aplica` plus a one-line reason grounded in the actual scope — never a silent omission.
 
 ### Required architectural rules
 
@@ -232,12 +271,16 @@ Each execution slice must state:
 | Scope | Exact responsibility and likely files/components |
 | Out of scope | Adjacent work this slice must not absorb |
 | Acceptance criteria | PRD criterion IDs covered |
-| Tests | Focused automated tests to add or update |
+| Use cases | PRD use-case IDs (`UC-N`) this slice implements or verifies |
+| Tests | Focused automated tests to add or update, inherited from the PRD Estrategia de Tests rows for the linked use cases |
 | Validation | Exact narrow command or check |
 | Quality checks | Relevant tenancy, auth, i18n, contract, performance, SOLID/DRY/KISS checks |
+| Edge cases | PRD edge-case matrix rows this slice must satisfy, if any |
 | Evidence | Artifact/output needed to mark the slice verified |
 | Stop conditions | Ambiguities or failures that prohibit continuing |
 | Activation | Existing-data bootstrap/backfill/repair step, deploy command, smoke target, rollback note |
+
+Every acceptance criterion, use case, test-strategy row, and edge-case row declared in the PRD must appear in at least one slice's fields above. A row with no owning slice is a traceability gap and must be resolved before the plan is considered complete.
 
 ### Slice completion state
 
@@ -291,6 +334,9 @@ Before considering a PRD complete, verify:
 
 - [ ] No open questions remain
 - [ ] Scope is unambiguous (what IS and IS NOT included is explicit)
+- [ ] Casos de Uso table exists, every AC links to a use case, and every use case links back to an AC
+- [ ] Estrategia de Tests table exists and every use case links to at least one test row
+- [ ] Matriz de Edge Cases table covers all six mandatory categories, each mapped to a validation mechanism or an explicit `No aplica` with justification
 - [ ] When a parent epic exists, every inherited invariant ID maps to an acceptance criterion and no contradiction lacks an approved change request
 - [ ] If a comparable repo PRD existed, one anchor artifact was used to calibrate structure and depth
 - [ ] All DB columns and Ruby identifiers are in English
@@ -317,6 +363,8 @@ Before delivering the PRD, challenge it with these checks:
 - Would `implement-prd` need to invent behavior, ownership, or validation details that the PRD should already specify?
 - Are any phases acting as large buckets instead of milestone boundaries with executable slices?
 - Does any acceptance criterion lack a concrete evidence path?
+- Does any acceptance criterion or use case lack a linked test or edge case where one would be expected?
+- Does the edge-case matrix leave a mandatory category unmapped without justification?
 - Could a reviewer clearly separate current scope, future scope, and blocked unknowns?
 - If this PRD replaced a similar one in the repo, would it look consistent in structure and rigor?
 
@@ -343,6 +391,8 @@ Before delivering the PRD, challenge it with these checks:
 - Using ad-hoc enums instead of `enumerate_it`.
 - Using inconsistent table naming strategies.
 - Treating “phase” and “execution slice” as synonyms.
+- Delivering a PRD with acceptance criteria but no explicit Casos de Uso, Estrategia de Tests, or Matriz de Edge Cases tables.
+- Leaving an acceptance criterion, use case, or mandatory edge-case category unmapped without an explicit justification.
 - Creating only two or three large phases whose tasks still span multiple contracts or risks.
 - Adding arbitrary phases instead of splitting work at failure, ownership, contract, or validation boundaries.
 - Deferring tests, lint, contract checks, or quality review until the end of the PRD.

@@ -1,0 +1,39 @@
+# execution_lock
+lock_id: prd-use-cases-tests-edge-cases-gate-2026-08-05
+prd_path: docs/prd/workflow-skills/2026-08-04-prd-use-cases-tests-edge-cases-gate/prd-use-cases-tests-edge-cases-gate.md
+mode: controlled-implementation
+started: 2026-08-05T00:00:00Z
+closure_authority: this-file
+git_tracking: required
+base_revision: 33c6421
+delegation: avoided
+delegation_reason: single writer, one surface (skills/templates docs), focused validation via existing bun scripts; no cross-layer app code, no hazards from the standard hazard list
+
+# slices
+slices[7]{slice_id,status,hazards,selected_patterns,required_checks,evidence_state,waiver_state,validated_file_scope,command_scope_confirmed}:
+  P1-S1,VERIFIED,workflow-closure-semantics,none,bun-run-check-docs,fresh,none,.agents/skills/01-product/create-prd/SKILL.md;.agents/skills/01-product/create-prd/PRD_TEMPLATE.md,yes
+  P1-S2,VERIFIED,workflow-closure-semantics,none,bun-run-check-docs,fresh,none,.agents/skills/01-product/create-prd/PRD_TEMPLATE.md;.agents/skills/01-product/create-prd/SKILL.md,yes
+  P1-S3,VERIFIED,workflow-closure-semantics,none,bun-run-check-workflow,fresh,none,.agents/skills/01-product/create-prd/SKILL.md,yes
+  P2-S1,VERIFIED,canonical-contract-alignment,none,bun-run-check-workflow,fresh,none,.agents/skills/02-implement/implementation-slicing/SKILL.md,yes
+  P2-S2,VERIFIED,canonical-contract-alignment,none,bun-run-check-workflow,fresh,none,.agents/skills/02-implement/implement-prd/SKILL.md,yes
+  P2-S3,VERIFIED,canonical-contract-alignment,none,bun-run-check-workflow,fresh,none,.agents/skills/02-implement/qa-handoff-review/SKILL.md,yes
+  P3-S1,VERIFIED,none,none,node-test-workflow-contract;node-test-turn-routing-contract,fresh,none,test/workflow-contract.test.mjs,yes
+
+# evidence
+validation_commands[5]:
+  bun run check:docs
+  bun run check:workflow
+  node --test test/workflow-contract.test.mjs test/turn-routing-contract.test.mjs
+  bun run check:legal
+  bun run test
+validated_content_ref: files-sha256:a76debd354ae7064c6dcdc82821274b8d4ac9f64d7bf3ba6b786e95a5aaa6a97
+final_regression: PASS-129/129-node-test
+waivers[1]: bun run check:legal fails on pre-existing overlay-authorship.json drift (fileCount 96 recorded vs 98 actual) that predates this PRD's base_revision 33c6421; confirmed via git stash reproduction on unmodified HEAD. Out of scope for this PRD; waived_by_user pending, flagged as follow-up.
+
+# qa_gate
+acceptance_criteria: COMPLETE
+regressions: PASS
+standards: PASS
+tests: PASS
+edge_cases: PASS
+ready_to_close: yes

@@ -44,8 +44,17 @@ Act as an adversarial final reviewer. Find issues that would block merge, violat
 
 1. Validate the preconditions. If acceptance evidence, changed scope, or required validation output is absent, skip directly to the incomplete-evidence decision.
 2. Read the PRD acceptance criteria, applicable instructions, matcher output, slice reports, and changed scope.
-3. Review the ordered closure gates: PRD scope and acceptance evidence; validation and regressions; standards and existing patterns; required tests; relevant edge cases and delivery risks.
+3. Review the ordered closure gates: PRD scope and acceptance evidence; use-case-to-test traceability; edge-case coverage by category; validation and regressions; standards and existing patterns; required tests; relevant edge cases and delivery risks.
 4. Compare every gate result with the TOON handoff fields, then make exactly one decision for this review run.
+
+### Edge-Case Coverage Gate
+
+When the PRD defines a Matriz de Edge Cases, report coverage explicitly by category, not as a single pass/fail aggregate:
+
+- Check each of the six mandatory categories (datos vacíos, límites, errores, permisos/tenancy, concurrencia/orden, rollout/rollback) against the PRD matrix and the implementation evidence.
+- A category is `PASS` only when every PRD row for it has concrete validation evidence (test, contract, smoke, or an explicit user-accepted manual justification).
+- A category is a `gap` when a PRD row lacks evidence, or the PRD marks it `No aplica` without a justification grounded in actual scope.
+- `ready_to_close: yes` is not allowed while a critical-category gap is open and unaccepted. Name the exact category and missing row in the review output.
 
 ### Decision And Re-entry
 
@@ -66,6 +75,8 @@ The reviewer does not retry automatically. A re-entry is valid only after the na
 Use this checklist as coverage for the mandatory procedure; it does not replace the ordered gates or decision.
 
 - PRD scope: no missing acceptance criteria and no unrequested expansion.
+- Use cases: every PRD use case links to an implemented/verified slice and at least one executed test; report orphans by ID.
+- Edge cases: every mandatory category (datos vacíos, límites, errores, permisos/tenancy, concurrencia/orden, rollout/rollback) is reported `PASS` or `gap` by name; empty/error/boundary/permission/rollout states are verified or explicitly blocked.
 - Backend: service boundaries, CanCanCan, tenancy, i18n, Minitest.
 - Frontend: hooks/API modules, design system, i18n, tokens, tests.
 - Contract: backend response shape matches frontend consumer.
@@ -74,7 +85,6 @@ Use this checklist as coverage for the mandatory procedure; it does not replace 
 - Regressions: changed behavior and adjacent existing flows are still safe.
 - Standards: code quality gate, domain instructions, and existing patterns were actually satisfied.
 - Tests: required coverage exists; missing coverage is either justified concretely or escalated.
-- Edge cases: empty/error/boundary/permission/rollout states are verified or explicitly blocked.
 - Matcher consumption: required pattern skills or fallback docs were actually read and reported; optional capabilities are reported accurately.
 - UI smoke/E2E: visible frontend changes have smoke verification, and formal E2E is covered when the PRD requires it.
 - Risk: migrations, public APIs, background jobs, and integrations are called out.

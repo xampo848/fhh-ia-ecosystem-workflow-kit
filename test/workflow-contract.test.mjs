@@ -131,3 +131,53 @@ test('QA handoff workflow keeps explicit rerun and controlled-lite closure rules
   assert.match(qaSkill, /## Permitted Exceptions/);
   assert.match(slicingSkill, /final QA checklist, closure gates, and TOON handoff remain mandatory/);
 });
+
+test('create-prd requires use cases, test strategy, and edge-case matrix before a PRD is ready', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const skillPath = path.join(root, '.agents/skills/01-product/create-prd/SKILL.md');
+  const templatePath = path.join(root, '.agents/skills/01-product/create-prd/PRD_TEMPLATE.md');
+  const [skill, template] = await Promise.all([
+    fs.readFile(skillPath, 'utf8'),
+    fs.readFile(templatePath, 'utf8')
+  ]);
+
+  assert.match(skill, /Hard Gate: Use Cases, Test Strategy, and Edge Cases Are Non-Optional/);
+  assert.match(skill, /Every acceptance criterion must link to at least one use case; every use case must link to at least one AC/);
+  assert.match(skill, /datos vac[íi]os, l[íi]mites, errores, permisos\/tenancy, concurrencia\/orden, rollout\/rollback/);
+  assert.match(skill, /### Casos de Uso \(mandatory\)/);
+  assert.match(skill, /### Estrategia de Tests \(mandatory\)/);
+  assert.match(skill, /### Matriz de Edge Cases \(mandatory\)/);
+
+  assert.match(template, /### 2\.4 Casos de Uso/);
+  assert.match(template, /### 2\.5 Estrategia de Tests/);
+  assert.match(template, /### 2\.6 Matriz de Edge Cases/);
+  assert.match(template, /\| Use cases \| Tests \| Edge cases \| Validation \| Evidence \|/);
+});
+
+test('implementation-slicing and implement-prd enforce use-case/edge-case traceability at closure', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const slicingPath = path.join(root, '.agents/skills/02-implement/implementation-slicing/SKILL.md');
+  const implementPrdPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
+  const [slicingSkill, implementPrdSkill] = await Promise.all([
+    fs.readFile(slicingPath, 'utf8'),
+    fs.readFile(implementPrdPath, 'utf8')
+  ]);
+
+  assert.match(slicingSkill, /Map every PRD use case \(`UC-N`\) to at least one slice/);
+  assert.match(slicingSkill, /is a traceability gap; resolve it before handoff or report it as a stop condition/);
+  assert.match(slicingSkill, /- Use cases:\n- Tests:\n- Edge cases:/);
+
+  assert.match(implementPrdSkill, /every PRD edge-case matrix row is either verified with evidence or marked `No aplica`/);
+  assert.match(implementPrdSkill, /An orphan acceptance criterion, use case, test-strategy row, or edge-case row blocks closure/);
+});
+
+test('qa-handoff-review reports edge-case coverage by mandatory category', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const qaPath = path.join(root, '.agents/skills/02-implement/qa-handoff-review/SKILL.md');
+  const qaSkill = await fs.readFile(qaPath, 'utf8');
+
+  assert.match(qaSkill, /### Edge-Case Coverage Gate/);
+  assert.match(qaSkill, /A category is `PASS` only when every PRD row for it has concrete validation evidence/);
+  assert.match(qaSkill, /`ready_to_close: yes` is not allowed while a critical-category gap is open and unaccepted/);
+  assert.match(qaSkill, /Use cases: every PRD use case links to an implemented\/verified slice and at least one executed test; report orphans by ID/);
+});

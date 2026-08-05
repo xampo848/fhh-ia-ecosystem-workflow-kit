@@ -3,7 +3,7 @@
 **Ticket**: Workflow quality hardening for PRD creation and execution
 **Autor**: GitHub Copilot
 **Fecha**: 2026-08-04
-**Estado**: Borrador
+**Estado**: Implementado
 
 ---
 
@@ -273,14 +273,14 @@ _(Vacío = PRD listo para implementar)_
 
 ## 8. Definition of Done Global
 
-- [ ] `create-prd` exige casos de uso, test strategy y edge-case matrix obligatorios
-- [ ] `PRD_TEMPLATE` incluye secciones y tablas para trazabilidad completa
-- [ ] `implement-prd` bloquea cierre por huérfanos de trazabilidad
-- [ ] `implementation-slicing` mapea use cases/tests/edge cases por slice
-- [ ] `qa-handoff-review` valida cobertura de edge cases por categoría
-- [ ] `bun run check:workflow` en verde
-- [ ] `bun run check:docs` en verde
-- [ ] `bun test test/workflow-contract.test.mjs test/turn-routing-contract.test.mjs` en verde
+- [x] `create-prd` exige casos de uso, test strategy y edge-case matrix obligatorios
+- [x] `PRD_TEMPLATE` incluye secciones y tablas para trazabilidad completa
+- [x] `implement-prd` bloquea cierre por huérfanos de trazabilidad
+- [x] `implementation-slicing` mapea use cases/tests/edge cases por slice
+- [x] `qa-handoff-review` valida cobertura de edge cases por categoría
+- [x] `bun run check:workflow` en verde
+- [x] `bun run check:docs` en verde
+- [x] `bun test test/workflow-contract.test.mjs test/turn-routing-contract.test.mjs` en verde
 
 ---
 
@@ -288,9 +288,9 @@ _(Vacío = PRD listo para implementar)_
 
 | Acceptance criterion | Phase / slice | Test evidence | Validation evidence | Status |
 | --- | --- | --- | --- | --- |
-| AC-1 | P1-S1, P1-S2 | Diff de skill/template | `bun run check:docs` | Pending |
-| AC-2 | P2-S1, P2-S2 | Handoff de slicing y closure rules | `bun run check:workflow` | Pending |
-| AC-3 | P2-S3 | QA checklist/handoff actualizado | `bun run check:workflow` | Pending |
-| AC-4 | P2-S2 | Gate bloqueante en closure contract | `bun run check:workflow` | Pending |
-| AC-5 | P2-S2, P2-S3 | Evidencia de bloqueo por edge gap | `bun run check:workflow` | Pending |
-| AC-6 | P1-S2, P2-S1, P3-S2 | Tabla de trazabilidad determinística | `bun run check:docs` | Pending |
+| AC-1 | P1-S1, P1-S2 | `.agents/skills/01-product/create-prd/SKILL.md`, `PRD_TEMPLATE.md` diff | `bun run check:docs`, `node --test test/workflow-contract.test.mjs` | Done |
+| AC-2 | P2-S1, P2-S2 | `implementation-slicing/SKILL.md`, `implement-prd/SKILL.md` diff | `bun run check:workflow`, `node --test test/workflow-contract.test.mjs` | Done |
+| AC-3 | P2-S3 | `qa-handoff-review/SKILL.md` diff | `bun run check:workflow`, `node --test test/workflow-contract.test.mjs` | Done |
+| AC-4 | P2-S2 | `implement-prd/SKILL.md` closure contract diff | `node --test test/workflow-contract.test.mjs` | Done |
+| AC-5 | P2-S2, P2-S3 | `implement-prd/SKILL.md`, `qa-handoff-review/SKILL.md` diff | `node --test test/workflow-contract.test.mjs` | Done |
+| AC-6 | P1-S2, P2-S1, P3-S1 | Traceability tables in `PRD_TEMPLATE.md` and slice fields in `create-prd/SKILL.md` | `bun run check:docs`, `bun run test` (129/129) | Done |

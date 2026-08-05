@@ -248,12 +248,13 @@ In autonomous-safe mode, this is the only required user gate.
 Do not declare the PRD complete until all of these are explicitly true:
 
 1. Every acceptance criterion is `COMPLETE` with linked evidence, or is called out as an intentional residual risk accepted by the user.
-2. Regression-sensitive behavior adjacent to the change has been checked, not just the happy path that was edited.
-3. The code-quality gate and project standards pass with evidence, not narrative confidence.
-4. Missing tests are either added, proven unnecessary with a concrete reason, or escalated as a blocker.
-5. Relevant edge cases, failure states, empty states, and rollout/cutover scenarios are verified or explicitly blocked.
-6. Final QA ends in `ready_to_close: yes`.
-7. Every `VERIFIED` slice has fresh command evidence in the execution lock, or an explicit `waived_by_user` record.
+2. Every PRD use case (`UC-N`) links to at least one implemented/verified slice and at least one executed test from the PRD Estrategia de Tests; every PRD edge-case matrix row is either verified with evidence or marked `No aplica` with a justification the user accepted. An orphan acceptance criterion, use case, test-strategy row, or edge-case row blocks closure.
+3. Regression-sensitive behavior adjacent to the change has been checked, not just the happy path that was edited.
+4. The code-quality gate and project standards pass with evidence, not narrative confidence.
+5. Missing tests are either added, proven unnecessary with a concrete reason, or escalated as a blocker.
+6. Relevant edge cases, failure states, empty states, and rollout/cutover scenarios are verified or explicitly blocked.
+7. Final QA ends in `ready_to_close: yes`.
+8. Every `VERIFIED` slice has fresh command evidence in the execution lock, or an explicit `waived_by_user` record.
 
 If any item above is incomplete, the orchestrator must loop back through the owning slice, rerun the affected validation, and rerun QA until the checklist is satisfied.
 
