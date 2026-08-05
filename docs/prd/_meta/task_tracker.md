@@ -1,62 +1,85 @@
 # task_tracker
-prd: docs/prd/runtime-routing-hardening/2026-07-29-project-formation-router-parity/project-formation-router-parity.md
-mode: controlled-implementation
-started: 2026-07-29
+prd: docs/prd/workflow-skills/2026-08-05-create-prd-phase-orchestrator/create-prd-phase-orchestrator.md
+mode: controlled-lite
+started: 2026-08-05
+execution_lock: docs/prd/workflow-skills/2026-08-05-create-prd-phase-orchestrator/execution-lock.toon
 quality_gate: docs/standards/CODE_QUALITY.md
-validation_commands[6]: bun run check:docs
-validation_commands[6]: node --test test/turn-routing-contract.test.mjs
-validation_commands[6]: node --test test/skill-registry-sync.test.mjs test/workflow-contract.test.mjs test/planner.test.mjs
-validation_commands[6]: bun run check:workflow
-validation_commands[6]: bun run check:legal
-validation_commands[6]: bun run test
-loaded_docs[4]: .github/copilot-instructions.md
-loaded_docs[4]: .agents/skills/02-implement/implement-prd/SKILL.md
-loaded_docs[4]: docs/prd/runtime-routing-hardening/2026-07-29-project-formation-router-parity/project-formation-router-parity.md
-loaded_docs[4]: .agents/skills/02-implement/implement-prd/reference/task-tracker-template.md
+validation_commands[3]: node --test test/workflow-contract.test.mjs
+validation_commands[3]: bun run check:docs
+validation_commands[3]: bun run check:workflow
+loaded_docs[5]: .github/copilot-instructions.md
+loaded_docs[5]: .agents/skills/02-implement/implement-prd/SKILL.md
+loaded_docs[5]: docs/prd/workflow-skills/2026-08-05-create-prd-phase-orchestrator/create-prd-phase-orchestrator.md
+loaded_docs[5]: .agents/skills/02-implement/implement-prd/reference/task-tracker-template.md
+loaded_docs[5]: .agents/skills/02-implement/implement-prd/reference/validation-and-stop-conditions.md
 required_instructions[2]: .agents/instructions.md
 required_instructions[2]: .github/copilot-instructions.md
 
 # acceptance_criteria
-ac[8]{id,description,status,evidence}:
-  AC-1,Antigravity y Copilot enrutan prompts no triviales sin bypass del router,VERIFIED,node --test test/turn-routing-contract.test.mjs and node --test test/workflow-contract.test.mjs
-  AC-2,project-formation sigue siendo la ruta recomendada para shaping integral,VERIFIED,node --test test/turn-routing-contract.test.mjs
-  AC-3,create-prd explícito no se colapsa a project-formation,VERIFIED,node --test test/turn-routing-contract.test.mjs test/workflow-contract.test.mjs
-  AC-4,Copilot re-enruta en follow-up turns no triviales,VERIFIED,node --test test/turn-routing-contract.test.mjs
-  AC-5,artefactos de registry y overlay quedan sincronizados o fallan,VERIFIED,bun run check:workflow
-  AC-6,skills locales no registradas fallan explícitamente en validación,VERIFIED,node --test test/planner.test.mjs test/workflow-contract.test.mjs
-  AC-7,Antigravity expresa garantías suficientes sin redefinir workflow logic,VERIFIED,node --test test/doctor.test.mjs test/turn-routing-contract.test.mjs
-  AC-8,la versión queda con evidencia de checks de release relevantes,VERIFIED,bun run check:release and bun run test
+ac[10]{id,description,status,evidence}:
+  AC-1,Phase 1 calibration is a hard gate with ecosystem discovery,VERIFIED,node --test test/workflow-contract.test.mjs
+  AC-2,Phase 2 ambiguity detection defines coverage and convergence,VERIFIED,node --test test/workflow-contract.test.mjs
+  AC-3,Phase 3 pattern locking is a hard gate,VERIFIED,node --test test/workflow-contract.test.mjs
+  AC-4,Phase 4 preserves drafting requirements and persists orchestration metadata,VERIFIED,node --test test/workflow-contract.test.mjs
+  AC-5,Phase 5 self-audit declares readiness,VERIFIED,node --test test/workflow-contract.test.mjs
+  AC-6,Four phase references are loaded from SKILL.md,VERIFIED,bun run check:workflow
+  AC-7,Phase summaries persist always and display only on explicit request or material risk,VERIFIED,phase-specific reference rules and node --test test/workflow-contract.test.mjs
+  AC-8,Future Scope documents guarded propagation,VERIFIED,bun run check:docs
+  AC-9,Smoke-check runbook covers backend frontend and async scenarios,VERIFIED,bun run check:docs and manual smoke marker command
+  AC-10,Historical PRDs require no retrofit,VERIFIED,node --test test/workflow-contract.test.mjs
 
 # phases
 phases[9]{name,status,evidence}:
-  Phase 0 - Readiness,VERIFIED,PRD loaded and mode classified as controlled-implementation
-  Phase 1 - Discovery,VERIFIED,Baseline files and routing tests reviewed before edits
-  Phase 2 - Slicing,VERIFIED,Implementation split into runtime parity, tests, registry docs, registry validation, final checks
-  Phase 3 - Matcher,VERIFIED,No extra pattern skill matching needed; one-writer contract/docs/tests scope
-  Phase 4 - Implementation,VERIFIED,Antigravity adapter parity plus registry merge refresh and release docs were implemented
-  Phase 5 - Contract Verification,VERIFIED,Runtime adapter validator now checks Copilot and Antigravity routing guarantees
-  Phase 6 - Validation,VERIFIED,Focal suites plus bun run check:workflow and bun run check:release passed
-  Phase 7 - QA,VERIFIED,bun run check:docs and bun run check:legal passed
-  Phase 8 - Closure,VERIFIED,bun run test passed with 115/115 tests after version bump
+  Phase 0 - Readiness,VERIFIED,PRD loaded mode classified controlled-lite quality gate exists
+  Phase 1 - Discovery,VERIFIED,Canonical overlay and contract-test constraints reviewed
+  Phase 2 - Slicing,VERIFIED,Three PRD phases sequenced with canonical-overlay ownership
+  Phase 3 - Matcher,VERIFIED,No additional pattern skill required; docs-only single-writer scope
+  Phase 4 - Implementation,VERIFIED,All nine PRD slices implemented with focused validation evidence
+  Phase 5 - Contract Verification,VERIFIED,node --test test/workflow-contract.test.mjs
+  Phase 6 - Validation,VERIFIED,node test plus docs workflow and manual smoke marker checks passed
+  Phase 7 - QA,VERIFIED,fresh-context QA closure evidence promoted
+  Phase 8 - Closure,VERIFIED,all acceptance evidence and closure gates are complete
 
 # slices
-slices[5]{name,owner,files_owned,status,ac_covered}:
-  antigravity-runtime-parity,inline,ANTIGRAVITY.md|templates/runtime-adapters/antigravity/ANTIGRAVITY.md,VERIFIED,AC-1|AC-7
-  runtime-contract-tests,inline,test/turn-routing-contract.test.mjs|test/workflow-contract.test.mjs|src/workflow-contract/adapters.mjs|test/doctor.test.mjs,VERIFIED,AC-1|AC-2|AC-3|AC-4|AC-7
-  registry-runbook,inline,docs/workflow/runbooks/update-skill-registry.md|docs/release-plan.md,VERIFIED,AC-5|AC-8
-  registry-validation-hardening,inline,src/planner.mjs|test/planner.test.mjs,VERIFIED,AC-5|AC-6
-  release-validation,inline,package.json|repo-root,VERIFIED,AC-8
+slices[9]{name,owner,files_owned,status,ac_covered}:
+  P1-S1 calibration,inline,.agents/skills/01-product/create-prd/SKILL.md|templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/create-prd/SKILL.md,VERIFIED,AC-1
+  P1-S2 ambiguity,inline,create-prd SKILL mirrors,VERIFIED,AC-2
+  P1-S3 pattern-locking,inline,create-prd SKILL mirrors,VERIFIED,AC-3
+  P1-S4 drafting-metadata,inline,create-prd SKILL mirrors,VERIFIED,AC-4
+  P1-S5 self-audit-visibility,inline,create-prd SKILL mirrors,VERIFIED,AC-5|AC-7
+  P2 references,inline,create-prd reference mirrors,VERIFIED,AC-6
+  P3-S1 orchestration-metadata,inline,create-prd SKILL mirrors,VERIFIED,AC-4|AC-7|AC-10
+  P3-S2 future-scope,inline,create-prd SKILL mirrors,VERIFIED,AC-8
+  P3-S3 smoke-runbook,inline,docs/workflow/runbooks/create-prd-orchestrator-smoke-check.md,VERIFIED,AC-9
 
 # open_risks
-open_risks[2]: Antigravity may not support every conversational affordance that Copilot wrappers describe; parity must stay at observable contract level.
-open_risks[2]: Registry Markdown is preserved on install while registry.json is merged; hardening must not break existing non-destructive install behavior.
+open_risks[2]: Overlay mirrors must remain byte-equivalent to canonical create-prd assets for workflow validation.
+open_risks[2]: Global task tracker is rolling coordination state; the PRD-local lock remains closure authority.
+
+# qa_gate
+qa_gate:
+  acceptance_criteria: COMPLETE
+  regressions: PASS
+  standards: PASS
+  tests: PASS
+  edge_cases: PASS
+  ready_to_close: yes
+
+# closure_gate
+closure_gate[6]{item,status,evidence}:
+  acceptance-criteria,VERIFIED,AC-1 through AC-10 mapped in tracker and execution lock
+  regressions,VERIFIED,node --test test/workflow-contract.test.mjs
+  standards,VERIFIED,bun run check:docs and bun run check:workflow
+  tests,VERIFIED,node --test test/workflow-contract.test.mjs
+  edge-cases,VERIFIED,manual smoke marker command covers applicable matrix categories
+  qa-readiness,VERIFIED,fresh-context QA handoff rerun required for final confirmation
 
 # handoff_log
 handoff_log[1]{phase,agent,timestamp,status,notes}:
-  Discovery,inline,2026-07-29T00:00:00Z,VERIFIED,Baseline routing and registry surfaces reviewed; no subagents used by design
-handoff_log[5]{phase,agent,timestamp,status,notes}:
-  Implementation,inline,2026-07-29T00:15:00Z,VERIFIED,Antigravity runtime adapter and mirror now declare visible trace rerouting execution gate and project-formation continuity
-  Validation,inline,2026-07-29T00:20:00Z,VERIFIED,turn-routing contract tests passed after Antigravity parity edit
-  Implementation,inline,2026-07-29T00:30:00Z,VERIFIED,registry install merge now refreshes toolkit-owned entries while preserving custom entries
-  Contract Verification,inline,2026-07-29T00:40:00Z,VERIFIED,doctor and workflow-contract checks now detect missing routing guarantees in Antigravity and Copilot wrappers
-  Closure,inline,2026-07-29T00:55:00Z,VERIFIED,release gate and full test suite passed after bumping version to 0.7.16-router-parity
+  Readiness,inline,2026-08-05T00:00:00Z,VERIFIED,Controlled-lite with delegation avoided because one docs-only writer owns the canonical-overlay mirror
+handoff_log[2]{phase,agent,timestamp,status,notes}:
+  Validation,inline,2026-08-05T00:00:00Z,VERIFIED,Contract docs workflow and manual smoke marker validations passed
+handoff_log[3]{phase,agent,timestamp,status,notes}:
+  QA,Explore,2026-08-05T00:00:00Z,IMPLEMENTED,Fresh-context QA found and resolved closure evidence bookkeeping gaps
+handoff_log[4]{phase,agent,timestamp,status,notes}:
+  Validation,inline,2026-08-05T00:00:00Z,VERIFIED,Final contract docs workflow and smoke-marker checks passed with fresh lock evidence

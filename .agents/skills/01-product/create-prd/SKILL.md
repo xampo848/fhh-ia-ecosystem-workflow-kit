@@ -40,7 +40,7 @@ Use this skill when:
 8. **Standards-aware PRDs** — PRDs must follow `BACKEND_STANDARDS.md`, including Minitest and `enumerate_it` conventions.
 9. **Evidence before completion** — every deliverable must name how it will be tested, validated, and verified. “Tests later” and phase-end-only validation are not acceptable.
 10. **Activation is part of scope** — when a PRD replaces a read path, materialization model, cache, projection, or persisted contract, it must define how existing data becomes visible after cutover (bootstrap, backfill, repair, smoke verification, and rollback if activation fails).
-11. **No phase skipping** — the workflow is strictly sequential. Do not skip, merge, or reorder phases. `Phase 3` is blocked until `Phase 1` and `Phase 2` are fully completed.
+11. **No phase skipping** — the workflow is strictly sequential. Do not skip, merge, or reorder its five phases.
 
 ---
 
@@ -48,9 +48,11 @@ Use this skill when:
 
 ### Hard Gate: Phases Are Non-Skippable
 
-- Execute `Phase 1 -> Phase 2 -> Phase 3` in order.
+- Execute `Phase 1 -> Phase 2 -> Phase 3 -> Phase 4 -> Phase 5` in order.
 - Do not draft PRD content in `Phase 1`.
 - Do not start `Phase 3` before receiving and processing `Phase 2` answers.
+- Do not start `Phase 4` until `Phase 3` records its pattern decision.
+- Do not consider the PRD delivered until `Phase 5` completes.
 - If information is missing, stop and ask targeted questions; do not bypass the gate.
 
 ### Hard Gate: Use Cases, Test Strategy, and Edge Cases Are Non-Optional
@@ -64,98 +66,25 @@ A PRD is never "ready to implement" on AC alone. Before delivering the final PRD
 - If any AC, use case, or edge-case category has no mapped row, stop drafting and either fill the gap or ask the user a targeted question. Do not deliver a PRD with an unmapped row and no justification.
 - This gate is verified again in the Quality Checklist and Final Self-Review before delivery.
 
-### Phase\
- 1: Codebase Exploration
+### Phase 1: Repository and Ecosystem Calibration
 
-Before writing a single line of PRD, explore the relevant parts of the codebase:
-
-**Mandatory documents to read:**
-
-- `docs/foundations/ARCHITECTURE.md`
-- `docs/foundations/DOMAIN_MODEL.md` when the feature changes domain ownership or entities
-- `docs/standards/BACKEND_STANDARDS.md` and/or `docs/standards/FRONTEND_STANDARDS.md` for touched surfaces
-- `docs/standards/CODE_QUALITY.md`
-- The parent epic when the request references one, including its `Invariantes No Negociables` table.
-
-**What to read:**
-
-- Existing models involved in the feature (`app/models/`)
-- Related services (`app/services/`)
-- Queries that will be affected (`app/queries/`)
-- Controllers involved (`app/controllers/`)
-- Existing DB schema columns for affected tables (`db/schema.rb`)
-- Related tests to understand expected behaviors (`test/`)
-
-**Reference artifact calibration:**
-
-- If the repo already contains a recent PRD for a comparable scope, read exactly one as a structure anchor before drafting.
-- Use that anchor to calibrate tone, section density, table depth, and acceptance evidence expectations.
-- Do not copy business content from the anchor PRD. Reuse only structural patterns that improve consistency.
-
-**Key questions to answer from code:**
-
-- What columns already exist vs. need to be added?
-- What services already implement related logic?
-- Is there a naming convention already established?
-- Are there existing base classes, concerns, or patterns to reuse?
-- Which bounded context owns the new concept?
-- Does the repo already use namespaced models for similar concepts?
-- Does the repo already use prefixed tables for the domain?
-- If a parent epic exists, which invariant IDs are inherited and which child acceptance criteria will prove each one?
-
-**Tools to use:**
-
-- `semantic_search` for domain concepts
-- `grep_search` for specific column/method names
-- `read_file` for implementation details on key files
-- `file_search` for locating relevant files by pattern
+Load and execute [reference/calibration.md](reference/calibration.md). This is a hard gate; persist its required artifact before starting Phase 2.
 
 ---
 
-### Phase 2: Gap Analysis — Ask Targeted Questions
+### Phase 2: Ambiguity Detection
 
-After exploring the codebase, identify ambiguities. Group them into categories and ask the user **all at once** in a single structured message. Do NOT proceed to draft before receiving answers.
-
-**Mandatory question categories:**
-
-| Category                | Examples                                                                     |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| **Scope boundary**      | Is this only in the importer, or also in views/reports?                      |
-| **Business rules**      | How exactly is X calculated? What are the edge cases?                        |
-| **Data decisions**      | Store raw, computed, or both?                                                |
-| **Division/allocation** | When does the split apply? Which columns are affected?                       |
-| **Identifiers**         | Which fields uniquely identify the entity (eg. `(id_elemento, month)`)?      |
-| **Feature flags**       | Should this be behind a feature flag for gradual rollout?                    |
-| **Language**            | Should column/variable names follow existing English naming?                 |
-| **Future scope**        | Are there related features (eg. UI, reports) that should NOT be in this PRD? |
-| **DDD placement**       | Which bounded context owns this concept?                                     |
-| **Tenancy**             | Is this tenant-scoped? Which relationships must validate same organization?  |
-| **Lifecycle**           | Is the entity mutable, append-only, or stateful?                             |
-| **Enumerations**        | Which values require `enumerate_it`?                                         |
-| **Traceability**        | Should entities maintain references for explainability or lineage?           |
-| **Verification**        | What focused test, contract check, lint, smoke check, or observable proves each outcome? |
-| **Rollout/recovery**    | How is partial failure detected, retried, rolled back, or safely resumed?     |
-| **Activation/adoption** | If old data already exists, what bootstrap/backfill/repair step makes the new path show data on day 1? |
-| **Parent invariants** | Does this PRD map every inherited invariant to an AC? Does any requested behavior contradict one? |
-
-**Format for questions:**
-
-```
-🔍 Antes de continuar, necesito resolver estas dudas:
-
-**[Categoría]**
-1. [Pregunta concreta]
-2. [Pregunta concreta]
-
-**[Categoría]**
-3. [Pregunta concreta]
-```
-
-Only ask about things that **block the design** or would cause **different implementations** depending on the answer. Do not ask for information you can safely infer from the code.
+Load and execute [reference/ambiguity-detection.md](reference/ambiguity-detection.md). This is a hard gate; do not start Phase 3 until it declares that no blocking ambiguity remains.
 
 ---
 
-### Phase 3: Draft the PRD
+### Phase 3: Pattern Locking
+
+Load and execute [reference/pattern-locking.md](reference/pattern-locking.md). This is a hard gate between ambiguity detection and drafting; do not start Phase 4 until its artifact is persisted.
+
+---
+
+### Phase 4: Drafting
 
 With all ambiguities resolved, produce the PRD using the standard structure below.
 
@@ -165,6 +94,17 @@ Template source (mandatory): `.agents/skills/01-product/create-prd/PRD_TEMPLATE.
 - Do not duplicate, inline, or maintain a second template copy inside this `SKILL.md`.
 
 **File location:** `docs/prd/<feature-or-project>/<YYYY-MM-DD>-<feature-name>/<feature-name>.md`
+
+For every PRD created with this workflow, create `_meta/orchestration.md` in the same PRD directory. Persist the phase artifact as each applicable phase completes. The file must contain these four sections:
+
+- `## Calibration`
+- `## Ambiguity Log`
+- `## Pattern Lock`
+- `## Self-Audit`
+
+`_meta/orchestration.md` does not replace or modify `execution-lock.toon`, which remains owned by `implement-prd`.
+
+This requirement applies only to PRDs created after this workflow change. Historical PRDs remain valid and do not require a retrofit of `_meta/orchestration.md` or the five-phase model.
 
 Additional required sections:
 
@@ -328,46 +268,22 @@ After the user answers any round of questions:
 
 ---
 
-## ✅ Quality Checklist Before Delivering
+### Phase 5: Self-Audit and Hardening
 
-Before considering a PRD complete, verify:
+Load and execute [reference/self-audit.md](reference/self-audit.md). This is a hard gate; persist its required artifact and final readiness declaration before delivering the PRD.
 
-- [ ] No open questions remain
-- [ ] Scope is unambiguous (what IS and IS NOT included is explicit)
-- [ ] Casos de Uso table exists, every AC links to a use case, and every use case links back to an AC
-- [ ] Estrategia de Tests table exists and every use case links to at least one test row
-- [ ] Matriz de Edge Cases table covers all six mandatory categories, each mapped to a validation mechanism or an explicit `No aplica` with justification
-- [ ] When a parent epic exists, every inherited invariant ID maps to an acceptance criterion and no contradiction lacks an approved change request
-- [ ] If a comparable repo PRD existed, one anchor artifact was used to calibrate structure and depth
-- [ ] All DB columns and Ruby identifiers are in English
-- [ ] The opening context explains problem, urgency, and scope without generic filler
-- [ ] Current-state tables reference real repo files or explicitly state when evidence was unavailable
-- [ ] Each phase has its own Definition of Done
-- [ ] Every non-trivial phase is decomposed into small executable slices, or its atomic exception is justified
-- [ ] Every slice has outcome, dependency, scope boundary, tests, exact validation, evidence, and stop conditions
-- [ ] No slice crosses backend/frontend or combines multiple high-risk boundaries without a written split rationale
-- [ ] Acceptance criteria map to slices and verification evidence in the traceability matrix
-- [ ] Slice completion uses `IMPLEMENTED → TESTED → VALIDATED → VERIFIED`; code completion alone is never enough
-- [ ] Business rules are expressed as decisions (not "it should" — use "confirmed: X applies when Y")
-- [ ] The "Decisiones Tomadas" table captures the full conversation history
-- [ ] Future scope is explicitly labeled as out-of-scope
-- [ ] Risks are listed with mitigations
-- [ ] Data model section shows the migration pseudo-code
-- [ ] The flow diagram shows how data moves end-to-end
-- [ ] Verify against docs/architecture for any relevant patterns and standards to follow
 
-## 🧪 Final Self-Review
+---
 
-Before delivering the PRD, challenge it with these checks:
+## Future Scope
 
-- Would `implement-prd` need to invent behavior, ownership, or validation details that the PRD should already specify?
-- Are any phases acting as large buckets instead of milestone boundaries with executable slices?
-- Does any acceptance criterion lack a concrete evidence path?
-- Does any acceptance criterion or use case lack a linked test or edge case where one would be expected?
-- Does the edge-case matrix leave a mandatory category unmapped without justification?
-- Could a reviewer clearly separate current scope, future scope, and blocked unknowns?
-- If this PRD replaced a similar one in the repo, would it look consistent in structure and rigor?
+This is explicitly out of scope for the current change. After evidence from at least several new PRDs shows that the five-phase model works in isolation:
 
+- `implement-prd` could read `## Pattern Lock` and require an explicit justification for implementation divergence.
+- `implementation-slicing` could use `touched_surfaces` from `## Calibration` to detect scope expansion.
+- `qa-handoff-review` could reconcile `## Self-Audit` residual risks before allowing `ready_to_close: yes`.
+
+Do not implement this coupling before that evidence exists; premature propagation would couple workflows without proving this model's value.
 
 ---
 
