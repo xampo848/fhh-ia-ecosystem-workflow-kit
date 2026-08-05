@@ -40,6 +40,17 @@ The registry answers four questions:
 | Overlay | May supplement another workflow when triggered; does not replace the primary workflow unless the skill says so. |
 | Helper/mode | Narrow communication, compression, or helper output mode; load only for that command/mode. |
 
+## Matcher eligibility policy
+
+The registry distinguishes user invocation posture from orchestrator matching eligibility.
+
+Rules:
+
+1. `Explicit-only` controls direct user invocation only.
+2. `implement-prd` and `implementation-skill-matcher` may still require a skill just-in-time when slice hazards demand it.
+3. If matcher eligibility is unclear for a hazard-triggered requirement, matching must return `partial` or `blocked` instead of silently skipping.
+4. Any skill that must never be matcher-selected should state that explicitly in `runtime notes`.
+
 ## Class vocabulary
 
 | Class | Definition |

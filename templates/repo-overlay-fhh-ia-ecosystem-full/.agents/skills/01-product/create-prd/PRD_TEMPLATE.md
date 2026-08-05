@@ -13,6 +13,16 @@
 
 > **Alcance estricto**: [Clear statement of what IS and is NOT in scope for this PRD]
 
+### Contexto de Epica Padre _(si aplica)_
+
+**parent_epic**: `[path/to/epic.md]`
+
+| Invariante heredada | AC hijo | Estado | Change request aprobado |
+| ------------------- | -------- | ------ | ----------------------- |
+| INV-[AREA]-01 | AC-[N] | Mapeada | No aplica |
+
+Una contradiccion exige un change request aprobado por el usuario con ID de invariante, motivo y aprobador antes de continuar.
+
 ### Estado Actual
 
 | Capa                | Componente  | Archivo           |

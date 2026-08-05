@@ -105,3 +105,13 @@ test('workflow router keeps deterministic project-formation trigger and route-op
   assert.match(router, /Elige una opción por número o por nombre de skill/);
   assert.match(registry, /`project-formation` \| Workflow \| `\.agents\/skills\/01-product\/project-formation\/SKILL\.md`/);
 });
+
+test('implement-prd requires a tracked PRD-local execution lock for closure', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const skillPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
+  const skill = await fs.readFile(skillPath, 'utf8');
+
+  assert.match(skill, /git-tracked execution lock at `<prd-directory>\/execution-lock\.toon`/);
+  assert.match(skill, /The PRD-local lock is the closure authority/);
+  assert.match(skill, /must not be ignored by Git/);
+});

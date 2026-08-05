@@ -1,5 +1,14 @@
 # Validation And Stop Conditions
 
+## Evidence Integrity
+
+Before accepting a command result as slice evidence:
+
+1. Confirm the exact command exercised every declared `required_checks` item for the slice.
+2. Record the validated file scope and a content reference (commit SHA or file-hash manifest) in the handoff.
+3. Mark `command_scope_confirmed: no` and `evidence_state: missing` when the command cannot be shown to cover that scope; a zero exit code alone is not evidence.
+4. Mark evidence `stale` and rerun required checks when files inside the validated scope change.
+
 ## Backend Validation
 
 Run from `backend/`. Prefer `make` targets:
@@ -34,7 +43,7 @@ Run from `front/`:
 
 ## Code Quality Validation
 
-Before marking any implementation slice complete, validate the code quality gate from `docs/standards/CODE_QUALITY.md`:
+Before marking any implementation slice complete, verify every configured quality-gate or domain-instruction path exists, then apply the relevant project quality gate:
 
 - Existing project pattern was reused or any divergence is explicitly justified.
 - SOLID risks were checked, especially single responsibility and dependency inversion.
@@ -96,6 +105,9 @@ Stop and ask the user before continuing when:
 - The slice requires hardcoding a value that should belong in i18n, design tokens, config, constants, enums, permissions, serializers, environment variables, factories, or fixtures.
 - The slice requires duplicating authoritative business knowledge instead of reusing or extending the owning module.
 - The slice cannot satisfy the `CODE_QUALITY.md` gate without broad unrelated refactoring.
+- A required validation command cannot be shown to cover the declared slice scope.
+- The handoff lacks a validated content reference for evidence required to reach `VERIFIED`.
+- A configured quality-gate or required domain-instruction path is missing; report the exact path and stop until it is created or corrected.
 
 Use this format:
 

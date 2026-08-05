@@ -16,6 +16,7 @@ The output is not a PRD. It is the parent project definition and investigation a
 - Shape committed delivery around an explicit appetite. The appetite is the investment boundary; scope is variable.
 - Do not invent implementation certainty. Separate evidence, inference, assumptions, and open questions.
 - Prefer slices that can become standalone `create-prd` inputs and later close with `document-development`.
+- Record non-negotiable epic invariants with stable IDs, owners, and rationale so child PRDs cannot silently contradict them.
 - Ask targeted questions only after initial discovery, and ask before drafting only when the request is too vague to produce a useful draft.
 - Do not modify product code while creating the epic unless the user explicitly asks.
 - Save the final epic to `docs/epics/<feature-or-project>/<slug>.md` by default when the user asks to create a project artifact.
@@ -144,6 +145,7 @@ Use `references/epic-template.md` for the final structure. If the appetite is a 
 - Evidence from code/docs
 - Evidence from web research
 - Business rules, user flow, use cases, and technical architecture
+- A compact `Invariantes No Negociables` table with stable IDs, owners, rationale, and child-PRD mapping expectations
 - Appetite-based delivery plan
 - PRD queue with each child PRD title, goal, scope, dependencies, and recommended order
 - Per-phase workflow through `create-prd`, `implement-prd`, and `document-development`
@@ -181,4 +183,5 @@ The epic is not ready if it:
 - Ignores the stated appetite or treats scope as fixed when the investment boundary is fixed
 - Mixes multiple unrelated products into one PRD queue
 - Fails to name the first PRD and its strict scope
+- Omits stable IDs for non-negotiable inherited requirements
 - Fails to define how each phase moves through `create-prd`, `implement-prd`, and `document-development`

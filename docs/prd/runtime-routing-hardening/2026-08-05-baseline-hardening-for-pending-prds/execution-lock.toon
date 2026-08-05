@@ -1,0 +1,31 @@
+# execution_lock
+lock_id: baseline-hardening-before-pending-prds-2026-08-05
+prd_path: docs/prd/runtime-routing-hardening/2026-08-05-baseline-hardening-for-pending-prds/baseline-hardening-for-pending-prds.md
+mode: standard
+started: 2026-08-05T20:35:09Z
+closure_authority: this-file
+git_tracking: required
+base_revision: 3a9301e
+
+# slices
+slices[9]{slice_id,status,hazards,selected_patterns,required_checks,evidence_state,waiver_state,validated_file_scope,command_scope_confirmed}:
+  P1-S1,VERIFIED,execution-lock-and-evidence-contract,none,bun-run-check-workflow,fresh,none,.agents/skills/02-implement/implement-prd/**;templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/02-implement/implement-prd/**,yes
+  P1-S2,VERIFIED,conditional-pattern-selection,implementation-skill-matcher,bun-run-check-workflow,fresh,none,.agents/skills/02-implement/implementation-skill-matcher/**;.agents/skills/registry.md;templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/**,yes
+  P1-S3,VERIFIED,baseline-activation,none,bun-run-check-docs,fresh,none,docs/prd/_meta/task_tracker.md,yes
+  P2-S1,VERIFIED,parent-child-invariant-contract,none,bun-run-check-workflow;bun-run-check-docs,fresh,none,.agents/skills/01-product/create-epic/**;.agents/skills/01-product/create-prd/**;templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/**,yes
+  P2-S2,VERIFIED,multi-hazard-mode-classification,implementation-skill-matcher,bun-run-check-workflow,fresh,none,.agents/skills/02-implement/implement-prd/SKILL.md;templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/02-implement/implement-prd/SKILL.md,yes
+  P2-S3,VERIFIED,command-scope-and-content-evidence,none,bun-run-check-workflow,fresh,none,.agents/skills/02-implement/implement-prd/reference/**;templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/02-implement/implement-prd/reference/**,yes
+  P2-S4,VERIFIED,missing-quality-gate-path,none,bun-run-check-workflow;bun-run-check-docs,fresh,none,.agents/skills/02-implement/implement-prd/**;templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/02-implement/implement-prd/**,yes
+  P2-S5,VERIFIED,rollout-pattern-lifecycle,add-project-pattern,bun-run-check-workflow;bun-run-check-docs,fresh,none,.agents/skills/06-patterns/**;templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/06-patterns/**,yes
+  P2-S6,VERIFIED,prd-local-lock-authority,none,node-test-workflow-contract;check-git-ignore,fresh,none,.agents/skills/02-implement/implement-prd/**;docs/prd/runtime-routing-hardening/2026-08-05-baseline-hardening-for-pending-prds/execution-lock.toon;test/workflow-contract.test.mjs,yes
+
+# evidence
+validation_commands[5]:
+  node scripts/sync-skill-registry.mjs --write
+  bun run check:workflow
+  bun run check:docs
+  node --test test/workflow-contract.test.mjs
+  git check-ignore -q docs/prd/workflow-skills/example/execution-lock.toon
+validated_content_ref: worktree-diff-sha256:f4c6de169ab87c689e1eff2de2e61b4353c012ab78abb15a031822cb76126249
+final_regression: PASS-2026-08-05T20:44:03Z
+waivers[N]: none

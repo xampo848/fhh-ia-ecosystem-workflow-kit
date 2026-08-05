@@ -76,6 +76,7 @@ When installing into an already existing project, the installer now applies safe
 - `docs/README.md` gets a non-destructive workflow section (idempotent marker block) so docs are ready to receive workflow documents.
 - `docs/workflow/README.md` is created as an initial docs map when missing.
 - `docs/workflow/standards/` includes setup guides for backend/frontend standards and adoption.
+- Projects are expected to define their own runtime instruction files for implementation skills: `.github/instructions/backend.instructions.md` and `.github/instructions/frontend.instructions.md` (when those surfaces exist).
 - A one-time `docs/workflow/migration/legacy-docs-map.md` is generated when legacy docs are detected, with coherent destination suggestions and `git mv` commands.
 
 Legacy docs are not moved automatically. Review `docs/workflow/migration/legacy-docs-map.md` and relocate them manually with `git mv` if you want to preserve history cleanly.
@@ -97,6 +98,7 @@ Use this quick checklist right after first install:
   - `.agents/instructions.md`
   - `.agents/skills/00-router/workflow-router/SKILL.md`
   - `.agents/skills/registry.json`
+  - `.github/instructions/backend.instructions.md` and `.github/instructions/frontend.instructions.md` (or an explicit N/A decision for missing surfaces)
 5. Send one natural-language prompt in your agent runtime (for example, “Implementa una mejora pequeña con tests”) and confirm routing starts from the installed workflow.
 
 For existing repositories with prior docs, also review:

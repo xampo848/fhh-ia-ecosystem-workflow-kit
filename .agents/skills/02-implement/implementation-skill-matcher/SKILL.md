@@ -78,6 +78,7 @@ must never replace reading `.agents/skills/registry.md` or the exact selected
    - exact `SKILL.md` path;
    - concise reason;
    - `required_before` stage: `read`, `write`, `test`, or `review`.
+   - `matcher_eligibility`: `eligible` or `not-eligible` according to registry metadata/rules.
 6. Evaluate `optional_capabilities` only if they are relevant and known to be
    available/attached or worth checking. Keep them optional.
 7. If no relevant pattern skill exists, return `fallback_docs` with exact paths
@@ -93,8 +94,21 @@ must never replace reading `.agents/skills/registry.md` or the exact selected
 11. Set `blocked_reason` when:
     - the slice is too vague to match;
     - a required registry path is missing;
+   - a hazard-triggered pattern is marked or interpreted as not matcher-eligible;
+   - matcher eligibility cannot be inferred safely from registry metadata/rules;
     - capability state is being treated as mandatory but is unknown;
     - the request would require re-slicing or ownership changes.
+
+## Matcher Eligibility Rule
+
+Treat `Explicit-only` as user invocation posture, not as a prohibition for orchestrator matching.
+
+Required behavior:
+
+1. If a slice hazard requires a pattern and the registry allows matcher use, return it as `required_pattern_skills`.
+2. If a pattern entry is ambiguous about matcher use, return `partial` and request clarification.
+3. If a pattern is explicitly not matcher-eligible and no safe fallback exists, return `blocked`.
+4. Always include `eligibility_reason` for each selected or rejected candidate.
 
 ## Fallback And Missing-Skill Rules
 
@@ -136,6 +150,7 @@ Slice match table:
 - Validation hooks:
 - Handoff required fields:
 - Match confidence:
+- Eligibility reason:
 - Blocked reason:
 Global notes:
 Next: implementer-alias | orchestrator-inline | user-clarification

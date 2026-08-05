@@ -64,6 +64,7 @@ Before writing a single line of PRD, explore the relevant parts of the codebase:
 - `docs/foundations/DOMAIN_MODEL.md` when the feature changes domain ownership or entities
 - `docs/standards/BACKEND_STANDARDS.md` and/or `docs/standards/FRONTEND_STANDARDS.md` for touched surfaces
 - `docs/standards/CODE_QUALITY.md`
+- The parent epic when the request references one, including its `Invariantes No Negociables` table.
 
 **What to read:**
 
@@ -89,6 +90,7 @@ Before writing a single line of PRD, explore the relevant parts of the codebase:
 - Which bounded context owns the new concept?
 - Does the repo already use namespaced models for similar concepts?
 - Does the repo already use prefixed tables for the domain?
+- If a parent epic exists, which invariant IDs are inherited and which child acceptance criteria will prove each one?
 
 **Tools to use:**
 
@@ -123,6 +125,7 @@ After exploring the codebase, identify ambiguities. Group them into categories a
 | **Verification**        | What focused test, contract check, lint, smoke check, or observable proves each outcome? |
 | **Rollout/recovery**    | How is partial failure detected, retried, rolled back, or safely resumed?     |
 | **Activation/adoption** | If old data already exists, what bootstrap/backfill/repair step makes the new path show data on day 1? |
+| **Parent invariants** | Does this PRD map every inherited invariant to an AC? Does any requested behavior contradict one? |
 
 **Format for questions:**
 
@@ -154,6 +157,7 @@ Template source (mandatory): `.agents/skills/01-product/create-prd/PRD_TEMPLATE.
 
 Additional required sections:
 
+- Parent epic context and inherited-invariant mapping when a parent epic exists
 - DDD placement decisions
 - Enumeration strategy
 - Lifecycle rules
@@ -161,6 +165,13 @@ Additional required sections:
 - Cross-context dependency rules
 
 ### Required architectural rules
+
+When the PRD has a parent epic:
+
+- declare the exact `parent_epic` path;
+- map every inherited invariant ID to one or more child acceptance criteria;
+- stop before drafting if requested scope contradicts an inherited invariant;
+- continue only after an explicit user-approved change request records the invariant ID, reason, and approver.
 
 PRDs that introduce backend entities must explicitly define:
 
@@ -280,6 +291,7 @@ Before considering a PRD complete, verify:
 
 - [ ] No open questions remain
 - [ ] Scope is unambiguous (what IS and IS NOT included is explicit)
+- [ ] When a parent epic exists, every inherited invariant ID maps to an acceptance criterion and no contradiction lacks an approved change request
 - [ ] If a comparable repo PRD existed, one anchor artifact was used to calibrate structure and depth
 - [ ] All DB columns and Ruby identifiers are in English
 - [ ] The opening context explains problem, urgency, and scope without generic filler
@@ -316,6 +328,7 @@ Before delivering the PRD, challenge it with these checks:
 - Writing the full PRD before asking questions — **always explore + ask first**
 - Mixing implementation phases with future scope in the same section
 - Leaving "TBD" or "to confirm" inline in requirement tables
+- Silently redefining a non-negotiable invariant inherited from a parent epic
 - Using Spanish names for DB columns or Ruby variables
 - Describing UI changes in an importer-only PRD (they belong in a separate PRD)
 - Assuming a feature flag is not needed — **always ask**
