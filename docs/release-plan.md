@@ -24,5 +24,5 @@ Use semantic versioning after the first executable package exists.
 
 Current release candidate:
 
-- `0.7.16-router-parity`
-- Scope: Antigravity routing parity, stricter runtime contract enforcement, and safer skill registry refresh behavior for installed repositories.
+- `0.7.23-create-prd-orchestrator`
+- Scope: `create-prd` now runs as an explicit 5-phase orchestrator with pattern locking, self-audit hardening, per-PRD orchestration metadata, and a manual smoke runbook.
