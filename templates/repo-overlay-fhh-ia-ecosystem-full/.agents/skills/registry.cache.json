@@ -217,7 +217,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "4d6368b03aa5ec5f34cac3ba692c4daae2530e6f23633fbbe2326c3ba915819c"
+      "skill_sha256": "c4bc57eaa021565c627e21bacae55ee24d2554b1c917e80a0720aa173fe27e08"
     },
     {
       "key": "implementation-skill-matcher",
@@ -235,7 +235,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/implementation-slicing/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "30f29aa7c58501dcb9ba23b57b47d5c8ac6bc6521414a3061f0ccf0b56e3fd17"
+      "skill_sha256": "42566a9990483a889cb88d8435ef52ec80d22e523f98f51fd0d2287ac7ae61e9"
     },
     {
       "key": "pattern-authoring-add-project-pattern",
@@ -343,7 +343,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/qa-handoff-review/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "9f80996e8dbfb206996e78e9dd750dbad263633c1de35960a5d63afbd0b603cb"
+      "skill_sha256": "1bdd3c60a169ea75545a9eda85af00cc84b70c16c333d9356198ffb3c28cd8fc"
     },
     {
       "key": "react-doctor",

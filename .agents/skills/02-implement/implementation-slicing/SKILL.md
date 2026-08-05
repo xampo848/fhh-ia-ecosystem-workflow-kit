@@ -35,7 +35,7 @@ For compact PRDs, the goal is not to create more slices. The goal is to find the
 8. Put tests and the smallest useful validation command in every slice. If a separate test owner is necessary, pair it as a blocking verification sub-slice; implementation cannot advance until the pair is verified.
 9. Add a contract verification slice whenever backend response data feeds frontend logic.
 10. Add a micro-gate after every slice and a phase gate after every PRD phase.
-11. Add `qa-handoff-review` only for `standard`, cross-layer, security/tenancy-sensitive, release-critical, or unusually large diffs. For `controlled-lite`, prefer per-slice validation and skip final QA unless a concrete risk warrants it.
+11. Add a fresh-context `qa-handoff-review` delegate for `standard`, cross-layer, security/tenancy-sensitive, release-critical, or unusually large diffs. For `controlled-lite`, inline QA may replace that delegate when the risk is bounded, but the final QA checklist, closure gates, and TOON handoff remain mandatory.
 12. Prepare each slice for `implementation-skill-matcher` by making the handoff deterministic: slice ID, outcome, owner skill, files owned, acceptance criteria, tests, validation, quality checks, and stop conditions must be explicit.
 
 ## Controlled-lite Slicing

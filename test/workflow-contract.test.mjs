@@ -115,3 +115,19 @@ test('implement-prd requires a tracked PRD-local execution lock for closure', as
   assert.match(skill, /The PRD-local lock is the closure authority/);
   assert.match(skill, /must not be ignored by Git/);
 });
+
+test('QA handoff workflow keeps explicit rerun and controlled-lite closure rules', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const qaPath = path.join(root, '.agents/skills/02-implement/qa-handoff-review/SKILL.md');
+  const slicingPath = path.join(root, '.agents/skills/02-implement/implementation-slicing/SKILL.md');
+  const [qaSkill, slicingSkill] = await Promise.all([
+    fs.readFile(qaPath, 'utf8'),
+    fs.readFile(slicingPath, 'utf8')
+  ]);
+
+  assert.match(qaSkill, /## Executable Procedure/);
+  assert.match(qaSkill, /### Decision And Re-entry/);
+  assert.match(qaSkill, /The reviewer does not retry automatically/);
+  assert.match(qaSkill, /## Permitted Exceptions/);
+  assert.match(slicingSkill, /final QA checklist, closure gates, and TOON handoff remain mandatory/);
+});

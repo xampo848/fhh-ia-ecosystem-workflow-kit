@@ -3,7 +3,7 @@
 **Ticket**: Workflow-structure hardening for delegate review skills
 **Autor**: GitHub Copilot
 **Fecha**: 2026-08-03
-**Estado**: Borrador
+**Estado**: Completado el 2026-08-05
 
 ---
 
@@ -13,7 +13,7 @@ El skill canónico de QA handoff review ya cubre misión, inputs, checklist y co
 
 Este PRD define un patrón de workflow ejecutable para skills de revisión/handoff que pueda aplicarse de manera consistente a todos los casos futuros, empezando por `qa-handoff-review` como caso inicial. La implementación debe mantener el archivo compacto, optimizado para entendimiento del agente y sin convertir la skill en una state machine verbosa.
 
-> **Alcance estricto**: definir y aplicar en la fuente canónica un patrón de workflow ejecutable para `qa-handoff-review`, con secuencia base, excepciones claras, bucles finitos de reparación/validación y criterios explícitos de cierre. No incluye migrar todas las skills del ecosistema, tocar runtime adapters, cambiar `workflow-router`, ni propagar este cambio al template overlay en este PRD.
+> **Alcance estricto**: definir y aplicar en la fuente canónica un patrón de workflow ejecutable para `qa-handoff-review`, con secuencia base, excepciones claras, bucles finitos de reparación/validación y criterios explícitos de cierre. La decisión explícita de implementación incluye sincronizar los mirrors del template overlay requeridos por el contrato de paridad. No incluye migrar todas las skills del ecosistema, tocar runtime adapters ni cambiar `workflow-router`.
 
 ### Estado Actual
 
@@ -117,10 +117,10 @@ No hay migración de base de datos. El cambio es de contrato operativo y documen
 
 | Artefacto | Tipo | Propósito | Propietario |
 | --- | --- | --- | --- |
-| `.agents/skills/02-implement/qa-handoff-review/SKILL.md` | Skill canónica | Definir el workflow ejecutable del review final | Implement PRD quality workflow |
-| `.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md` | Contrato de salida | Mantener el schema TOON como cierre único | Implement PRD references |
-| `.agents/skills/02-implement/implementation-slicing/SKILL.md` | Skill vecina | Mantener consistencia sobre cuándo se usa QA y qué espera como salida | Implement PRD slicing |
-| `.agents/skills/02-implement/implement-prd/SKILL.md` | Orquestador | Mantener alineada la semántica de rerun/cierre con el workflow de QA | Implement PRD orchestrator |
+| `.agents/skills/02-implement/qa-handoff-review/SKILL.md` y mirror | Skill canónica + overlay | Definir el workflow ejecutable del review final y preservar paridad distribuible | Implement PRD quality workflow |
+| `.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md` y mirror | Contrato de salida | Mantener el schema TOON como cierre único | Implement PRD references |
+| `.agents/skills/02-implement/implementation-slicing/SKILL.md` y mirror | Skill vecina | Mantener consistencia sobre cuándo se usa QA y qué espera como salida | Implement PRD slicing |
+| `.agents/skills/02-implement/implement-prd/SKILL.md` y mirror | Orquestador | Mantener alineada la semántica de rerun/cierre con el workflow de QA | Implement PRD orchestrator |
 
 ### 3.3 Diagrama de Flujo
 
@@ -157,8 +157,8 @@ flowchart TD
 
 | ID | Outcome | Depends on | Scope / likely files | Acceptance criteria | Tests | Validation | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| P1-S1 | Estructura base del workflow definida con pasos, decisiones y cierre | none | `.agents/skills/02-implement/qa-handoff-review/SKILL.md` | AC-1, AC-6 | Revisión documental focalizada | `bun run check:docs` | Skill con secuencia operativa compacta y distinguible |
-| P1-S2 | Excepciones claras y bucle finito de rerun documentados | P1-S1 | `.agents/skills/02-implement/qa-handoff-review/SKILL.md` | AC-2, AC-4, AC-5 | Revisión documental focalizada | `bun run check:docs` | Reglas explícitas de salto, bloqueo y rerun |
+| P1-S1 | Estructura base del workflow definida con pasos, decisiones y cierre | none | `.agents/skills/02-implement/qa-handoff-review/SKILL.md` y mirror | AC-1, AC-6 | Revisión documental focalizada | `bun run check:docs` | Skill con secuencia operativa compacta y distinguible |
+| P1-S2 | Excepciones claras y bucle finito de rerun documentados | P1-S1 | `.agents/skills/02-implement/qa-handoff-review/SKILL.md` y mirror | AC-2, AC-4, AC-5 | Revisión documental focalizada | `bun run check:docs` | Reglas explícitas de salto, bloqueo y rerun |
 
 **Slice stop conditions**:
 
@@ -181,17 +181,17 @@ flowchart TD
 
 | ID | Outcome | Depends on | Scope / likely files | Acceptance criteria | Tests | Validation | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| P2-S1 | Handoff schema y expectativa de cierre quedan alineados con el workflow ejecutable | P1-S2 | `.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md`, `.agents/skills/02-implement/implement-prd/SKILL.md` | AC-2, AC-3, AC-5 | Contract review focalizado | `bun test test/workflow-contract.test.mjs` | Contrato y orquestador sin contradicciones sobre rerun o cierre |
-| P2-S2 | Referencias canónicas de uso de QA reflejan la nueva convención mínima | P2-S1 | `.agents/skills/02-implement/implementation-slicing/SKILL.md` | AC-3, AC-6 | Contract review focalizado | `bun test test/template-packs.test.mjs test/workflow-contract.test.mjs` | Referencia de uso alineada con el patrón sin ampliar scope |
+| P2-S1 | Handoff schema y expectativa de cierre quedan alineados con el workflow ejecutable | P1-S2 | `.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md`, `.agents/skills/02-implement/implement-prd/SKILL.md` y mirrors | AC-2, AC-3, AC-5 | Contract review focalizado | `node --test test/workflow-contract.test.mjs` | Contrato y orquestador sin contradicciones sobre rerun o cierre |
+| P2-S2 | Referencias canónicas de uso de QA reflejan la nueva convención mínima | P2-S1 | `.agents/skills/02-implement/implementation-slicing/SKILL.md` y mirror | AC-3, AC-6 | Contract review focalizado | `node --test test/template-packs.test.mjs test/workflow-contract.test.mjs` | Referencia de uso alineada con el patrón y paridad distribuible |
 
 **Slice stop conditions**:
 
-- Si alinear referencias canónicas obliga a tocar mirrors de template para mantener checks verdes, esa propagación se registra como follow-up fuera del alcance de este PRD.
+- Si alinear referencias canónicas exige un mirror adicional para preservar el contrato de paridad, se sincroniza dentro de la misma slice y se registra en el execution lock.
 - Si surge la necesidad de cambiar reglas de routing o de registro de skills, el trabajo se frena y se abre un PRD separado.
 
 **Definition of Done**:
 
-- El skill canónico y sus contratos canónicos vecinos describen el mismo comportamiento de cierre.
+- El skill canónico, sus mirrors y sus contratos vecinos describen el mismo comportamiento de cierre.
 - La convención queda lista para replicarse más adelante sin haber intentado migrar todo el ecosistema en este PRD.
 
 ---
@@ -211,7 +211,7 @@ flowchart TD
 | # | Pregunta | Respuesta | Impacto en diseño |
 | --- | --- | --- | --- |
 | 1 | ¿La convención debe ser local o general? | General, siempre que aplique para todos | El PRD diseña un patrón reusable, aunque solo implementa el caso inicial |
-| 2 | ¿Se toca solo canon o también mirrors? | Solo fuente canónica | El alcance excluye template overlays y adapters |
+| 2 | ¿Se toca solo canon o también mirrors? | Canon y mirrors requeridos | La paridad distribuible prevalece sobre el alcance inicial canon-only; adapters siguen excluidos |
 | 3 | ¿Optimización para quién? | Para agentes | La estructura prioriza legibilidad operativa sobre prosa extensa |
 | 4 | ¿Secuencia rígida o flexible? | Secuencia base con excepciones claras | Se modelan saltos solo por condiciones observables |
 | 5 | ¿Agregar estructura explícita? | Sí, solo si ayuda sin alargar el archivo | La convención debe ser compacta |
@@ -222,6 +222,7 @@ flowchart TD
 | 10 | ¿Qué nivel de verificación? | Evidencia documental y consistencia estructural | No se exige automatización nueva más allá de checks existentes |
 | 11 | ¿Distinguir tipos de bloque operativamente? | Sí | La skill debe marcar pasos, decisiones, excepciones y checklist auxiliar |
 | 12 | ¿Una o dos fases? | Dos fases | Primero skill canónica, luego contratos canónicos vecinos |
+| 13 | ¿Se sincronizan mirrors si el contrato de paridad lo exige? | Sí, aprobado explícitamente | Canon y overlay se actualizan en la misma slice y se validan juntos |
 
 ---
 
@@ -244,13 +245,13 @@ _(Vacío = PRD listo para implementar)_
 
 ## 8. Definition of Done Global
 
-- [ ] La fuente canónica de `qa-handoff-review` expresa un workflow ejecutable compacto
-- [ ] Los pasos obligatorios, decisiones, excepciones y checklist auxiliar se distinguen claramente
-- [ ] Existe al menos un bucle finito de rerun hacia reparación/validación o bloqueo explícito
-- [ ] `ready_to_close` solo puede resultar `yes` cuando el workflow lo justifica operacionalmente
-- [ ] Los contratos canónicos vecinos no contradicen la nueva semántica de cierre
-- [ ] `bun run check:docs` en verde
-- [ ] `bun test test/template-packs.test.mjs test/workflow-contract.test.mjs` en verde o con follow-up explícito aceptado
+- [x] La fuente canónica de `qa-handoff-review` expresa un workflow ejecutable compacto
+- [x] Los pasos obligatorios, decisiones, excepciones y checklist auxiliar se distinguen claramente
+- [x] Existe al menos un bucle finito de rerun hacia reparación/validación o bloqueo explícito
+- [x] `ready_to_close` solo puede resultar `yes` cuando el workflow lo justifica operacionalmente
+- [x] Los contratos canónicos vecinos no contradicen la nueva semántica de cierre
+- [x] `bun run check:docs` en verde
+- [x] `node --test test/template-packs.test.mjs test/workflow-contract.test.mjs` en verde
 
 ---
 
@@ -258,9 +259,9 @@ _(Vacío = PRD listo para implementar)_
 
 | Acceptance criterion | Phase / slice | Test evidence | Validation evidence | Status |
 | --- | --- | --- | --- | --- |
-| AC-1 | P1-S1 | Review of resulting skill structure | `bun run check:docs` | Pending |
-| AC-2 | P1-S2, P2-S1 | Handoff and closure semantics reviewed | `bun run check:docs`, `bun test test/workflow-contract.test.mjs` | Pending |
-| AC-3 | P2-S1, P2-S2 | Orchestrator and slicing references aligned | `bun test test/workflow-contract.test.mjs test/template-packs.test.mjs` | Pending |
-| AC-4 | P1-S2 | Explicit exception rules in skill | `bun run check:docs` | Pending |
-| AC-5 | P1-S2, P2-S1 | Rerun and blocked-next semantics aligned | `bun test test/workflow-contract.test.mjs` | Pending |
-| AC-6 | P1-S1, P2-S2 | Human/agent readability review | `bun run check:docs`, `bun test test/template-packs.test.mjs test/workflow-contract.test.mjs` | Pending |
+| AC-1 | P1-S1 | Ordered mandatory QA procedure | `bun run check:docs`, QA review | Verified |
+| AC-2 | P1-S2, P2-S1 | Handoff and closure semantics reviewed | `bun run check:docs`, `node --test test/workflow-contract.test.mjs` | Verified |
+| AC-3 | P2-S1, P2-S2 | Orchestrator and slicing references aligned | `node --test test/workflow-contract.test.mjs test/template-packs.test.mjs` | Verified |
+| AC-4 | P1-S2 | Explicit exception rules in skill | `bun run check:docs`, QA review | Verified |
+| AC-5 | P1-S2, P2-S1 | Rerun and blocked-next semantics aligned | `node --test test/workflow-contract.test.mjs`, QA review | Verified |
+| AC-6 | P1-S1, P2-S2 | Human/agent readability review | `bun run check:docs`, `node --test test/template-packs.test.mjs test/workflow-contract.test.mjs` | Verified |
