@@ -27,16 +27,17 @@ For compact PRDs, the goal is not to create more slices. The goal is to find the
 
 1. Preserve PRD milestone order unless discovery proves a dependency problem. Phases are milestones; slices are the executable unit.
 2. Map every acceptance criterion to one or more slices and define the evidence that will prove it.
-3. Split first by failure/rollback boundary, then by contract boundary: migration, domain behavior, API/serializer, frontend API/hook, UI, rollout/backfill, cleanup.
-4. Apply the atomicity rules below. Recursively split every `TOO_COARSE` slice before handing off implementation.
-5. Assign each slice a single owner skill and one observable outcome.
-6. Assign strict write ownership. Do not let two active subagents edit the same file.
-7. Mark which slices can run in parallel. Only parallelize disjoint write sets with stable contracts and no dependency edge. Use `cavecrew-investigator` for quick ownership, test, or path lookups when the answer does not need prose.
-8. Put tests and the smallest useful validation command in every slice. If a separate test owner is necessary, pair it as a blocking verification sub-slice; implementation cannot advance until the pair is verified.
-9. Add a contract verification slice whenever backend response data feeds frontend logic.
-10. Add a micro-gate after every slice and a phase gate after every PRD phase.
-11. Add `qa-handoff-review` only for `standard`, cross-layer, security/tenancy-sensitive, release-critical, or unusually large diffs. For `controlled-lite`, prefer per-slice validation and skip final QA unless a concrete risk warrants it.
-12. Prepare each slice for `implementation-skill-matcher` by making the handoff deterministic: slice ID, outcome, owner skill, files owned, acceptance criteria, tests, validation, quality checks, and stop conditions must be explicit.
+3. Map every PRD use case (`UC-N`) to at least one slice, every PRD Estrategia de Tests row it depends on, and any Matriz de Edge Cases rows it must satisfy. A use case, test row, or edge-case row with no owning slice is a traceability gap; resolve it before handoff or report it as a stop condition.
+4. Split first by failure/rollback boundary, then by contract boundary: migration, domain behavior, API/serializer, frontend API/hook, UI, rollout/backfill, cleanup.
+5. Apply the atomicity rules below. Recursively split every `TOO_COARSE` slice before handing off implementation.
+6. Assign each slice a single owner skill and one observable outcome.
+7. Assign strict write ownership. Do not let two active subagents edit the same file.
+8. Mark which slices can run in parallel. Only parallelize disjoint write sets with stable contracts and no dependency edge. Use `cavecrew-investigator` for quick ownership, test, or path lookups when the answer does not need prose.
+9. Put tests and the smallest useful validation command in every slice. If a separate test owner is necessary, pair it as a blocking verification sub-slice; implementation cannot advance until the pair is verified.
+10. Add a contract verification slice whenever backend response data feeds frontend logic.
+11. Add a micro-gate after every slice and a phase gate after every PRD phase.
+12. Add a fresh-context `qa-handoff-review` delegate for `standard`, cross-layer, security/tenancy-sensitive, release-critical, or unusually large diffs. For `controlled-lite`, inline QA may replace that delegate when the risk is bounded, but the final QA checklist, closure gates, and TOON handoff remain mandatory.
+13. Prepare each slice for `implementation-skill-matcher` by making the handoff deterministic: slice ID, outcome, owner skill, files owned, acceptance criteria, use cases, tests, edge cases, validation, quality checks, and stop conditions must be explicit.
 
 ## Controlled-lite Slicing
 
@@ -89,10 +90,11 @@ Do not manufacture slices solely to increase their count. A non-trivial phase no
 Each slice must carry this evidence bundle before a dependent slice starts:
 
 1. **Implementation evidence** — owned diff and scope review.
-2. **Test evidence** — focused automated test result, or explicit justification for a non-automated check.
+2. **Test evidence** — focused automated test result, or explicit justification for a non-automated check. Tests must trace back to the PRD Estrategia de Tests row for each use case the slice owns.
 3. **Validation evidence** — lint/static/contract/smoke command relevant to the slice.
 4. **Quality evidence** — applicable tenancy, authorization, i18n, contract, performance, accessibility, SOLID/DRY/KISS, and hardcoding checks.
 5. **Acceptance evidence** — criterion IDs linked to concrete proof.
+6. **Traceability evidence** — every use case and edge-case matrix row owned by this slice is listed explicitly; none are left implicit.
 
 Allowed status progression:
 
@@ -139,7 +141,9 @@ Slice table:
 - Files owned:
 - Must not touch:
 - Acceptance criteria:
+- Use cases:
 - Tests:
+- Edge cases:
 - Validation:
 - Quality checks:
 - Evidence required:
@@ -151,6 +155,8 @@ Matcher handoff:
 - Matcher-ready context:
 Parallelization notes:
 Acceptance-to-slice traceability:
+Use-case-to-slice traceability:
+Edge-case-to-slice traceability:
 Per-slice micro-gates:
 Phase gates:
 Stop conditions:

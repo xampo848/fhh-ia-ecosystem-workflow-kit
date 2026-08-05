@@ -111,6 +111,25 @@ Every new pattern skill should define:
 8. **Out-of-scope notes** — adjacent work that the pattern skill must not
    absorb.
 
+### Rollout-governing pattern lifecycle
+
+If a pattern skill governs controlled production rollout (for example, feature
+flags, toggles, staged activation, or a dual-path cutover), it must also define
+a `Rollout Lifecycle` block containing:
+
+1. **Owner** — team or role accountable for activation and retirement.
+2. **Default state** — disabled by default until explicitly activated.
+3. **Activation mechanism** — the concrete configuration, migration, or command
+  that enables the new path.
+4. **Both-state tests** — focused checks for both disabled/legacy and enabled/new
+  behavior.
+5. **Rollback path** — how to disable the new behavior safely after release.
+6. **Retirement plan** — the signal and cleanup required to remove the old path
+  and the rollout mechanism.
+
+Treat a rollout-governing pattern without this block as incomplete. This rule
+does not apply to patterns that do not control production activation.
+
 ## Recommended Bootstrap Flow
 
 When a repository starts from this overlay:

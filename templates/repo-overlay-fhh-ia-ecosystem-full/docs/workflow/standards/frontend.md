@@ -31,4 +31,12 @@ If your project already had frontend guidance in scattered docs:
 - Tests: project-specific frontend test command
 - E2E: project-specific UI flow validation command when available
 
+## Runtime instruction file expected by skills
+
+When your repository has frontend code, provide:
+
+- `.github/instructions/frontend.instructions.md`
+
+Use `docs/workflow/standards/project-instructions-template.md` as a starter and adapt it to your stack.
+
 Keep this document technology-neutral and extend it with repository-specific standards.

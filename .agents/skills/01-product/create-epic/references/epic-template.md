@@ -51,11 +51,19 @@ Use this structure for `docs/epics/<feature-or-project>/<slug>.md`. It intention
 
 ## 5. Reglas de Negocio
 
-**Regla 1: [Name]**  
+**Regla 1: [Name]**
 [Behavior, rationale, edge cases, interpretation risk.]
 
-**Regla 2: [Name]**  
+**Regla 2: [Name]**
 [Behavior, rationale, edge cases, interpretation risk.]
+
+### Invariantes No Negociables
+
+| ID | Invariante | Owner | Rationale | Child PRD mapping required |
+| -- | ---------- | ----- | --------- | ------------------------- |
+| INV-[AREA]-01 | [Requirement that a child PRD may not silently redefine] | [Role/team] | [Why it is non-negotiable] | Yes |
+
+Any child PRD must map every inherited invariant to an acceptance criterion. A contradiction requires an explicit user-approved change request that records the invariant ID, reason, and approver.
 
 ## 6. Casos de Uso
 
@@ -204,5 +212,6 @@ After that PRD is approved, use $implement-prd on the PRD file. After implementa
 - Business narrative, user flow, business rules, use cases, architecture, and failure modes are covered.
 - Backend, frontend, API, data, security, testing, rollout, and documentation were considered.
 - Open questions are separated from confirmed decisions.
+- Non-negotiable inherited requirements have stable IDs, owners, rationale, and child-PRD mapping expectations.
 - The first PRD can be created without redoing the entire discovery process.
 - Each committed phase states how it proceeds through `create-prd`, `implement-prd`, and `document-development`.

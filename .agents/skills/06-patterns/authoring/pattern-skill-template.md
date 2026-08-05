@@ -42,6 +42,15 @@ Examples:
 - `<command-or-check-2>`
 - `<command-or-check-3>`
 
+## Rollout Lifecycle _(required only for rollout-governing patterns)_
+
+- Owner: `<team-or-role>`
+- Default state: `disabled`
+- Activation mechanism: `<configuration, migration, or command>`
+- Both-state tests: `<disabled/legacy check>`; `<enabled/new-path check>`
+- Rollback path: `<how to disable safely>`
+- Retirement plan: `<signal and cleanup for old path and rollout mechanism>`
+
 ## Stop Conditions
 
 - <ambiguity-or-risk-1>
@@ -68,3 +77,4 @@ Add one row under standards/pattern skills in `.agents/skills/registry.md`:
 3. `.agents/skills/registry.json` updated.
 4. `.agents/skills/registry.cache.json` updated.
 5. No stale references to removed or foreign-project patterns.
+6. Rollout-governing patterns include the required `Rollout Lifecycle` block.

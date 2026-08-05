@@ -1,0 +1,37 @@
+# execution_lock
+lock_id: create-prd-phase-orchestrator-2026-08-05
+prd_path: docs/prd/workflow-skills/2026-08-05-create-prd-phase-orchestrator/create-prd-phase-orchestrator.md
+slice_id: P3-S3
+hazards[0]: none
+selected_patterns[1]: canonical-overlay-mirroring
+required_checks[4]: node --test test/workflow-contract.test.mjs
+required_checks[4]: bun run check:docs
+required_checks[4]: bun run check:workflow
+required_checks[4]: manual smoke checklist marker command
+evidence_state: fresh
+waiver_state: none
+validated_file_scope[11]: .agents/skills/01-product/create-prd/SKILL.md
+validated_file_scope[11]: templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/create-prd/SKILL.md
+validated_file_scope[11]: .agents/skills/01-product/create-prd/reference/calibration.md
+validated_file_scope[11]: .agents/skills/01-product/create-prd/reference/ambiguity-detection.md
+validated_file_scope[11]: .agents/skills/01-product/create-prd/reference/pattern-locking.md
+validated_file_scope[11]: .agents/skills/01-product/create-prd/reference/self-audit.md
+validated_file_scope[11]: docs/workflow/runbooks/create-prd-orchestrator-smoke-check.md
+validated_file_scope[11]: docs/prd/workflow-skills/2026-08-05-create-prd-phase-orchestrator/create-prd-phase-orchestrator.md
+validated_file_scope[11]: docs/prd/workflow-skills/2026-08-05-create-prd-phase-orchestrator/execution-lock.toon
+validated_file_scope[11]: docs/prd/_meta/task_tracker.md
+validated_file_scope[11]: .agents/skills/registry.cache.json
+validated_content_ref: 2026-08-05 final validation - workflow-contract 13 passed; check-docs passed; check-workflow passed; smoke marker passed
+command_scope_confirmed: yes
+slices[11]{id,status,files,checks,evidence}:
+  P1-S1,VERIFIED,.agents/skills/01-product/create-prd/SKILL.md|templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/create-prd/SKILL.md,node --test test/workflow-contract.test.mjs,13 tests passed
+  P1-S2,VERIFIED,.agents/skills/01-product/create-prd/SKILL.md|templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/create-prd/SKILL.md,node --test test/workflow-contract.test.mjs,13 tests passed
+  P1-S3,VERIFIED,.agents/skills/01-product/create-prd/SKILL.md|templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/create-prd/SKILL.md,node --test test/workflow-contract.test.mjs,13 tests passed
+  P1-S4,VERIFIED,.agents/skills/01-product/create-prd/SKILL.md|templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/create-prd/SKILL.md,node --test test/workflow-contract.test.mjs,13 tests passed
+  P1-S5,VERIFIED,.agents/skills/01-product/create-prd/SKILL.md|templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/create-prd/SKILL.md,node --test test/workflow-contract.test.mjs,13 tests passed
+  P2-S1,VERIFIED,create-prd calibration and ambiguity reference mirrors,bun run check:docs,passed
+  P2-S2,VERIFIED,create-prd pattern-locking reference mirrors,bun run check:docs,passed
+  P2-S3,VERIFIED,create-prd self-audit reference mirrors,bun run check:workflow,passed
+  P3-S1,VERIFIED,create-prd SKILL metadata mirrors,node --test test/workflow-contract.test.mjs,13 tests passed
+  P3-S2,VERIFIED,create-prd SKILL future-scope mirrors,bun run check:docs,passed
+  P3-S3,VERIFIED,docs/workflow/runbooks/create-prd-orchestrator-smoke-check.md,manual smoke checklist marker command and bun run check:docs,passed

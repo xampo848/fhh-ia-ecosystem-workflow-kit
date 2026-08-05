@@ -24,3 +24,4 @@ This folder is reserved for documents that support the installed AI workflow.
 - `runbooks/router-skill-enforcement-manual-checklist.md`
 - `handoffs/template-installation.md`
 - `standards/setup-and-migration.md`
+- `standards/project-instructions-template.md`

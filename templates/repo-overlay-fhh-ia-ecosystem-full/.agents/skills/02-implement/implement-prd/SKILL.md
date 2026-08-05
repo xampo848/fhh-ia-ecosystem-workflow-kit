@@ -44,6 +44,24 @@ Choose the smallest mode that can safely satisfy the PRD.
 5. **Autonomous-safe mode** - when the user asks for autonomous execution. Proceed through phases without asking at every gate, but stop on any stop condition.
 6. **Resume mode** - when implementation already started. Reconstruct progress from PRD, diff, tests, and first incomplete acceptance criterion. Do not re-implement validated work.
 
+## Deterministic Hazard Escalation
+
+Classify hazards before choosing the operating mode. The fixed high-risk hazard list is:
+
+- rollout mechanism or feature flag;
+- data migration, backfill, or persisted cutover;
+- background job or asynchronous execution;
+- public API or cross-layer contract change;
+- authorization or tenancy behavior;
+- visible user-facing UI.
+
+Rules:
+
+1. A PRD or dependent slice with two or more listed hazards MUST use `standard` mode; file count, one-writer framing, or an inline preference cannot downgrade it.
+2. `standard` under this rule requires blocking matcher completion before coding, independent validation, and fresh-context QA before closure.
+3. `autonomous-safe` may remove routine user pauses, but it retains every `standard` gate when the hazard rule applies.
+4. Record detected hazards and the resulting mode in the execution lock before the first coding slice.
+
 ## Design Principles
 
 1. **Subagent-value policy**: Use subagents only when they reduce risk, context, rework, or review bias. Delegation is mandatory for `standard` risk boundaries, not for every non-trivial PRD. Inline execution is allowed in `controlled-lite` when one writer can own the slice safely and validation is focused.
@@ -56,13 +74,13 @@ Choose the smallest mode that can safely satisfy the PRD.
 8. Implement one safe slice at a time and validate before expanding scope.
 9. Treat backend/frontend contracts as first-class deliverables.
 10. Validate each phase Definition of Done line by line before moving on.
-11. Maintain a physical phase/task tracker at `docs/prd/_meta/task_tracker.md` for every mode except `small/local`. Create it at the start of Phase 2 or before the first write, whichever comes first. Use it to record progress, handoffs, phase state, and the delegation decision/rationale, keeping the main conversation context clean.
+11. Maintain a physical phase/task tracker at `docs/prd/_meta/task_tracker.md` for every mode except `small/local`. Create or update it at the start of Phase 2 or before the first write, whichever comes first. Use it for coordination, progress, handoffs, phase state, and delegation rationale; it is not the authority for PRD closure.
 12. **Subagent wait barrier**: after launching any subagent, the orchestrator MUST wait for its completed handoff before reading dependent files, launching dependent subagents, validating, updating phase status, or producing the final answer. In Codex multi-agent runs, call `wait_agent` with the relevant agent id(s) whenever the next critical-path step depends on them. If the runtime exposes a different asynchronous/pending subagent handle, poll or re-open that handle until it returns a terminal result. If the runtime cannot wait, stop and tell the user the exact pending delegate instead of continuing from assumptions.
 13. Report progress after each delegated run only after the handoff has been received and reviewed.
 14. Challenge and teach: when there are better alternatives, explain the trade-off briefly, recommend one path, and proceed unless a stop condition applies.
 15. Prefer evidence over confidence: acceptance criteria are only covered when linked to code, tests, validation output, or an explicit residual risk.
 16. Avoid token waste: do not bulk-load all docs, all skills, or large files without a concrete reason.
-17. Apply `.github/instructions/quality-gate.instructions.md` as the required quality gate for code-writing work. Subagents will load it directly.
+17. Before code-writing work, verify that every quality-gate or domain-instruction path required by the PRD or repository context exists. A missing configured path is a hard stop, not an implicit pass.
 18. Treat phases as milestones and slices as the executable unit. Never compensate for coarse tasks by validating only at phase end.
 19. A dependent slice starts only after its predecessor is `VERIFIED`: implementation, focused tests, relevant validation, quality checks, and acceptance evidence are all present.
 20. For any architectural replacement, cutover, snapshot/read-model migration, or persisted read-path change, implementation is not closable until **activation on existing data** is handled explicitly: bootstrap/backfill/repair path, rollout command, recovery path, and at least one real-data smoke check or equivalent operational verification.
@@ -81,7 +99,7 @@ Decide `avoided`, `recommended`, or `required` before Phase 2 using these signal
 
 Default interpretation:
 
-- `required` when the mode is `standard`, when three or more signals are true, or when the PRD already depends on multiple delegate-only phase skills for safe execution.
+- `required` when the mode is `standard`, when the deterministic hazard rule applies, when three or more signals are true, or when the PRD already depends on multiple delegate-only phase skills for safe execution.
 - `recommended` when two signals are true, or when one focused delegate would clearly reduce context churn even if the work is still bounded.
 - `avoided` only when the work fits one surface, one writer, compact context, and focused validation without losing rigor.
 
@@ -93,14 +111,29 @@ Before planning or editing:
 
 1. Read `.github/copilot-instructions.md`.
 2. Read the PRD completely.
-3. (CODE_QUALITY is no longer loaded globally; code-writing agents load `quality-gate.instructions.md` on demand).
+3. Identify the quality-gate and domain-instruction paths required by the PRD or repository context; verify each exists before relying on it.
 4. Classify the work as `small/local`, `controlled-lite`, `controlled-implementation`, `standard`, `autonomous-safe`, or `resume`.
 5. If backend files are touched, read `.github/instructions/backend.instructions.md`.
 6. If frontend files are touched, read `.github/instructions/frontend.instructions.md`.
 7. For non-trivial, cross-layer, architectural, migration-heavy, or tenancy-sensitive work, read `docs/foundations/ARCHITECTURE.md`.
 8. Load only relevant pattern docs from `docs/patterns/README.md`.
-9. Initialize the physical task tracker file at `docs/prd/_meta/task_tracker.md` using the exact TOON template in `reference/task-tracker-template.md`, except in `small/local` mode.
+9. Initialize or update the physical task tracker file at `docs/prd/_meta/task_tracker.md` using the exact TOON template in `reference/task-tracker-template.md`, except in `small/local` mode. Treat it as coordination state, not closure authority.
 10. If the PRD changes how persisted data becomes visible in the UI/API, add an **activation checklist** to the tracker: existing-data bootstrap/backfill, deploy or repair command, success signal, failure signal, rollback/repair path, and smoke verification target.
+11. For every mode above `small/local`, initialize a git-tracked execution lock at `<prd-directory>/execution-lock.toon` before the first coding slice. Minimum fields: `lock_id`, `prd_path`, `slice_id`, `hazards`, `selected_patterns`, `required_checks`, `evidence_state`, `waiver_state`.
+
+## Execution Lock Baseline
+
+For every mode above `small/local`, completion requires an explicit, git-tracked per-PRD execution lock. The PRD-local lock is the closure authority; the global task tracker may support coordination but cannot substitute for lock evidence.
+
+Minimum contract:
+
+1. `lock_id` is stable for the PRD run and appears in every slice handoff.
+2. The lock lives at `<prd-directory>/execution-lock.toon` and must not be ignored by Git.
+3. Each slice records `hazards`, `selected_patterns`, and exact `required_checks` before coding starts.
+4. `evidence_state` must be `fresh` to promote a slice to `VERIFIED`.
+5. If files inside the slice scope change after validation, mark `evidence_state` as `stale` and rerun required checks.
+6. Waivers are allowed only as `waived_by_user` with a concrete reason and the exact acceptance/risk being waived.
+7. Missing lock fields are a hard stop for dependent slices.
 
 ## Context Budget Policy
 
@@ -150,7 +183,7 @@ Right-sized flow:
 Mode-specific execution:
 
 - In `small/local`, run readiness/discovery inline and skip delegation. This is the only mode where the task tracker may be skipped.
-- In `controlled-lite`, run a compact preflight inline or through one lightweight delegate. Run matcher inline or through one lightweight delegate when slice-to-pattern-skill matching reduces ambiguity, protects the context budget, or is needed to select exact reusable skill paths before coding. Record whether matching happened or was intentionally skipped. Implement inline or with one owner delegate per slice only after matcher output or explicit skip rationale exists. Always complete the QA checklist and closure checklist before closing; invoke QA handoff whenever the slice is not trivially local, changes contracts, touches user-visible behavior, or leaves any uncertainty about regressions, standards, tests, or edge cases.
+- In `controlled-lite`, run a compact preflight inline or through one lightweight delegate. Run matcher inline or through one lightweight delegate when slice-to-pattern-skill matching reduces ambiguity, protects the context budget, or is needed to select exact reusable skill paths before coding. Record whether matching happened or was intentionally skipped. Implement inline or with one owner delegate per slice only after matcher output or explicit skip rationale exists. Always complete the QA checklist, TOON handoff, and closure checklist before closing; invoke a fresh-context QA handoff whenever the slice is not trivially local, changes contracts, touches user-visible behavior, or leaves any uncertainty about regressions, standards, tests, or edge cases.
 - In `controlled-implementation`, use delegates selectively for phases or slices where independent context, file ownership, or validation evidence reduces risk. Delegates may use cavecrew helpers for narrow locate/edit/review subtasks when that reduces context without changing ownership.
 - In `standard`, use the full delegated flow when available. Treat matcher completion as a blocking phase before any coding delegate starts on dependent slices.
 - In `standard`, the existence of multiple phase skills is itself a signal to keep the work partitioned unless a clearly documented exception says otherwise.
@@ -215,11 +248,13 @@ In autonomous-safe mode, this is the only required user gate.
 Do not declare the PRD complete until all of these are explicitly true:
 
 1. Every acceptance criterion is `COMPLETE` with linked evidence, or is called out as an intentional residual risk accepted by the user.
-2. Regression-sensitive behavior adjacent to the change has been checked, not just the happy path that was edited.
-3. The code-quality gate and project standards pass with evidence, not narrative confidence.
-4. Missing tests are either added, proven unnecessary with a concrete reason, or escalated as a blocker.
-5. Relevant edge cases, failure states, empty states, and rollout/cutover scenarios are verified or explicitly blocked.
-6. Final QA ends in `ready_to_close: yes`.
+2. Every PRD use case (`UC-N`) links to at least one implemented/verified slice and at least one executed test from the PRD Estrategia de Tests; every PRD edge-case matrix row is either verified with evidence or marked `No aplica` with a justification the user accepted. An orphan acceptance criterion, use case, test-strategy row, or edge-case row blocks closure.
+3. Regression-sensitive behavior adjacent to the change has been checked, not just the happy path that was edited.
+4. The code-quality gate and project standards pass with evidence, not narrative confidence.
+5. Missing tests are either added, proven unnecessary with a concrete reason, or escalated as a blocker.
+6. Relevant edge cases, failure states, empty states, and rollout/cutover scenarios are verified or explicitly blocked.
+7. Final QA ends in `ready_to_close: yes`.
+8. Every `VERIFIED` slice has fresh command evidence in the execution lock, or an explicit `waived_by_user` record.
 
 If any item above is incomplete, the orchestrator must loop back through the owning slice, rerun the affected validation, and rerun QA until the checklist is satisfied.
 

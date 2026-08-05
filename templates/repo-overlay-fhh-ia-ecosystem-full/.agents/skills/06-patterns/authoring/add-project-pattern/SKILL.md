@@ -36,6 +36,7 @@ patterns from other products.
    - validation hooks,
    - stop conditions,
    - out-of-scope notes.
+   - `Rollout Lifecycle` when the pattern governs controlled production activation.
 5. Register the skill in `.agents/skills/registry.md` under standards/pattern
    skills with:
    - stable name,
@@ -63,6 +64,7 @@ patterns from other products.
 - The requested pattern is really a workflow orchestrator.
 - The scope is too broad to define one repeatable pattern.
 - Registry entry cannot be made deterministic (name/path/trigger unclear).
+- A rollout-governing pattern lacks owner, default disabled state, both-state tests, rollback path, or retirement plan.
 
 ## Out of Scope
 

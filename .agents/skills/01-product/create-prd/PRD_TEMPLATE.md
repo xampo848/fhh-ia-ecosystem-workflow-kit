@@ -13,6 +13,16 @@
 
 > **Alcance estricto**: [Clear statement of what IS and is NOT in scope for this PRD]
 
+### Contexto de Epica Padre _(si aplica)_
+
+**parent_epic**: `[path/to/epic.md]`
+
+| Invariante heredada | AC hijo | Estado | Change request aprobado |
+| ------------------- | -------- | ------ | ----------------------- |
+| INV-[AREA]-01 | AC-[N] | Mapeada | No aplica |
+
+Una contradiccion exige un change request aprobado por el usuario con ID de invariante, motivo y aprobador antes de continuar.
+
 ### Estado Actual
 
 | Capa                | Componente  | Archivo           |
@@ -51,6 +61,31 @@
 | --- | --- | --- | --- | --- |
 | AC-1 | [Precondition] | [Action/event] | [Observable result] | [Test/contract/smoke evidence] |
 
+### 2.4 Casos de Uso
+
+| ID | Actor | Precondiciones | Flujo principal | Resultado observable (falsable) | AC vinculado |
+| --- | --- | --- | --- | --- | --- |
+| UC-1 | [Actor] | [Precondition] | [Main flow steps] | [Falsifiable observable result] | AC-1 |
+
+### 2.5 Estrategia de Tests
+
+| Nivel | Objetivo | Caso de uso vinculado | Cobertura esperada | Comando o mecanismo de validacion |
+| --- | --- | --- | --- | --- |
+| Unidad/Integracion/Contrato/Smoke/E2E | [What this proves] | UC-1 | [Expected coverage] | `[exact command]` |
+
+### 2.6 Matriz de Edge Cases
+
+| Categoria | Descripcion | Caso de uso vinculado | Validacion | Estado |
+| --- | --- | --- | --- | --- |
+| Datos vacios | [Scenario] | UC-1 | [Test/contract/smoke/evidencia manual] | Pending |
+| Limites | [Scenario] | UC-1 | [Test/contract/smoke/evidencia manual] | Pending |
+| Errores | [Scenario] | UC-1 | [Test/contract/smoke/evidencia manual] | Pending |
+| Permisos/tenancy | [Scenario] | UC-1 | [Test/contract/smoke/evidencia manual] | Pending |
+| Concurrencia/orden | [Scenario] | UC-1 | [Test/contract/smoke/evidencia manual] | Pending |
+| Rollout/rollback | [Scenario] | UC-1 | [Test/contract/smoke/evidencia manual] | Pending |
+
+Una categoria sin caso aplicable se marca `No aplica` con una justificacion de una linea basada en el alcance real; nunca se omite en silencio.
+
 ---
 
 ## 3. Modelo de Datos
@@ -81,10 +116,10 @@ flowchart LR
 
 **Slices ejecutables**:
 
-| ID | Outcome | Depends on | Scope / likely files | Acceptance criteria | Tests | Validation | Evidence |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| P1-S1 | [One small result] | none | [One responsibility] | AC-1 | [Focused test] | `[exact command]` | [Passing output/diff/check] |
-| P1-S2 | [Next small result] | P1-S1 | [One responsibility] | AC-2 | [Focused test] | `[exact command]` | [Passing output/diff/check] |
+| ID | Outcome | Depends on | Scope / likely files | Acceptance criteria | Use cases | Tests | Edge cases | Validation | Evidence |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P1-S1 | [One small result] | none | [One responsibility] | AC-1 | UC-1 | [Focused test] | [Edge case row, if any] | `[exact command]` | [Passing output/diff/check] |
+| P1-S2 | [Next small result] | P1-S1 | [One responsibility] | AC-2 | UC-1 | [Focused test] | [Edge case row, if any] | `[exact command]` | [Passing output/diff/check] |
 
 **Slice stop conditions**:
 
@@ -151,11 +186,14 @@ _(Vacio = PRD listo para implementar)_
 - [ ] Columnas BD en ingles
 - [ ] Sin queries N+1
 - [ ] Errores capturados con `Errors::CaptureExceptionService`
+- [ ] Todo AC tiene al menos un caso de uso vinculado y todo caso de uso tiene al menos un AC vinculado
+- [ ] Todo caso de uso tiene al menos un test en la Estrategia de Tests
+- [ ] La Matriz de Edge Cases cubre las seis categorias obligatorias (o declara `No aplica` con justificacion)
 
 ---
 
 ## 9. Matriz de Trazabilidad
 
-| Acceptance criterion | Phase / slice | Test evidence | Validation evidence | Status |
-| --- | --- | --- | --- | --- |
-| AC-1 | P1-S1 | [test path/name] | [command/check] | Pending |
+| Acceptance criterion | Caso de uso | Phase / slice | Test evidence | Edge case(s) | Validation evidence | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| AC-1 | UC-1 | P1-S1 | [test path/name] | [edge case row] | [command/check] | Pending |

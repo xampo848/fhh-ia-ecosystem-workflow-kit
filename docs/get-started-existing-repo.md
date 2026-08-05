@@ -102,8 +102,11 @@ Start here:
 - `docs/workflow/standards/setup-and-migration.md`
 - `docs/workflow/standards/backend.md`
 - `docs/workflow/standards/frontend.md`
+- `docs/workflow/standards/project-instructions-template.md`
 
 Use these files to define repository-specific rules, commands, and migration decisions.
+
+Important: implementation workflows expect project-owned runtime instruction files at `.github/instructions/backend.instructions.md` and `.github/instructions/frontend.instructions.md` when those code surfaces exist.
 
 ## 7) Update and upgrade safely
 

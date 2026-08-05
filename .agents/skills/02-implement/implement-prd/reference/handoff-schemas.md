@@ -65,6 +65,14 @@ next: implementation-slices
 ```
 status: success | partial | blocked
 matcher_status_consumed: success | partial | blocked | skipped
+execution_lock_id: <lock-id>
+slice_id: <slice-id>
+evidence_state: fresh | stale | missing
+waiver_state: none | waived_by_user
+required_checks[N]: <required command or check>
+validated_file_scope[N]: <path>
+validated_content_ref: <commit SHA or file-hash manifest>
+command_scope_confirmed: yes | no | not-applicable
 skills_read[N]: <path> | none
 fallback_docs_used[N]: <path> | none
 capabilities_used[N]: <capability,status,reason> | none
@@ -94,6 +102,14 @@ next: validation-runner | contract-verifier | none
 ```
 status: success | partial | blocked
 matcher_status_consumed: success | partial | blocked | skipped
+execution_lock_id: <lock-id>
+slice_id: <slice-id>
+evidence_state: fresh | stale | missing
+waiver_state: none | waived_by_user
+required_checks[N]: <required command or check>
+validated_file_scope[N]: <path>
+validated_content_ref: <commit SHA or file-hash manifest>
+command_scope_confirmed: yes | no | not-applicable
 skills_read[N]: <path> | none
 fallback_docs_used[N]: <path> | none
 capabilities_used[N]: <capability,status,reason> | none
@@ -126,6 +142,14 @@ next: validation-runner | contract-verifier | none
 ```
 status: success | partial | blocked
 matcher_status_consumed: success | partial | blocked | skipped
+execution_lock_id: <lock-id>
+slice_id: <slice-id>
+evidence_state: fresh | stale | missing
+waiver_state: none | waived_by_user
+required_checks[N]: <required command or check>
+validated_file_scope[N]: <path>
+validated_content_ref: <commit SHA or file-hash manifest>
+command_scope_confirmed: yes | no | not-applicable
 skills_read[N]: <path> | none
 fallback_docs_used[N]: <path> | none
 capabilities_used[N]: <capability,status,reason> | none
@@ -147,6 +171,14 @@ next: validation-runner | none
 ```
 status: success | partial | blocked
 matcher_status_consumed: success | partial | blocked | skipped
+execution_lock_id: <lock-id>
+slice_id: <slice-id>
+evidence_state: fresh | stale | missing
+waiver_state: none | waived_by_user
+required_checks[N]: <required command or check>
+validated_file_scope[N]: <path>
+validated_content_ref: <commit SHA or file-hash manifest>
+command_scope_confirmed: yes | no | not-applicable
 skills_read[N]: <path> | none
 fallback_docs_used[N]: <path> | none
 capabilities_used[N]: <capability,status,reason> | none
@@ -168,6 +200,14 @@ next: validation-runner | none
 ```
 status: success | partial | blocked
 matcher_status_consumed: success | partial | blocked | skipped
+execution_lock_id: <lock-id>
+slice_id: <slice-id>
+evidence_state: fresh | stale | missing
+waiver_state: none | waived_by_user
+required_checks[N]: <required command or check>
+validated_file_scope[N]: <path>
+validated_content_ref: <commit SHA or file-hash manifest>
+command_scope_confirmed: yes | no | not-applicable
 skills_read[N]: <path> | none
 fallback_docs_used[N]: <path> | none
 capabilities_used[N]: <capability,status,reason> | none
@@ -188,6 +228,14 @@ next: none | qa-handoff-review
 ```
 status: success | partial | blocked
 matcher_status_consumed: success | partial | blocked | skipped
+execution_lock_id: <lock-id>
+slice_id: <slice-id>
+evidence_state: fresh | stale | missing
+waiver_state: none | waived_by_user
+required_checks[N]: <required command or check>
+validated_file_scope[N]: <path>
+validated_content_ref: <commit SHA or file-hash manifest>
+command_scope_confirmed: yes | no | not-applicable
 skills_read[N]: <path> | none
 fallback_docs_used[N]: <path> | none
 capabilities_used[N]: <capability,status,reason> | none
@@ -219,3 +267,7 @@ next: none | <specific follow-up>
 - Do not add markdown prose or section headers to the handoff. Return the raw TOON block only.
 - The orchestrator will treat any missing required field as a `blocked` status and halt.
 - For closure, any `FAIL`, `PARTIAL`, `INCOMPLETE`, or `no` value in required QA fields blocks completion until the owning slice is repaired and the affected validation/QA is rerun.
+- A `partial` QA handoff must name a concrete repair or validation action in `next`; a `blocked` handoff must name the ambiguity or decision required to resume.
+- Any handoff with `evidence_state: stale | missing` may not advance that slice to `VERIFIED` unless `waiver_state: waived_by_user` is explicitly present with rationale in residual risks.
+- A `command_scope_confirmed: no` result means `evidence_state: missing`; a green command does not count unless its scope covers the declared `required_checks` and `validated_file_scope`.
+- `validated_content_ref` must identify the content validated. Any later change inside `validated_file_scope` makes that evidence `stale`.

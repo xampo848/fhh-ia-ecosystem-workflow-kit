@@ -31,4 +31,12 @@ If your project already had backend standards in other docs paths:
 - Tests: project-specific unit/integration command
 - Contracts: contract checks between backend/frontend when applicable
 
+## Runtime instruction file expected by skills
+
+When your repository has backend code, provide:
+
+- `.github/instructions/backend.instructions.md`
+
+Use `docs/workflow/standards/project-instructions-template.md` as a starter and adapt it to your stack.
+
 Keep this document technology-neutral and add repository-specific rules below this line.
