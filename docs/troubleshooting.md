@@ -36,7 +36,7 @@ Common cases:
 
 - `copilot/missing-apply-to`: add YAML frontmatter with `applyTo: "**"` to the
   repository-wide Copilot instruction file.
-- `adapter/missing-per-turn-intake`: update the runtime wrapper so every prompt
+- `adapter/missing-turn-intake`: update the runtime wrapper so every prompt
   applies the neutral intake contract.
 - `skills/unregistered-file`: register the skill in
   `.agents/skills/registry.md`, then regenerate structured artifacts.

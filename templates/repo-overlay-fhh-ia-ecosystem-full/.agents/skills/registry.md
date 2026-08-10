@@ -196,6 +196,7 @@ Current repo-owned v1 pattern skills:
 | Skill name | Class | Physical path | Trigger | Loading posture | Cost hint | Future structured key | Runtime notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `add-project-pattern` | Standards/pattern | `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md` | User asks to create/register project-specific pattern skills in repo overlay | Explicit-only | lean | `pattern-authoring-add-project-pattern` | Bootstrap helper for local pattern authoring and registry sync. |
+| `init-legacy-attachments` | Standards/pattern | `.agents/skills/06-patterns/authoring/init-legacy-attachments/SKILL.md` | User asks to initialize or attach pre-existing local skills/patterns that existed before workflow installation | Explicit-only | balanced | `pattern-authoring-init-legacy-attachments` | Guided deterministic-first attach flow with AI fallback only for ambiguous metadata. |
 
 Human docs in `docs/patterns/**` remain references and fallback docs when a
 pattern skill is insufficient or a narrower repo-owned skill does not exist yet.
