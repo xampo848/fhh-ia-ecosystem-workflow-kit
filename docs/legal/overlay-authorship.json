@@ -1,11 +1,11 @@
 {
   "schemaVersion": 2,
-  "lastVerified": "2026-08-05",
+  "lastVerified": "2026-08-10",
   "scope": "templates/repo-overlay-fhh-ia-ecosystem-full",
   "remainingInventory": {
     "path": "templates/repo-overlay-fhh-ia-ecosystem-full",
-    "fileCount": 102,
-    "pathContentSha256": "34de21bb261fae8be83ca6dd744da67f2cad21e89f3c6c2e0c1822e4e9634c03"
+    "fileCount": 104,
+    "pathContentSha256": "404cd0fd2051f8e09f9dea1e9ca4d67bd8307b4880bd232ec2372a5df925b81b"
   },
   "externalPathCoverage": [
     {
