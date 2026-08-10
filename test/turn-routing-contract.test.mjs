@@ -52,6 +52,7 @@ test('canonical instructions and router match the installable overlay', async ()
 test('all runtime entrypoints apply the minimum neutral bootstrap', async () => {
   const entrypoints = [
     'templates/runtime-adapters/agents-md/AGENTS.md',
+    'templates/runtime-adapters/codex/.codex/README.md',
     'templates/runtime-adapters/copilot/.github/copilot-instructions.md',
     'templates/runtime-adapters/claude/CLAUDE.md',
     'templates/runtime-adapters/antigravity/ANTIGRAVITY.md'
@@ -116,6 +117,43 @@ test('Copilot scoped instructions enforce re-routing on follow-up turns', async 
     assert.match(content, /PR Comments Hard Trigger Safeguard/i, relativePath);
     assert.match(content, /resolve, review, process, or close PR\/review comments/i, relativePath);
     assert.match(content, /execute the selected `pr-comments-resolution` path/i, relativePath);
+  }
+});
+
+test('Claude wrappers require visible routing trace and execution gate for non-trivial work', async () => {
+  for (const relativePath of [
+    'CLAUDE.md',
+    'templates/runtime-adapters/claude/CLAUDE.md'
+  ]) {
+    const content = await read(relativePath);
+    assert.match(content, /non-trivial/i, relativePath);
+    assert.match(content, /routing decision trace/i, relativePath);
+    assert.match(content, /trivial informational direct answers/i, relativePath);
+    assert.match(content, /do not reuse or cache the previous workflow decision across turns/i, relativePath);
+    assert.match(content, /including follow-ups[\s\S]*same conversation/i, relativePath);
+    assert.match(content, /keep this adapter thin/i, relativePath);
+    assert.match(content, /selected workflow\/skill[\s\S]*If workflow changes[\s\S]*new trace/i, relativePath);
+    assert.match(content, /Execution authorization guarantee/i, relativePath);
+    assert.match(content, /Intent-only phrasing[\s\S]*not implementation authorization/i, relativePath);
+    assert.match(content, /PR comments hard trigger safeguard/i, relativePath);
+    assert.match(content, /resolve, review, process, or close PR\/review comments/i, relativePath);
+    assert.match(content, /execute the selected `pr-comments-resolution` path/i, relativePath);
+  }
+});
+
+test('Codex adapter notes require visible routing trace and execution gate', async () => {
+  for (const relativePath of [
+    '.codex/README.md',
+    'templates/runtime-adapters/codex/.codex/README.md'
+  ]) {
+    const content = await read(relativePath);
+    assert.match(content, /Outside an explicit skill invocation or a trivial direct answer/i, relativePath);
+    assert.match(content, /workflow-router/i, relativePath);
+    assert.match(content, /routing decision trace/i, relativePath);
+    assert.match(content, /do not reuse or cache the previous workflow decision across turns/i, relativePath);
+    assert.match(content, /including follow-ups[\s\S]*same conversation/i, relativePath);
+    assert.match(content, /Intent-only phrasing[\s\S]*not implementation authorization/i, relativePath);
+    assert.match(content, /do not inspect product implementation files[\s\S]*do not edit code/i, relativePath);
   }
 });
 

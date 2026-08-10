@@ -35,13 +35,13 @@ Runtime adapters should be boring:
 
 `AGENTS.md` is a shared adapter pack used by Codex and Copilot-compatible
 surfaces. Claude Code and Antigravity keep thin syntax-specific entrypoints.
-Runtime selection remains an explicit mapping in `src/planner.mjs`.
+Runtime selection remains an explicit mapping in `src/runtime-matrix.mjs`.
 
 ## Adding a runtime
 
 1. Add a thin pack under `templates/runtime-adapters/<runtime>/`.
 2. Register the pack in `templates/template-manifest.json`.
-3. Add the explicit runtime-to-pack mapping in `src/planner.mjs`.
+3. Add the explicit runtime-to-pack mapping and entrypoints in `src/runtime-matrix.mjs`.
 4. Add routing-contract and planner coverage.
 5. Add the runtime to `.agents/memory/parity-checklist.md`.
 
@@ -59,3 +59,7 @@ bun run check:workflow
 The validator checks required files, neutral references, per-turn intake,
 Copilot `applyTo: "**"` coverage, skill registry integrity, capability
 manifests, and canonical/overlay drift.
+
+For end-to-end rollout hardening (including agent entrypoints, skills registry,
+and project instruction hooks), run the checklist in
+`docs/workflow/runbooks/runtime-native-readiness-checklist.md`.

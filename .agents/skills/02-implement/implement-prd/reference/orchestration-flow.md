@@ -106,6 +106,7 @@ Delegate to `implementation-slicing` (Arquitecta Fases) for `standard`, cross-la
 The resulting plan must define:
 
 - Slice order.
+- Slice granularity intent (what was split and why).
 - Owner skill and alias, or `orchestrator-inline` for controlled-lite inline slices.
 - Files owned.
 - Files forbidden.
@@ -117,15 +118,43 @@ The resulting plan must define:
 - One observable outcome per slice and an atomicity rationale for any non-trivial single-slice phase.
 - Status progression and evidence bundle: `NOT_STARTED → IMPLEMENTED → TESTED → VALIDATED → VERIFIED`.
 
+Slicing quality bar (outside `small/local`):
+
+- Prefer one primary acceptance objective per slice.
+- Prefer 1-2 owned production files per slice; split slices that expand to 3+ owned production files unless atomicity requires grouping.
+- Prefer one specialized writer owner per slice; split backend/frontend producer-consumer changes unless the PRD requires atomic cutover.
+- Split before coding whenever matcher confidence drops because a slice maps to multiple unrelated pattern families.
+
 Present the implementation plan before coding when the user is interacting phase by phase, the scope is non-routine, the operating mode is `controlled-implementation` with material risks, or a stop condition applies. If the user has asked for autonomous execution or the plan is routine, proceed unless a stop condition applies.
 
 Maintain a physical phase/task tracker mapped 1:1 to PRD phases and tasks. Create and update the file `docs/prd/_meta/task_tracker.md` using the TOON template in `reference/task-tracker-template.md` to record progress and handoffs, keeping the main conversation context clean. Skip only in `small/local`.
+
+## Phase 2.5: Skill Matching
+
+Run `implementation-skill-matcher` after slicing and before any coding starts.
+
+Mandatory rule:
+
+- Outside `small/local`, matcher is required and cannot be skipped.
+- A coding slice may start only after matcher output exists for that slice.
+
+Accepted matcher outcomes:
+
+- `success`.
+- `partial` or `blocked` only when the user accepts the risk and fallback docs are documented in the tracker.
+
+Minimum evidence to record per slice:
+
+- required pattern skills selected.
+- fallback docs used when no pattern skill exists.
+- validation hooks and handoff required fields.
+- match confidence and any blocked reason.
 
 ## Phase 3: Implementation Slices
 
 For each slice:
 
-1. Delegate to the owner skill, or run inline when the mode is `small/local` or `controlled-lite` and one-writer ownership is preserved. If the owner skill needs a tiny 1-2 file helper edit inside its owned scope, it should prefer `cavecrew-builder` over expanding context in the parent thread.
+1. Delegate code-writing to the owner skill by default. Inline writing is allowed only in `small/local`, and in narrowly scoped `controlled-lite` slices where one-writer ownership is preserved and matcher evidence is already recorded. In `controlled-implementation`, `standard`, and `autonomous-safe`, treat specialized implementers as the default writers for production code. If the owner skill needs a tiny 1-2 file helper edit inside its owned scope, it should prefer `cavecrew-builder` over expanding context in the parent thread.
 2. Review the handoff output when delegated, or review the local diff when inline.
 3. Inspect the diff for ownership leaks, architecture violations, i18n gaps, duplicated logic, over-abstraction, and missing tests.
 4. Run or delegate focused validation through `validation-runner` when validation is non-trivial, flaky, or needs separate stabilization. Otherwise run the exact focused command inline.

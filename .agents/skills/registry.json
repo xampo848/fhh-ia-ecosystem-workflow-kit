@@ -405,6 +405,16 @@
       "cost_hint": "lean",
       "key": "pattern-authoring-add-project-pattern",
       "runtime_notes": "Bootstrap helper for local pattern authoring and registry sync."
+    },
+    {
+      "name": "init-legacy-attachments",
+      "class": "Standards/pattern",
+      "path": ".agents/skills/06-patterns/authoring/init-legacy-attachments/SKILL.md",
+      "trigger": "User asks to initialize or attach pre-existing local skills/patterns that existed before workflow installation",
+      "loading_posture": "Explicit-only",
+      "cost_hint": "balanced",
+      "key": "pattern-authoring-init-legacy-attachments",
+      "runtime_notes": "Guided deterministic-first attach flow with AI fallback only for ambiguous metadata."
     }
   ]
 }

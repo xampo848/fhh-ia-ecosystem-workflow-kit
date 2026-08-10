@@ -183,3 +183,6 @@ Minimum guardrails:
 
 - "How do I recover from a wrong apply?"
 : Restore from `*.workflow-kit-backup-<timestamp>` files and re-run dry-run before applying again.
+
+- "What else is needed besides install (agents, skills, hooks)?"
+: Run `docs/workflow/runbooks/runtime-native-readiness-checklist.md` and complete adapter, skill-registry, and project instruction-hook checks.

@@ -7,10 +7,10 @@
   "structured_registry": ".agents/skills/registry.json",
   "source_hashes": {
     ".agents/skills/index.md": "7c30dc59c94efab5f389ac624cf212df073feefbc8add2bb74325c21aee57770",
-    ".agents/skills/registry.md": "a25e74fb82c638d44a5a3159ee07123534025c9718602ef6e7f6bce73fa5248d",
-    ".agents/skills/registry.json": "bdf5e6eacfe770874d4aea7a7d372c38ebd4aaa151f995c0aaf3d213cd878eca"
+    ".agents/skills/registry.md": "5e66265f7904517f630667408f48bd09db8137960b943aafcfcc81001d0bb616",
+    ".agents/skills/registry.json": "143d969ae4bd3fbc080f8e2ea34a84d149a1ed0434b4360133eaab635e2a990d"
   },
-  "entry_count": 40,
+  "entry_count": 41,
   "entries": [
     {
       "key": "acceptance-test-engineer",
@@ -217,7 +217,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "8124198522484ed33c13623da7bbfc964cbcc296aa36a3a8f5af4916218154f5"
+      "skill_sha256": "37648ccc9e0186eef91f51f9d63bd3659a9b1a4dc8cfda27650b7f0266ca6386"
     },
     {
       "key": "implementation-skill-matcher",
@@ -245,6 +245,15 @@
       "path": ".agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md",
       "loading_posture": "Explicit-only",
       "skill_sha256": "a635cb3e25b584abf19be559f5d1635ae575abf87d281fdb81f3c19a51160d5f"
+    },
+    {
+      "key": "pattern-authoring-init-legacy-attachments",
+      "name": "init-legacy-attachments",
+      "group": "pattern_skills",
+      "class": "Standards/pattern",
+      "path": ".agents/skills/06-patterns/authoring/init-legacy-attachments/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "6213305e501bdf97ba22ad62b72a9123f7a16c70603b9f519eb910b224d8b061"
     },
     {
       "key": "playwright-testing",

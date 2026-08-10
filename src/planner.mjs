@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isSupportedRuntime, runtimeTemplatePaths } from './runtime-matrix.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
@@ -25,12 +26,6 @@ const docsReadmePath = 'docs/README.md';
 const docsWorkflowMarkerStart = '<!-- workflow-kit:docs-workflow:start -->';
 const docsWorkflowMarkerEnd = '<!-- workflow-kit:docs-workflow:end -->';
 const oneTimeLegacyDocsMapPath = 'docs/workflow/migration/legacy-docs-map.md';
-const runtimeTemplatePaths = {
-  codex: ['runtime-adapters/agents-md', 'runtime-adapters/codex'],
-  copilot: ['runtime-adapters/agents-md', 'runtime-adapters/copilot'],
-  claude: ['runtime-adapters/claude'],
-  antigravity: ['runtime-adapters/antigravity']
-};
 
 const backupModes = new Set(['required', 'none']);
 
@@ -59,7 +54,7 @@ export function parseRuntimeList(value = 'neutral') {
   if (runtimes.size === 0) runtimes.add('neutral');
 
   for (const runtime of runtimes) {
-    if (runtime !== 'neutral' && !runtimeTemplatePaths[runtime]) {
+    if (runtime !== 'neutral' && !isSupportedRuntime(runtime)) {
       throw new Error(`Unsupported runtime: ${runtime}`);
     }
   }
