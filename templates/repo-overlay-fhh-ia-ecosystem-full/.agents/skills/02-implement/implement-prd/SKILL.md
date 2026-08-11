@@ -176,7 +176,7 @@ Right-sized flow:
    - `validation-runner` after each meaningful slice.
    - For non-trivial visible frontend UI, run `frontend-design` before coding when direction is not already sharp, and run `impeccable` before closure when premium craft or visual QA is still material.
   - `qa-handoff-review` before final delivery for non-trivial work and whenever closure needs a fresh-context adversarial review.
-   - `react-doctor` after meaningful React changes; `playwright-testing` when formal E2E coverage is requested or required.
+  - `react-doctor` after meaningful React changes; `playwright-testing` by default for most navigable user-facing UI changes when tooling is available, with documented exceptions only.
    - `document-development` as the next expected skill after implementation closure when durable knowledge changed.
 5. Before closure of any data-activation or cutover slice, verify the surface against **existing realistic data**, not only factories/fixtures. If direct environment verification is impossible, the handoff must include an executable repair/bootstrap command and a clearly named unverified risk.
 
@@ -252,9 +252,10 @@ Do not declare the PRD complete until all of these are explicitly true:
 3. Regression-sensitive behavior adjacent to the change has been checked, not just the happy path that was edited.
 4. The code-quality gate and project standards pass with evidence, not narrative confidence.
 5. Missing tests are either added, proven unnecessary with a concrete reason, or escalated as a blocker.
-6. Relevant edge cases, failure states, empty states, and rollout/cutover scenarios are verified or explicitly blocked.
-7. Final QA ends in `ready_to_close: yes`.
-8. Every `VERIFIED` slice has fresh command evidence in the execution lock, or an explicit `waived_by_user` record.
+6. Coverage evidence exists for newly created production files and newly added methods/functions: each one maps to at least one executed test and at least one relevant edge-case assertion, or it is explicitly marked as `waived_by_user` with reason.
+7. Relevant edge cases, failure states, empty states, and rollout/cutover scenarios are verified or explicitly blocked.
+8. Final QA ends in `ready_to_close: yes`.
+9. Every `VERIFIED` slice has fresh command evidence in the execution lock, or an explicit `waived_by_user` record.
 
 If any item above is incomplete, the orchestrator must loop back through the owning slice, rerun the affected validation, and rerun QA until the checklist is satisfied.
 

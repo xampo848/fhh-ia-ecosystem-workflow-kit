@@ -6,9 +6,9 @@
   "compact_index": ".agents/skills/index.md",
   "structured_registry": ".agents/skills/registry.json",
   "source_hashes": {
-    ".agents/skills/index.md": "7c30dc59c94efab5f389ac624cf212df073feefbc8add2bb74325c21aee57770",
-    ".agents/skills/registry.md": "5e66265f7904517f630667408f48bd09db8137960b943aafcfcc81001d0bb616",
-    ".agents/skills/registry.json": "143d969ae4bd3fbc080f8e2ea34a84d149a1ed0434b4360133eaab635e2a990d"
+    ".agents/skills/index.md": "d6ea60248948e36c1ffc31fc2ccd507817bbd633570cb5fb328ec7ba05f70281",
+    ".agents/skills/registry.md": "5489b26031b3d0ed113a1f27c9ea574064f81d6b1162b8a2093d31a4ea83b02d",
+    ".agents/skills/registry.json": "f07bcb18c3761cd9e50cec6c8350271826887d610a9ca153ac2642fab44a74bb"
   },
   "entry_count": 41,
   "entries": [
@@ -217,7 +217,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "37648ccc9e0186eef91f51f9d63bd3659a9b1a4dc8cfda27650b7f0266ca6386"
+      "skill_sha256": "f6998b7fb5ebddabde768823e7ae3c994587e731093ed48855ca2ed5a4fc7f01"
     },
     {
       "key": "implementation-skill-matcher",
@@ -262,7 +262,7 @@
       "class": "Quality/validation",
       "path": ".agents/skills/03-quality/playwright-testing/SKILL.md",
       "loading_posture": "Just-in-time",
-      "skill_sha256": "e2ae65256d4456286ba8bf0214bfd1ca77eff78e1e05c639f0e9cf6d0ab88731"
+      "skill_sha256": "127ec81e89f7306bc7aa78741edfa8c4b3fddfa12812718fc50781092bd82e73"
     },
     {
       "key": "pr-comments-resolution",
@@ -352,7 +352,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/qa-handoff-review/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "a717d568e7f6629b8840e2b49b1516d261847a1bbaaf5573742abb32626ff841"
+      "skill_sha256": "7385411f63bf4beb03a821c6ccb1ec48b52ff9956c3897f8cc0baed2b5ac12d9"
     },
     {
       "key": "react-doctor",
@@ -379,7 +379,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "78b43c358a1a7f4ca88291afa2ac8b4485ced26f02c351aaeb77cad9e625d8f2"
+      "skill_sha256": "3172e1bf0c0a36de6eba5dfcd6d12dc94486ad983a0495ceea05bf4c916486c4"
     }
   ]
 }

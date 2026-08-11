@@ -227,9 +227,9 @@ Before loading any review/QA skill, run this gate in order:
 1. Detect changed surface from user request and current diff: backend-only, frontend non-React, React frontend, contract-only, or mixed.
 2. Select only applicable quality skills:
   - Backend-only: prefer inline review and/or `contract-verifier`; do not load `react-doctor` or `playwright-testing` by default.
-  - Frontend non-React: do not load `react-doctor`; load `playwright-testing` only if formal E2E coverage is explicitly requested or required.
+  - Frontend non-React: do not load `react-doctor`; load `playwright-testing` by default when there is a navigable user-facing UI flow and tooling is available. Skip only with an explicit documented exception or user waiver.
   - React frontend: load `react-doctor` for meaningful React changes.
-  - Formal E2E ask or release-critical flow validation: load `playwright-testing` when a navigable UI flow exists.
+  - Formal E2E ask, release-critical flow validation, or default-required navigable UI validation: load `playwright-testing` when a navigable UI flow exists and tooling is available.
 3. If no specialized quality skill applies, continue with inline review and explain why specialized skills were skipped.
 
 Do not invoke `react-doctor` or `playwright-testing` unless this gate says they apply.

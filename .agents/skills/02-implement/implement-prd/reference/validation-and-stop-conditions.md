@@ -36,7 +36,7 @@ Run from `front/`:
 ## Auxiliary Validation Skills
 
 - Use `react-doctor` after meaningful React changes or final frontend review.
-- Use `playwright-testing` when the PRD requests formal E2E coverage or when UI smoke verification cannot reasonably validate the workflow.
+- Use `playwright-testing` by default for most navigable user-facing UI behavior changes when tooling is available. Skip only with an explicit documented exception (backend-only/no navigable UI/purely cosmetic static change) or user waiver with risk acceptance.
 - Use `frontend-design` before coding visible frontend UI when you need a clearer visual direction or a more distinctive interface thesis.
 - Use `impeccable` before coding visible frontend UI when the work needs full design craft, broad refinement, or deep visual QA.
 - Do not mark visible frontend UI complete while it still feels generic, templated, low-hierarchy, or recognizably AI-generated.
@@ -63,6 +63,7 @@ Before marking any PRD implementation done, record and satisfy all of these gate
 - Regression gate: the changed behavior and the most plausible adjacent regressions were checked with the narrowest reliable validation.
 - Standards gate: project patterns, code quality, and domain instructions pass without unresolved exceptions.
 - Test gate: required tests exist for the slice; any missing tests are justified concretely or block closure.
+- Coverage gate: each newly created production file and newly added method/function has at least one executed test plus at least one relevant edge-case assertion, or an explicit `waived_by_user` record with reason.
 - Edge-case gate: relevant empty, error, boundary, permission, rollout, migration, and failure states are verified or block closure.
 - QA gate: final QA ends with `ready_to_close: yes`.
 
@@ -108,6 +109,7 @@ Stop and ask the user before continuing when:
 - A required validation command cannot be shown to cover the declared slice scope.
 - The handoff lacks a validated content reference for evidence required to reach `VERIFIED`.
 - A configured quality-gate or required domain-instruction path is missing; report the exact path and stop until it is created or corrected.
+- Coverage evidence for newly created production files or newly added methods/functions is missing, ambiguous, or not mapped to executed tests plus relevant edge-case assertions.
 
 Use this format:
 
