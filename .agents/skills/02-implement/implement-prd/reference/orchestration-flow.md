@@ -192,7 +192,7 @@ Delegate to `validation-runner` for `standard`, cross-layer, flaky, broad, or no
 
 Choose the smallest validation command that can falsify the change. Expand only when risk or failures justify it.
 
-For frontend React changes, run `react-doctor` after meaningful implementation or final frontend review. For formal E2E coverage, use `playwright-testing`.
+For frontend React changes, run `react-doctor` after meaningful implementation or final frontend review. For most navigable user-facing UI changes, run `playwright-testing` by default when tooling is available; skip only with an explicit documented exception or user waiver.
 
 Validation output must be captured as evidence. Do not mark an acceptance criterion complete from confidence alone.
 
@@ -210,11 +210,12 @@ The QA checklist must explicitly answer all of these before closure:
 - Regressions: checked on adjacent flows and existing consumers.
 - Standards: project rules and quality gate pass without unresolved violations.
 - Tests: required coverage exists; missing coverage is justified or blocked.
+- Coverage for new scope: each newly created production file and newly added method/function has executed-test evidence plus at least one relevant edge-case assertion, or an explicit blocker/waiver.
 - Edge cases: relevant empty/error/boundary/rollout states are verified or blocked.
 
 QA review should report findings and also explain the pattern being protected, so it reinforces learning instead of only listing defects.
 
-Do not advance to closure while QA reports `ready_to_close: no`, `validation_status: FAIL | PARTIAL`, incomplete acceptance evidence, unresolved regressions, unresolved standards gaps, missing required tests, or unreviewed edge cases.
+Do not advance to closure while QA reports `ready_to_close: no`, `validation_status: FAIL | PARTIAL`, incomplete acceptance evidence, unresolved regressions, unresolved standards gaps, missing required tests, missing coverage evidence for newly created files or newly added methods/functions, or unreviewed edge cases.
 
 ## Phase 7: Closure
 
@@ -225,7 +226,7 @@ Global closure checklist:
 - Run all relevant tests for touched domains.
 - Run lint checks for touched files when available and relevant.
 - Validate the global Definition of Done from the PRD.
-- If frontend UI changed, perform smoke verification and use `playwright-testing` when formal E2E is required.
+- If frontend UI changed, perform smoke verification and, in most navigable user-facing flows, require `playwright-testing` when tooling is available unless an explicit documented exception or user waiver applies.
 - Confirm the QA checklist status for acceptance criteria, regressions, standards, tests, and edge cases is fully resolved.
 - If any closure item fails, return to the owning slice, fix the root cause, rerun the affected validation, and rerun QA before attempting closure again.
 - Summarize PRD phases completed, files changed, tests/lint results, acceptance criteria coverage, key trade-offs, learning notes, and open risks.

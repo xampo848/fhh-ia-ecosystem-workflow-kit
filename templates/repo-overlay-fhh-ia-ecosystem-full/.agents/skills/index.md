@@ -19,7 +19,7 @@ Automation artifacts remain in `.agents/skills/registry.json` and `.agents/skill
 | `generate-pm-ticket` | User needs a backlog/Jira-style ticket rather than full PRD | `.agents/skills/01-product/generate-pm-ticket/SKILL.md` | lean |
 | `impeccable` | UI/design craft, audit, polish, redesign, live visual iteration | `.agents/skills/04-crosscutting/impeccable/SKILL.md` | balanced |
 | `implement-prd` | Approved PRD needs implementation | `.agents/skills/02-implement/implement-prd/SKILL.md` | balanced |
-| `playwright-testing` | User asks for Playwright tests or E2E validation is required | `.agents/skills/03-quality/playwright-testing/SKILL.md` | balanced |
+| `playwright-testing` | User asks for Playwright tests, or most navigable user-facing UI changes require E2E by default when tooling is available | `.agents/skills/03-quality/playwright-testing/SKILL.md` | balanced |
 | `pr-comments-resolution` | Resolve or review PR comments in an orderly way | `.agents/skills/04-crosscutting/pr-comments-resolution/SKILL.md` | balanced |
 | `project-formation` | PM needs end-to-end project shaping from discovery through GTM and dossier handoff | `.agents/skills/01-product/project-formation/SKILL.md` | balanced |
 | `react-doctor` | Meaningful React changes need post-change audit | `.agents/skills/03-quality/react-doctor/SKILL.md` | balanced |

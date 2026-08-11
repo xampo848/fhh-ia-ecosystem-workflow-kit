@@ -10,7 +10,7 @@ This skill enables automated generation of Playwright tests by exploring the app
 
 ## Trigger
 
-Load when the user explicitly asks for Playwright/E2E tests or when formal UI flow validation is required.
+Load when Playwright/E2E is explicitly requested, or by default for most user-facing navigable UI changes when tooling is available.
 
 Examples:
 
@@ -28,14 +28,27 @@ Examples:
 Run this gate before generating tests:
 
 1. Confirm there is a navigable UI/web flow to validate (not backend-only work).
-2. Confirm E2E intent is explicit or required by risk/release context.
+2. Determine whether this change falls in the default-required bucket: user-facing behavior/state transitions in a navigable UI flow.
 3. Confirm Playwright tooling/runtime is available or can be used per current policy.
+4. Allow skip only when one of these explicit exceptions applies and is documented in evidence:
+  - backend-only task;
+  - no navigable UI surface;
+  - purely cosmetic/static UI edits with no behavior/state impact;
+  - user explicitly constrains scope to non-E2E checks.
 4. If conditions are not met, return:
 
 ```text
 Status: not-applicable
-Reason: No UI E2E surface or explicit E2E requirement for this task.
+Reason: No navigable UI surface or explicit documented exception for default E2E policy.
 Next: inline review, contract checks, or stack-appropriate validation.
+```
+
+5. If E2E is required by default but tooling is unavailable, return:
+
+```text
+Status: blocked
+Reason: Default E2E policy applies but Playwright/browser tooling is unavailable.
+Next: Enable tooling or get explicit user waiver with risk acceptance.
 ```
 
 ## When to Use This Skill
