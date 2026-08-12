@@ -48,7 +48,8 @@
       "documentation_only": [],
       "requires_reference": ".agents/instructions.md",
       "required_files": [
-        ".codex/README.md"
+        ".codex/README.md",
+        ".codex/agents/capitana-alcance.toml"
       ]
     },
     {
@@ -59,7 +60,8 @@
       "requires_reference": ".agents/instructions.md",
       "required_files": [
         ".github/copilot-instructions.md",
-        ".github/instructions/ai-workflow.instructions.md"
+        ".github/instructions/ai-workflow.instructions.md",
+        ".github/agents/capitana-alcance.agent.md"
       ]
     },
     {
@@ -69,7 +71,8 @@
       "documentation_only": [],
       "requires_reference": ".agents/instructions.md",
       "required_files": [
-        "CLAUDE.md"
+        "CLAUDE.md",
+        ".claude/agents/capitana-alcance.md"
       ]
     },
     {

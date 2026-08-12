@@ -37,7 +37,7 @@
       "class": "Mode/helper",
       "path": ".agents/skills/05-caveman/cavecrew/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "230b7d2dc195ee75208901b349f4582788a92bc99ddce54136dc0d5b8d2382a7"
+      "skill_sha256": "526149dfb226437abdc78ae1797e6b972936f9a55c62aa5b0eb017e6d9dc0025"
     },
     {
       "key": "cavecrew-builder",
@@ -217,7 +217,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "f6998b7fb5ebddabde768823e7ae3c994587e731093ed48855ca2ed5a4fc7f01"
+      "skill_sha256": "931ed67e426641320635f897f5927dca9e396d91d5569eb6cc659797a13fc610"
     },
     {
       "key": "implementation-skill-matcher",

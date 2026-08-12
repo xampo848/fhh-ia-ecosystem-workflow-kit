@@ -25,15 +25,16 @@ workflow-kit doctor --target /path/to/repo --runtime codex,copilot
 
 Ensure these native entrypoints exist per runtime:
 
-- Codex: `AGENTS.md`, `.codex/README.md`
-- Copilot: `AGENTS.md`, `.github/copilot-instructions.md`, `.github/instructions/ai-workflow.instructions.md`
-- Claude: `CLAUDE.md`
-- Antigravity: `ANTIGRAVITY.md`
+- Codex: `AGENTS.md`, `.codex/README.md`, `.codex/agents/*.toml`
+- Copilot: `AGENTS.md`, `.github/copilot-instructions.md`, `.github/instructions/ai-workflow.instructions.md`, `.github/agents/*.agent.md`
+- Claude: `CLAUDE.md`, `.claude/agents/*.md`
+- Antigravity: `ANTIGRAVITY.md`; use shared skills inline because its documented project model has no declared custom-agent file format.
 
 Verification rule:
 
 - Every adapter must reference `.agents/instructions.md`.
 - Every adapter must require per-turn intake.
+- Generated delegate adapters must pass `node scripts/sync-delegate-runtime-adapters.mjs --check`.
 
 ## 3) Skill catalog readiness
 
@@ -45,6 +46,7 @@ Commands:
 
 ```bash
 node scripts/sync-skill-registry.mjs --check
+node scripts/sync-delegate-runtime-adapters.mjs --check
 bun run check:workflow
 ```
 
@@ -52,6 +54,7 @@ If you added or changed skills:
 
 ```bash
 node scripts/sync-skill-registry.mjs --write
+node scripts/sync-delegate-runtime-adapters.mjs --write
 bun run check:workflow
 ```
 
