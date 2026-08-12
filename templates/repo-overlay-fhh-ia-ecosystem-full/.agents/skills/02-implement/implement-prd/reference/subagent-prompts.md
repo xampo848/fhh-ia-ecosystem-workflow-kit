@@ -1,6 +1,6 @@
 # Subagent Prompts
 
-Use these prompts in GitHub Copilot with `runSubagent` or as generic fallback prompt cards. In Codex, prefer the thin runtime adapters in `.codex/agents/*.toml`, which must read the same shared skills before acting. For other agents without subagents, open the same skill path and run the procedure inline.
+Use these prompts as generic fallback cards. In Codex, Copilot, and Claude Code, prefer the generated native adapters in `.codex/agents/*.toml`, `.github/agents/*.agent.md`, or `.claude/agents/*.md`; each reads the same shared skill before acting. In Antigravity and runtimes without an installed adapter, open the shared skill path and run the procedure inline.
 
 ## Standard Writable Delegate
 

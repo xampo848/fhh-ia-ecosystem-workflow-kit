@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { validateDelegateRuntimeAdapters } from '../scripts/sync-delegate-runtime-adapters.mjs';
 import { validateTemplatePacks } from '../scripts/validate-template-packs.mjs';
 import manifest from '../templates/template-manifest.json' with { type: 'json' };
 
@@ -57,10 +58,26 @@ test('validateTemplatePacks catches runtime wrapper drift against templates', as
   assert.ok(result.failures.some((failure) => failure.includes('Runtime adapter drift for agents-md')));
 });
 
+test('validateDelegateRuntimeAdapters catches manual edits to generated adapters', async () => {
+  const root = await copyFixtureRepository();
+  const target = path.join(root, '.claude/agents/capitana-alcance.md');
+  await fs.appendFile(target, '\nLocal change.\n', 'utf8');
+
+  const result = await validateDelegateRuntimeAdapters({ root });
+
+  assert.equal(result.ok, false);
+  assert.ok(result.failures.includes('Generated delegate adapter drift: .claude/agents/capitana-alcance.md'));
+});
+
 async function copyFixturePackage() {
   const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const targetRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-template-pack-'));
   await fs.cp(path.join(sourceRoot, 'templates'), path.join(targetRoot, 'templates'), { recursive: true });
+  await fs.mkdir(path.join(targetRoot, 'scripts'), { recursive: true });
+  await fs.copyFile(
+    path.join(sourceRoot, 'scripts/delegate-agent-catalog.json'),
+    path.join(targetRoot, 'scripts/delegate-agent-catalog.json')
+  );
   return targetRoot;
 }
 

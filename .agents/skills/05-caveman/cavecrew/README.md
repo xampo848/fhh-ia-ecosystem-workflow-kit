@@ -6,7 +6,7 @@ Decision guide. When to delegate to caveman subagents instead of doing the work 
 
 Tells the main thread when to spawn a caveman-style subagent versus the vanilla equivalent. The win: subagent tool-results inject back into main context verbatim, and caveman output is roughly 1/3 the size of vanilla prose. Across 20 delegations in one session, that is the difference between context exhaustion and finishing the task.
 
-Source of truth helpers live in `.agents/skills/05-caveman/` and can be mounted through `.codex/agents/cavecrew-*.toml` or `.github/agents/cavecrew-*.agent.md`.
+Source of truth helpers live in `.agents/skills/05-caveman/` and can be mounted through `.codex/agents/cavecrew-*.toml`, `.github/agents/cavecrew-*.agent.md`, or `.claude/agents/cavecrew-*.md`.
 
 Three subagents:
 

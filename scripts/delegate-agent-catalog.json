@@ -1,0 +1,139 @@
+{
+  "agents": [
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "PRD readiness",
+      "skill": "prd-readiness-review",
+      "alias": "Capitana Alcance",
+      "slug": "capitana-alcance",
+      "shared_skill_path": ".agents/skills/02-implement/prd-readiness-review/SKILL.md",
+      "description": "Reviews PRD readiness before implementation planning or code changes.",
+      "writes": "No",
+      "writable": false
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Codebase discovery",
+      "skill": "codebase-discovery",
+      "alias": "Sherlock Estructura",
+      "slug": "sherlock-estructura",
+      "shared_skill_path": ".agents/skills/02-implement/codebase-discovery/SKILL.md",
+      "description": "Maps the smallest relevant code paths, patterns, tests, and validation commands.",
+      "writes": "No",
+      "writable": false
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Execution slicing",
+      "skill": "implementation-slicing",
+      "alias": "Arquitecta Fases",
+      "slug": "arquitecta-fases",
+      "shared_skill_path": ".agents/skills/02-implement/implementation-slicing/SKILL.md",
+      "description": "Creates bounded implementation slices with explicit ownership and validation.",
+      "writes": "No",
+      "writable": false
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Backend implementation",
+      "skill": "backend-phase-implementer",
+      "alias": "Turbo Backend",
+      "slug": "turbo-backend",
+      "shared_skill_path": ".agents/skills/02-implement/backend-phase-implementer/SKILL.md",
+      "description": "Implements an owned backend slice after its contract and ownership are fixed.",
+      "writes": "Yes, owned backend files",
+      "writable": true
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Frontend implementation",
+      "skill": "frontend-phase-implementer",
+      "alias": "Pixel Ninja",
+      "slug": "pixel-ninja",
+      "shared_skill_path": ".agents/skills/02-implement/frontend-phase-implementer/SKILL.md",
+      "description": "Implements an owned frontend slice after dependencies and UI behavior are fixed.",
+      "writes": "Yes, owned frontend files",
+      "writable": true
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Contract verification",
+      "skill": "contract-verifier",
+      "alias": "Guardia Contrato",
+      "slug": "guardia-contrato",
+      "shared_skill_path": ".agents/skills/02-implement/contract-verifier/SKILL.md",
+      "description": "Verifies API and data contracts with narrowly assigned contract fixes.",
+      "writes": "Tests and small owned contract fixes",
+      "writable": true
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Acceptance tests",
+      "skill": "acceptance-test-engineer",
+      "alias": "Testinator 5000",
+      "slug": "testinator-5000",
+      "shared_skill_path": ".agents/skills/02-implement/acceptance-test-engineer/SKILL.md",
+      "description": "Proves acceptance criteria with assigned tests, fixtures, and focused fixes.",
+      "writes": "Tests, fixtures, assigned fixes",
+      "writable": true
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Validation",
+      "skill": "validation-runner",
+      "alias": "Lint Ranger",
+      "slug": "lint-ranger",
+      "shared_skill_path": ".agents/skills/02-implement/validation-runner/SKILL.md",
+      "description": "Runs focused validation and applies only explicitly assigned validation fixes.",
+      "writes": "Assigned validation fixes only",
+      "writable": true
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Final QA",
+      "skill": "qa-handoff-review",
+      "alias": "QA Relampago",
+      "slug": "qa-relampago",
+      "shared_skill_path": ".agents/skills/02-implement/qa-handoff-review/SKILL.md",
+      "description": "Performs an independent final QA review of evidence and residual risks.",
+      "writes": "No, unless explicitly assigned",
+      "writable": false
+    },
+    {
+      "section": "Cavecrew Helper Delegates",
+      "step": "Focused lookup",
+      "skill": "cavecrew-investigator",
+      "alias": "Cavecrew Investigator",
+      "slug": "cavecrew-investigator",
+      "shared_skill_path": ".agents/skills/05-caveman/cavecrew-investigator/SKILL.md",
+      "description": "Finds a bounded symbol, path, or test with minimal context.",
+      "writes": "No",
+      "writable": false,
+      "typical_use": "Focused symbol/path/test lookup"
+    },
+    {
+      "section": "Cavecrew Helper Delegates",
+      "step": "Surgical edit",
+      "skill": "cavecrew-builder",
+      "alias": "Cavecrew Builder",
+      "slug": "cavecrew-builder",
+      "shared_skill_path": ".agents/skills/05-caveman/cavecrew-builder/SKILL.md",
+      "description": "Applies a known surgical edit inside a bounded owned scope.",
+      "writes": "Yes, explicitly assigned files",
+      "writable": true,
+      "typical_use": "Known 1-2 file surgical edit inside owned scope"
+    },
+    {
+      "section": "Cavecrew Helper Delegates",
+      "step": "Terse review",
+      "skill": "cavecrew-reviewer",
+      "alias": "Cavecrew Reviewer",
+      "slug": "cavecrew-reviewer",
+      "shared_skill_path": ".agents/skills/05-caveman/cavecrew-reviewer/SKILL.md",
+      "description": "Performs a terse bounded diff or file review.",
+      "writes": "No",
+      "writable": false,
+      "typical_use": "Terse diff or file bug sweep"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 ---
 name: implement-prd
-description: "Efficient PRD implementation orchestrator for FHH IA Ecosystem. Primary target: Codex custom agents; secondary target: GitHub Copilot in VS Code with runSubagent; generic fallback for other agents. Use when turning an approved PRD into working code through proportional readiness review, discovery, slicing, implementation, tests, contract verification, validation, QA, and documentation handoff. Optimized for controlled implementation, minimal context loading, safe autonomy, explicit file ownership, and a teaching/challenge loop that explains trade-offs and pushes toward better engineering choices."
+description: "Efficient PRD implementation orchestrator for FHH IA Ecosystem. Native custom-agent targets: Codex, GitHub Copilot, and Claude Code; Antigravity and unavailable runtimes use the shared skill inline. Use when turning an approved PRD into working code through proportional readiness review, discovery, slicing, implementation, tests, contract verification, validation, QA, and documentation handoff. Optimized for controlled implementation, minimal context loading, safe autonomy, explicit file ownership, and a teaching/challenge loop that explains trade-offs and pushes toward better engineering choices."
 argument-hint: "Path to the PRD file, for example docs/prd/github-intelligence/2026-06-14-github-intelligence-ux-reset/github-intelligence-ux-reset.md"
 license: MIT
 metadata:
@@ -13,9 +13,8 @@ metadata:
 This skill is the control surface for implementing approved PRDs in FHH IA Ecosystem.
 Keep this file loaded, then load detailed references only when the step applies.
 
-Primary runtime target: Codex custom agents in `.codex/agents/*.toml`.
-Secondary target: GitHub Copilot in VS Code with `runSubagent`.
-Fallback target: any generic coding agent by running the same flow inline when subagents are unavailable.
+Native adapters: Codex in `.codex/agents/*.toml`, Copilot in `.github/agents/*.agent.md`, and Claude Code in `.claude/agents/*.md`.
+Fallback target: Antigravity and any runtime without an installed native adapter run the same shared skill inline.
 
 ## Use When
 
@@ -31,7 +30,7 @@ Fallback target: any generic coding agent by running the same flow inline when s
 - [reference/subagent-prompts.md](reference/subagent-prompts.md) - reusable `runSubagent` prompt contracts.
 - [reference/validation-and-stop-conditions.md](reference/validation-and-stop-conditions.md) - validation commands, stop rules, resume mode, and closure.
 - [agents/](agents/) - one prompt card per alias for quick Copilot delegation.
-- `.codex/agents/*.toml` - Codex runtime adapters that read the same shared skills.
+- Native runtime adapters are generated from `scripts/delegate-agent-catalog.json`; do not edit them by hand.
 
 ## Operating Modes
 
@@ -204,9 +203,8 @@ Mode-specific execution:
 
 ## Delegation Rule
 
-**Primary — Codex custom agents:**
-Use the matching file in `.codex/agents/[alias].toml`. These are thin runtime adapters that must read the shared `SKILL.md` files before acting.
-The Codex runtime set is: `capitana-alcance`, `sherlock-estructura`, `arquitecta-fases`, `turbo-backend`, `pixel-ninja`, `guardia-contrato`, `testinator-5000`, `lint-ranger`, `qa-relampago`.
+**Native adapters — Codex, Copilot, and Claude Code:**
+Use the matching generated adapter for the active runtime: `.codex/agents/[alias].toml`, `.github/agents/[alias].agent.md`, or `.claude/agents/[alias].md`. Each is a thin adapter that must read the shared `SKILL.md` before acting.
 
 **Delegation decision:**
 
@@ -225,12 +223,8 @@ The Codex runtime set is: `capitana-alcance`, `sherlock-estructura`, `arquitecta
 - If a subagent modifies files, the orchestrator must inspect the resulting diff after the handoff and before any other writer touches overlapping files.
 - If a subagent times out, disappears, or remains pending, mark the tracker item `BLOCKED`/`PENDING_SUBAGENT`, name the alias and slice, and ask the user whether to wait, retry, or resume inline. Do not continue optimistically.
 
-**Secondary — VS Code Copilot native subagents:**
-When runtime-specific agent files exist in the repository, use them.
-If they do not exist, call `runSubagent` with the exact shared `SKILL.md` path and explicit ownership constraints.
-
 **Fallback — prompt cards or inline:**
-When native agents are unavailable, use the matching prompt card in [agents/](agents/) or open the delegate `SKILL.md` directly and run its procedure inline.
+When native agents are unavailable, use the matching prompt card in [agents/](agents/) or open the delegate `SKILL.md` directly and run its procedure inline. Antigravity uses this path until it documents a project custom-agent file format.
 Load [reference/delegate-skill-matrix.md](reference/delegate-skill-matrix.md) and [reference/subagent-prompts.md](reference/subagent-prompts.md) only when exact adapter paths or prompt templates are needed.
 
 Do not invent tools or agents that are not available. When a delegate needs a lower-context helper, use the shared cavecrew helpers in `.agents/skills/05-caveman/`. If runtime adapters exist, use them; otherwise execute via shared `SKILL.md` paths.

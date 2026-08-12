@@ -4,6 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { validateWorkflowContract } from '../src/workflow-contract/index.mjs';
+import { validateDelegateRuntimeAdapters } from './sync-delegate-runtime-adapters.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
@@ -115,6 +116,9 @@ export async function validateTemplatePacks({ root = packageRoot } = {}) {
   }
 
   failures.push(...await validateRuntimeAdapterMirrors({ root }));
+
+  const delegateAdapters = await validateDelegateRuntimeAdapters({ root });
+  failures.push(...delegateAdapters.failures);
 
   return { ok: failures.length === 0, failures, manifest };
 }

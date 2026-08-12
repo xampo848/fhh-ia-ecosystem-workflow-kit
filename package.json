@@ -1,6 +1,6 @@
 {
   "name": "fhh-ia-ecosystem-workflow-kit",
-  "version": "0.7.25-runtime-native-hardening",
+  "version": "0.7.26-runtime-native-agents",
   "private": true,
   "description": "Public GitHub-installable CLI/TUI workflow kit with safe install/export commands.",
   "license": "MIT",
@@ -16,7 +16,7 @@
   "scripts": {
     "check": "node scripts/validate-scaffold.mjs",
     "check:templates": "node scripts/validate-template-packs.mjs",
-    "check:workflow": "node scripts/sync-skill-registry.mjs --check && node scripts/validate-template-packs.mjs",
+    "check:workflow": "node scripts/sync-skill-registry.mjs --check && node scripts/sync-delegate-runtime-adapters.mjs --check && node scripts/validate-template-packs.mjs",
     "check:release": "node scripts/validate-release-readiness.mjs",
     "check:docs": "node scripts/validate-docs.mjs",
     "check:legal": "node scripts/validate-legal-readiness.mjs",

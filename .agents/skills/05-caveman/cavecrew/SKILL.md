@@ -19,7 +19,7 @@ In FHH IA Ecosystem, the source-of-truth helpers live in:
 - `.agents/skills/05-caveman/cavecrew-builder/SKILL.md`
 - `.agents/skills/05-caveman/cavecrew-reviewer/SKILL.md`
 
-Codex adapters live in `.codex/agents/cavecrew-*.toml`. Copilot adapters live in `.github/agents/cavecrew-*.agent.md`.
+Codex adapters live in `.codex/agents/cavecrew-*.toml`. Copilot adapters live in `.github/agents/cavecrew-*.agent.md`. Claude Code adapters live in `.claude/agents/cavecrew-*.md`.
 
 ## When to use cavecrew vs alternatives
 
