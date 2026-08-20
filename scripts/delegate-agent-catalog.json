@@ -1,4 +1,30 @@
 {
+  "runtimeCapabilities": {
+    "codex": {
+      "discoverCatalog": false,
+      "pinSubagentModel": false,
+      "pinSubagentTier": false,
+      "autoFallback": false
+    },
+    "copilot": {
+      "discoverCatalog": false,
+      "pinSubagentModel": true,
+      "pinSubagentTier": false,
+      "autoFallback": false
+    },
+    "claude": {
+      "discoverCatalog": false,
+      "pinSubagentModel": false,
+      "pinSubagentTier": false,
+      "autoFallback": false
+    },
+    "antigravity": {
+      "discoverCatalog": false,
+      "pinSubagentModel": false,
+      "pinSubagentTier": false,
+      "autoFallback": false
+    }
+  },
   "agents": [
     {
       "section": "Delegate Skill Matrix",

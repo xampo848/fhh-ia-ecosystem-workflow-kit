@@ -70,3 +70,14 @@ Before launching any delegate, name the benefit in one short phrase:
 - `bias`: fresh context review is materially useful.
 
 If none apply, do the work inline in the orchestrator and record why delegation was skipped.
+
+## Runtime Model Routing Capabilities
+
+These are declarative capabilities of the generated runtime adapters. They do not imply that a model was selected or switched for a specific run.
+
+| Runtime | Discover catalog | Pin subagent model | Pin subagent tier | Auto fallback |
+| --- | --- | --- | --- | --- |
+| codex | false | false | false | false |
+| copilot | false | true | false | false |
+| claude | false | false | false | false |
+| antigravity | false | false | false | false |

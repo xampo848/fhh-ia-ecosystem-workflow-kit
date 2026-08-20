@@ -36,13 +36,13 @@ export async function writeDelegateRuntimeAdapters({ root = packageRoot } = {}) 
 async function expectedDelegateRuntimeAdapters({ root }) {
   const catalog = JSON.parse(await fs.readFile(path.join(root, 'scripts/delegate-agent-catalog.json'), 'utf8'));
   const outputs = new Map();
-  const matrix = renderMatrix(catalog.agents);
+  const matrix = renderMatrix(catalog.agents, catalog.runtimeCapabilities);
 
   outputs.set('.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md', matrix);
   outputs.set('templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md', matrix);
 
   for (const agent of catalog.agents) {
-    for (const [relativePath, content] of runtimeAdapterFiles(agent)) {
+    for (const [relativePath, content] of runtimeAdapterFiles(agent, catalog.runtimeCapabilities)) {
       outputs.set(relativePath, content);
       outputs.set(path.join('templates/runtime-adapters', runtimeForPath(relativePath), relativePath), content);
     }
@@ -51,11 +51,11 @@ async function expectedDelegateRuntimeAdapters({ root }) {
   return outputs;
 }
 
-function runtimeAdapterFiles(agent) {
+function runtimeAdapterFiles(agent, runtimeCapabilities) {
   return [
-    [`.codex/agents/${agent.slug}.toml`, renderCodexAgent(agent)],
-    [`.github/agents/${agent.slug}.agent.md`, renderCopilotAgent(agent)],
-    [`.claude/agents/${agent.slug}.md`, renderClaudeAgent(agent)]
+    [`.codex/agents/${agent.slug}.toml`, renderCodexAgent(agent, runtimeCapabilities.codex)],
+    [`.github/agents/${agent.slug}.agent.md`, renderCopilotAgent(agent, runtimeCapabilities.copilot)],
+    [`.claude/agents/${agent.slug}.md`, renderClaudeAgent(agent, runtimeCapabilities.claude)]
   ];
 }
 
@@ -66,7 +66,7 @@ function runtimeForPath(relativePath) {
   throw new Error(`Unsupported runtime adapter path: ${relativePath}`);
 }
 
-function renderMatrix(agents) {
+function renderMatrix(agents, runtimeCapabilities) {
   const primary = agents.filter((agent) => agent.section === 'Delegate Skill Matrix');
   const helpers = agents.filter((agent) => agent.section === 'Cavecrew Helper Delegates');
   const renderRow = (agent) => [
@@ -143,10 +143,18 @@ Before launching any delegate, name the benefit in one short phrase:
 - \`bias\`: fresh context review is materially useful.
 
 If none apply, do the work inline in the orchestrator and record why delegation was skipped.
+
+## Runtime Model Routing Capabilities
+
+These are declarative capabilities of the generated runtime adapters. They do not imply that a model was selected or switched for a specific run.
+
+| Runtime | Discover catalog | Pin subagent model | Pin subagent tier | Auto fallback |
+| --- | --- | --- | --- | --- |
+${Object.entries(runtimeCapabilities).map(([runtime, capabilities]) => `| ${runtime} | ${capabilities.discoverCatalog} | ${capabilities.pinSubagentModel} | ${capabilities.pinSubagentTier} | ${capabilities.autoFallback} |`).join('\n')}
 `;
 }
 
-function renderCodexAgent(agent) {
+function renderCodexAgent(agent, capabilities) {
   const sandboxMode = agent.writable ? 'workspace-write' : 'read-only';
   return `# ${generatedMarker}
 name = "${agent.slug}"
@@ -156,11 +164,13 @@ developer_instructions = """
 You are ${agent.alias}. Before acting, read and follow ${agent.shared_skill_path} and the applicable repository instructions.
 
 The parent must provide the assigned scope, ownership, acceptance criteria, validation, and handoff requirements. ${agent.writable ? 'Edit only explicitly owned files.' : 'Do not edit files.'} Do not redefine the shared workflow or act outside the assigned slice.
+
+${renderCapabilities(capabilities)}
 """
 `;
 }
 
-function renderCopilotAgent(agent) {
+function renderCopilotAgent(agent, capabilities) {
   const tools = agent.writable ? '["read", "search", "edit", "execute"]' : '["read", "search", "execute"]';
   return `---
 name: ${agent.alias}
@@ -174,10 +184,12 @@ user-invocable: true
 Before acting, read and follow \`${agent.shared_skill_path}\` and the applicable repository instructions.
 
 The parent must provide the assigned scope, ownership, acceptance criteria, validation, and handoff requirements. ${agent.writable ? 'Edit only explicitly owned files.' : 'Do not edit files.'} Do not redefine the shared workflow or act outside the assigned slice.
+
+${renderCapabilities(capabilities)} These capabilities do not imply that a model was selected or switched for this run.
 `;
 }
 
-function renderClaudeAgent(agent) {
+function renderClaudeAgent(agent, capabilities) {
   const tools = agent.writable ? 'Read, Edit, Write, Grep, Glob, Bash' : 'Read, Grep, Glob, Bash';
   return `---
 name: ${agent.slug}
@@ -191,7 +203,13 @@ model: inherit
 You are ${agent.alias}. Before acting, read and follow \`${agent.shared_skill_path}\` and the applicable repository instructions.
 
 The parent must provide the assigned scope, ownership, acceptance criteria, validation, and handoff requirements. ${agent.writable ? 'Edit only explicitly owned files.' : 'Do not edit files.'} Do not redefine the shared workflow or act outside the assigned slice.
+
+${renderCapabilities(capabilities)}
 `;
+}
+
+function renderCapabilities(capabilities) {
+  return `Model routing capabilities: catalog discovery=${capabilities.discoverCatalog}, subagent model pinning=${capabilities.pinSubagentModel}, subagent tier pinning=${capabilities.pinSubagentTier}, automatic fallback=${capabilities.autoFallback}.`;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

@@ -69,6 +69,24 @@ test('validateDelegateRuntimeAdapters catches manual edits to generated adapters
   assert.ok(result.failures.includes('Generated delegate adapter drift: .claude/agents/capitana-alcance.md'));
 });
 
+test('generated delegate artifacts publish model routing capabilities', async () => {
+  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const catalog = JSON.parse(await fs.readFile(path.join(sourceRoot, 'scripts/delegate-agent-catalog.json'), 'utf8'));
+  const matrix = await fs.readFile(
+    path.join(sourceRoot, '.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md'),
+    'utf8'
+  );
+  const routingPolicy = await fs.readFile(path.join(sourceRoot, '.agents/model-routing/README.md'), 'utf8');
+  const copilotAdapter = await fs.readFile(path.join(sourceRoot, '.github/agents/capitana-alcance.agent.md'), 'utf8');
+
+  assert.equal(catalog.runtimeCapabilities.copilot.pinSubagentModel, true);
+  assert.equal(catalog.runtimeCapabilities.copilot.autoFallback, false);
+  assert.match(matrix, /## Runtime Model Routing Capabilities/);
+  assert.match(routingPolicy, /\| Readiness and implementation slicing delegates \|/);
+  assert.match(copilotAdapter, /subagent model pinning=true/);
+  assert.match(copilotAdapter, /automatic fallback=false/);
+});
+
 async function copyFixturePackage() {
   const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const targetRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-template-pack-'));
