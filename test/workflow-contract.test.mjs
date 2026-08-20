@@ -106,14 +106,20 @@ test('workflow router keeps deterministic project-formation trigger and route-op
   assert.match(registry, /`project-formation` \| Workflow \| `\.agents\/skills\/01-product\/project-formation\/SKILL\.md`/);
 });
 
-test('implement-prd requires a tracked PRD-local execution lock for closure', async () => {
+test('implement-prd keeps PRD-local coordination artifacts ignored and cleans them at closure', async () => {
   const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const skillPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
-  const skill = await fs.readFile(skillPath, 'utf8');
+  const gitignorePath = path.join(root, '.gitignore');
+  const [skill, gitignore] = await Promise.all([
+    fs.readFile(skillPath, 'utf8'),
+    fs.readFile(gitignorePath, 'utf8')
+  ]);
 
-  assert.match(skill, /git-tracked execution lock at `<prd-directory>\/execution-lock\.toon`/);
-  assert.match(skill, /The PRD-local lock is the closure authority/);
-  assert.match(skill, /must not be ignored by Git/);
+  assert.match(gitignore, /docs\/prd\/\*\*\/_meta\//);
+  assert.match(skill, /ignored execution lock at `<prd-directory>\/_meta\/execution-lock\.toon`/);
+  assert.match(skill, /<prd-directory>\/_meta\/task_tracker\.toon/);
+  assert.match(skill, /<prd-directory>\/_meta\/` is removed/);
+  assert.match(skill, /Complete `## 10\. Evidencia de Implementacion` in the PRD/);
 });
 
 test('QA handoff workflow keeps explicit rerun and controlled-lite closure rules', async () => {
@@ -152,6 +158,11 @@ test('create-prd requires use cases, test strategy, and edge-case matrix before 
   assert.match(template, /### 2\.5 Estrategia de Tests/);
   assert.match(template, /### 2\.6 Matriz de Edge Cases/);
   assert.match(template, /\| Use cases \| Tests \| Edge cases \| Validation \| Evidence \|/);
+  assert.match(skill, /Hard Gate: Class Diagram Is Non-Optional/);
+  assert.match(template, /### 3\.2 Diagrama de Clases/);
+  assert.match(template, /classDiagram/);
+  assert.match(template, /## 10\. Evidencia de Implementacion/);
+  assert.match(template, /\| Referencia de cambio \|/);
 });
 
 test('implementation-slicing and implement-prd enforce use-case/edge-case traceability at closure', async () => {

@@ -97,7 +97,28 @@ Una categoria sin caso aplicable se marca `No aplica` con una justificacion de u
 add_column :table_name, :column_name, :type, default: nil
 ```
 
-### 3.2 Diagrama de Flujo
+### 3.2 Diagrama de Clases
+
+Documentar las clases, entidades, value objects, servicios o interfaces introducidos o modificados y sus relaciones confirmadas. Usar nombres reales del diseno; indicar cardinalidades cuando apliquen.
+
+```mermaid
+classDiagram
+  class AggregateRoot {
+    +id: UUID
+    +perform(): Result
+  }
+  class RelatedEntity {
+    +id: UUID
+  }
+  class ApplicationService {
+    +call(input): Result
+  }
+
+  AggregateRoot "1" --> "many" RelatedEntity : owns
+  ApplicationService --> AggregateRoot : coordinates
+```
+
+### 3.3 Diagrama de Flujo
 
 ```mermaid
 flowchart LR
@@ -197,3 +218,21 @@ _(Vacio = PRD listo para implementar)_
 | Acceptance criterion | Caso de uso | Phase / slice | Test evidence | Edge case(s) | Validation evidence | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | AC-1 | UC-1 | P1-S1 | [test path/name] | [edge case row] | [command/check] | Pending |
+
+---
+
+## 10. Evidencia de Implementacion
+
+Esta seccion es el registro durable de cierre. `implement-prd` la completa antes de eliminar los artefactos temporales de `_meta/`; no registrar prompts, trackers, handoffs ni estado interno de agentes.
+
+**Estado**: No iniciada | En progreso | Cerrada | Bloqueada
+
+| Campo | Evidencia durable |
+| --- | --- |
+| Cambios entregados | [Resumen concreto y rutas relevantes] |
+| Criterios de aceptacion | [AC-N: COMPLETE/BLOCKED y evidencia] |
+| Validaciones ejecutadas | [`command` - PASS/FAIL y resultado relevante] |
+| Calidad y QA | [Quality gate y `ready_to_close` con evidencia] |
+| Referencia de cambio | [Commit, PR o diff identificable] |
+| Riesgos o waivers | [Ninguno o riesgo, aprobador y motivo] |
+| Fecha de cierre | [YYYY-MM-DD] |

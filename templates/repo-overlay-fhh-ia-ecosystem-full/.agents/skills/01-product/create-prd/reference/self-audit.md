@@ -13,7 +13,7 @@ After drafting, perform the final hard gate before delivering the PRD. Persist t
 - Current state references real files, phases have Definitions of Done, and execution slices have ownership, validation, evidence, stop conditions, and activation where applicable.
 - Slices do not combine backend/frontend or multiple high-risk boundaries without a written split rationale.
 - Business rules are confirmed decisions, the decision table preserves the conversation, and future scope is explicitly out of scope.
-- Risks have mitigations; data-model and flow artifacts are present when applicable; relevant architecture and standards were checked.
+- Risks have mitigations; the Mermaid class diagram, data-model, and flow artifacts are present; relevant architecture and standards were checked.
 
 ## Adversarial Review
 
@@ -23,6 +23,7 @@ Challenge the draft:
 - Is a phase a large bucket instead of a milestone with executable slices?
 - Does any acceptance criterion lack evidence, or any use case lack a linked test or expected edge case?
 - Does the edge-case matrix omit a mandatory category without justification?
+- Does the Mermaid class diagram represent the confirmed classes and relationships rather than placeholders or a flowchart?
 - Can a reviewer distinguish current scope, future scope, and blocked unknowns?
 - Does the PRD match the repository's structure and rigor?
 

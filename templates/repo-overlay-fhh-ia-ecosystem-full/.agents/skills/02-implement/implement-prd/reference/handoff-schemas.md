@@ -2,7 +2,7 @@
 
 All subagents in the `implement-prd` flow MUST return output in TOON format using the schema defined here.
 Schemas are **minimum required fields**. Subagents may add fields when the skill's handoff format requires it — they may NOT omit required fields.
-The orchestrator reads these schemas to update `docs/prd/_meta/task_tracker.md` and plan the next step.
+The orchestrator reads these schemas to update `<prd-directory>/_meta/task_tracker.toon` and plan the next step.
 
 ---
 
