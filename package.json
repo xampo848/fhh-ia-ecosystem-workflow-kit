@@ -48,12 +48,12 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@inquirer/prompts": "^8.5.2"
+    "@inquirer/prompts": "^8.6.0"
   },
   "devDependencies": {
-    "@slidev/cli": "^52.19.0",
+    "@slidev/cli": "^52.19.1",
     "@slidev/theme-default": "^0.25.0",
-    "hono": "^4.12.34",
+    "hono": "^4.13.3",
     "yaml": "^2.9.0"
   },
   "overrides": {
