@@ -87,6 +87,7 @@ Rules:
 22. For any architectural replacement, cutover, snapshot/read-model migration, or persisted read-path change, implementation is not closable until **activation on existing data** is handled explicitly: bootstrap/backfill/repair path, rollout command, recovery path, and at least one real-data smoke check or equivalent operational verification.
 23. Production-ready closure is a hard gate, not a best-effort aspiration: do not stop at "implemented and tests pass" while any acceptance gap, regression risk, standards violation, missing test, or unreviewed edge case remains open.
 24. Final QA is mandatory for every mode. The only variance is whether it runs inline or through a fresh-context reviewer; closure never skips the QA checklist itself.
+25. **Discovery reuse policy**: persist the discovery brief at `<prd-directory>/_meta/discovery.md` after Phase 1 and reuse it for later slices and resumes instead of re-running exploration, subject to the freshness check in Phase 1. Skip full discovery delegation when the PRD already states complete touched files, reused patterns, and validation commands; verify those inline instead of exploring from scratch.
 
 ## Delegation Heuristics
 
@@ -258,9 +259,9 @@ Do not declare the PRD complete until all of these are explicitly true:
 5. Missing tests are either added, proven unnecessary with a concrete reason, or escalated as a blocker.
 6. Coverage evidence exists for newly created production files and newly added methods/functions: each one maps to at least one executed test and at least one relevant edge-case assertion, or it is explicitly marked as `waived_by_user` with reason.
 7. Relevant edge cases, failure states, empty states, and rollout/cutover scenarios are verified or explicitly blocked.
-8. Final QA ends in `ready_to_close: yes`.
+8. Final QA ends in `ready_to_close: yes`, which requires `blocking_findings_open: no` — no `critical`/`high` finding in `findings_ledger` remains `open` without being `repaired` or validly `waived_by_user` (a generic acknowledgement does not satisfy this for `critical`/`high` findings or authorization/tenancy/destructive-migration gaps).
 9. Every `VERIFIED` slice has fresh command evidence in the execution lock, or an explicit `waived_by_user` record.
-10. Complete `## 10. Evidencia de Implementacion` in the PRD with delivered changes, acceptance-criterion status, executed validations, QA result, identifiable change reference, residual risks or waivers, and closure date. This durable record must not include prompts, trackers, handoffs, or internal agent state.
+10. Complete `## 10. Evidencia de Implementacion` in the PRD with delivered changes, acceptance-criterion status, executed validations, QA result, identifiable change reference, residual risks or waivers, and closure date. Include a "Resumen del Ledger de Hallazgos" subsection listing every `findings_ledger` row with its id, severity, final status, and resolution (repaired in which slice, or the exact quoted risk if `waived_by_user`); state explicitly when the ledger is empty. This durable record must not include prompts, trackers, handoffs, or internal agent state.
 11. After `## 10. Evidencia de Implementacion` is complete, `<prd-directory>/_meta/` is removed. Do not declare closure while temporary AI coordination artifacts remain.
 
 If any item above is incomplete, the orchestrator must loop back through the owning slice, rerun the affected validation, and rerun QA until the checklist is satisfied.

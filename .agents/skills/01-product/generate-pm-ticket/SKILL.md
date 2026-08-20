@@ -42,6 +42,7 @@ If the user wants a portable prompt for Gemini or another LLM, provide or adapt 
 4. **Separate facts, assumptions, and open questions** whenever uncertainty exists.
 5. **Define defaults, limits, interactions, and failure states**. Generic tickets are not acceptable.
 6. **If screenshots exist, inspect them at the beginning and re-check them before finalizing**.
+7. **Challenge before locking scope or acceptance criteria**. Load [../shared/critical-stance.md](../shared/critical-stance.md); any scope boundary or acceptance criterion with real cost must survive one direct challenge, whether it came from the user's request or from the draft ticket itself.
 
 ## Procedure
 

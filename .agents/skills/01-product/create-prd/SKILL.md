@@ -32,6 +32,7 @@ Use this skill when:
 
 1. **Explore first, write second** — never draft requirements without reading the existing codebase. Unknown context produces bad PRDs.
 2. **Ask, don't assume** — ambiguous requirements block implementation or cause rework. Surface gaps early through targeted questions.
+2.5. **Challenge before locking** — load [../shared/critical-stance.md](../shared/critical-stance.md). Every scope, business-rule, pattern, or invariant decision must survive one direct challenge before Phase 3 records it as final, whether the user or the AI proposed it.
 3. **Scope is sacred** — every PRD must have a hard line between what IS and what IS NOT in scope.
 4. **Iterate until complete** — after each round of answers, update the PRD immediately. The document should converge to zero open questions.
 5. **English in code** — DB column names and Ruby variables must always use English identifiers, even if domain language is Spanish.
@@ -116,6 +117,7 @@ This requirement applies only to PRDs created after this workflow change. Histor
 Additional required sections:
 
 - Parent epic context and inherited-invariant mapping when a parent epic exists
+- Contrato entre Fases (precondiciones/postcondiciones) when a parent epic exists
 - DDD placement decisions
 - Enumeration strategy
 - Lifecycle rules
@@ -160,6 +162,9 @@ When the PRD has a parent epic:
 - map every inherited invariant ID to one or more child acceptance criteria;
 - stop before drafting if requested scope contradicts an inherited invariant;
 - continue only after an explicit user-approved change request records the invariant ID, reason, and approver.
+- read the companion ledger (`<slug>-ledger.md`) and, when this is not the first PRD in the queue, the immediately preceding sibling PRD's `Contrato entre Fases` postcondiciones, before drafting scope;
+- declare a `Contrato entre Fases` section listing this PRD's preconditions (what it assumes from prior phases, verified against real code during calibration, not assumed from the epic's original plan) and postconditions (what it guarantees for later phases);
+- treat an unverifiable precondition as a blocking ambiguity, not a silent assumption.
 
 PRDs that introduce backend entities must explicitly define:
 

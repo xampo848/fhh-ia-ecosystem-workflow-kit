@@ -40,6 +40,14 @@ slices[N]{name,owner,files_owned,status,ac_covered}:
 # open_risks
 open_risks[N]: <description>
 
+# findings_ledger
+findings_ledger[N]{id,severity,file,description,pattern_protected,status,source,first_reported,resolved_in_slice}:
+  <finding-id>,<critical|high|medium|low>,<path>,<description>,<pattern name>,<open|repaired|waived_by_user>,<lint-ranger|qa-relampago>,<ISO-datetime>,<slice-id or none>
+
+# unrelated_failures
+unrelated_failures[N]{description,user_decision}:
+  <description>,<repair_now|log_as_risk|block|pending>
+
 # qa_gate
 qa_gate:
   acceptance_criteria: COMPLETE | INCOMPLETE
@@ -47,6 +55,7 @@ qa_gate:
   standards: PASS | FAIL | PARTIAL
   tests: PASS | FAIL | PARTIAL
   edge_cases: PASS | FAIL | PARTIAL
+  blocking_findings_open: yes | no
   ready_to_close: yes | no
 
 # closure_gate
@@ -85,3 +94,6 @@ handoff_log[N]{phase,agent,timestamp,status,notes}:
 - Record only a quality-gate path confirmed to exist; a missing configured path is a stop condition, not `none`.
 - Mark `evidence` in `ac` when the acceptance criterion has concrete proof (test path, validation output, or explicit residual risk).
 - Update `qa_gate` and `closure_gate` after validation and QA; Phase 8 cannot be `VERIFIED` while any item is not passing with evidence.
+- Append every finding returned by `lint-ranger` or `qa-relampago` to `findings_ledger` with a stable `id`; never overwrite or delete a row. Update only its `status` in place when it is repaired or waived.
+- On a QA re-entry, read `findings_ledger` first and treat any prior row still `open` as unresolved; do not infer a fix from silence or from a passing command alone.
+- Add a row to `unrelated_failures` whenever `lint-ranger` classifies a failure as pre-existing/unrelated, and update its `user_decision` only after the user explicitly chooses `repair_now`, `log_as_risk`, or `block`.

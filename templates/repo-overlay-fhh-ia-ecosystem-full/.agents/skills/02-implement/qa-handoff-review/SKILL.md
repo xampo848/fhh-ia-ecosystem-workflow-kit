@@ -58,17 +58,26 @@ When the PRD defines a Matriz de Edge Cases, report coverage explicitly by categ
 
 ### Decision And Re-entry
 
-- **Close**: return `success` and `ready_to_close: yes` only when every required gate is `PASS` or `COMPLETE`, evidence is fresh, and no material finding or gap remains.
+- **Close**: return `success` and `ready_to_close: yes` only when every required gate is `PASS` or `COMPLETE`, evidence is fresh, `blocking_findings_open: no`, and no material finding or gap remains.
 - **Repair and rerun**: return `partial` and `ready_to_close: no` when a named owner can repair a concrete finding or produce missing evidence. Set `next` to the exact repair or validation step. The owner repairs and reruns affected validation before a fresh QA review.
 - **Block and escalate**: return `blocked` and `ready_to_close: no` when a material ambiguity changes closure interpretation, required evidence cannot be obtained, or the next action needs a user or orchestrator decision. State the ambiguity and required decision in `next`.
 
 The reviewer does not retry automatically. A re-entry is valid only after the named repair or validation step supplies new evidence; otherwise return `blocked` rather than creating another review loop.
+
+### Severity-Blocking Gate
+
+Compute `blocking_findings_open` from the orchestrator's `findings_ledger` (task tracker) plus this run's own `findings[]`: it is `yes` when any finding has `severity: critical` or `severity: high` and `status` is not `repaired` or `waived_by_user`. `ready_to_close: yes` is never allowed while `blocking_findings_open: yes`, even if every other gate reports `PASS`/`COMPLETE`. On a re-entry review, treat any prior finding missing from the ledger as still `open` rather than assuming it was fixed — do not infer resolution from silence.
 
 ### Permitted Exceptions
 
 - Mark a domain-specific checklist item `not-applicable` only when the changed scope demonstrably does not touch that domain, and record that basis in the relevant handoff field.
 - Inline QA may replace a fresh-context delegate only when the selected operating mode permits inline execution. It still runs every applicable closure gate and emits the same TOON handoff.
 - No exception permits skipping acceptance evidence, regression review, standards, tests, edge cases, or the final `ready_to_close` decision.
+
+### Waiver Floor
+
+- `waived_by_user` remains valid for closing any gate — the user keeps final authority — but for a `critical`/`high` severity finding, or any gap touching authorization, tenancy, or a destructive migration, the waiver must quote the concrete, user-named risk being accepted.
+- A generic acknowledgement ("ok", "proceed", "waived") without a named risk does not satisfy this floor. Treat it as `evidence_state: missing`, not as a valid `waived_by_user` record, and ask the user to name the specific risk before accepting the waiver.
 
 ## Review Checklist
 

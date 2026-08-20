@@ -215,6 +215,7 @@ commands_executed[N]: <command>
 validation_result: PASS | FAIL
 failures[N]{file,error}: <path>,<error description> | none
 fixes_applied[N]{file,change}: <path>,<change description> | none
+unrelated_failures[N]{description,user_decision}: <description>,<repair_now|log_as_risk|block|pending> | none
 regression_checks[N]: <command or scenario proved> | none
 standards_checks[N]: <instruction or gate checked> | none
 residual_risks[N]: <risk description> | none
@@ -241,6 +242,7 @@ fallback_docs_used[N]: <path> | none
 capabilities_used[N]: <capability,status,reason> | none
 findings[N]{severity,file,description,pattern_protected}:
   <critical|high|medium|low>,<path>,<description>,<pattern name>
+blocking_findings_open: yes | no
 ac_evidence: COMPLETE | INCOMPLETE
 ac_gaps[N]: <ac-id and gap description> | none
 validation_status: PASS | FAIL | PARTIAL
@@ -271,3 +273,6 @@ next: none | <specific follow-up>
 - Any handoff with `evidence_state: stale | missing` may not advance that slice to `VERIFIED` unless `waiver_state: waived_by_user` is explicitly present with rationale in residual risks.
 - A `command_scope_confirmed: no` result means `evidence_state: missing`; a green command does not count unless its scope covers the declared `required_checks` and `validated_file_scope`.
 - `validated_content_ref` must identify the content validated. Any later change inside `validated_file_scope` makes that evidence `stale`.
+- `blocking_findings_open: yes` (any `critical`/`high` finding not `repaired` or `waived_by_user`) forbids `ready_to_close: yes` regardless of every other field's value.
+- A `waived_by_user` entry for a `critical`/`high` finding, or for authorization/tenancy/destructive-migration gaps, is valid only when it quotes the concrete risk the user accepted; a generic acknowledgement without a named risk is treated as `evidence_state: missing`.
+- `unrelated_failures[N]` with `user_decision: pending` blocks the slice from `VERIFIED`; the orchestrator must obtain an explicit `repair_now | log_as_risk | block` decision from the user before continuing.

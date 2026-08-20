@@ -71,20 +71,23 @@ Rules:
 6. Use exact skill paths for delegation; do not rely on persona summaries alone.
 7. Keep one responsible orchestrator and one writer per file. Parallelize only disjoint write sets.
 8. Implement one safe slice at a time and validate before expanding scope.
-9. Treat backend/frontend contracts as first-class deliverables.
-10. Validate each phase Definition of Done line by line before moving on.
-11. Maintain a physical phase/task tracker at `<prd-directory>/_meta/task_tracker.toon` for every mode except `small/local`. Create or update it at the start of Phase 2 or before the first write, whichever comes first. Use it for coordination, progress, handoffs, phase state, and delegation rationale; it is not the authority for PRD closure.
-12. **Subagent wait barrier**: after launching any subagent, the orchestrator MUST wait for its completed handoff before reading dependent files, launching dependent subagents, validating, updating phase status, or producing the final answer. In Codex multi-agent runs, call `wait_agent` with the relevant agent id(s) whenever the next critical-path step depends on them. If the runtime exposes a different asynchronous/pending subagent handle, poll or re-open that handle until it returns a terminal result. If the runtime cannot wait, stop and tell the user the exact pending delegate instead of continuing from assumptions.
-13. Report progress after each delegated run only after the handoff has been received and reviewed.
-14. Challenge and teach: when there are better alternatives, explain the trade-off briefly, recommend one path, and proceed unless a stop condition applies.
-15. Prefer evidence over confidence: acceptance criteria are only covered when linked to code, tests, validation output, or an explicit residual risk.
-16. Avoid token waste: do not bulk-load all docs, all skills, or large files without a concrete reason.
-17. Before code-writing work, verify that every quality-gate or domain-instruction path required by the PRD or repository context exists. A missing configured path is a hard stop, not an implicit pass.
-18. Treat phases as milestones and slices as the executable unit. Never compensate for coarse tasks by validating only at phase end.
-19. A dependent slice starts only after its predecessor is `VERIFIED`: implementation, focused tests, relevant validation, quality checks, and acceptance evidence are all present.
-20. For any architectural replacement, cutover, snapshot/read-model migration, or persisted read-path change, implementation is not closable until **activation on existing data** is handled explicitly: bootstrap/backfill/repair path, rollout command, recovery path, and at least one real-data smoke check or equivalent operational verification.
-21. Production-ready closure is a hard gate, not a best-effort aspiration: do not stop at "implemented and tests pass" while any acceptance gap, regression risk, standards violation, missing test, or unreviewed edge case remains open.
-22. Final QA is mandatory for every mode. The only variance is whether it runs inline or through a fresh-context reviewer; closure never skips the QA checklist itself.
+9. **Specialized-writer policy**: outside `small/local`, production code should be written by specialized implementer owners (`backend-phase-implementer`, `frontend-phase-implementer`, or `acceptance-test-engineer` for test-driven slices). The orchestrator coordinates, reviews, and validates; it does not become the default writer.
+10. Treat backend/frontend contracts as first-class deliverables.
+11. Validate each phase Definition of Done line by line before moving on.
+12. Maintain a physical phase/task tracker at `<prd-directory>/_meta/task_tracker.toon` for every mode except `small/local`. Create or update it at the start of Phase 2 or before the first write, whichever comes first. Use it for coordination, progress, handoffs, phase state, and delegation rationale; it is not the authority for PRD closure.
+13. **Subagent wait barrier**: after launching any subagent, the orchestrator MUST wait for its completed handoff before reading dependent files, launching dependent subagents, validating, updating phase status, or producing the final answer. In Codex multi-agent runs, call `wait_agent` with the relevant agent id(s) whenever the next critical-path step depends on them. If the runtime exposes a different asynchronous/pending subagent handle, poll or re-open that handle until it returns a terminal result. If the runtime cannot wait, stop and tell the user the exact pending delegate instead of continuing from assumptions.
+14. Report progress after each delegated run only after the handoff has been received and reviewed.
+15. Challenge and teach: when there are better alternatives, explain the trade-off briefly, recommend one path, and proceed unless a stop condition applies.
+16. Prefer evidence over confidence: acceptance criteria are only covered when linked to code, tests, validation output, or an explicit residual risk.
+17. Avoid token waste: do not bulk-load all docs, all skills, or large files without a concrete reason.
+18. Apply `.github/instructions/quality-gate.instructions.md` as the required quality gate for code-writing work. Subagents should load it directly.
+19. Before code-writing work, verify that every quality-gate or domain-instruction path required by the PRD or repository context exists. A missing configured path is a hard stop, not an implicit pass.
+20. Treat phases as milestones and slices as the executable unit. Never compensate for coarse tasks by validating only at phase end.
+21. A dependent slice starts only after its predecessor is `VERIFIED`: implementation, focused tests, relevant validation, quality checks, and acceptance evidence are all present.
+22. For any architectural replacement, cutover, snapshot/read-model migration, or persisted read-path change, implementation is not closable until **activation on existing data** is handled explicitly: bootstrap/backfill/repair path, rollout command, recovery path, and at least one real-data smoke check or equivalent operational verification.
+23. Production-ready closure is a hard gate, not a best-effort aspiration: do not stop at "implemented and tests pass" while any acceptance gap, regression risk, standards violation, missing test, or unreviewed edge case remains open.
+24. Final QA is mandatory for every mode. The only variance is whether it runs inline or through a fresh-context reviewer; closure never skips the QA checklist itself.
+25. **Discovery reuse policy**: persist the discovery brief at `<prd-directory>/_meta/discovery.md` after Phase 1 and reuse it for later slices and resumes instead of re-running exploration, subject to the freshness check in Phase 1. Skip full discovery delegation when the PRD already states complete touched files, reused patterns, and validation commands; verify those inline instead of exploring from scratch.
 
 ## Delegation Heuristics
 
@@ -160,6 +163,14 @@ When the budget is exceeded because one agent is carrying too many phase respons
 
 Load [reference/orchestration-flow.md](reference/orchestration-flow.md) only when the selected mode is above `controlled-lite` or when a stop condition/risk trigger requires the detailed phase flow.
 
+Slice granularity default (outside `small/local`):
+
+- Aim for one observable outcome per slice and one primary acceptance objective.
+- Prefer 1-2 owned production files per slice; split when a slice grows to 3+ owned production files unless there is a documented atomicity reason.
+- Prefer one specialized writer per slice. If backend and frontend both change, split into separate slices by contract producer and consumer unless strict atomicity is required.
+- Keep matcher inputs small: each slice should map cleanly to one primary owner skill plus optional supporting pattern skills.
+- If a slice becomes "multi-surface + multi-owner", split before coding instead of relying on broad inline implementation.
+
 Right-sized flow:
 
 1. `small/local` - inline readiness, target read, edit, focused validation, close.
@@ -182,8 +193,8 @@ Right-sized flow:
 Mode-specific execution:
 
 - In `small/local`, run readiness/discovery inline and skip delegation. This is the only mode where the task tracker may be skipped.
-- In `controlled-lite`, run a compact preflight inline or through one lightweight delegate. Run matcher inline or through one lightweight delegate when slice-to-pattern-skill matching reduces ambiguity, protects the context budget, or is needed to select exact reusable skill paths before coding. Record whether matching happened or was intentionally skipped. Implement inline or with one owner delegate per slice only after matcher output or explicit skip rationale exists. Always complete the QA checklist, TOON handoff, and closure checklist before closing; invoke a fresh-context QA handoff whenever the slice is not trivially local, changes contracts, touches user-visible behavior, or leaves any uncertainty about regressions, standards, tests, or edge cases.
-- In `controlled-implementation`, use delegates selectively for phases or slices where independent context, file ownership, or validation evidence reduces risk. Delegates may use cavecrew helpers for narrow locate/edit/review subtasks when that reduces context without changing ownership.
+- In `controlled-lite`, run a compact preflight inline or through one lightweight delegate. Run matcher inline or through one lightweight delegate before any coding slice starts; outside `small/local`, matcher cannot be skipped. A coding slice may proceed only with matcher `success`, or with user-accepted `partial/blocked` plus documented fallback docs and risk.
+- In `controlled-implementation`, use delegates selectively for phases or slices where independent context, file ownership, or validation evidence reduces risk. Treat matcher completion as a blocking phase before any coding slice starts. Code-writing should default to specialized implementers, with inline writing reserved for narrowly scoped one-writer exceptions.
 - In `standard`, use the full delegated flow when available. Treat matcher completion as a blocking phase before any coding delegate starts on dependent slices.
 - In `standard`, the existence of multiple phase skills is itself a signal to keep the work partitioned unless a clearly documented exception says otherwise.
 - In every mode above `small/local`, state the delegation decision early enough that a reviewer can tell whether subagents were intentionally skipped or still expected later.
@@ -207,7 +218,7 @@ Use the matching generated adapter for the active runtime: `.codex/agents/[alias
 **Mandatory join contract:**
 
 - Treat every delegated run as a blocking call unless the slice plan explicitly marks it safe to run in parallel with other independent delegates.
-- Treat matcher execution as part of the same blocking contract: do not start a coding delegate for a slice until the relevant matcher handoff is terminal (`success`, explicit inline skip, or a user-accepted blocked/partial decision).
+- Treat matcher execution as part of the same blocking contract: outside `small/local`, do not start a coding delegate for a slice until the relevant matcher handoff is terminal (`success`), or `partial/blocked` with explicit user risk acceptance and documented fallback docs.
 - When parallel delegates are allowed, launch only delegates with disjoint write ownership, then wait for **all** their terminal handoffs before merging results or starting any dependent work. In Codex, use `wait_agent` over the launched agent ids until all critical-path delegates complete.
 - Do not infer a delegate's result from partial terminal output, lack of errors, a changed diff, or elapsed time. The required handoff schema is the synchronization point.
 - If a subagent modifies files, the orchestrator must inspect the resulting diff after the handoff and before any other writer touches overlapping files.
@@ -217,7 +228,7 @@ Use the matching generated adapter for the active runtime: `.codex/agents/[alias
 When native agents are unavailable, use the matching prompt card in [agents/](agents/) or open the delegate `SKILL.md` directly and run its procedure inline. Antigravity uses this path until it documents a project custom-agent file format.
 Load [reference/delegate-skill-matrix.md](reference/delegate-skill-matrix.md) and [reference/subagent-prompts.md](reference/subagent-prompts.md) only when exact adapter paths or prompt templates are needed.
 
-Do not invent tools or agents that are not available. When a delegate needs a lower-context helper, use the shared cavecrew helpers in `.agents/skills/05-caveman/` and the thin adapters in `.codex/agents/cavecrew-*.toml` or `.github/agents/cavecrew-*.agent.md`.
+Do not invent tools or agents that are not available. When a delegate needs a lower-context helper, use the shared cavecrew helpers in `.agents/skills/05-caveman/`. If runtime adapters exist, use them; otherwise execute via shared `SKILL.md` paths.
 
 ## Teaching And Challenge Loop
 
@@ -248,9 +259,9 @@ Do not declare the PRD complete until all of these are explicitly true:
 5. Missing tests are either added, proven unnecessary with a concrete reason, or escalated as a blocker.
 6. Coverage evidence exists for newly created production files and newly added methods/functions: each one maps to at least one executed test and at least one relevant edge-case assertion, or it is explicitly marked as `waived_by_user` with reason.
 7. Relevant edge cases, failure states, empty states, and rollout/cutover scenarios are verified or explicitly blocked.
-8. Final QA ends in `ready_to_close: yes`.
+8. Final QA ends in `ready_to_close: yes`, which requires `blocking_findings_open: no` — no `critical`/`high` finding in `findings_ledger` remains `open` without being `repaired` or validly `waived_by_user` (a generic acknowledgement does not satisfy this for `critical`/`high` findings or authorization/tenancy/destructive-migration gaps).
 9. Every `VERIFIED` slice has fresh command evidence in the execution lock, or an explicit `waived_by_user` record.
-10. Complete `## 10. Evidencia de Implementacion` in the PRD with delivered changes, acceptance-criterion status, executed validations, QA result, identifiable change reference, residual risks or waivers, and closure date. This durable record must not include prompts, trackers, handoffs, or internal agent state.
+10. Complete `## 10. Evidencia de Implementacion` in the PRD with delivered changes, acceptance-criterion status, executed validations, QA result, identifiable change reference, residual risks or waivers, and closure date. Include a "Resumen del Ledger de Hallazgos" subsection listing every `findings_ledger` row with its id, severity, final status, and resolution (repaired in which slice, or the exact quoted risk if `waived_by_user`); state explicitly when the ledger is empty. This durable record must not include prompts, trackers, handoffs, or internal agent state.
 11. After `## 10. Evidencia de Implementacion` is complete, `<prd-directory>/_meta/` is removed. Do not declare closure while temporary AI coordination artifacts remain.
 
 If any item above is incomplete, the orchestrator must loop back through the owning slice, rerun the affected validation, and rerun QA until the checklist is satisfied.

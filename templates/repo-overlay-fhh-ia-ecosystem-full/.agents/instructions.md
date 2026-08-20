@@ -198,6 +198,38 @@ Natural-language skill invocation binding:
    capabilities. Reuse already-loaded context when its source file has not
    changed.
 
+### Continuation fast-path (session-scoped)
+
+Full per-turn intake means classifying intent every turn, not re-reading every
+policy document every turn. Use this fast-path to avoid reloading unchanged
+context:
+
+- On the first non-trivial turn of a session, or immediately after a genuine
+  workflow switch, run full intake: read `.agents/instructions.md` and the
+  selected skill's `SKILL.md`, then emit a full or compact routing trace.
+- Persist the active workflow, its cost posture, and its routing trace to
+  session memory right after that full intake.
+- On each following turn, first check session memory for an active workflow.
+  If one is present, classify only whether the new prompt continues that
+  workflow (answers an open question, selects a presented option, confirms an
+  implementation choice, or replies inside an active multi-step loop such as
+  `pr-comments-resolution` Phase 2) or breaks it.
+- Continuation signals: no explicit skill invocation, no topic change, no
+  redirect language, no new scope/file/feature outside the active workflow.
+- Break signals (any of these end the fast-path and force full intake):
+  explicit skill invocation, explicit redirect ("cambiemos a...", "en
+  realidad quiero..."), a materially different topic or scope, an explicit
+  request to explain or reconsider the route, or missing/stale session
+  memory for the active workflow.
+- On a continuation turn, do not re-read `.agents/instructions.md` or the
+  full router `SKILL.md` body again, and do not re-run the full
+  classification table. Emit only the compact continuation trace:
+  `[skill] · continuing · no reroute`, then proceed with the active
+  workflow's next step.
+- On a break, emit a new full or compact routing trace as usual before
+  switching workflows, and update session memory with the new active
+  workflow.
+
 If the runtime cannot load `workflow-router` or the registry, do not silently
 continue with unrestricted implementation work. Only trivial direct answers may proceed;
 non-trivial development must preserve specification and implementation gates,
@@ -276,6 +308,10 @@ Token-spike prevention defaults:
 - avoid wide-result tools as a first step (broad repo/web searches, full inventories, raw dumps);
 - prefer bounded output requests (top-N, precise include pattern, narrow symbol/file scopes);
 - avoid re-reading long policy files in the same turn when already loaded and unchanged;
+- avoid re-reading long policy files across turns in the same session when
+  already loaded and unchanged for the active workflow; apply the
+  continuation fast-path above and rely on session memory instead of
+  re-deriving routing from scratch every turn;
 - summarize large tool payloads instead of echoing raw output.
 
 Compressed delegation preference:

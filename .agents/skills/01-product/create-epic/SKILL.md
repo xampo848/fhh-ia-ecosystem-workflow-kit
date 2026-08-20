@@ -17,7 +17,9 @@ The output is not a PRD. It is the parent project definition and investigation a
 - Do not invent implementation certainty. Separate evidence, inference, assumptions, and open questions.
 - Prefer slices that can become standalone `create-prd` inputs and later close with `document-development`.
 - Record non-negotiable epic invariants with stable IDs, owners, and rationale so child PRDs cannot silently contradict them.
+- Create a companion ledger file `docs/epics/<feature-or-project>/<slug>-ledger.md` alongside the epic, seeded with one pending row per invariant and one pending row per PRD in the queue. `document-development` updates this ledger at each child PRD's closure; it is not optional and does not depend on the user asking for a status update. Do not mark the epic `Completado` until every invariant row reads `Cumplido` or `Cumplido con excepcion aprobada`.
 - Ask targeted questions only after initial discovery, and ask before drafting only when the request is too vague to produce a useful draft.
+- Load [../shared/critical-stance.md](../shared/critical-stance.md). Before recording an epic invariant, appetite boundary, or business rule as final, challenge it directly — state the discarded alternative and why, whether the idea came from the user or from the AI's own draft.
 - Do not modify product code while creating the epic unless the user explicitly asks.
 - Save the final epic to `docs/epics/<feature-or-project>/<slug>.md` by default when the user asks to create a project artifact.
 - If a file already exists at this path, ask the user whether to overwrite, version, or merge before saving.
@@ -149,6 +151,7 @@ Use `references/epic-template.md` for the final structure. If the appetite is a 
 - Appetite-based delivery plan
 - PRD queue with each child PRD title, goal, scope, dependencies, and recommended order
 - Per-phase workflow through `create-prd`, `implement-prd`, and `document-development`
+- A pointer to the companion ledger file and a one-line explanation of how it is kept current
 - Risks, open questions, and explicit non-goals
 
 ### 9. Hand Off to `create-prd`
@@ -185,3 +188,4 @@ The epic is not ready if it:
 - Fails to name the first PRD and its strict scope
 - Omits stable IDs for non-negotiable inherited requirements
 - Fails to define how each phase moves through `create-prd`, `implement-prd`, and `document-development`
+- Fails to create the companion ledger file or leaves it without one row per invariant and per queued PRD

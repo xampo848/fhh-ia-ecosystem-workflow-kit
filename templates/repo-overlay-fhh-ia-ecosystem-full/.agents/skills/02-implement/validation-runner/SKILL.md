@@ -23,8 +23,10 @@ Run the smallest validation that can falsify the change, interpret failures, and
 
 ## Command Policy
 
-Always prefer the deterministic wrapper script for slices:
+Prefer the deterministic wrapper script for slices only when the target repository actually provides it:
 - `bin/validate-slice`
+
+If `bin/validate-slice` does not exist in the target repository, its absence is not a failure — fall back directly to the commands below without reporting a blocker for the missing script.
 
 If the wrapper is too broad for an isolated quick check, fallback to:
 Backend: `bundle exec rubocop` or `make test-fast`
@@ -43,8 +45,9 @@ Frontend: `bun run lint` or `bun run test --run`
    - Environment/dependency issue
    - Pre-existing unrelated failure
 7. Fix only failures tied to the assigned slice unless the orchestrator grants more ownership.
-8. Re-run the failed command after a fix.
-9. Escalate to broader validation only when narrow validation passes and risk warrants it.
+8. When a failure is classified as "Pre-existing unrelated failure", do not decide its resolution unilaterally. Record it in `unrelated_failures[N]` and trigger the mandatory stop below instead of silently skipping or silently registering it as a follow-up.
+9. Re-run the failed command after a fix.
+10. Escalate to broader validation only when narrow validation passes and risk warrants it.
 
 ## Stop And Ask When
 
@@ -52,6 +55,7 @@ Frontend: `bun run lint` or `bun run test --run`
 - A failure appears unrelated but blocks completion.
 - Fixing requires changing files outside assigned ownership.
 - A command requires network or environment approval.
+- **A failure is classified as "Pre-existing unrelated failure"**: stop and present exactly these three options to the user — (A) repair it now inside this PRD's scope, (B) log it as an explicit residual risk in `## 10. Evidencia de Implementacion` and continue, (C) block closure until it is resolved elsewhere. Do not choose on the user's behalf and do not continue until a decision is recorded in `unrelated_failures[N]`.
 
 ## Handoff Output
 

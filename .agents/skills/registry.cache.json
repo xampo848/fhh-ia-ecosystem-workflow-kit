@@ -127,7 +127,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/codebase-discovery/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "34f77f23fc68a6432bcb4b4ad00c77ac3a7d2242ed77852797a614da36364a72"
+      "skill_sha256": "908e950479de31281f36358b3bd25753cfad7f5ee933e650e700ae5e18459535"
     },
     {
       "key": "contract-verifier",
@@ -145,7 +145,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-epic/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "1df114cd139247197ae54fbf149f85263a8271f1da27be8e20a166439e2c9bed"
+      "skill_sha256": "8ad1cbd39cebb3567b4e4ff04926c2f5eff72b3729a7a6ea08505a713c8adf1d"
     },
     {
       "key": "create-prd",
@@ -154,7 +154,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "89e57a6d645e4c77144e8cfc687d042d4b147041c5f00073104bf3c74e3745f3"
+      "skill_sha256": "4312cf64ba7a6e070e53896782099d1b5e457600faadbb56283f5bdd74507ec9"
     },
     {
       "key": "document-development",
@@ -163,7 +163,7 @@
       "class": "Workflow",
       "path": ".agents/skills/03-quality/document-development/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "e1a8d9ba6993aaf42010ab5b72ad4180ad0197dcf93cdf980f04ecbd943d1b8b"
+      "skill_sha256": "6230ecb6838d277ec6ddb352f81f8cf64561017c7a62635660766060ea6f49f8"
     },
     {
       "key": "engineering-mentor",
@@ -199,7 +199,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/generate-pm-ticket/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "699c6e70ea1659f6cdb581f4aae22960dac812fef74c504898c8b3984bb0e033"
+      "skill_sha256": "8303233724d64b6b07ad7c90ed5d38590b6816b12295475e2126958bd70f896a"
     },
     {
       "key": "impeccable",
@@ -217,7 +217,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "e49436356fc9d2fa6f425f4e8e87205b6f331d78c07ac08270ec9bbfdd07e5e8"
+      "skill_sha256": "faba46ba40fe64dfa639fc9b7e6246066027b3a7b54fbd595f0e483442275efb"
     },
     {
       "key": "implementation-skill-matcher",
@@ -289,7 +289,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/project-formation/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "dc40f57fbdba1f7e0cfb930d3ec1c31dc0390cfed89159834b36bc9f6cb15769"
+      "skill_sha256": "330823d939f4762cc65974f07b535a60244349aa3b2de9e78c499455e6f513f5"
     },
     {
       "key": "project-formation-discovery",
@@ -352,7 +352,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/qa-handoff-review/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "d685b7a232c42b18d46dd2591c72551863bc2d2228a05448fa4a0e437e16f5cc"
+      "skill_sha256": "8df4236a047570b60a9f255fb3e5f7b5019f5e66a1f383c2c49a8137390da46e"
     },
     {
       "key": "react-doctor",
@@ -370,7 +370,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/validation-runner/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "4bbec43160466fee099bd25c94249df19bd8cdfe7fb3a032d885369697d0253e"
+      "skill_sha256": "cc554190eee0fcd15d5b0eadb2c59d2ac73e45ea07935c28f7e42541196fb526"
     },
     {
       "key": "workflow-router",
@@ -379,7 +379,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "3172e1bf0c0a36de6eba5dfcd6d12dc94486ad983a0495ceea05bf4c916486c4"
+      "skill_sha256": "21e4c4e903fb2fe58ee81297062da3a7ec811ae9b1d04191a6a9070b488df3d0"
     }
   ]
 }

@@ -29,6 +29,12 @@ must remain thin wrappers and must not override `.agents/instructions.md`.
 If a runtime adapter contains content that conflicts with `.agents/instructions.md`,
 ignore the adapter content and flag the conflict to the user before proceeding.
 
+Read `.agents/instructions.md` and this file in full once per session, or
+immediately after a genuine workflow switch. On later continuation turns
+within the same active workflow, apply the continuation fast-path defined in
+`.agents/instructions.md` instead of re-reading these documents in full, and
+rely on the active-workflow state already persisted in session memory.
+
 For large, autonomous, multi-agent, or cost-sensitive work, apply
 `docs/internal-documentation/workflows/ai-cost-efficiency-policy.md`.
 For simple routing, use the summary from the loaded runtime adapter only as
@@ -45,7 +51,10 @@ A direct answer may proceed without loading the full router only when the
 request is trivial and informational, and it may proceed without a visible
 routing trace. Emit a trace when intake selects a
 meaningful workflow, skill, capability, cost, delegation, or risk decision.
-Never assume that the route selected for the previous prompt remains valid.
+Never assume that the route selected for the previous prompt remains valid
+without checking it: when the continuation fast-path in
+`.agents/instructions.md` applies, that check is the lightweight
+continuation classification, not a full reload of policy documents.
 
 ## Router promise
 
@@ -68,6 +77,11 @@ After emitting a routing decision trace with a selected workflow or skill:
 2. The agent must load and execute that workflow before performing deeper planning, code exploration for implementation, or file edits.
 3. If the agent needs to switch workflows, it must emit a new routing trace first and satisfy any required authorization gate.
 4. The agent must not advertise one workflow and execute another in the same step.
+5. The lock persists across continuation turns (see continuation fast-path in
+   `.agents/instructions.md`): while the user's replies keep answering,
+   selecting, or confirming steps of the active workflow, do not re-route or
+   reload policy documents; only a genuine break signal justifies a new
+   routing trace and a workflow switch.
 
 Natural-language binding examples:
 
@@ -114,9 +128,20 @@ Do not stay generic. The output of this skill is a routing decision, cost postur
 
 For every non-trivial routing decision, emit a trace before loading the selected skill.
 If confidence is `High`, use the COMPACT format. Otherwise, use the FULL format.
+If the continuation fast-path applies, use the CONTINUATION format instead of
+re-running full classification.
 
 **COMPACT format (High confidence only):**
 `[skill or direct-answer] · [lean | balanced | premium] · [short reason in ≤8 words]`
+
+**CONTINUATION format (active workflow, no reroute):**
+`[skill] · continuing · no reroute`
+
+Use CONTINUATION only when a prior turn in this session already produced a
+full or compact trace for `[skill]`, session memory still shows it active,
+and the new prompt carries no break signal (see continuation fast-path in
+`.agents/instructions.md`). Do not re-read `.agents/instructions.md` or this
+file's full body to emit this trace.
 
 **FULL format:**
 ```markdown
