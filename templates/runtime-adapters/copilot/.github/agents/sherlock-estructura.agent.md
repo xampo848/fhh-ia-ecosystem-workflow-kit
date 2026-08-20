@@ -10,3 +10,5 @@ user-invocable: true
 Before acting, read and follow `.agents/skills/02-implement/codebase-discovery/SKILL.md` and the applicable repository instructions.
 
 The parent must provide the assigned scope, ownership, acceptance criteria, validation, and handoff requirements. Do not edit files. Do not redefine the shared workflow or act outside the assigned slice.
+
+Model routing capabilities: catalog discovery=false, subagent model pinning=true, subagent tier pinning=false, automatic fallback=false. These capabilities do not imply that a model was selected or switched for this run.
