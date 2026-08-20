@@ -127,7 +127,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/codebase-discovery/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "34f77f23fc68a6432bcb4b4ad00c77ac3a7d2242ed77852797a614da36364a72"
+      "skill_sha256": "908e950479de31281f36358b3bd25753cfad7f5ee933e650e700ae5e18459535"
     },
     {
       "key": "contract-verifier",
@@ -145,7 +145,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-epic/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "6c506f20e00bf2bc393853ffe92b0a88cbb82a19c2a2bd43b2a29168c57e79a3"
+      "skill_sha256": "8ad1cbd39cebb3567b4e4ff04926c2f5eff72b3729a7a6ea08505a713c8adf1d"
     },
     {
       "key": "create-prd",
@@ -154,7 +154,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "b35305afff8eb2bde298638de172067a5dfd6dc71814b25fdac610c3f2419ead"
+      "skill_sha256": "4312cf64ba7a6e070e53896782099d1b5e457600faadbb56283f5bdd74507ec9"
     },
     {
       "key": "document-development",
@@ -163,7 +163,7 @@
       "class": "Workflow",
       "path": ".agents/skills/03-quality/document-development/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "e1a8d9ba6993aaf42010ab5b72ad4180ad0197dcf93cdf980f04ecbd943d1b8b"
+      "skill_sha256": "6230ecb6838d277ec6ddb352f81f8cf64561017c7a62635660766060ea6f49f8"
     },
     {
       "key": "engineering-mentor",
@@ -217,7 +217,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "558d64125e75912303c76b31f9d5ce502636228d58cdb1aae99e2e2c67bead1d"
+      "skill_sha256": "faba46ba40fe64dfa639fc9b7e6246066027b3a7b54fbd595f0e483442275efb"
     },
     {
       "key": "implementation-skill-matcher",
@@ -379,7 +379,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "3172e1bf0c0a36de6eba5dfcd6d12dc94486ad983a0495ceea05bf4c916486c4"
+      "skill_sha256": "21e4c4e903fb2fe58ee81297062da3a7ec811ae9b1d04191a6a9070b488df3d0"
     }
   ]
 }

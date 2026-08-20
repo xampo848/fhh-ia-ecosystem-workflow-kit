@@ -77,7 +77,14 @@ For `autonomous-safe` mode, stop only on real stop conditions. Do not pause just
 
 ## Phase 1: Discovery
 
-Delegate to `codebase-discovery` (Sherlock Estructura), or run inline for `small/local` and `controlled-lite` mode.
+Before delegating, decide whether discovery can be skipped or reused:
+
+1. **Check for a persisted brief.** If `<prd-directory>/_meta/discovery.md` exists, verify freshness before reusing it:
+   - If `codebase-memory-mcp` tools are exposed and index status is `ready`, run its change-detection capability scoped to the persisted brief's `files_likely_touched` and `patterns`. If it reports no relevant changes, reuse the persisted brief and skip delegation entirely.
+   - If MCP is unavailable, unready, or has no change-detection capability, do not guess freshness: treat the persisted brief as stale if any commit or slice has landed since it was written, and re-run discovery.
+2. **Check for an explicit PRD.** If no persisted brief applies and the PRD already states complete `touched files`, `patterns to reuse`, and `validation commands`, do not delegate a full discovery subagent. Verify inline (`rg`/`ls`) that the listed paths and patterns still exist, and build the discovery brief directly from the PRD with `source: prd-explicit`. Escalate to a full delegated discovery if verification fails or the PRD's claims do not hold.
+3. Otherwise, delegate to `codebase-discovery` (Sherlock Estructura), or run inline for `small/local` and `controlled-lite` mode.
+4. **Persist the result.** Whichever path was taken (reused, inline-explicit, inline, or delegated), write or refresh `<prd-directory>/_meta/discovery.md` with the discovery brief fields below plus `source: reused-persisted | prd-explicit | inline | subagent` and the date. Later slices and resumes in the same PRD read this file first instead of re-discovering.
 
 The discovery brief must identify:
 

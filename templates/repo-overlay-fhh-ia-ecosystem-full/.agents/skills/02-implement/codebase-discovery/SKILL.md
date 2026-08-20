@@ -16,12 +16,15 @@ Build the smallest useful map of the existing implementation. Do not write code.
 
 Discovery exists to reduce implementation risk. It is not a codebase tour.
 
+The orchestrator decides, before invoking this skill, whether a persisted brief at `<prd-directory>/_meta/discovery.md` can be reused or the PRD already states its touched files/patterns/validation commands explicitly (see `orchestration-flow.md` Phase 1). Only run this skill when neither shortcut applies.
+
 ## Inputs From Orchestrator
 
 - PRD path and readiness brief.
 - Suspected touched surfaces.
 - Candidate operating mode.
 - Resume context, if any.
+- Prior persisted discovery brief, if the orchestrator determined it needs refreshing rather than full reuse.
 
 ## Must Read
 

@@ -13,6 +13,8 @@ Read these when they exist and apply to the request:
 - `docs/standards/BACKEND_STANDARDS.md` and/or `docs/standards/FRONTEND_STANDARDS.md` for touched surfaces
 - `docs/standards/CODE_QUALITY.md`
 - The referenced parent epic, including its `Invariantes No Negociables` table
+- The parent epic's companion ledger (`<slug>-ledger.md`) when it exists
+- The immediately preceding sibling PRD in the epic's queue, including its `Contrato entre Fases` postcondiciones, when this is not the first PRD
 - `.agents/skills/registry.md`, `.agents/capabilities/README.md`, and `.agents/integrations/README.md`
 - Persistent memory context when a memory capability is available
 

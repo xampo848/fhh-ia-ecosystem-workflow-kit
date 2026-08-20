@@ -117,6 +117,7 @@ This requirement applies only to PRDs created after this workflow change. Histor
 Additional required sections:
 
 - Parent epic context and inherited-invariant mapping when a parent epic exists
+- Contrato entre Fases (precondiciones/postcondiciones) when a parent epic exists
 - DDD placement decisions
 - Enumeration strategy
 - Lifecycle rules
@@ -161,6 +162,9 @@ When the PRD has a parent epic:
 - map every inherited invariant ID to one or more child acceptance criteria;
 - stop before drafting if requested scope contradicts an inherited invariant;
 - continue only after an explicit user-approved change request records the invariant ID, reason, and approver.
+- read the companion ledger (`<slug>-ledger.md`) and, when this is not the first PRD in the queue, the immediately preceding sibling PRD's `Contrato entre Fases` postcondiciones, before drafting scope;
+- declare a `Contrato entre Fases` section listing this PRD's preconditions (what it assumes from prior phases, verified against real code during calibration, not assumed from the epic's original plan) and postconditions (what it guarantees for later phases);
+- treat an unverifiable precondition as a blocking ambiguity, not a silent assumption.
 
 PRDs that introduce backend entities must explicitly define:
 

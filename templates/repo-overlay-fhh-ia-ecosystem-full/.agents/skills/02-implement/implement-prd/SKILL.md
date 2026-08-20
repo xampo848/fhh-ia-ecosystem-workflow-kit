@@ -87,6 +87,7 @@ Rules:
 22. For any architectural replacement, cutover, snapshot/read-model migration, or persisted read-path change, implementation is not closable until **activation on existing data** is handled explicitly: bootstrap/backfill/repair path, rollout command, recovery path, and at least one real-data smoke check or equivalent operational verification.
 23. Production-ready closure is a hard gate, not a best-effort aspiration: do not stop at "implemented and tests pass" while any acceptance gap, regression risk, standards violation, missing test, or unreviewed edge case remains open.
 24. Final QA is mandatory for every mode. The only variance is whether it runs inline or through a fresh-context reviewer; closure never skips the QA checklist itself.
+25. **Discovery reuse policy**: persist the discovery brief at `<prd-directory>/_meta/discovery.md` after Phase 1 and reuse it for later slices and resumes instead of re-running exploration, subject to the freshness check in Phase 1. Skip full discovery delegation when the PRD already states complete touched files, reused patterns, and validation commands; verify those inline instead of exploring from scratch.
 
 ## Delegation Heuristics
 

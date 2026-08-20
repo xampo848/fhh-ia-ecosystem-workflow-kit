@@ -175,19 +175,38 @@ Each row must be executable as its own cycle:
 
 1. Start with PRD #1 only.
 2. After the PRD is approved, run `$implement-prd` on that PRD file.
-3. After implementation and validation, run `$document-development` for that delivered phase.
-4. Return to this epic, update phase status if the user asks, and continue with the next PRD.
+3. After implementation and validation, run `$document-development` for that delivered phase. This automatically updates the ledger (Section 15); it does not require the user to ask for a status update.
+4. Return to this epic, update phase status, and continue with the next PRD.
 
-## 14. Handoff a Create PRD
+## 14. Ledger de Cierre de Fases (obligatorio)
+
+Companion file: `docs/epics/<feature-or-project>/<slug>-ledger.md`, created together with this epic.
+
+Seed it with:
+
+| Fila | Item | Estado inicial |
+| ---- | ---- | -------------- |
+| Invariante | Cada `INV-[AREA]-NN` de la Seccion 5 | Pendiente |
+| PRD | Cada fila de la Seccion 10 | Pendiente |
+
+`document-development` updates the matching rows when a child PRD closes:
+
+- Invariant rows move to `Cumplido` (with the closing PRD name) or `Cumplido con excepcion aprobada` (with the change-request reference).
+- The PRD row moves to `Cerrado` and records any deviation from the scope originally planned in Section 10.
+- The PRD's `Contrato entre Fases` postcondiciones (declared in the PRD itself) are copied into the ledger row so the next PRD can read them without re-deriving them from code.
+
+This epic cannot be marked `Completado` until every invariant row reads `Cumplido` or `Cumplido con excepcion aprobada`.
+
+## 15. Handoff a Create PRD
 
 **Primer PRD recomendado**: [Name]
 
 **Prompt sugerido**:
 
 ```
-Use $create-prd to create the PRD for "[Name]" using `docs/epics/<feature-or-project>/<slug>.md` as parent context. Focus only on [strict scope]. Keep [explicit exclusions] out of scope.
+Use $create-prd to create the PRD for "[Name]" using `docs/epics/<feature-or-project>/<slug>.md` as parent context (read the companion ledger at `docs/epics/<feature-or-project>/<slug>-ledger.md` too, and the previous PRD's `Contrato entre Fases` postcondiciones when this is not the first PRD in the queue). Focus only on [strict scope]. Keep [explicit exclusions] out of scope.
 
-After that PRD is approved, use $implement-prd on the PRD file. After implementation and validation, use $document-development to document the delivered phase.
+After that PRD is approved, use $implement-prd on the PRD file. After implementation and validation, use $document-development to document the delivered phase and update the ledger.
 ```
 
 ## Anexo: Fuentes de investigacion

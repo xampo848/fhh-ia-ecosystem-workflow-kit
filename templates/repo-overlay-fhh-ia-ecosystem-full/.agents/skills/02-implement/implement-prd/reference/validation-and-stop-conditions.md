@@ -137,7 +137,7 @@ When resuming a partial PRD implementation:
 
 1. Read the physical task tracker file `<prd-directory>/_meta/task_tracker.toon` to restore the orchestration state and see progress. If it was cleaned after a completed run, reconstruct progress from the PRD, final response, diff, and tests.
 2. Run `prd-readiness-review` against the PRD and current user request.
-3. Run `codebase-discovery` with resume context.
+3. Apply the Phase 1 discovery-reuse check in `orchestration-flow.md`: read `<prd-directory>/_meta/discovery.md` if present and verify freshness (MCP change-detection when available, otherwise treat as stale if new commits/slices landed). Only run `codebase-discovery` with resume context when no fresh, reusable brief is available.
 4. Detect implemented files.
 5. Run existing relevant tests to determine completion.
 6. Rebuild the slicing plan from the first incomplete acceptance criterion.

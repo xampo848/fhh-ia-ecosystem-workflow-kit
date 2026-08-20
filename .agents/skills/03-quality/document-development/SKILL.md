@@ -82,7 +82,17 @@ Cuando existan límites numéricos en el sistema, **no listarlos como bullets in
 
 > "Google devuelve máximo 10 resultados por llamada. Ese límite se preserva al guardar en caché: cada subcategoría almacena hasta 10 POIs. El techo total del proceso es 200 POIs por viewport; con 20 subcategorías activas y 10 por subcategoría, el máximo teórico coincide exactamente con ese cap."
 
-### Paso 6 — Revisar antes de guardar
+### Paso 6 — Actualizar el ledger de la épica (si aplica)
+
+Si el PRD documentado declara `parent_epic`, esto es obligatorio, no depende de que el usuario lo pida:
+
+1. Abrir `docs/epics/<feature-or-project>/<slug>-ledger.md` junto a la épica.
+2. Marcar la fila de este PRD como `Cerrado`, con cualquier desvío respecto al alcance planeado originalmente en la épica.
+3. Para cada invariante que este PRD tocó, actualizar su fila a `Cumplido` (citando este PRD) o `Cumplido con excepcion aprobada` (citando el change request).
+4. Copiar al ledger las postcondiciones de la sección `Contrato entre Fases` del PRD, tal como quedaron verificadas en la implementación, para que el próximo PRD de la cola las pueda leer sin re-derivarlas del código.
+5. Si el ledger no existe (PRD sin épica o épica creada antes de este cambio), omitir este paso sin bloquear el documento.
+
+### Paso 7 — Revisar antes de guardar
 
 Checklist antes de guardar el documento:
 
