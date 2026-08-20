@@ -1,6 +1,6 @@
 # Task Tracker Template
 
-Use this template when the orchestrator initializes `docs/prd/_meta/task_tracker.md` at Phase 2 (Slicing).
+Use this template when the orchestrator initializes `<prd-directory>/_meta/task_tracker.toon` at Phase 2 (Slicing).
 Copy and fill all fields. Use TOON format. Do not leave placeholder text — remove any field that does not apply.
 
 ---
@@ -10,7 +10,7 @@ Copy and fill all fields. Use TOON format. Do not leave placeholder text — rem
 prd: <path-to-prd-file>
 mode: small/local | controlled-lite | controlled-implementation | standard | autonomous-safe | resume
 started: <ISO-date>
-execution_lock: <git-tracked path-to-prd-directory/execution-lock.toon>
+execution_lock: <ignored path-to-prd-directory/_meta/execution-lock.toon>
 quality_gate: <verified path | none, with reason>
 validation_commands[N]: <command>
 loaded_docs[N]: <path>
@@ -81,7 +81,7 @@ handoff_log[N]{phase,agent,timestamp,status,notes}:
 - Record matcher evidence before the implementation owner starts on the same slice.
 - Distinguish slicing, matcher, and implementation handoffs in `handoff_log`.
 - Add to `open_risks` whenever a subagent returns a risk.
-- Record the git-tracked PRD-local execution lock; it is the closure authority, while this tracker remains coordination state.
+- Record the ignored PRD-local execution lock; it is coordination state, as is this tracker. Persist closure evidence in the final response and durable PRD documentation before cleanup.
 - Record only a quality-gate path confirmed to exist; a missing configured path is a stop condition, not `none`.
 - Mark `evidence` in `ac` when the acceptance criterion has concrete proof (test path, validation output, or explicit residual risk).
 - Update `qa_gate` and `closure_gate` after validation and QA; Phase 8 cannot be `VERIFIED` while any item is not passing with evidence.

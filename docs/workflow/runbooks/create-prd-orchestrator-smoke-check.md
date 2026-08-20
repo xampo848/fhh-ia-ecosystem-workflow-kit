@@ -8,7 +8,7 @@ Use this manual checklist after changing the `create-prd` orchestration contract
 
 - Read `.agents/skills/01-product/create-prd/SKILL.md` and its four `reference/*.md` files.
 - Choose one writer for each active PRD directory; do not run concurrent agents against the same `_meta/orchestration.md`.
-- Create a new PRD directory and `_meta/orchestration.md` with `## Calibration`, `## Ambiguity Log`, `## Pattern Lock`, and `## Self-Audit`.
+                              - Create a new PRD directory and ignored `_meta/orchestration.md` with `## Calibration`, `## Ambiguity Log`, `## Pattern Lock`, and `## Self-Audit`.
 
 ## Backend-Like Scenario
 
@@ -21,6 +21,7 @@ Example: add a repository-owned validation to a service that persists a domain r
 - [x] `## Ambiguity Log` contains the grouped questions, resolved decisions, and `no blocking ambiguity remains` before Phase 3.
 - [x] Phase 3 names a local service-validation pattern, lists its anchor files, reused and different parts, and its justification.
 - [x] Phase 4 keeps the use cases, test strategy, edge-case matrix, execution slices, and validation evidence in the drafted PRD.
+- [x] Phase 4 includes a Mermaid class diagram with confirmed classes and relationships.
 - [x] Phase 5 records residual risks and `ready for implement-prd` or `not ready` with a concrete reason.
 
 ## Frontend-Like Scenario
@@ -48,10 +49,12 @@ Example: add a background reconciliation job for existing records.
 ## Cross-Cutting Checks
 
 - [x] Every completed Phase 1, 2, 3, and 5 updates its matching section in `_meta/orchestration.md`, independent of chat visibility.
+- [x] `_meta/` is ignored by Git and is removed by `implement-prd` after durable closure evidence is recorded.
+- [x] The drafted PRD initializes `## 10. Evidencia de Implementacion`; `implement-prd` completes its durable delivery, validation, QA, change-reference, risk, and closure-date fields before cleaning `_meta/`.
 - [x] The no-summary default is respected when no explicit request or material-risk signal exists.
 - [x] Material-risk summaries occur for inherited-invariant contradictions, unresolved architecture/data/contract ambiguity, missing comparable patterns, and low calibration confidence.
 - [x] A historical PRD created before this model remains valid without `_meta/orchestration.md` or a five-phase retrofit.
-- [x] `execution-lock.toon` remains the responsibility of `implement-prd`; `orchestration.md` does not replace it.
+- [x] `execution-lock.toon` remains the responsibility of `implement-prd`; both it and `orchestration.md` are temporary AI coordination artifacts.
 
 ## Completion Record
 

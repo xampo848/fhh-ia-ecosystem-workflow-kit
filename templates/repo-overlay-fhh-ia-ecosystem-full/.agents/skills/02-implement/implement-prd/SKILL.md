@@ -73,7 +73,7 @@ Rules:
 8. Implement one safe slice at a time and validate before expanding scope.
 9. Treat backend/frontend contracts as first-class deliverables.
 10. Validate each phase Definition of Done line by line before moving on.
-11. Maintain a physical phase/task tracker at `docs/prd/_meta/task_tracker.md` for every mode except `small/local`. Create or update it at the start of Phase 2 or before the first write, whichever comes first. Use it for coordination, progress, handoffs, phase state, and delegation rationale; it is not the authority for PRD closure.
+11. Maintain a physical phase/task tracker at `<prd-directory>/_meta/task_tracker.toon` for every mode except `small/local`. Create or update it at the start of Phase 2 or before the first write, whichever comes first. Use it for coordination, progress, handoffs, phase state, and delegation rationale; it is not the authority for PRD closure.
 12. **Subagent wait barrier**: after launching any subagent, the orchestrator MUST wait for its completed handoff before reading dependent files, launching dependent subagents, validating, updating phase status, or producing the final answer. In Codex multi-agent runs, call `wait_agent` with the relevant agent id(s) whenever the next critical-path step depends on them. If the runtime exposes a different asynchronous/pending subagent handle, poll or re-open that handle until it returns a terminal result. If the runtime cannot wait, stop and tell the user the exact pending delegate instead of continuing from assumptions.
 13. Report progress after each delegated run only after the handoff has been received and reviewed.
 14. Challenge and teach: when there are better alternatives, explain the trade-off briefly, recommend one path, and proceed unless a stop condition applies.
@@ -116,18 +116,18 @@ Before planning or editing:
 6. If frontend files are touched, read `.github/instructions/frontend.instructions.md`.
 7. For non-trivial, cross-layer, architectural, migration-heavy, or tenancy-sensitive work, read `docs/foundations/ARCHITECTURE.md`.
 8. Load only relevant pattern docs from `docs/patterns/README.md`.
-9. Initialize or update the physical task tracker file at `docs/prd/_meta/task_tracker.md` using the exact TOON template in `reference/task-tracker-template.md`, except in `small/local` mode. Treat it as coordination state, not closure authority.
+9. Initialize or update the physical task tracker file at `<prd-directory>/_meta/task_tracker.toon` using the exact TOON template in `reference/task-tracker-template.md`, except in `small/local` mode. Treat it as coordination state, not closure authority.
 10. If the PRD changes how persisted data becomes visible in the UI/API, add an **activation checklist** to the tracker: existing-data bootstrap/backfill, deploy or repair command, success signal, failure signal, rollback/repair path, and smoke verification target.
-11. For every mode above `small/local`, initialize a git-tracked execution lock at `<prd-directory>/execution-lock.toon` before the first coding slice. Minimum fields: `lock_id`, `prd_path`, `slice_id`, `hazards`, `selected_patterns`, `required_checks`, `evidence_state`, `waiver_state`.
+11. For every mode above `small/local`, initialize an ignored execution lock at `<prd-directory>/_meta/execution-lock.toon` before the first coding slice. Minimum fields: `lock_id`, `prd_path`, `slice_id`, `hazards`, `selected_patterns`, `required_checks`, `evidence_state`, `waiver_state`.
 
 ## Execution Lock Baseline
 
-For every mode above `small/local`, completion requires an explicit, git-tracked per-PRD execution lock. The PRD-local lock is the closure authority; the global task tracker may support coordination but cannot substitute for lock evidence.
+For every mode above `small/local`, completion requires an explicit, ignored per-PRD execution lock. The lock is runtime coordination state; closure evidence is reported in the final response and durable PRD documentation, while the tracker cannot substitute for that evidence.
 
 Minimum contract:
 
 1. `lock_id` is stable for the PRD run and appears in every slice handoff.
-2. The lock lives at `<prd-directory>/execution-lock.toon` and must not be ignored by Git.
+2. The lock lives at `<prd-directory>/_meta/execution-lock.toon`, is ignored by Git, and must not contain the only durable record of a decision or validation result.
 3. Each slice records `hazards`, `selected_patterns`, and exact `required_checks` before coding starts.
 4. `evidence_state` must be `fresh` to promote a slice to `VERIFIED`.
 5. If files inside the slice scope change after validation, mark `evidence_state` as `stale` and rerun required checks.
@@ -250,6 +250,8 @@ Do not declare the PRD complete until all of these are explicitly true:
 7. Relevant edge cases, failure states, empty states, and rollout/cutover scenarios are verified or explicitly blocked.
 8. Final QA ends in `ready_to_close: yes`.
 9. Every `VERIFIED` slice has fresh command evidence in the execution lock, or an explicit `waived_by_user` record.
+10. Complete `## 10. Evidencia de Implementacion` in the PRD with delivered changes, acceptance-criterion status, executed validations, QA result, identifiable change reference, residual risks or waivers, and closure date. This durable record must not include prompts, trackers, handoffs, or internal agent state.
+11. After `## 10. Evidencia de Implementacion` is complete, `<prd-directory>/_meta/` is removed. Do not declare closure while temporary AI coordination artifacts remain.
 
 If any item above is incomplete, the orchestrator must loop back through the owning slice, rerun the affected validation, and rerun QA until the checklist is satisfied.
 

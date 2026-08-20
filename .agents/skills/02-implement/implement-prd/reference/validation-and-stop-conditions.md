@@ -128,7 +128,7 @@ Cual prefieres?
 
 When resuming a partial PRD implementation:
 
-1. Read the physical task tracker file `docs/prd/_meta/task_tracker.md` to restore the orchestration state and see progress.
+1. Read the physical task tracker file `<prd-directory>/_meta/task_tracker.toon` to restore the orchestration state and see progress. If it was cleaned after a completed run, reconstruct progress from the PRD, final response, diff, and tests.
 2. Run `prd-readiness-review` against the PRD and current user request.
 3. Run `codebase-discovery` with resume context.
 4. Detect implemented files.

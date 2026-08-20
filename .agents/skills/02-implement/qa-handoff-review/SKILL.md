@@ -86,6 +86,7 @@ Use this checklist as coverage for the mandatory procedure; it does not replace 
 - Standards: code quality gate, domain instructions, and existing patterns were actually satisfied.
 - Tests: required coverage exists; missing coverage is either justified concretely or escalated.
 - Coverage for new scope: every newly created production file and newly added method/function has executed-test evidence and at least one relevant edge-case assertion, or a named blocker/waiver.
+- Durable closure evidence: `## 10. Evidencia de Implementacion` in the PRD has the delivered changes, AC status, validation results, QA result, change reference, risks/waivers, and closure date; it contains no AI-only coordination state.
 - Matcher consumption: required pattern skills or fallback docs were actually read and reported; optional capabilities are reported accurately.
 - UI smoke/E2E: visible frontend changes have smoke verification, and most navigable user-facing flows include E2E when tooling is available unless an explicit documented exception or user waiver applies.
 - Risk: migrations, public APIs, background jobs, and integrations are called out.

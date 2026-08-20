@@ -66,6 +66,13 @@ A PRD is never "ready to implement" on AC alone. Before delivering the final PRD
 - If any AC, use case, or edge-case category has no mapped row, stop drafting and either fill the gap or ask the user a targeted question. Do not deliver a PRD with an unmapped row and no justification.
 - This gate is verified again in the Quality Checklist and Final Self-Review before delivery.
 
+### Hard Gate: Class Diagram Is Non-Optional
+
+- Every PRD must include a Mermaid `classDiagram` in `## 3. Modelo de Datos`.
+- The diagram must show the classes, entities, value objects, services, or interfaces that are introduced or changed, including named relationships and cardinalities where relevant.
+- A PRD with no persisted data change still diagrams the relevant runtime classes and dependencies. Do not substitute a flowchart for this requirement.
+- The diagram uses confirmed names and relationships from the pattern lock; placeholders are not acceptable in a PRD ready for `implement-prd`.
+
 ### Phase 1: Repository and Ecosystem Calibration
 
 Load and execute [reference/calibration.md](reference/calibration.md). This is a hard gate; persist its required artifact before starting Phase 2.
@@ -102,7 +109,7 @@ For every PRD created with this workflow, create `_meta/orchestration.md` in the
 - `## Pattern Lock`
 - `## Self-Audit`
 
-`_meta/orchestration.md` does not replace or modify `execution-lock.toon`, which remains owned by `implement-prd`.
+`_meta/` is temporary AI coordination state, ignored by Git. It does not replace the final PRD and is removed by `implement-prd` at closure. `execution-lock.toon` and the implementation tracker also live in this directory and remain owned by `implement-prd`.
 
 This requirement applies only to PRDs created after this workflow change. Historical PRDs remain valid and do not require a retrofit of `_meta/orchestration.md` or the five-phase model.
 
@@ -114,9 +121,11 @@ Additional required sections:
 - Lifecycle rules
 - Tenant integrity rules
 - Cross-context dependency rules
+- Mermaid class diagram (mandatory, see below)
 - Casos de Uso table (mandatory, see below)
 - Estrategia de Tests table (mandatory, see below)
 - Matriz de Edge Cases table (mandatory, see below)
+- Evidencia de Implementacion section (initialized in the PRD template and completed only at `implement-prd` closure)
 
 ### Casos de Uso (mandatory)
 
@@ -313,4 +322,5 @@ Do not implement this coupling before that evidence exists; premature propagatio
 - Adding arbitrary phases instead of splitting work at failure, ownership, contract, or validation boundaries.
 - Deferring tests, lint, contract checks, or quality review until the end of the PRD.
 - Writing vague tasks such as “implement backend”, “add UI”, or “test everything”.
+- Omitting the Mermaid class diagram or replacing it with a flowchart.
 ```

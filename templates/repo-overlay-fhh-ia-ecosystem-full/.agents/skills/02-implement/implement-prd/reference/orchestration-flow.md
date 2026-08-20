@@ -42,7 +42,7 @@ For every delegated phase or slice:
 2. Wait until the delegate returns a terminal handoff. In Codex, call `wait_agent` for the delegated agent id when the next critical-path step depends on it. Partial progress, terminal logs, a changed diff, or silence are not enough.
 3. Parse the handoff and confirm it includes status, files changed/read, evidence, validation result, risks, and stop conditions as required by the delegate skill.
 4. Inspect any changed files or diff before assigning overlapping ownership to another writer.
-5. Update `docs/prd/_meta/task_tracker.md` only after the handoff has been reviewed.
+5. Update `<prd-directory>/_meta/task_tracker.toon` only after the handoff has been reviewed.
 6. Start the next dependent delegate only after the current slice is `VERIFIED` or explicitly marked blocked with user-visible reason.
 
 Parallel delegation is allowed only for independent read-only work or disjoint write ownership. When parallel delegates are launched, the orchestrator must wait for all terminal handoffs before merging plans, validating, or closing the phase. In Codex, call `wait_agent` with the launched agent ids until every critical-path delegate has a final status.
@@ -119,7 +119,7 @@ The resulting plan must define:
 
 Present the implementation plan before coding when the user is interacting phase by phase, the scope is non-routine, the operating mode is `controlled-implementation` with material risks, or a stop condition applies. If the user has asked for autonomous execution or the plan is routine, proceed unless a stop condition applies.
 
-Maintain a physical phase/task tracker mapped 1:1 to PRD phases and tasks. Create and update the file `docs/prd/_meta/task_tracker.md` using the TOON template in `reference/task-tracker-template.md` to record progress and handoffs, keeping the main conversation context clean. Skip only in `small/local`.
+Maintain a physical phase/task tracker mapped 1:1 to PRD phases and tasks. Create and update `<prd-directory>/_meta/task_tracker.toon` using the TOON template in `reference/task-tracker-template.md` to record progress and handoffs, keeping the main conversation context clean. It is ignored temporary state and is cleaned at closure. Skip only in `small/local`.
 
 ## Phase 3: Implementation Slices
 
@@ -200,5 +200,7 @@ Global closure checklist:
 - If frontend UI changed, perform smoke verification and, in most navigable user-facing flows, require `playwright-testing` when tooling is available unless an explicit documented exception or user waiver applies.
 - Confirm the QA checklist status for acceptance criteria, regressions, standards, tests, and edge cases is fully resolved.
 - If any closure item fails, return to the owning slice, fix the root cause, rerun the affected validation, and rerun QA before attempting closure again.
+- Complete `## 10. Evidencia de Implementacion` in the PRD: delivered changes, AC status and evidence, validation commands and results, quality/QA result, commit/PR/diff reference, residual risks or waivers, and closure date. Do not copy temporary AI coordination content into this section.
+- After the PRD evidence section is complete, remove `<prd-directory>/_meta/`, including the tracker, execution lock, and PRD-creation orchestration notes.
 - Summarize PRD phases completed, files changed, tests/lint results, acceptance criteria coverage, key trade-offs, learning notes, and open risks.
 - Recommend `document-development` only when implementation knowledge should be captured; do not force documentation handoff for small/local, controlled-lite, or controlled closures with no durable knowledge value.
