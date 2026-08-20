@@ -32,6 +32,7 @@ Use this skill when:
 
 1. **Explore first, write second** — never draft requirements without reading the existing codebase. Unknown context produces bad PRDs.
 2. **Ask, don't assume** — ambiguous requirements block implementation or cause rework. Surface gaps early through targeted questions.
+2.5. **Challenge before locking** — load [../shared/critical-stance.md](../shared/critical-stance.md). Every scope, business-rule, pattern, or invariant decision must survive one direct challenge before Phase 3 records it as final, whether the user or the AI proposed it.
 3. **Scope is sacred** — every PRD must have a hard line between what IS and what IS NOT in scope.
 4. **Iterate until complete** — after each round of answers, update the PRD immediately. The document should converge to zero open questions.
 5. **English in code** — DB column names and Ruby variables must always use English identifiers, even if domain language is Spanish.

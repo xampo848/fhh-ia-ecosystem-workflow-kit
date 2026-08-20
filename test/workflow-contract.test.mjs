@@ -192,3 +192,62 @@ test('qa-handoff-review reports edge-case coverage by mandatory category', async
   assert.match(qaSkill, /`ready_to_close: yes` is not allowed while a critical-category gap is open and unaccepted/);
   assert.match(qaSkill, /Use cases: every PRD use case links to an implemented\/verified slice and at least one executed test; report orphans by ID/);
 });
+
+test('implement-prd closure loop keeps a persistent findings ledger and blocks on open critical/high findings', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const implementPrdPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
+  const orchestrationFlowPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/orchestration-flow.md');
+  const stopConditionsPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/validation-and-stop-conditions.md');
+  const handoffSchemasPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md');
+  const trackerTemplatePath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/task-tracker-template.md');
+  const qaPath = path.join(root, '.agents/skills/02-implement/qa-handoff-review/SKILL.md');
+  const validationRunnerPath = path.join(root, '.agents/skills/02-implement/validation-runner/SKILL.md');
+
+  const [
+    implementPrdSkill,
+    orchestrationFlow,
+    stopConditions,
+    handoffSchemas,
+    trackerTemplate,
+    qaSkill,
+    validationRunnerSkill
+  ] = await Promise.all([
+    fs.readFile(implementPrdPath, 'utf8'),
+    fs.readFile(orchestrationFlowPath, 'utf8'),
+    fs.readFile(stopConditionsPath, 'utf8'),
+    fs.readFile(handoffSchemasPath, 'utf8'),
+    fs.readFile(trackerTemplatePath, 'utf8'),
+    fs.readFile(qaPath, 'utf8'),
+    fs.readFile(validationRunnerPath, 'utf8')
+  ]);
+
+  // findings ledger: persisted, never overwritten, consumed on QA re-entry
+  assert.match(trackerTemplate, /# findings_ledger/);
+  assert.match(trackerTemplate, /findings_ledger\[N\]\{id,severity,file,description,pattern_protected,status,source,first_reported,resolved_in_slice\}/);
+  assert.match(trackerTemplate, /never overwrite or delete a row/);
+  assert.match(orchestrationFlow, /append every finding from the previous handoff to `findings_ledger`/);
+  assert.match(orchestrationFlow, /a finding missing from the ledger on re-entry is treated as still open, not as resolved/);
+
+  // severity-blocking gate
+  assert.match(handoffSchemas, /blocking_findings_open: yes \| no/);
+  assert.match(qaSkill, /### Severity-Blocking Gate/);
+  assert.match(qaSkill, /`ready_to_close: yes` is never allowed while `blocking_findings_open: yes`/);
+  assert.match(implementPrdSkill, /which requires `blocking_findings_open: no`/);
+  assert.match(stopConditions, /Findings gate: `findings_ledger` has no `critical`\/`high` row with `status: open`/);
+
+  // waiver floor
+  assert.match(qaSkill, /### Waiver Floor/);
+  assert.match(qaSkill, /A generic acknowledgement \("ok", "proceed", "waived"\) without a named risk does not satisfy this floor/);
+  assert.match(stopConditions, /### Waiver Floor/);
+
+  // pre-existing/unrelated failures require an explicit user decision
+  assert.match(validationRunnerSkill, /If `bin\/validate-slice` does not exist in the target repository, its absence is not a failure/);
+  assert.match(validationRunnerSkill, /present exactly these three options to the user — \(A\) repair it now inside this PRD's scope, \(B\) log it as an explicit residual risk/);
+  assert.match(handoffSchemas, /unrelated_failures\[N\]\{description,user_decision\}: <description>,<repair_now\|log_as_risk\|block\|pending> \| none/);
+  assert.match(stopConditions, /A failure is classified as pre-existing\/unrelated to the current slice or PRD scope/);
+
+  // closure evidence persisted before _meta/ cleanup
+  assert.match(implementPrdSkill, /Include a "Resumen del Ledger de Hallazgos" subsection listing every `findings_ledger` row/);
+  assert.match(orchestrationFlow, /Include a "Resumen del Ledger de Hallazgos" subsection listing every row from `findings_ledger`/);
+});
+

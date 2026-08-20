@@ -66,8 +66,13 @@ Before marking any PRD implementation done, record and satisfy all of these gate
 - Coverage gate: each newly created production file and newly added method/function has at least one executed test plus at least one relevant edge-case assertion, or an explicit `waived_by_user` record with reason.
 - Edge-case gate: relevant empty, error, boundary, permission, rollout, migration, and failure states are verified or block closure.
 - QA gate: final QA ends with `ready_to_close: yes`.
+- Findings gate: `findings_ledger` has no `critical`/`high` row with `status: open`; every such row is `repaired` or validly `waived_by_user` (see Waiver Floor below).
 
 If any gate is `FAIL`, `PARTIAL`, `INCOMPLETE`, `MISSING`, or unsupported by evidence, closure is blocked and the workflow must return to the owning slice.
+
+### Waiver Floor
+
+`waived_by_user` can close any gate above — the user retains final authority — but for a `critical`/`high` severity finding, or a gap touching authorization, tenancy, or a destructive migration, the waiver is valid only when it quotes the concrete risk the user is accepting. A generic acknowledgement ("ok", "proceed", "waived") with no named risk does not satisfy the floor; treat it as `evidence_state: missing` and ask the user to name the specific risk before accepting it.
 
 ## Phase And Global Rules
 
@@ -110,6 +115,8 @@ Stop and ask the user before continuing when:
 - The handoff lacks a validated content reference for evidence required to reach `VERIFIED`.
 - A configured quality-gate or required domain-instruction path is missing; report the exact path and stop until it is created or corrected.
 - Coverage evidence for newly created production files or newly added methods/functions is missing, ambiguous, or not mapped to executed tests plus relevant edge-case assertions.
+- A failure is classified as pre-existing/unrelated to the current slice or PRD scope: present exactly three options — (A) repair it now inside this PRD's scope, (B) log it as an explicit residual risk in `## 10. Evidencia de Implementacion` and continue, (C) block closure until it is resolved elsewhere. Do not decide on the user's behalf.
+- A `critical`/`high` severity finding, or an authorization/tenancy/destructive-migration gap, is offered a `waived_by_user` resolution without a concretely named risk (see Waiver Floor).
 
 Use this format:
 

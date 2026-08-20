@@ -25,12 +25,16 @@ Antes de continuar, necesito resolver estas dudas:
 
 Do not ask for facts that the repository already establishes.
 
+## Challenge Before Resolving
+
+Apply [../shared/critical-stance.md](../shared/critical-stance.md) to every answer received. Before writing a row in the resolved-decisions table, state the discarded alternative and why the chosen answer beats it. If the user's answer creates a scope, invariant, or contract risk, say so directly before recording it, even if the user already answered.
+
 ## Required Artifact
 
 Write these fields under `## Ambiguity Log`:
 
 - blocking questions grouped by category
-- a resolved-decisions table
+- a resolved-decisions table, including the discarded alternative and challenge outcome for each high-impact row
 - the explicit statement `no blocking ambiguity remains` before Phase 3 can start
 
 ## Summary Visibility

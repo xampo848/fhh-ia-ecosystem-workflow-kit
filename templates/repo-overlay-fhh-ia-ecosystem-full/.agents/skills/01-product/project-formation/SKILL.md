@@ -49,6 +49,7 @@ This workflow is designed for production-grade project formation:
 6. Shape Up language: use appetite, shaping, rabbit holes, and bounded problem framing naturally.
 7. Always-orient rule: every turn must show where we are, what comes next, and what options the PM can choose.
 8. Ambiguity-first rule: when terms, scope, or success criteria are vague, ask one disambiguation question before recommending progression.
+9. Challenge-before-lock rule: load [shared/critical-stance.md](../shared/critical-stance.md). Any stage decision with real impact (scope, appetite, business rule, bet selection) must survive one direct challenge before it advances a stage, regardless of whether the PM or the AI proposed it.
 
 ## Inputs
 

@@ -18,6 +18,7 @@ The output is not a PRD. It is the parent project definition and investigation a
 - Prefer slices that can become standalone `create-prd` inputs and later close with `document-development`.
 - Record non-negotiable epic invariants with stable IDs, owners, and rationale so child PRDs cannot silently contradict them.
 - Ask targeted questions only after initial discovery, and ask before drafting only when the request is too vague to produce a useful draft.
+- Load [../shared/critical-stance.md](../shared/critical-stance.md). Before recording an epic invariant, appetite boundary, or business rule as final, challenge it directly — state the discarded alternative and why, whether the idea came from the user or from the AI's own draft.
 - Do not modify product code while creating the epic unless the user explicitly asks.
 - Save the final epic to `docs/epics/<feature-or-project>/<slug>.md` by default when the user asks to create a project artifact.
 - If a file already exists at this path, ask the user whether to overwrite, version, or merge before saving.

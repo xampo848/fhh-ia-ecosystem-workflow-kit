@@ -202,7 +202,7 @@ Validation must prove both the changed behavior and the most plausible adjacent 
 
 Run a final QA checklist for every PRD implementation before closure. Delegate to `qa-handoff-review` for standard PRDs, cross-layer work, security/tenancy-sensitive work, contract changes, user-visible changes, rollout-sensitive work, or any diff that would benefit from fresh-context review. Inline QA is allowed only for strictly local low-risk slices where the orchestrator can still prove the full checklist. Inside review-only sweeps, prefer `cavecrew-reviewer` when terse line-anchored findings are enough.
 
-If findings are returned, fix them through the relevant owner skill or inline with explicit ownership, then re-run the affected validation.
+If findings are returned, fix them through the relevant owner skill or inline with explicit ownership, then re-run the affected validation. Before requesting any re-entry QA pass, append every finding from the previous handoff to `findings_ledger` in the task tracker with a stable id; never overwrite a row. The next `qa-handoff-review` pass must read `findings_ledger` and confirm each prior finding is `repaired` or explicitly `waived_by_user` before it can return `ready_to_close: yes` — a finding missing from the ledger on re-entry is treated as still open, not as resolved.
 
 The QA checklist must explicitly answer all of these before closure:
 
@@ -212,10 +212,11 @@ The QA checklist must explicitly answer all of these before closure:
 - Tests: required coverage exists; missing coverage is justified or blocked.
 - Coverage for new scope: each newly created production file and newly added method/function has executed-test evidence plus at least one relevant edge-case assertion, or an explicit blocker/waiver.
 - Edge cases: relevant empty/error/boundary/rollout states are verified or blocked.
+- Blocking findings: `blocking_findings_open: no` — no `critical`/`high` finding remains `open` in `findings_ledger` without being `repaired` or validly `waived_by_user` (see Waiver Floor in `qa-handoff-review/SKILL.md`).
 
 QA review should report findings and also explain the pattern being protected, so it reinforces learning instead of only listing defects.
 
-Do not advance to closure while QA reports `ready_to_close: no`, `validation_status: FAIL | PARTIAL`, incomplete acceptance evidence, unresolved regressions, unresolved standards gaps, missing required tests, missing coverage evidence for newly created files or newly added methods/functions, or unreviewed edge cases.
+Do not advance to closure while QA reports `ready_to_close: no`, `blocking_findings_open: yes`, `validation_status: FAIL | PARTIAL`, incomplete acceptance evidence, unresolved regressions, unresolved standards gaps, missing required tests, missing coverage evidence for newly created files or newly added methods/functions, or unreviewed edge cases.
 
 ## Phase 7: Closure
 
@@ -229,7 +230,7 @@ Global closure checklist:
 - If frontend UI changed, perform smoke verification and, in most navigable user-facing flows, require `playwright-testing` when tooling is available unless an explicit documented exception or user waiver applies.
 - Confirm the QA checklist status for acceptance criteria, regressions, standards, tests, and edge cases is fully resolved.
 - If any closure item fails, return to the owning slice, fix the root cause, rerun the affected validation, and rerun QA before attempting closure again.
-- Complete `## 10. Evidencia de Implementacion` in the PRD: delivered changes, AC status and evidence, validation commands and results, quality/QA result, commit/PR/diff reference, residual risks or waivers, and closure date. Do not copy temporary AI coordination content into this section.
-- After the PRD evidence section is complete, remove `<prd-directory>/_meta/`, including the tracker, execution lock, and PRD-creation orchestration notes.
+- Complete `## 10. Evidencia de Implementacion` in the PRD: delivered changes, AC status and evidence, validation commands and results, quality/QA result, commit/PR/diff reference, residual risks or waivers, and closure date. Include a "Resumen del Ledger de Hallazgos" subsection listing every row from `findings_ledger` (id, severity, final status, and resolution: repaired in which slice, or the exact quoted risk if `waived_by_user`). If `findings_ledger` is empty, state that explicitly rather than omitting the subsection. Do not copy temporary AI coordination content into this section.
+- After the PRD evidence section is complete — including the Resumen del Ledger de Hallazgos — remove `<prd-directory>/_meta/`, including the tracker, execution lock, and PRD-creation orchestration notes.
 - Summarize PRD phases completed, files changed, tests/lint results, acceptance criteria coverage, key trade-offs, learning notes, and open risks.
 - Recommend `document-development` only when implementation knowledge should be captured; do not force documentation handoff for small/local, controlled-lite, or controlled closures with no durable knowledge value.
