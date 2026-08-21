@@ -26,6 +26,7 @@ Antes de escribir una línea, leer:
 3. Los modelos y migraciones relevantes
 4. El controlador y las vistas/partials del flujo
 5. Los tests para entender comportamientos esperados y edge cases
+6. Las policies y reglas de autorización (roles, permisos por acción, restricciones por estado/ownership y feature flags)
 
 Prestar atención especial a:
 
@@ -33,6 +34,7 @@ Prestar atención especial a:
 - Bloques `rescue` y fallbacks → revelan comportamientos de robustez
 - Callbacks y condiciones en el flujo principal → revelan reglas de negocio implícitas
 - Cachés: clave, TTL, invalidación
+- Reglas de autorización: quién puede ver/crear/editar/notificar/eliminar, bajo qué roles y condiciones
 
 ### Paso 2 — Identificar las audiencias
 
@@ -80,7 +82,17 @@ Cuando existan límites numéricos en el sistema, **no listarlos como bullets in
 
 > "Google devuelve máximo 10 resultados por llamada. Ese límite se preserva al guardar en caché: cada subcategoría almacena hasta 10 POIs. El techo total del proceso es 200 POIs por viewport; con 20 subcategorías activas y 10 por subcategoría, el máximo teórico coincide exactamente con ese cap."
 
-### Paso 6 — Revisar antes de guardar
+### Paso 6 — Actualizar el ledger de la épica (si aplica)
+
+Si el PRD documentado declara `parent_epic`, esto es obligatorio, no depende de que el usuario lo pida:
+
+1. Abrir `docs/epics/<feature-or-project>/<slug>-ledger.md` junto a la épica.
+2. Marcar la fila de este PRD como `Cerrado`, con cualquier desvío respecto al alcance planeado originalmente en la épica.
+3. Para cada invariante que este PRD tocó, actualizar su fila a `Cumplido` (citando este PRD) o `Cumplido con excepcion aprobada` (citando el change request).
+4. Copiar al ledger las postcondiciones de la sección `Contrato entre Fases` del PRD, tal como quedaron verificadas en la implementación, para que el próximo PRD de la cola las pueda leer sin re-derivarlas del código.
+5. Si el ledger no existe (PRD sin épica o épica creada antes de este cambio), omitir este paso sin bloquear el documento.
+
+### Paso 7 — Revisar antes de guardar
 
 Checklist antes de guardar el documento:
 
@@ -92,6 +104,7 @@ Checklist antes de guardar el documento:
 - [ ] El anexo contiene links a los archivos clave, no código inline
 - [ ] El lenguaje de las secciones 1–5 es accesible para no técnicos
 - [ ] Las secciones 6–8 tienen suficiente detalle técnico para developers
+- [ ] El documento explica claramente políticas de autorización: roles, permisos por acción y restricciones por estado/feature flags
 
 ---
 
@@ -140,6 +153,7 @@ Luego, subpárrafo con comportamientos importantes (edge cases de UX: qué pasa 
 ## 4. Reglas de Negocio
 
 Lista de reglas con título en negrita y explicación. Cada regla tiene nombre, descripción del comportamiento y el "por qué" si no es obvio.
+Incluir explícitamente reglas de autorización: roles habilitados, roles excluidos, condiciones por estado del recurso, ownership y feature flags.
 
 ## 5. Casos de Uso
 
@@ -161,6 +175,7 @@ flowchart LR
 ### Integraciones y decisiones de diseño
 
 Subsecciones por área: integración externa, estrategia de búsqueda/cálculo, caché, etc.
+Debe incluir una subsección específica de **autorización y acceso** (Policies/Pundit), indicando acciones permitidas por rol y restricciones relevantes.
 
 ### Límites operativos
 
