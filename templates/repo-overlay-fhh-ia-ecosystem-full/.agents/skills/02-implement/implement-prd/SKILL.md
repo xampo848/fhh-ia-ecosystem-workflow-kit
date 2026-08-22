@@ -5,7 +5,7 @@ argument-hint: "Path to the PRD file, for example docs/prd/github-intelligence/2
 license: MIT
 metadata:
   author: fhh-ia-ecosystem
-  version: "2.6"
+  version: "2.7"
 ---
 
 # Implement PRD
@@ -111,17 +111,18 @@ If you choose `avoided` while phase fan-out is high, write an explicit exception
 
 Before planning or editing:
 
-1. Read `.github/copilot-instructions.md`.
+1. Read `.github/copilot-instructions.md` or `.agents/instructions.md` if the Copilot adapter is absent. Use exists-or-skip; a missing configured path is a hard stop only when the PRD or selected mode requires that path.
 2. Read the PRD completely.
-3. Identify the quality-gate and domain-instruction paths required by the PRD or repository context; verify each exists before relying on it.
-4. Classify the work as `small/local`, `controlled-lite`, `controlled-implementation`, `standard`, `autonomous-safe`, or `resume`.
-5. If backend files are touched, read `.github/instructions/backend.instructions.md`.
-6. If frontend files are touched, read `.github/instructions/frontend.instructions.md`.
-7. For non-trivial, cross-layer, architectural, migration-heavy, or tenancy-sensitive work, read `docs/foundations/ARCHITECTURE.md`.
-8. Load only relevant pattern docs from `docs/patterns/README.md`.
-9. Initialize or update the physical task tracker file at `<prd-directory>/_meta/task_tracker.toon` using the exact TOON template in `reference/task-tracker-template.md`, except in `small/local` mode. Treat it as coordination state, not closure authority.
-10. If the PRD changes how persisted data becomes visible in the UI/API, add an **activation checklist** to the tracker: existing-data bootstrap/backfill, deploy or repair command, success signal, failure signal, rollback/repair path, and smoke verification target.
-11. For every mode above `small/local`, initialize an ignored execution lock at `<prd-directory>/_meta/execution-lock.toon` before the first coding slice. Minimum fields: `lock_id`, `prd_path`, `slice_id`, `hazards`, `selected_patterns`, `required_checks`, `evidence_state`, `waiver_state`.
+3. If `<prd-directory>/_meta/orchestration.md` exists, read `## Calibration`, `## Pattern Lock`, and `## Self-Audit` before discovery or slicing. Reuse `touched_surfaces`, the locked pattern, and residual risks instead of rediscovering them. Historical PRDs without `_meta/` remain valid.
+4. Identify the quality-gate and domain-instruction paths required by the PRD or repository context; verify each exists before relying on it. Missing optional product docs are exists-or-skip, not a failed search.
+5. Classify the work as `small/local`, `controlled-lite`, `controlled-implementation`, `standard`, `autonomous-safe`, or `resume`.
+6. If backend files are touched and `.github/instructions/backend.instructions.md` exists, read it.
+7. If frontend files are touched and `.github/instructions/frontend.instructions.md` exists, read it.
+8. Read `docs/foundations/ARCHITECTURE.md` only when it exists and the work is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths.
+9. Load only relevant pattern docs from `docs/patterns/README.md` when that index exists.
+10. Initialize or update the physical task tracker file at `<prd-directory>/_meta/task_tracker.toon` using the exact TOON template in `reference/task-tracker-template.md`, except in `small/local` mode. Treat it as coordination state, not closure authority.
+11. If the PRD changes how persisted data becomes visible in the UI/API, add an **activation checklist** to the tracker: existing-data bootstrap/backfill, deploy or repair command, success signal, failure signal, rollback/repair path, and smoke verification target.
+12. For every mode above `small/local`, initialize an ignored execution lock at `<prd-directory>/_meta/execution-lock.toon` before the first coding slice. Minimum fields: `lock_id`, `prd_path`, `slice_id`, `hazards`, `selected_patterns`, `required_checks`, `evidence_state`, `waiver_state`.
 
 ## Execution Lock Baseline
 
@@ -171,12 +172,18 @@ Slice granularity default (outside `small/local`):
 - Keep matcher inputs small: each slice should map cleanly to one primary owner skill plus optional supporting pattern skills.
 - If a slice becomes "multi-surface + multi-owner", split before coding instead of relying on broad inline implementation.
 
+Required stage pipeline (every mode except `small/local`):
+
+Capitana Alcance → Sherlock Estructura → Arquitecta Fases → matcher → writer → validation → QA Relampago.
+
+Do not omit a stage to save tokens. The cost cut is compact or inline execution of the same stage, not skipping it. `small/local` already runs readiness, target read, edit, focused validation, and close inline.
+
 Right-sized flow:
 
 1. `small/local` - inline readiness, target read, edit, focused validation, close.
-2. `controlled-lite` - compact readiness/discovery/slicing preflight; one owner per slice; focused validation; mandatory QA checklist and closure evidence; escalate to fresh-context QA when risk triggers fire.
-3. `controlled-implementation` - targeted delegation for readiness/discovery/slicing/matching/implementation/validation where delegation lowers risk; no ceremonial subagents.
-4. `standard` and `autonomous-safe` - full delegated flow:
+2. `controlled-lite` - run the required stage pipeline as compact inline or one lightweight delegate per stage; one owner per slice; focused validation; mandatory QA checklist and closure evidence; escalate to fresh-context QA when risk triggers fire.
+3. `controlled-implementation` - run the same required stage pipeline; delegate a stage only when independent context, ownership, or review bias lowers risk; no ceremonial extra subagents.
+4. `standard` and `autonomous-safe` - full delegated flow of the same required stages:
    - `prd-readiness-review` - Capitana Alcance.
    - `codebase-discovery` - Sherlock Estructura.
    - `implementation-slicing` - Arquitecta Fases.
@@ -193,7 +200,7 @@ Right-sized flow:
 Mode-specific execution:
 
 - In `small/local`, run readiness/discovery inline and skip delegation. This is the only mode where the task tracker may be skipped.
-- In `controlled-lite`, run a compact preflight inline or through one lightweight delegate. Run matcher inline or through one lightweight delegate before any coding slice starts; outside `small/local`, matcher cannot be skipped. A coding slice may proceed only with matcher `success`, or with user-accepted `partial/blocked` plus documented fallback docs and risk.
+- In `controlled-lite`, run compact Capitana, Sherlock, Arquitecta, matcher, writer, validation, and QA. Compact or inline is allowed; omitting a named stage is not. A coding slice may proceed only with matcher `success`, or with user-accepted `partial/blocked` plus documented fallback docs and risk.
 - In `controlled-implementation`, use delegates selectively for phases or slices where independent context, file ownership, or validation evidence reduces risk. Treat matcher completion as a blocking phase before any coding slice starts. Code-writing should default to specialized implementers, with inline writing reserved for narrowly scoped one-writer exceptions.
 - In `standard`, use the full delegated flow when available. Treat matcher completion as a blocking phase before any coding delegate starts on dependent slices.
 - In `standard`, the existence of multiple phase skills is itself a signal to keep the work partitioned unless a clearly documented exception says otherwise.

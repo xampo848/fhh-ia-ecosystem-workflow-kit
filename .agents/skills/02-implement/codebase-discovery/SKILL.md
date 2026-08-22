@@ -28,12 +28,15 @@ The orchestrator decides, before invoking this skill, whether a persisted brief 
 
 ## Must Read
 
-- `.github/copilot-instructions.md`.
+Use exists-or-skip. A missing optional path is not a failed search.
+
+- `.github/copilot-instructions.md` or `.agents/instructions.md`.
 - The PRD sections and readiness brief relevant to discovery.
-- `docs/foundations/ARCHITECTURE.md` only when the work is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths.
-- Backend instructions when confirmed backend files will be read or touched: `.github/instructions/backend.instructions.md`.
-- Frontend instructions when confirmed frontend files will be read or touched: `.github/instructions/frontend.instructions.md`.
-- `docs/patterns/README.md` only as an index; load only pattern docs that match the discovered implementation surface.
+- `<prd-directory>/_meta/orchestration.md` `## Calibration` and `## Pattern Lock` when they exist.
+- `docs/foundations/ARCHITECTURE.md` only when it exists and the work is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths.
+- Backend instructions when they exist and confirmed backend files will be read or touched: `.github/instructions/backend.instructions.md`.
+- Frontend instructions when they exist and confirmed frontend files will be read or touched: `.github/instructions/frontend.instructions.md`.
+- `docs/patterns/README.md` only as an index when it exists; load only pattern docs that match the discovered implementation surface.
 
 Do not load `CODE_QUALITY.md` or `.github/instructions/quality-gate.instructions.md` during discovery. Code-writing and code-review delegates load the quality gate on demand.
 

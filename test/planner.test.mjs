@@ -67,12 +67,15 @@ test('buildInstallPlan merges existing skills registry and preserves local skill
   await fs.mkdir(path.join(target, '.agents/skills'), { recursive: true });
   await fs.writeFile(path.join(target, '.agents/skills/registry.json'), `${JSON.stringify(existingRegistry, null, 2)}\n`, 'utf8');
   await fs.writeFile(path.join(target, '.agents/skills/index.md'), '# Existing index\n', 'utf8');
+  await fs.mkdir(path.join(target, '.agents/skills/06-patterns'), { recursive: true });
+  await fs.writeFile(path.join(target, '.agents/skills/06-patterns/index.md'), '# Existing pattern index\n', 'utf8');
   await fs.writeFile(path.join(target, '.agents/skills/registry.md'), '# Existing registry\n', 'utf8');
 
   const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
 
   const registryOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/registry.json');
   const indexOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/index.md');
+  const patternsIndexOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/06-patterns/index.md');
   const markdownRegistryOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/registry.md');
 
   assert.equal(registryOperation.operation, 'merge_with_backup');
@@ -80,6 +83,7 @@ test('buildInstallPlan merges existing skills registry and preserves local skill
   assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'custom-skill'), true);
   assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'workflow-router'), true);
   assert.equal(indexOperation.operation, 'skip_unmanaged');
+  assert.equal(patternsIndexOperation.operation, 'skip_unmanaged');
   assert.equal(markdownRegistryOperation.operation, 'skip_unmanaged');
 });
 

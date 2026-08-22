@@ -49,19 +49,25 @@ Do not silently rewrite the slice plan.
 - Slice table from `implementation-slicing`.
 - Relevant PRD excerpts for the slice.
 - Focused discovery notes or explicit reason discovery was skipped.
-- `.agents/skills/registry.md`
-- `.agents/skills/06-patterns/README.md`
+- `.agents/skills/06-patterns/index.md` as the first candidate catalog.
+- `.agents/skills/06-patterns/README.md` only when a candidate exists or
+  eligibility/handoff rules are ambiguous.
+- `.agents/skills/registry.md` only after the compact index yields at least one
+  candidate or eligibility cannot be decided from the index row.
 - Known capability availability/attach state when available.
-- Optional derived cache `.agents/skills/registry.cache.json` only after
-  `python3 scripts/refresh_skill_registry_cache.py --check` passes.
 
 Use an index-first and path-first strategy. Do **not** bulk-load every
-`SKILL.md`. Prefer registry metadata first, then reference exact paths only for
+`SKILL.md`. Scan the compact pattern index first, then open registry rows only
+for matching or ambiguous candidates, then read exact `SKILL.md` paths only for
 selected skills.
 
+Do not invent candidates. If `.agents/skills/06-patterns/index.md` is missing,
+regenerate it with `node scripts/sync-skill-registry.mjs --write` or fall back
+to `.agents/skills/registry.md` and record that fallback.
+
 The derived cache is a preflight/index aid only. It is not a source of truth and
-must never replace reading `.agents/skills/registry.md` or the exact selected
-`SKILL.md` files.
+must never replace the compact pattern index, a needed registry row, or the
+exact selected `SKILL.md` files.
 
 ## Matching Procedure
 
@@ -69,8 +75,9 @@ must never replace reading `.agents/skills/registry.md` or the exact selected
    tests, validation, and stop conditions.
 2. Determine the technical surface touched by the slice: backend, frontend,
    contract, domain, validation, docs-only, or mixed.
-3. Check `.agents/skills/registry.md` and `.agents/skills/06-patterns/README.md`
-   to identify candidate pattern skills and boundary rules.
+3. Scan `.agents/skills/06-patterns/index.md` for candidate names, triggers, and
+   paths. Open `.agents/skills/registry.md` and `.agents/skills/06-patterns/README.md`
+   only when at least one candidate matches or eligibility is ambiguous.
 4. Select `required_pattern_skills` only when the slice clearly needs reusable
    procedural knowledge.
 5. For each required skill, return:

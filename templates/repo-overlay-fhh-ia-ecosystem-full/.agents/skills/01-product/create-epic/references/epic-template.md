@@ -65,6 +65,8 @@ Use this structure for `docs/epics/<feature-or-project>/<slug>.md`. It intention
 
 Any child PRD must map every inherited invariant to an acceptance criterion. A contradiction requires an explicit user-approved change request that records the invariant ID, reason, and approver.
 
+When step 6 of `create-epic` applies, include `INV-CUT-01` (or the next free `INV-CUT-NN`) with the locked live path, the chosen phase sequence, and the discarded sequence.
+
 ## 6. Casos de Uso
 
 ### [Business case 1]
@@ -85,9 +87,18 @@ Any child PRD must map every inherited invariant to an acceptance criterion. A c
 
 ### Investigacion Web
 
+**Aplica**: Si | No aplica
+**Motivo**: [vendor/regulation/standard/user request | local evidence was sufficient]
+
 | Tema | Hallazgo | Fuente |
 | ---- | -------- | ------ |
 | [Topic] | [Finding] | [URL] |
+
+If `Aplica` is `No aplica`, keep one row that says `No aplica` instead of inventing sources.
+
+### Evidence Pack
+
+Reuse `docs/epics/<feature-or-project>/<slug>-evidence.md` in child PRDs. Do not rediscover the same local files unless the evidence pack is stale.
 
 ### Supuestos
 
@@ -136,6 +147,18 @@ flowchart LR
 [Explain what happens when data is missing, integrations fail, calculations are partial, permissions deny access, or contracts drift.]
 
 ## 9. Plan de Entrega por Fases
+
+### Path vivo y corte de fases
+
+**Aplica**: Si | No aplica
+**Path vivo durante el apetito**: Debe seguir | Se puede cortar
+**Cabe en un ciclo**: Si | No
+**Secuencia elegida**: [fase 1 -> ...]
+**Secuencia descartada**: [fase 1 -> ...]
+**Por que gana la elegida**: [consecuencia concreta]
+**Invariante**: `INV-CUT-01` | No aplica
+
+If `Aplica` is `Si`, do not leave this block empty. Child PRDs inherit it and must not invert the live path or the chosen sequence.
 
 ### Fases comprometidas dentro del apetito
 

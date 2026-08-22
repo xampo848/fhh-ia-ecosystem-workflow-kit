@@ -8,6 +8,7 @@ This runbook is mandatory for changes that touch any of the following:
 
 - `.agents/skills/registry.md`
 - `.agents/skills/index.md`
+- `.agents/skills/06-patterns/index.md`
 - `.agents/skills/registry.json`
 - `.agents/skills/registry.cache.json`
 - `.agents/skills/00-router/**`
@@ -19,6 +20,7 @@ This runbook is mandatory for changes that touch any of the following:
 1. `.agents/skills/registry.md` is the human-authored canonical inventory.
 2. `scripts/sync-skill-registry.mjs` is the only supported way to derive:
    - `.agents/skills/index.md`
+   - `.agents/skills/06-patterns/index.md`
    - `.agents/skills/registry.json`
    - `.agents/skills/registry.cache.json`
    - mirrored overlay copies under `templates/repo-overlay-fhh-ia-ecosystem-full/`
@@ -64,7 +66,7 @@ bun run check:workflow
 
 Expected outcome:
 
-- canonical and overlay copies of `index.md`, `registry.json`, and `registry.cache.json` are identical to generated output
+- canonical and overlay copies of `index.md`, `06-patterns/index.md`, `registry.json`, and `registry.cache.json` are identical to generated output
 - drift is detected before release
 
 ### 3. Validate runtime contract changes

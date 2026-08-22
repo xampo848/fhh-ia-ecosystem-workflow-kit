@@ -5,6 +5,7 @@ import { diagnostic } from './diagnostics.mjs';
 const mirroredFiles = [
   '.agents/instructions.md',
   '.agents/skills/index.md',
+  '.agents/skills/06-patterns/index.md',
   '.agents/skills/00-router/workflow-router/SKILL.md',
   '.agents/skills/registry.md',
   '.agents/skills/registry.json',

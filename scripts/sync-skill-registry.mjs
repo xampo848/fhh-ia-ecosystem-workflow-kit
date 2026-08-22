@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const indexRelativePath = '.agents/skills/index.md';
+const patternsIndexRelativePath = '.agents/skills/06-patterns/index.md';
 const registryRelativePath = '.agents/skills/registry.md';
 const jsonRelativePath = '.agents/skills/registry.json';
 const cacheRelativePath = '.agents/skills/registry.cache.json';
@@ -106,6 +107,37 @@ function buildCompactIndex(entries) {
   ].join('\n');
 }
 
+function buildPatternsIndex(patternSkills) {
+  const rows = [...patternSkills]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((entry) =>
+      `| \`${entry.name}\` | ${entry.class} | ${entry.trigger} | \`${entry.path}\` | ${entry.loading_posture} | ${entry.cost_hint ?? '—'} |`
+    );
+
+  return [
+    '# Compact pattern index',
+    '',
+    'This file is a generated matcher-first catalog of repo-owned pattern skills.',
+    'It exists so `implementation-skill-matcher` can identify candidates without loading `.agents/skills/registry.md`.',
+    'Canonical inventory and authoring rules remain in `.agents/skills/registry.md`.',
+    'Automation artifacts remain in `.agents/skills/registry.json` and `.agents/skills/registry.cache.json`; do not load those machine files into model context.',
+    '',
+    '## Pattern inventory',
+    '',
+    '| Skill name | Class | Trigger | Physical path | Loading posture | Cost hint |',
+    '| --- | --- | --- | --- | --- | --- |',
+    ...rows,
+    '',
+    '## Matcher usage',
+    '',
+    '1. Scan this index for candidate names, triggers, and paths.',
+    '2. Open `.agents/skills/registry.md` only when at least one candidate matches or eligibility is ambiguous.',
+    '3. Read only the selected `SKILL.md` paths before returning required pattern skills.',
+    '4. If this file is missing, regenerate with `node scripts/sync-skill-registry.mjs --write`. Do not invent candidates.',
+    ''
+  ].join('\n');
+}
+
 export async function buildSkillRegistryArtifacts({ root = packageRoot } = {}) {
   const markdown = await fs.readFile(path.join(root, registryRelativePath), 'utf8');
   const skills = parseInventory(
@@ -118,6 +150,7 @@ export async function buildSkillRegistryArtifacts({ root = packageRoot } = {}) {
   assertUnique(entries, 'name');
   assertUnique(entries, 'key');
   const indexMarkdown = buildCompactIndex(entries);
+  const patternsIndexMarkdown = buildPatternsIndex(patternSkills);
 
   const registry = {
     schema_version: '1.0.0',
@@ -147,9 +180,11 @@ export async function buildSkillRegistryArtifacts({ root = packageRoot } = {}) {
     generated_by: 'scripts/sync-skill-registry.mjs',
     canonical_source: registryRelativePath,
     compact_index: indexRelativePath,
+    compact_pattern_index: patternsIndexRelativePath,
     structured_registry: jsonRelativePath,
     source_hashes: {
       [indexRelativePath]: sha256(indexMarkdown),
+      [patternsIndexRelativePath]: sha256(patternsIndexMarkdown),
       [registryRelativePath]: sha256(markdown),
       [jsonRelativePath]: sha256(registryJson)
     },
@@ -159,6 +194,7 @@ export async function buildSkillRegistryArtifacts({ root = packageRoot } = {}) {
 
   return {
     indexMarkdown,
+    patternsIndexMarkdown,
     markdown,
     registryJson,
     cacheJson: `${JSON.stringify(cache, null, 2)}\n`
@@ -178,9 +214,11 @@ export async function checkSkillRegistry({ root = packageRoot } = {}) {
   const artifacts = await buildSkillRegistryArtifacts({ root });
   const failures = [];
   await compareFile(path.join(root, indexRelativePath), artifacts.indexMarkdown, failures);
+  await compareFile(path.join(root, patternsIndexRelativePath), artifacts.patternsIndexMarkdown, failures);
   await compareFile(path.join(root, jsonRelativePath), artifacts.registryJson, failures);
   await compareFile(path.join(root, cacheRelativePath), artifacts.cacheJson, failures);
   await compareFile(path.join(root, overlayPrefix, indexRelativePath), artifacts.indexMarkdown, failures);
+  await compareFile(path.join(root, overlayPrefix, patternsIndexRelativePath), artifacts.patternsIndexMarkdown, failures);
   await compareFile(path.join(root, overlayPrefix, registryRelativePath), artifacts.markdown, failures);
   await compareFile(path.join(root, overlayPrefix, jsonRelativePath), artifacts.registryJson, failures);
   await compareFile(path.join(root, overlayPrefix, cacheRelativePath), artifacts.cacheJson, failures);
@@ -191,9 +229,11 @@ export async function writeSkillRegistry({ root = packageRoot } = {}) {
   const artifacts = await buildSkillRegistryArtifacts({ root });
   const writes = [
     [indexRelativePath, artifacts.indexMarkdown],
+    [patternsIndexRelativePath, artifacts.patternsIndexMarkdown],
     [jsonRelativePath, artifacts.registryJson],
     [cacheRelativePath, artifacts.cacheJson],
     [path.join(overlayPrefix, indexRelativePath), artifacts.indexMarkdown],
+    [path.join(overlayPrefix, patternsIndexRelativePath), artifacts.patternsIndexMarkdown],
     [path.join(overlayPrefix, registryRelativePath), artifacts.markdown],
     [path.join(overlayPrefix, jsonRelativePath), artifacts.registryJson],
     [path.join(overlayPrefix, cacheRelativePath), artifacts.cacheJson]

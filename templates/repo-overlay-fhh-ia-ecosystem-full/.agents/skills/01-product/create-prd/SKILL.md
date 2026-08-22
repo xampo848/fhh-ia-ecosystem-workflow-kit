@@ -41,7 +41,7 @@ Use this skill when:
 8. **Standards-aware PRDs** — PRDs must follow `BACKEND_STANDARDS.md`, including Minitest and `enumerate_it` conventions.
 9. **Evidence before completion** — every deliverable must name how it will be tested, validated, and verified. “Tests later” and phase-end-only validation are not acceptable.
 10. **Activation is part of scope** — when a PRD replaces a read path, materialization model, cache, projection, or persisted contract, it must define how existing data becomes visible after cutover (bootstrap, backfill, repair, smoke verification, and rollback if activation fails).
-11. **No phase skipping** — the workflow is strictly sequential. Do not skip, merge, or reorder its five phases.
+11. **No phase skipping** — the default workflow is five sequential phases. Compact mode may fold drafting into a shorter path, but it may not skip calibration, ambiguity resolution, pattern lock, or self-audit.
 
 ---
 
@@ -49,12 +49,29 @@ Use this skill when:
 
 ### Hard Gate: Phases Are Non-Skippable
 
-- Execute `Phase 1 -> Phase 2 -> Phase 3 -> Phase 4 -> Phase 5` in order.
+- Default path: execute `Phase 1 -> Phase 2 -> Phase 3 -> Phase 4 -> Phase 5` in order.
+- Compact path: when the Compact Path Gate below applies, execute `Phase 1 -> Phase 2/3 -> Phase 4/5`. Calibration, ambiguity resolution, pattern lock, drafting, and self-audit still happen; only ceremony may fold.
 - Do not draft PRD content in `Phase 1`.
-- Do not start `Phase 3` before receiving and processing `Phase 2` answers.
+- Do not start `Phase 3` before receiving and processing `Phase 2` answers, unless compact mode recorded that no blocking ambiguity remains.
 - Do not start `Phase 4` until `Phase 3` records its pattern decision.
-- Do not consider the PRD delivered until `Phase 5` completes.
+- Do not consider the PRD delivered until `Phase 5` completes, or until compact mode persists the same self-audit declaration.
 - If information is missing, stop and ask targeted questions; do not bypass the gate.
+
+### Compact Path Gate
+
+Use compact mode only when all of these are true:
+
+- single primary surface;
+- no parent epic, or the parent epic already locked live path, phase cut, and inherited invariants;
+- no new persistence, public contract, authorization/tenancy rule, or rollout/activation path;
+- comparable local pattern is already obvious from calibration.
+
+In compact mode:
+
+- keep the four `_meta/orchestration.md` sections;
+- fold Phase 2 and Phase 3 into one short pass when there are no blocking questions;
+- draft and self-audit in one pass only after calibration and pattern lock exist;
+- do not omit use cases, test strategy, edge-case matrix, class diagram, or slice ownership.
 
 ### Hard Gate: Use Cases, Test Strategy, and Edge Cases Are Non-Optional
 
@@ -164,7 +181,10 @@ When the PRD has a parent epic:
 - continue only after an explicit user-approved change request records the invariant ID, reason, and approver.
 - read the companion ledger (`<slug>-ledger.md`) and, when this is not the first PRD in the queue, the immediately preceding sibling PRD's `Contrato entre Fases` postcondiciones, before drafting scope;
 - declare a `Contrato entre Fases` section listing this PRD's preconditions (what it assumes from prior phases, verified against real code during calibration, not assumed from the epic's original plan) and postconditions (what it guarantees for later phases);
-- treat an unverifiable precondition as a blocking ambiguity, not a silent assumption.
+- treat an unverifiable precondition as a blocking ambiguity, not a silent assumption;
+- inherit the parent epic's locked live path and phase-cut sequence when present (`INV-CUT-*` or the epic's "Path vivo y corte de fases" block);
+- stop before drafting if this PRD would invert that cut — for example by leaving the live path on the old system when the epic locked the live path onto the new system, or by reordering the chosen sequence;
+- continue only after an explicit user-approved change request records the cut invariant ID, reason, and approver.
 
 PRDs that introduce backend entities must explicitly define:
 
@@ -204,7 +224,7 @@ The PRD must be detailed enough that `implementation-slicing` does not need to i
 
 ### Required decomposition
 
-- Every non-trivial phase contains **at least two execution slices**. A single-slice phase is allowed only when the PRD records why the work is genuinely atomic.
+- Split by failure, rollback, ownership, contract, or validation boundary — not by a slice-count quota. A single-slice phase is allowed when the work is genuinely atomic; record that atomicity reason.
 - A slice delivers one observable outcome, stays within one contract boundary, and has one clear owner.
 - A slice normally changes one primary production responsibility and 1–3 production files. Inseparable support files such as tests, styles, locales, factories, or fixtures may accompany it.
 - Backend and frontend implementation belong in separate slices. A changed API contract requires its own contract-verification gate between them.
@@ -291,13 +311,12 @@ Load and execute [reference/self-audit.md](reference/self-audit.md). This is a h
 
 ## Future Scope
 
-This is explicitly out of scope for the current change. After evidence from at least several new PRDs shows that the five-phase model works in isolation:
+Product future scope remains out of the current PRD. Workflow reuse of `_meta/orchestration.md` is now in scope:
 
-- `implement-prd` could read `## Pattern Lock` and require an explicit justification for implementation divergence.
-- `implementation-slicing` could use `touched_surfaces` from `## Calibration` to detect scope expansion.
-- `qa-handoff-review` could reconcile `## Self-Audit` residual risks before allowing `ready_to_close: yes`.
-
-Do not implement this coupling before that evidence exists; premature propagation would couple workflows without proving this model's value.
+- `implement-prd` must read `## Calibration`, `## Pattern Lock`, and `## Self-Audit` when those sections exist.
+- `implementation-slicing` must use `touched_surfaces` from `## Calibration` to detect scope expansion.
+- `qa-handoff-review` must reconcile `## Self-Audit` residual risks before allowing `ready_to_close: yes`.
+- Missing `_meta/orchestration.md` is allowed only for historical PRDs created before this model.
 
 ---
 
@@ -307,6 +326,7 @@ Do not implement this coupling before that evidence exists; premature propagatio
 - Mixing implementation phases with future scope in the same section
 - Leaving "TBD" or "to confirm" inline in requirement tables
 - Silently redefining a non-negotiable invariant inherited from a parent epic
+- Inverting a parent epic's locked live path or phase-cut sequence without an approved change request
 - Using Spanish names for DB columns or Ruby variables
 - Describing UI changes in an importer-only PRD (they belong in a separate PRD)
 - Assuming a feature flag is not needed — **always ask**

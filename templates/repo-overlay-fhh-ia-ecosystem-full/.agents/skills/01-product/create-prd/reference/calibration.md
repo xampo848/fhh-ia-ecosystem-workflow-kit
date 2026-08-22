@@ -6,16 +6,19 @@ Before writing PRD content, calibrate the repository and available ecosystem. Re
 
 ## Required Discovery
 
+Use exists-or-skip for every listed path. A missing file is not a failed search: record `missing: <path>` under `## Calibration` and continue with available context.
+
 Read these when they exist and apply to the request:
 
-- `docs/foundations/ARCHITECTURE.md`
+- `docs/foundations/ARCHITECTURE.md` when the work is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths
 - `docs/foundations/DOMAIN_MODEL.md` when domain ownership or entities change
 - `docs/standards/BACKEND_STANDARDS.md` and/or `docs/standards/FRONTEND_STANDARDS.md` for touched surfaces
-- `docs/standards/CODE_QUALITY.md`
-- The referenced parent epic, including its `Invariantes No Negociables` table
+- `docs/standards/CODE_QUALITY.md` only when the PRD will add or change quality/test conventions
+- The referenced parent epic, including its `Invariantes No Negociables` table and the `Path vivo y corte de fases` block when present
 - The parent epic's companion ledger (`<slug>-ledger.md`) when it exists
+- The parent epic's evidence pack (`<slug>-evidence.md`) when it exists; reuse its local and external findings instead of rediscovering the same context
 - The immediately preceding sibling PRD in the epic's queue, including its `Contrato entre Fases` postcondiciones, when this is not the first PRD
-- `.agents/skills/registry.md`, `.agents/capabilities/README.md`, and `.agents/integrations/README.md`
+- `.agents/skills/registry.md`, `.agents/capabilities/README.md`, and `.agents/integrations/README.md` only when this PRD changes workflow skills, capabilities, or integrations
 - Persistent memory context when a memory capability is available
 
 Inspect the existing models, services, queries, controllers, schema, and tests that own the requested behavior. Use `semantic_search`, `grep_search`, `read_file`, and `file_search` proportionally.

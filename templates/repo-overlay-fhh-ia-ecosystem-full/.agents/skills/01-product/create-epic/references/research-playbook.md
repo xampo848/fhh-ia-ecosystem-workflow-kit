@@ -42,7 +42,7 @@ Record file paths and findings. Avoid vague claims like "backend supports this" 
 
 ### 4. External Research
 
-Use web research unless forbidden. Prefer:
+Use web research only when the epic depends on a vendor, regulation, public standard, or other external constraint, or when the user explicitly asks for it. Prefer:
 
 - Official docs for third-party APIs, providers, standards, or methods.
 - Primary framework references for agile, discovery, roadmap, and delivery concepts.
@@ -85,6 +85,8 @@ Each phase must be small enough to become one focused PRD and should be complete
 - A larger appetite can contain more phases, but each committed phase still needs a clear outcome, risk, validation path, and PRD handoff.
 - If the requested project cannot credibly fit the appetite, reduce scope or split the work into current appetite and future bets.
 - Technical foundation phases are allowed only when they unlock later user/business value and have clear validation.
+- Lock the live path and a concrete phase cut before writing the PRD queue when current production behavior must coexist with a replacement. Ask the user to choose between two sequences, not named strategies.
+- Each committed phase must leave the live path usable. Empty implementations are allowed only off the live path. The committed epic must still converge to a usable replacement.
 - If a phase depends on an external integration, define the fallback/proxy path or call it out as a blocker.
 
 ### Phase Table Fields
@@ -126,3 +128,6 @@ Use these references as starting points. Add domain-specific sources for each ep
 - Business rules are missing, so implementation agents must infer behavior.
 - The phase plan skips `document-development`, leaving no stakeholder-ready closeout.
 - The first PRD prompt is too broad to implement safely.
+- The epic asks the user to pick named strategies instead of two concrete phase sequences.
+- The PRD queue is written before the live path and cut are locked when current behavior must coexist with a replacement.
+- Committed phases do not converge to a usable replacement, or they leave empty implementations on the live path.
