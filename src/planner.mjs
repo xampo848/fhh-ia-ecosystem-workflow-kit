@@ -11,6 +11,7 @@ const installStateSchemaVersion = '1.0.0';
 const skillRegistryJsonPath = '.agents/skills/registry.json';
 const skillCatalogPreservePaths = new Set([
   '.agents/skills/index.md',
+  '.agents/skills/06-patterns/index.md',
   '.agents/skills/registry.md',
   '.agents/skills/registry.cache.json'
 ]);

@@ -165,6 +165,90 @@ test('create-prd requires use cases, test strategy, and edge-case matrix before 
   assert.match(template, /\| Referencia de cambio \|/);
 });
 
+test('create-epic locks live path and phase cut before the PRD queue', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const epicSkillPath = path.join(root, '.agents/skills/01-product/create-epic/SKILL.md');
+  const epicTemplatePath = path.join(root, '.agents/skills/01-product/create-epic/references/epic-template.md');
+  const playbookPath = path.join(root, '.agents/skills/01-product/create-epic/references/research-playbook.md');
+  const prdSkillPath = path.join(root, '.agents/skills/01-product/create-prd/SKILL.md');
+  const prdTemplatePath = path.join(root, '.agents/skills/01-product/create-prd/PRD_TEMPLATE.md');
+  const [epicSkill, epicTemplate, playbook, prdSkill, prdTemplate] = await Promise.all([
+    fs.readFile(epicSkillPath, 'utf8'),
+    fs.readFile(epicTemplatePath, 'utf8'),
+    fs.readFile(playbookPath, 'utf8'),
+    fs.readFile(prdSkillPath, 'utf8'),
+    fs.readFile(prdTemplatePath, 'utf8')
+  ]);
+
+  assert.match(epicSkill, /### 6\. Lock Live Path And Phase Cut/);
+  assert.match(epicSkill, /Do not ask the user to pick a named strategy/);
+  assert.match(epicSkill, /A domain example from a prior conversation is not a standing rule/);
+  assert.match(epicSkill, /Writes a PRD queue before locking the live path and phase cut/);
+  assert.doesNotMatch(epicSkill, /id_bak|foundation-first|big-bang|Adapter-first/);
+
+  assert.match(epicTemplate, /### Path vivo y corte de fases/);
+  assert.match(epicTemplate, /INV-CUT-01/);
+  assert.match(playbook, /Ask the user to choose between two sequences, not named strategies/);
+
+  assert.match(prdSkill, /inherit the parent epic's locked live path and phase-cut sequence/);
+  assert.match(prdSkill, /Inverting a parent epic's locked live path or phase-cut sequence/);
+  assert.match(prdTemplate, /Path vivo heredado/);
+  assert.match(prdTemplate, /Este PRD respeta el corte/);
+
+  assert.match(epicSkill, /Use web research only when the epic depends on a vendor, regulation, public standard/);
+  assert.match(epicSkill, /Persist a reusable evidence pack/);
+  assert.doesNotMatch(epicSkill, /Use web research unless the user explicitly forbids it/);
+  assert.match(playbook, /Use web research only when the epic depends on a vendor, regulation, public standard/);
+});
+
+test('token-efficiency cuts keep quality gates and compact discovery', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const calibrationPath = path.join(root, '.agents/skills/01-product/create-prd/reference/calibration.md');
+  const createPrdPath = path.join(root, '.agents/skills/01-product/create-prd/SKILL.md');
+  const matcherPath = path.join(root, '.agents/skills/02-implement/implementation-skill-matcher/SKILL.md');
+  const implementPrdPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
+  const orchestrationPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/orchestration-flow.md');
+  const qaPath = path.join(root, '.agents/skills/02-implement/qa-handoff-review/SKILL.md');
+  const backendPath = path.join(root, '.agents/skills/02-implement/backend-phase-implementer/SKILL.md');
+  const frontendPath = path.join(root, '.agents/skills/02-implement/frontend-phase-implementer/SKILL.md');
+
+  const [
+    calibration,
+    createPrd,
+    matcher,
+    implementPrd,
+    orchestration,
+    qa,
+    backend,
+    frontend
+  ] = await Promise.all([
+    fs.readFile(calibrationPath, 'utf8'),
+    fs.readFile(createPrdPath, 'utf8'),
+    fs.readFile(matcherPath, 'utf8'),
+    fs.readFile(implementPrdPath, 'utf8'),
+    fs.readFile(orchestrationPath, 'utf8'),
+    fs.readFile(qaPath, 'utf8'),
+    fs.readFile(backendPath, 'utf8'),
+    fs.readFile(frontendPath, 'utf8')
+  ]);
+
+  assert.match(calibration, /Use exists-or-skip/);
+  assert.match(calibration, /only when this PRD changes workflow skills, capabilities, or integrations/);
+  assert.match(createPrd, /### Compact Path Gate/);
+  assert.match(createPrd, /Split by failure, rollback, ownership, contract, or validation boundary/);
+  assert.doesNotMatch(createPrd, /at least two execution slices/);
+  assert.match(createPrd, /`implement-prd` must read `## Calibration`, `## Pattern Lock`, and `## Self-Audit`/);
+  assert.match(matcher, /\.agents\/skills\/06-patterns\/index\.md` as the first candidate catalog/);
+  assert.match(matcher, /`\.agents\/skills\/registry\.md` only after the compact index yields at least one/);
+  assert.match(implementPrd, /Required stage pipeline \(every mode except `small\/local`\)/);
+  assert.match(implementPrd, /Capitana Alcance → Sherlock Estructura → Arquitecta Fases → matcher → writer → validation → QA Relampago/);
+  assert.match(implementPrd, /Do not omit a stage to save tokens/);
+  assert.match(orchestration, /Do not omit a named stage/);
+  assert.match(qa, /`## Self-Audit` residual risks/);
+  assert.match(backend, /Use exists-or-skip for product docs/);
+  assert.match(frontend, /only when it exists and the slice is cross-layer/);
+});
+
 test('implementation-slicing and implement-prd enforce use-case/edge-case traceability at closure', async () => {
   const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const slicingPath = path.join(root, '.agents/skills/02-implement/implementation-slicing/SKILL.md');

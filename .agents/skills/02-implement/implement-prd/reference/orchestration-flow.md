@@ -11,7 +11,7 @@ Before Phase 0, confirm the operating mode selected by the router or by `impleme
 | Mode | Execution contract |
 | --- | --- |
 | `small/local` | Inline only. No subagents. Validate the narrow local change and close. Task tracker may be skipped. |
-| `controlled-lite` | Compact preflight, one owner per slice, focused validation. Inline execution is allowed when it preserves one-writer ownership and context budget. Skip ceremonial subagents, but never skip the QA checklist or closure evidence. |
+| `controlled-lite` | Compact inline or lightweight-delegate versions of Capitana, Sherlock, Arquitecta, matcher, writer, validation, and QA. One owner per slice. Do not omit a named stage. Skip only ceremonial extra subagents, never the QA checklist or closure evidence. |
 | `controlled-implementation` | Targeted delegation. Delegate phases or slices when independent context, file ownership, validation, or review bias reduction materially lowers risk. Do not delegate merely because the task is non-trivial. |
 | `standard` | Full delegated flow when available. Use explicit ownership, contract verification, validation runner, and QA handoff as a closure gate. |
 | `autonomous-safe` | Standard flow without routine phase approvals. Stop only on stop conditions. |
@@ -56,7 +56,9 @@ If the runtime cannot wait for a pending Codex subagent, stop the workflow and r
 
 ## Phase 0: Readiness
 
-Delegate to `prd-readiness-review` (Capitana Alcance), or run inline for `small/local` and `controlled-lite` mode.
+If `<prd-directory>/_meta/orchestration.md` exists, reuse `## Calibration` and `## Self-Audit` as the starting readiness brief. Still produce a Capitana verdict; do not skip the stage.
+
+Delegate to `prd-readiness-review` (Capitana Alcance), or run the same procedure inline for `small/local` and `controlled-lite` mode.
 
 Required output:
 
@@ -106,7 +108,9 @@ Do not propose a new abstraction until the existing pattern has been named.
 
 In `controlled-lite`, discovery should normally be limited to exact path/symbol/test lookup. If discovery requires broad exploration, escalate.
 
-## Phase 2: Slicing
+## Phase 2: SlicingOutside `small/local`, Arquitecta still runs: compact/inline for `controlled-lite`, delegated when ownership or risk requires it. `small/local` may keep a single implicit slice.
+
+If `## Calibration` records `touched_surfaces`, treat any newly introduced surface as scope expansion and stop or re-slice before coding
 
 Delegate to `implementation-slicing` (Arquitecta Fases) for `standard`, cross-layer, ownership-sensitive work, and higher-risk `controlled-implementation`. Slicing is skipped or done inline for `small/local` and may be done inline for `controlled-lite`.
 
@@ -207,7 +211,9 @@ Validation must prove both the changed behavior and the most plausible adjacent 
 
 ## Phase 6: Final QA
 
-Run a final QA checklist for every PRD implementation before closure. Delegate to `qa-handoff-review` for standard PRDs, cross-layer work, security/tenancy-sensitive work, contract changes, user-visible changes, rollout-sensitive work, or any diff that would benefit from fresh-context review. Inline QA is allowed only for strictly local low-risk slices where the orchestrator can still prove the full checklist. Inside review-only sweeps, prefer `cavecrew-reviewer` when terse line-anchored findings are enough.
+Run a final QA checklist for every PRD implementation before closure. This stage is mandatory outside `small/local`; compact/inline QA is allowed, omitting QA is not. Delegate to `qa-handoff-review` for standard PRDs, cross-layer work, security/tenancy-sensitive work, contract changes, user-visible changes, rollout-sensitive work, or any diff that would benefit from fresh-context review. Inline QA is allowed only for strictly local low-risk slices where the orchestrator can still prove the full checklist. Inside review-only sweeps, prefer `cavecrew-reviewer` when terse line-anchored findings are enough.
+
+If `## Self-Audit` exists, reconcile its residual risks before allowing `ready_to_close: yes`.
 
 If findings are returned, fix them through the relevant owner skill or inline with explicit ownership, then re-run the affected validation. Before requesting any re-entry QA pass, append every finding from the previous handoff to `findings_ledger` in the task tracker with a stable id; never overwrite a row. The next `qa-handoff-review` pass must read `findings_ledger` and confirm each prior finding is `repaired` or explicitly `waived_by_user` before it can return `ready_to_close: yes` — a finding missing from the ledger on re-entry is treated as still open, not as resolved.
 

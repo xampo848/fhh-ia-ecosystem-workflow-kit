@@ -72,7 +72,7 @@ During init on an existing repository:
 
 - `.agents/skills/**/SKILL.md` files already present in the target repo are auto-discovered and merged into `.agents/skills/registry.json`.
 - `.agents/skills/registry.json` is merged by union so local custom entries are preserved.
-- `.agents/skills/index.md` and `.agents/skills/registry.md` are preserved if they already exist.
+- `.agents/skills/index.md`, `.agents/skills/06-patterns/index.md`, and `.agents/skills/registry.md` are preserved if they already exist.
 - `docs/README.md` gets a non-destructive workflow block.
 
 ## 5) Existing docs: one-time intelligent recovery

@@ -23,6 +23,10 @@
 
 Una contradiccion exige un change request aprobado por el usuario con ID de invariante, motivo y aprobador antes de continuar.
 
+**Path vivo heredado**: [Debe seguir en el sistema nuevo | Se puede cortar | No aplica]
+**Secuencia de corte heredada**: [fase 1 -> ... | No aplica]
+**Este PRD respeta el corte**: Si | Change request `INV-CUT-NN`
+
 ### Contrato entre Fases _(si aplica)_
 
 **Ledger leido**: `docs/epics/<feature-or-project>/<slug>-ledger.md`

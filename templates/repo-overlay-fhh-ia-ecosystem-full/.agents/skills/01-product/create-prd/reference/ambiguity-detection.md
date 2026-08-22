@@ -11,7 +11,7 @@ Cover these classes when applicable:
 - scope boundary, business rules, data/persistence, ownership/placement, and contract/interface
 - division/allocation, identifiers, feature flags, language, DDD placement, tenancy, lifecycle, enumerations, and traceability
 - async/background behavior, success/partial/failure states, idempotency/retries, and observability
-- verification evidence, rollout/recovery, activation/adoption, parent invariants, and future-scope exclusions
+- verification evidence, rollout/recovery, activation/adoption, parent invariants, inherited live-path/phase-cut, and future-scope exclusions
 
 Use this format:
 

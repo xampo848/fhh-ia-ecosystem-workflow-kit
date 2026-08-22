@@ -14,7 +14,7 @@ Use this manual checklist after changing the `create-prd` orchestration contract
 
 Example: add a repository-owned validation to a service that persists a domain record.
 
-- [x] Phase 1 loads the applicable architecture, backend standards, registry, capabilities/integrations, and memory when available.
+- [x] Phase 1 loads the applicable architecture and backend standards when they exist, and loads registry/capabilities/integrations only when the PRD changes workflow skills, capabilities, or integrations.
 - [x] `## Calibration` records `work_type`, `touched_surfaces`, a comparable PRD anchor, risks, and unanswered questions.
 - [x] With no material risk and no explicit request, the calibration summary is not shown in chat.
 - [x] Phase 2 groups only blocking questions; it covers ownership, persistence, tenancy, rollout, and test evidence.

@@ -25,10 +25,12 @@ Implement the assigned frontend slice completely: logic, UI, i18n, tests, focuse
 
 ## Must Read
 
-- `.github/copilot-instructions.md`
-- `.github/instructions/frontend.instructions.md`
-- `docs/foundations/ARCHITECTURE.md`
-- `.github/instructions/quality-gate.instructions.md`
+Use exists-or-skip for product docs. A missing optional path is not a failed search.
+
+- `.github/copilot-instructions.md` or `.agents/instructions.md`
+- `.github/instructions/frontend.instructions.md` when it exists
+- `docs/foundations/ARCHITECTURE.md` only when it exists and the slice is cross-layer, architectural, migration-heavy, authorization-sensitive, or tenancy-sensitive
+- `.github/instructions/quality-gate.instructions.md` when it exists; if the PRD requires this path and it is missing, return `blocked`
 - Exact matcher-selected `required_pattern_skills` paths when present.
 - Matcher-selected `fallback_docs` when required pattern skills are absent.
 - Relevant frontend docs from `docs/patterns/frontend/`

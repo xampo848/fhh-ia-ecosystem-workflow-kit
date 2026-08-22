@@ -110,6 +110,7 @@ skill registry entry.
 The canonical taxonomy, registry, and repo-owned skill bodies live under `.agents/skills/**`. The logical skill identity stays stable even if runtime adapters expose compatibility symlinks such as `.github/skills/**` or `.codex/skills/**`.
 
 The generated startup-minimal index lives at `.agents/skills/index.md`.
+The generated matcher-first pattern catalog lives at `.agents/skills/06-patterns/index.md`.
 
 Derived structured artifacts for automation live at `.agents/skills/registry.json`,
 `.agents/skills/registry.cache.json`, and `.agents/skills/registry.schema.json`.

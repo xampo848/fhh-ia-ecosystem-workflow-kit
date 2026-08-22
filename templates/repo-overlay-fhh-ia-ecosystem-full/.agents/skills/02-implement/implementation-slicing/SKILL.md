@@ -83,7 +83,9 @@ Split a candidate slice when any of these is true:
 - its focused validation would be “run everything” because no smaller falsification target exists;
 - a failure would leave the next task unable to distinguish partial from complete work.
 
-Do not manufacture slices solely to increase their count. A non-trivial phase normally has at least two slices; a single-slice phase requires a written atomicity justification.
+Do not manufacture slices solely to increase their count. Split by failure, rollback, ownership, contract, or validation boundary. A single-slice phase is valid when the work is genuinely atomic; record that atomicity reason.
+
+If `## Calibration` records `touched_surfaces`, treat any newly introduced surface as scope expansion and stop or re-slice.
 
 ## Mandatory Slice Gate
 

@@ -23,6 +23,7 @@ Act as an adversarial final reviewer. Find issues that would block merge, violat
 - Validation command results.
 - Matcher outputs and delegate usage-evidence handoffs.
 - Closure gate status from the task tracker when available.
+- `## Self-Audit` residual risks from `<prd-directory>/_meta/orchestration.md` when that file exists.
 
 ## Mandatory Preconditions
 
@@ -43,7 +44,7 @@ Act as an adversarial final reviewer. Find issues that would block merge, violat
 ### Mandatory Steps
 
 1. Validate the preconditions. If acceptance evidence, changed scope, or required validation output is absent, skip directly to the incomplete-evidence decision.
-2. Read the PRD acceptance criteria, applicable instructions, matcher output, slice reports, and changed scope.
+2. Read the PRD acceptance criteria, applicable instructions, matcher output, slice reports, changed scope, and `## Self-Audit` residual risks when present. A residual risk with no mitigation, evidence, or valid waiver blocks `ready_to_close: yes`.
 3. Review the ordered closure gates: PRD scope and acceptance evidence; use-case-to-test traceability; edge-case coverage by category; validation and regressions; standards and existing patterns; required tests; relevant edge cases and delivery risks.
 4. Compare every gate result with the TOON handoff fields, then make exactly one decision for this review run.
 

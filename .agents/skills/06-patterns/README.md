@@ -141,7 +141,8 @@ When a repository starts from this overlay:
   `.agents/skills/06-patterns/<domain>/<skill>/SKILL.md`.
 4. Register each new skill in `.agents/skills/registry.md`.
 5. Regenerate derived artifacts:
-  `.agents/skills/registry.json` and `.agents/skills/registry.cache.json`.
+  `.agents/skills/index.md`, `.agents/skills/06-patterns/index.md`,
+  `.agents/skills/registry.json`, and `.agents/skills/registry.cache.json`.
 6. Keep fallback docs in `docs/patterns/**` until enough local pattern skills
   exist.
 
