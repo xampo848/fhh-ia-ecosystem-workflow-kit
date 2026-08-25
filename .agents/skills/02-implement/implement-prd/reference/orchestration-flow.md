@@ -174,11 +174,11 @@ For each slice:
 7. Record acceptance criteria covered with evidence.
 8. Report progress and current phase status.
 9. Add a compact learning note when the phase involved a meaningful engineering decision.
-10. If the slice contains visible frontend UI, verify that the result clears the premium visual bar from `.github/instructions/frontend.instructions.md`; do not close on “functional but generic”.
+10. If the slice contains visible frontend UI, confirm the PRD Contrato Visual is `locked` before coding, implement that lock rather than inventing layout, and verify that the result clears the premium visual bar from `.github/instructions/frontend.instructions.md`; do not close on “functional but generic”.
 11. Mark it `VERIFIED` only after implementation, focused tests, relevant validation, quality checks, and acceptance evidence all exist.
 
 Use backend and frontend implementers only with explicit file ownership. Use `acceptance-test-engineer` whenever acceptance criteria are not clearly proven by existing tests.
-For visible frontend surfaces, treat `frontend-design` and `impeccable` as quality tools, not optional decoration, whenever the screen lacks a strong visual thesis or still feels templated.
+For visible frontend surfaces, treat `frontend-design` as a pre-code translator of the locked Contrato Visual, not as a substitute for it. Use `impeccable` for craft, polish, or visual QA after the lock exists. If the screen is still unlocked, stop; do not invent it in JSX.
 
 Do not start the next dependent slice until its predecessor is `VERIFIED`. Do not start the next dependent PRD phase until every phase slice is verified and the phase Definition of Done is checked line by line.
 

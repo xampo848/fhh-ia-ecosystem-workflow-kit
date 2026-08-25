@@ -19,6 +19,7 @@ const directRoutingKeys = new Set([
   'create-prd',
   'generate-pm-ticket',
   'project-formation',
+  'solution-sketch',
   'implement-prd',
   'document-development',
   'playwright-testing',

@@ -26,6 +26,9 @@ Una contradiccion exige un change request aprobado por el usuario con ID de inva
 **Path vivo heredado**: [Debe seguir en el sistema nuevo | Se puede cortar | No aplica]
 **Secuencia de corte heredada**: [fase 1 -> ... | No aplica]
 **Este PRD respeta el corte**: Si | Change request `INV-CUT-NN`
+**Sketch heredado**: `docs/design/<slug>-sketch.md` | No aplica | `sketch: skipped`
+**UI lock**: locked | not-applicable | missing
+**Visible UI**: Si | No
 
 ### Contrato entre Fases _(si aplica)_
 
@@ -110,6 +113,32 @@ Si una precondicion no se verifica contra el codigo real durante el calibration,
 | Rollout/rollback | [Scenario] | UC-1 | [Test/contract/smoke/evidencia manual] | Pending |
 
 Una categoria sin caso aplicable se marca `No aplica` con una justificacion de una linea basada en el alcance real; nunca se omite en silencio.
+
+### 2.7 Contrato Visual (UI lock)
+
+Completar cuando hay UI visible. Si no hay pantalla de usuario, dejar `UI lock: not-applicable` y una razon de una linea.
+
+**UI lock**: locked | not-applicable
+**Superficie**: Nueva | Evolucion de [ruta o componente existente]
+**Densidad / composicion**: Tabla | Formulario | Wizard | Detalle | Dashboard | Otro: [nombre]
+**Accion primaria**: [La unica accion que debe ganar jerarquia]
+**Estados requeridos**: loading | vacio | error | permisos | 1 item | N items
+**Tesis visual**: [Una frase: jerarquia, ritmo y el movimiento que evita un look generico]
+**Reutilizar**: [Primitiva del Design System o pantalla hermana]
+**Evidencia opcional**: [path de screen actual / Figma / foto / mockup | ninguna]
+**No lockear aqui**: hex, tipografias nuevas, animacion, salvo decision de producto ya existente
+
+```text
+[Wireframe ASCII de la pantalla principal]
++--------------------------------------+
+| Titulo                    [Accion]   |
+|--------------------------------------|
+| [contenido primario]                 |
+| [estado vacio / error / lista]       |
++--------------------------------------+
+```
+
+`implement-prd` no puede inventar esta pantalla. Un mockup o foto ancla; no sustituye los campos de arriba.
 
 ---
 
@@ -207,6 +236,8 @@ Repeat the complete phase structure above. Do not replace executable slices with
 
 ## 6. Preguntas Abiertas
 
+- [ ] Si hay UI visible, el Contrato Visual esta `locked` y `implement-prd` no tiene que inventar la pantalla
+- [ ] Si no hay UI visible, `UI lock: not-applicable` tiene una razon de una linea
 | #   | Pregunta           | Bloquea | Area   |
 | --- | ------------------ | ------- | ------ |
 | 1   | [Pending question] | Si/No   | fase X |

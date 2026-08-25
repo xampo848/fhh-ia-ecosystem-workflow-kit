@@ -87,6 +87,8 @@ Do not manufacture slices solely to increase their count. Split by failure, roll
 
 If `## Calibration` records `touched_surfaces`, treat any newly introduced surface as scope expansion and stop or re-slice.
 
+If the plan includes a visible-UI slice, require the PRD Contrato Visual to be `locked` before handing that slice to `frontend-phase-implementer`. A missing or unlocked visual contract is a stop condition, not a thesis for Pixel Ninja to invent.
+
 ## Mandatory Slice Gate
 
 Each slice must carry this evidence bundle before a dependent slice starts:

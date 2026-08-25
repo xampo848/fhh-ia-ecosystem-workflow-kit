@@ -55,6 +55,16 @@
       "runtime_notes": "Clean-room product workflow for project formation without external copied content."
     },
     {
+      "name": "solution-sketch",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/solution-sketch/SKILL.md",
+      "trigger": "User asks to compare solution shapes, classes, or architecture before writing a PRD or epic",
+      "loading_posture": "Explicit-only",
+      "cost_hint": "lean",
+      "key": "solution-sketch",
+      "runtime_notes": "Offer-only sister skill; never auto-start; writes `docs/design/<slug>-sketch.md`."
+    },
+    {
       "name": "project-formation-router",
       "class": "Delegate-only implementation",
       "path": ".agents/skills/01-product/project-formation/router/SKILL.md",

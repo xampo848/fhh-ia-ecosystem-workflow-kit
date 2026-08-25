@@ -114,6 +114,8 @@ Before planning or editing:
 1. Read `.github/copilot-instructions.md` or `.agents/instructions.md` if the Copilot adapter is absent. Use exists-or-skip; a missing configured path is a hard stop only when the PRD or selected mode requires that path.
 2. Read the PRD completely.
 3. If `<prd-directory>/_meta/orchestration.md` exists, read `## Calibration`, `## Pattern Lock`, and `## Self-Audit` before discovery or slicing. Reuse `touched_surfaces`, the locked pattern, and residual risks instead of rediscovering them. Historical PRDs without `_meta/` remain valid.
+3.5. If `docs/design/<slug>-sketch.md` exists — path declared in the PRD or slug derived from the PRD directory — read that locked sketch. Do not invert it without an explicit critical-stance challenge. Missing sketch does not block historical PRDs.
+3.6. If the PRD changes visible user-facing UI, read the Contrato Visual (UI lock). Treat `UI lock: locked` as an anchor: do not invent density, hierarchy, primary action, or required UI states. If the lock is missing, `not-applicable` without a reason, or still would force Pixel Ninja to invent the screen, stop and return to `create-prd` / the user. Historical PRDs without a UI lock remain valid only when they also lack a new visible surface. A mockup or photo cited by the lock is evidence, not permission to ignore the lock fields.
 4. Identify the quality-gate and domain-instruction paths required by the PRD or repository context; verify each exists before relying on it. Missing optional product docs are exists-or-skip, not a failed search.
 5. Classify the work as `small/local`, `controlled-lite`, `controlled-implementation`, `standard`, `autonomous-safe`, or `resume`.
 6. If backend files are touched and `.github/instructions/backend.instructions.md` exists, read it.
@@ -191,9 +193,9 @@ Right-sized flow:
    - Implementation slices with `backend-phase-implementer`, `frontend-phase-implementer`, and `acceptance-test-engineer`.
    - `contract-verifier` whenever backend responses feed frontend behavior.
    - `validation-runner` after each meaningful slice.
-   - For non-trivial visible frontend UI, run `frontend-design` before coding when direction is not already sharp, and run `impeccable` before closure when premium craft or visual QA is still material.
-  - `qa-handoff-review` before final delivery for non-trivial work and whenever closure needs a fresh-context adversarial review.
-  - `react-doctor` after meaningful React changes; `playwright-testing` by default for most navigable user-facing UI changes when tooling is available, with documented exceptions only.
+   - For non-trivial visible frontend UI, require a locked Contrato Visual before any coding slice. Run `frontend-design` only to translate or sharpen that lock, never to invent the screen after JSX exists. Run `impeccable` before closure when premium craft or visual QA is still material.
+    - `qa-handoff-review` before final delivery for non-trivial work and whenever closure needs a fresh-context adversarial review.
+    - `react-doctor` after meaningful React changes; `playwright-testing` by default for most navigable user-facing UI changes when tooling is available, with documented exceptions only.
    - `document-development` as the next expected skill after implementation closure when durable knowledge changed.
 5. Before closure of any data-activation or cutover slice, verify the surface against **existing realistic data**, not only factories/fixtures. If direct environment verification is impossible, the handoff must include an executable repair/bootstrap command and a clearly named unverified risk.
 
@@ -205,7 +207,7 @@ Mode-specific execution:
 - In `standard`, use the full delegated flow when available. Treat matcher completion as a blocking phase before any coding delegate starts on dependent slices.
 - In `standard`, the existence of multiple phase skills is itself a signal to keep the work partitioned unless a clearly documented exception says otherwise.
 - In every mode above `small/local`, state the delegation decision early enough that a reviewer can tell whether subagents were intentionally skipped or still expected later.
-- For visible frontend UI in any mode above `small/local`, do not consider the slice complete until the premium visual bar from `.github/instructions/frontend.instructions.md` is accounted for.
+- For visible frontend UI in any mode above `small/local`, do not start the coding slice until the PRD Contrato Visual is `locked`, and do not consider the slice complete until the premium visual bar from `.github/instructions/frontend.instructions.md` is accounted for.
 - In `autonomous-safe`, use the standard flow but stop only on stop conditions.
 - In `resume`, rebuild the plan from the first incomplete acceptance criterion and avoid redoing validated work.
 

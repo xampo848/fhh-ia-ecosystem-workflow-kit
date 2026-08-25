@@ -33,6 +33,8 @@ Write these fields under `## Calibration`:
 
 - `work_type`
 - `touched_surfaces`
+- `visible_ui`: `yes` when the PRD changes a user-facing screen, page, or navigable view; otherwise `no`
+- `ui_lock`: `required` when `visible_ui: yes`, else `not-applicable`
 - `comparable_anchor`
 - major risks
 - unresolved questions

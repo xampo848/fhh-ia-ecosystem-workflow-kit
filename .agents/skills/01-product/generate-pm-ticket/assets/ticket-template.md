@@ -44,6 +44,17 @@ Una línea, específica y accionable.
 - Permisos.
 - Variantes pública/compartida si aplica.
 
+## Contrato visual
+
+Completar si el ticket cambia una pantalla. Si no hay UI visible: `not-applicable` + razón de una línea.
+
+- Superficie: nueva o evolución de [ruta/componente].
+- Densidad / composición.
+- Acción primaria.
+- Estados requeridos: loading, vacío, error, permisos, 1 ítem, N ítems.
+- Reutilizar: primitiva del Design System o pantalla hermana.
+- Evidencia opcional: screen actual, Figma, foto o mockup. No sustituye los campos de arriba.
+
 ## Criterios de aceptación
 
 1. Deben ser verificables.

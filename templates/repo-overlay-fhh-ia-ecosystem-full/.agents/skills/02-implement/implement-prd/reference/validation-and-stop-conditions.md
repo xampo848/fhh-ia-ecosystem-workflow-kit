@@ -37,9 +37,10 @@ Run from `front/`:
 
 - Use `react-doctor` after meaningful React changes or final frontend review.
 - Use `playwright-testing` by default for most navigable user-facing UI behavior changes when tooling is available. Skip only with an explicit documented exception (backend-only/no navigable UI/purely cosmetic static change) or user waiver with risk acceptance.
-- Use `frontend-design` before coding visible frontend UI when you need a clearer visual direction or a more distinctive interface thesis.
-- Use `impeccable` before coding visible frontend UI when the work needs full design craft, broad refinement, or deep visual QA.
-- Do not mark visible frontend UI complete while it still feels generic, templated, low-hierarchy, or recognizably AI-generated.
+- Do not start a visible-UI coding slice while the PRD Contrato Visual is missing, `not-applicable` without reason, or still would force the implementer to invent the screen.
+- Use `frontend-design` before coding visible frontend UI only to translate or sharpen an already locked visual contract. Do not use it to invent density, hierarchy, or states after implementation has started.
+- Use `impeccable` after the lock exists when the work needs full design craft, broad refinement, or deep visual QA.
+- Do not mark visible frontend UI complete while it still feels generic, templated, low-hierarchy, or recognizably AI-generated, or while a required UI-lock state is unimplemented.
 
 ## Code Quality Validation
 
@@ -94,6 +95,7 @@ If any gate is `FAIL`, `PARTIAL`, `INCOMPLETE`, `MISSING`, or unsupported by evi
 
 Stop and ask the user before continuing when:
 
+- Visible UI work would require inventing density, hierarchy, primary action, or UI states because the Contrato Visual is missing or unlocked.
 - The PRD has unresolved blocking questions.
 - There are multiple valid technical options not constrained by the PRD.
 - A migration is destructive.

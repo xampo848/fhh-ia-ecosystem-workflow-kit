@@ -97,6 +97,8 @@ Keep the register conversational and tuned: plain verbs, sentence case, no fille
 
 For FHH IA Ecosystem, use this skill to establish or sharpen **visual direction**. Then:
 
+- if a PRD or ticket already has a Contrato Visual, treat that lock as the brief; do not reopen density, primary action, or required states
+- if visible UI is requested and no lock exists, produce the compact visual thesis and stop for confirmation instead of writing production JSX
 - hand off to `implement-prd` / `frontend-phase-implementer` for production code changes
 - hand off to `impeccable` when the work expands into full craft, live iteration, or broader design QA
 - keep all final implementation aligned with repo frontend rules: design system first, no hardcoded visible strings, no hardcoded hex colors in JSX, and proper i18n/token usage

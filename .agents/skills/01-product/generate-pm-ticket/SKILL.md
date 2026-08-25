@@ -41,8 +41,9 @@ If the user wants a portable prompt for Gemini or another LLM, provide or adapt 
 3. **Ask only blocker questions** and ask them in one grouped batch.
 4. **Separate facts, assumptions, and open questions** whenever uncertainty exists.
 5. **Define defaults, limits, interactions, and failure states**. Generic tickets are not acceptable.
-6. **If screenshots exist, inspect them at the beginning and re-check them before finalizing**.
-7. **Challenge before locking scope or acceptance criteria**. Load [../shared/critical-stance.md](../shared/critical-stance.md); any scope boundary or acceptance criterion with real cost must survive one direct challenge, whether it came from the user's request or from the draft ticket itself.
+6. **If screenshots exist, inspect them at the beginning and re-check them before finalizing**. They are evidence, not the visual contract.
+7. **If the ticket changes visible UI, lock a compact visual contract** before closing: surface, density, primary action, required states, and a sibling screen or optional mockup/photo. Do not demand high-fidelity mockups. If those fields are missing, ask them as blockers.
+8. **Challenge before locking scope or acceptance criteria**. Load [../shared/critical-stance.md](../shared/critical-stance.md); any scope boundary or acceptance criterion with real cost must survive one direct challenge, whether it came from the user's request or from the draft ticket itself.
 
 ## Procedure
 
@@ -105,6 +106,7 @@ Probe these categories before drafting:
 - permission/visibility rules
 - impact on shared/public/report/export flows
 - edge cases and empty states
+- visible UI contract when a screen changes: new vs existing, density, primary action, required states, reference screen or optional mockup
 - loading/error states
 - data granularity
 - performance-sensitive behavior
@@ -136,6 +138,7 @@ Minimum sections expected:
 - User story
 - In scope
 - Out of scope
+- Visual contract when UI is visible (or `not-applicable`)
 - Functional rules
 - Edge cases / states
 - Acceptance criteria
@@ -163,6 +166,7 @@ Before finalizing, verify the ticket answers these questions:
 
 - Is the current behavior clear?
 - Is the default state defined?
+- If UI is visible, are surface, density, primary action, and required states locked?
 - Are filter interactions explicit?
 - Are limits/caps defined?
 - Are empty/loading/error states covered?

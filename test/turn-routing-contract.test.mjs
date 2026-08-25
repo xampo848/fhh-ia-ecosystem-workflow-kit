@@ -176,3 +176,16 @@ test('Antigravity wrapper requires visible routing trace and workflow continuity
     assert.match(content, /stage router[\s\S]*continuity rules/i, relativePath);
   }
 });
+
+test('workflow router offers solution-sketch as a hard trigger without a fifth product menu option', async () => {
+  const router = await read('.agents/skills/00-router/workflow-router/SKILL.md');
+
+  assert.match(router, /#### Solution sketch hard trigger/);
+  assert.match(router, /never auto-start/);
+  assert.match(router, /dibujemos las clases/);
+  assert.match(router, /Do not add `solution-sketch` as a fifth standing option in the product-shaping menu/);
+  assert.match(router, /`solution-sketch` hard trigger \(offer only; never auto-start\)/);
+  assert.match(router, /1\) Formación integral del proyecto \(`project-formation`\)/);
+  assert.match(router, /4\) Épica multi-fase \(`create-epic`\)/);
+  assert.doesNotMatch(router, /5\) .*solution-sketch/);
+});

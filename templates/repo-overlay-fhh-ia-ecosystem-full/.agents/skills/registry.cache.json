@@ -7,12 +7,12 @@
   "compact_pattern_index": ".agents/skills/06-patterns/index.md",
   "structured_registry": ".agents/skills/registry.json",
   "source_hashes": {
-    ".agents/skills/index.md": "d6ea60248948e36c1ffc31fc2ccd507817bbd633570cb5fb328ec7ba05f70281",
+    ".agents/skills/index.md": "c5a18a35dc52c96d451b313d620119703faad8581a7311750e5334c21ffc1ce6",
     ".agents/skills/06-patterns/index.md": "93951753002cd3cc900caaad297faf072c168a5b1c88145ae391719c4f683ac9",
-    ".agents/skills/registry.md": "548344fe36fa45c9e81db0f763eb3ace06d14cf26804284c07236475445b3568",
-    ".agents/skills/registry.json": "f07bcb18c3761cd9e50cec6c8350271826887d610a9ca153ac2642fab44a74bb"
+    ".agents/skills/registry.md": "ea5e27da1760af0e07ce625a801b7ed93593311c179e2569ef383afeee871731",
+    ".agents/skills/registry.json": "fb0e4972bc7b60e7efefe84ed641a7ddf914a1eca8a680368fe8d6f71d941489"
   },
-  "entry_count": 41,
+  "entry_count": 42,
   "entries": [
     {
       "key": "acceptance-test-engineer",
@@ -147,7 +147,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-epic/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "5eb84f319482c6e29a745997c78a8b4033800787a27887395c8caae29785d0fe"
+      "skill_sha256": "ff4df3e50cdb792263f08d80d0f5a96365e24e42fdccb1f1d5f7da34baf03fcb"
     },
     {
       "key": "create-prd",
@@ -156,7 +156,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "80d2e66ee3d15770afc2154091a7bff049b2d505cae414a4ae5aea16c28f06ae"
+      "skill_sha256": "ce3cbbd3660f6ebc9e1f3c5a8a50fca5989403b4aa134e561b18574a9458fe73"
     },
     {
       "key": "document-development",
@@ -183,7 +183,7 @@
       "class": "Cross-cutting overlay",
       "path": ".agents/skills/04-crosscutting/frontend-design/SKILL.md",
       "loading_posture": "Overlay",
-      "skill_sha256": "f3b93cd3f47b1f8810b481fb8aaea738fb7b95eadcf6c3b77563e4e58dd6775c"
+      "skill_sha256": "2a902a88b2cad2d0c1c23c5999a09feff7705ebdc4ef23487eeaeadcabb970d1"
     },
     {
       "key": "frontend-phase-implementer",
@@ -192,7 +192,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/frontend-phase-implementer/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "d1987f9dcb45d2621257d58251b878a97a7f327badf03a334a0abcb35c6230e1"
+      "skill_sha256": "8efc512a0280325dd55f7b9f67ef2c8e41bb0c6314dce014689a6e5378b40acc"
     },
     {
       "key": "generate-pm-ticket",
@@ -201,7 +201,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/generate-pm-ticket/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "8303233724d64b6b07ad7c90ed5d38590b6816b12295475e2126958bd70f896a"
+      "skill_sha256": "dee317d121d4339b7cd0c582d9545672a6a8de73dc5d3e3ef22c22d7c1a6ee75"
     },
     {
       "key": "impeccable",
@@ -219,7 +219,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "e6d809658ad4ffc7bd6eb3944d8b31c58a6d09ec664a7a1515a992c439fe3e2c"
+      "skill_sha256": "c73dc3e679f2f4d5a727e58a9c9f3948081bf84c04d9464e06c65f03085ad8e5"
     },
     {
       "key": "implementation-skill-matcher",
@@ -237,7 +237,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/implementation-slicing/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "6fbb0e1fa6e9e16df56ccd68dfd61207c3c3e15ddde4e87037817f233e567745"
+      "skill_sha256": "08da9ebe275d426bbd75de3c6bc59072068326e9c8b9adc670c54b5dc94deb1c"
     },
     {
       "key": "pattern-authoring-add-project-pattern",
@@ -282,7 +282,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/prd-readiness-review/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "798c0e54028aed45407b030a74d9da5d193bec1d44c3bfc5e39d7138ede33457"
+      "skill_sha256": "4476ff40e27a7c85ff613c81a94418e5cf37738cb24c6feca60e0086cd108077"
     },
     {
       "key": "project-formation",
@@ -345,7 +345,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/01-product/project-formation/shaping/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "59797948285197babeee21468256caddc15d6d8ff278a96f379f0994cdadeb03"
+      "skill_sha256": "7bd915b7ef66aed364c7da5453ae253a7ee82dddec58f3a510a4b1bf716de697"
     },
     {
       "key": "qa-handoff-review",
@@ -354,7 +354,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/qa-handoff-review/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "9e2691b8d76b3c67326562ac5fd1e45eea849e1ec2603f12e3dfd2b253ee97ee"
+      "skill_sha256": "51a609ced83f730a0b28111d1e34ae0b4923dd449837305cc8e44915d0ffbc3b"
     },
     {
       "key": "react-doctor",
@@ -364,6 +364,15 @@
       "path": ".agents/skills/03-quality/react-doctor/SKILL.md",
       "loading_posture": "Just-in-time",
       "skill_sha256": "70a3a3335faaedc99e04dedbe4643321a004490d19359042179ef22c3d159a93"
+    },
+    {
+      "key": "solution-sketch",
+      "name": "solution-sketch",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/solution-sketch/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "25b570f3c1616ab492018b5d67ab2d9eba92c0a0b0d816a070668c0cc5874231"
     },
     {
       "key": "validation-runner",
@@ -381,7 +390,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "21e4c4e903fb2fe58ee81297062da3a7ec811ae9b1d04191a6a9070b488df3d0"
+      "skill_sha256": "ea8da74a7099b7a4a96291280ed7da369e643e4e6e5c22a492d510b0b16401fb"
     }
   ]
 }

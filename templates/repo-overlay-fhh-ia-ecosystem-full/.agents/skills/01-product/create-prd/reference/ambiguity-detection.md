@@ -12,6 +12,9 @@ Cover these classes when applicable:
 - division/allocation, identifiers, feature flags, language, DDD placement, tenancy, lifecycle, enumerations, and traceability
 - async/background behavior, success/partial/failure states, idempotency/retries, and observability
 - verification evidence, rollout/recovery, activation/adoption, parent invariants, inherited live-path/phase-cut, and future-scope exclusions
+- visible UI / visual contract, when calibration records `visible_ui: yes`: new vs existing surface, density/composition, primary action, required UI states, and reference input
+
+When `visible_ui: yes`, treat an unlocked screen as blocking ambiguity. Ask only questions that would produce a materially different layout or state set. A mockup, screenshot, Figma file, or photo is optional evidence, never a substitute for those fields. Do not demand high-fidelity mockups as a universal gate.
 
 Use this format:
 

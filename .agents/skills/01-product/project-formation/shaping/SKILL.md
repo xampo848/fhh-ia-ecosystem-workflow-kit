@@ -78,4 +78,6 @@ Shaping is complete when:
 - top rabbit holes have containment strategy
 - the PM can justify why this is the right bet now
 
+If the recommended shape is chosen and the model or classes are still open, offer `solution-sketch` once. Do not auto-start it. If the user declines, record `sketch: skipped` in the stage log and continue. Do not turn formation into endless brainstorming.
+
 If confidence remains `medium` or lower, require one additional de-risking loop before roadmap.

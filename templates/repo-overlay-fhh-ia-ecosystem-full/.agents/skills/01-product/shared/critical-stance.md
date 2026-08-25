@@ -1,6 +1,6 @@
 # Postura Crítica (Shared — All Product Skills)
 
-Applies to `create-prd`, `create-epic`, `project-formation`, and `generate-pm-ticket`.
+Applies to `create-prd`, `create-epic`, `project-formation`, `generate-pm-ticket`, and `solution-sketch`.
 
 ## Purpose
 

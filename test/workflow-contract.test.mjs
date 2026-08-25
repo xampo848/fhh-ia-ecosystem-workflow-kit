@@ -165,6 +165,64 @@ test('create-prd requires use cases, test strategy, and edge-case matrix before 
   assert.match(template, /\| Referencia de cambio \|/);
 });
 
+test('visible UI requires a locked visual contract before implementation', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const createPrdPath = path.join(root, '.agents/skills/01-product/create-prd/SKILL.md');
+  const templatePath = path.join(root, '.agents/skills/01-product/create-prd/PRD_TEMPLATE.md');
+  const calibrationPath = path.join(root, '.agents/skills/01-product/create-prd/reference/calibration.md');
+  const ambiguityPath = path.join(root, '.agents/skills/01-product/create-prd/reference/ambiguity-detection.md');
+  const selfAuditPath = path.join(root, '.agents/skills/01-product/create-prd/reference/self-audit.md');
+  const implementPrdPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
+  const frontendPath = path.join(root, '.agents/skills/02-implement/frontend-phase-implementer/SKILL.md');
+  const readinessPath = path.join(root, '.agents/skills/02-implement/prd-readiness-review/SKILL.md');
+  const ticketPath = path.join(root, '.agents/skills/01-product/generate-pm-ticket/SKILL.md');
+  const ticketTemplatePath = path.join(root, '.agents/skills/01-product/generate-pm-ticket/assets/ticket-template.md');
+  const decisionPath = path.join(root, 'docs/workflow/decisions/2026-08-24-ui-visual-contract.md');
+  const [
+    createPrd,
+    template,
+    calibration,
+    ambiguity,
+    selfAudit,
+    implementPrd,
+    frontend,
+    readiness,
+    ticket,
+    ticketTemplate,
+    decision
+  ] = await Promise.all([
+    fs.readFile(createPrdPath, 'utf8'),
+    fs.readFile(templatePath, 'utf8'),
+    fs.readFile(calibrationPath, 'utf8'),
+    fs.readFile(ambiguityPath, 'utf8'),
+    fs.readFile(selfAuditPath, 'utf8'),
+    fs.readFile(implementPrdPath, 'utf8'),
+    fs.readFile(frontendPath, 'utf8'),
+    fs.readFile(readinessPath, 'utf8'),
+    fs.readFile(ticketPath, 'utf8'),
+    fs.readFile(ticketTemplatePath, 'utf8'),
+    fs.readFile(decisionPath, 'utf8')
+  ]);
+
+  assert.match(calibration, /`visible_ui`/);
+  assert.match(calibration, /`ui_lock`/);
+  assert.match(ambiguity, /visible UI \/ visual contract/);
+  assert.match(ambiguity, /A mockup, screenshot, Figma file, or photo is optional evidence/);
+  assert.match(createPrd, /Hard Gate: Visible UI Requires A Visual Contract/);
+  assert.match(createPrd, /A mockup, screenshot, or photo is an input to the lock, not the lock/);
+  assert.match(template, /### 2\.7 Contrato Visual \(UI lock\)/);
+  assert.match(template, /\*\*UI lock\*\*: locked \| not-applicable/);
+  assert.match(selfAudit, /Contrato Visual \(UI lock\) is complete/);
+  assert.match(implementPrd, /require a locked Contrato Visual before any coding slice/);
+  assert.match(implementPrd, /never to invent the screen after JSX exists/);
+  assert.match(frontend, /If it is missing or unlocked, return `blocked`/);
+  assert.match(readiness, /Contrato Visual is missing, unlocked/);
+  assert.match(ticket, /lock a compact visual contract/);
+  assert.match(ticketTemplate, /## Contrato visual/);
+  assert.match(decision, /Visible UI is a contract, not a Pixel Ninja invention/);
+  assert.doesNotMatch(createPrd, /demand high-fidelity mockups as a universal/);
+});
+
 test('create-epic locks live path and phase cut before the PRD queue', async () => {
   const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const epicSkillPath = path.join(root, '.agents/skills/01-product/create-epic/SKILL.md');
@@ -333,5 +391,80 @@ test('implement-prd closure loop keeps a persistent findings ledger and blocks o
   // closure evidence persisted before _meta/ cleanup
   assert.match(implementPrdSkill, /Include a "Resumen del Ledger de Hallazgos" subsection listing every `findings_ledger` row/);
   assert.match(orchestrationFlow, /Include a "Resumen del Ledger de Hallazgos" subsection listing every row from `findings_ledger`/);
+});
+
+test('solution-sketch is an offer-only sister skill with a commitable six-section template', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const skillPath = path.join(root, '.agents/skills/01-product/solution-sketch/SKILL.md');
+  const templatePath = path.join(root, '.agents/skills/01-product/solution-sketch/references/sketch-template.md');
+  const workflowReadmePath = path.join(root, 'docs/workflow/README.md');
+  const decisionPath = path.join(root, 'docs/workflow/decisions/2026-08-24-solution-sketch-flow.md');
+  const [skill, template, workflowReadme, decision] = await Promise.all([
+    fs.readFile(skillPath, 'utf8'),
+    fs.readFile(templatePath, 'utf8'),
+    fs.readFile(workflowReadmePath, 'utf8'),
+    fs.readFile(decisionPath, 'utf8')
+  ]);
+
+  assert.match(skill, /user-invocable: true/);
+  assert.match(skill, /Never auto-start/);
+  assert.match(skill, /docs\/design\/<slug>-sketch\.md/);
+  assert.match(skill, /Stop after three turns/);
+  assert.match(template, /## 1\. Problem in 3 lines/);
+  assert.match(template, /## 2\. Options/);
+  assert.match(template, /## 3\. Winner \+ discarded \+ why/);
+  assert.match(template, /## 4\. Names that exist/);
+  assert.match(template, /## 5\. What is not created now/);
+  assert.match(template, /## 6\. Questions that still block the PRD/);
+  assert.match(workflowReadme, /decisions\/2026-08-24-solution-sketch-flow\.md/);
+  assert.match(workflowReadme, /ofrecer solution-sketch/);
+  assert.match(decision, /flowchart TD/);
+});
+
+test('product hooks offer solution-sketch only on T2-T4 and inherit a locked sketch', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const createPrdPath = path.join(root, '.agents/skills/01-product/create-prd/SKILL.md');
+  const patternLockPath = path.join(root, '.agents/skills/01-product/create-prd/reference/pattern-locking.md');
+  const prdTemplatePath = path.join(root, '.agents/skills/01-product/create-prd/PRD_TEMPLATE.md');
+  const epicPath = path.join(root, '.agents/skills/01-product/create-epic/SKILL.md');
+  const shapingPath = path.join(root, '.agents/skills/01-product/project-formation/shaping/SKILL.md');
+  const stancePath = path.join(root, '.agents/skills/01-product/shared/critical-stance.md');
+  const implementPrdPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
+  const ticketPath = path.join(root, '.agents/skills/01-product/generate-pm-ticket/SKILL.md');
+  const [
+    createPrd,
+    patternLock,
+    prdTemplate,
+    epic,
+    shaping,
+    stance,
+    implementPrd,
+    ticket
+  ] = await Promise.all([
+    fs.readFile(createPrdPath, 'utf8'),
+    fs.readFile(patternLockPath, 'utf8'),
+    fs.readFile(prdTemplatePath, 'utf8'),
+    fs.readFile(epicPath, 'utf8'),
+    fs.readFile(shapingPath, 'utf8'),
+    fs.readFile(stancePath, 'utf8'),
+    fs.readFile(implementPrdPath, 'utf8'),
+    fs.readFile(ticketPath, 'utf8')
+  ]);
+
+  assert.match(patternLock, /## Solution Sketch Offer/);
+  assert.match(patternLock, /Offer `solution-sketch` and stop before locking/);
+  assert.match(patternLock, /record `sketch: skipped`/);
+  assert.match(patternLock, /Do not mention `solution-sketch` when compact mode applies/);
+  assert.match(createPrd, /do not mention `solution-sketch`/);
+  assert.match(createPrd, /Inverting a locked sketch without an explicit critical-stance challenge is forbidden/);
+  assert.match(prdTemplate, /Sketch heredado/);
+  assert.match(epic, /offer `solution-sketch` once when the epic introduces an architecture or model shared by several child PRDs/);
+  assert.match(shaping, /offer `solution-sketch` once/);
+  assert.match(shaping, /Do not turn formation into endless brainstorming/);
+  assert.match(stance, /solution-sketch/);
+  assert.match(implementPrd, /docs\/design\/<slug>-sketch\.md/);
+  assert.match(implementPrd, /Do not invert it without an explicit critical-stance challenge/);
+  assert.match(implementPrd, /Missing sketch does not block historical PRDs/);
+  assert.doesNotMatch(ticket, /solution-sketch/);
 });
 
