@@ -88,6 +88,7 @@ Natural-language binding examples:
 - "usa create-prd" -> load and run `create-prd`.
 - "implementa este PRD" -> load and run `implement-prd`.
 - "haz el ticket" after options -> load and run `generate-pm-ticket`.
+- "usa solution-sketch" / "hacé el sketch" -> load and run `solution-sketch`.
 
 User choice constraint:
 
@@ -225,6 +226,20 @@ Intent examples:
 Do not downgrade this to inline review when the action requested is comment resolution.
 If the request is only explanatory (for example, "que hace esa skill"), answer directly and do not load the workflow.
 
+#### Solution sketch hard trigger
+
+Offer `solution-sketch` as the recommended next step and never auto-start it when the user asks to sketch classes, compare architectures, or brainstorm the solution *before* a spec.
+
+Intent examples:
+
+- "dibujemos las clases"
+- "brainstorm de la solucion"
+- "comparemos arquitecturas antes del PRD"
+
+Do not add `solution-sketch` as a fifth standing option in the product-shaping menu.
+Do not auto-load `create-prd` from this trigger.
+If the user declines, continue routing the parent product path.
+
 ### Route precedence for ambiguous prompts
 
 When a prompt mentions more than one intent, resolve with this precedence:
@@ -233,9 +248,10 @@ When a prompt mentions more than one intent, resolve with this precedence:
 2. `pr-comments-resolution` hard trigger
 3. `implement-prd` / production implementation gates
 4. `project-formation` hard trigger
-5. `create-prd` / `generate-pm-ticket` / `create-epic`
-6. review or documentation routes
-7. direct answer
+5. `solution-sketch` hard trigger (offer only; never auto-start)
+6. `create-prd` / `generate-pm-ticket` / `create-epic`
+7. review or documentation routes
+8. direct answer
 
 Always include in the routing trace which precedence rule was applied.
 

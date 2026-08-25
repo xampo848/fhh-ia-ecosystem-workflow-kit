@@ -144,7 +144,7 @@
         {
           "path": "templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/frontend-design",
           "fileCount": 1,
-          "pathContentSha256": "1c59b17715a8885917914f2244f093deab75be2302edcdaa94e3bf71ae9e990f"
+          "pathContentSha256": "7ed9641096a3e58a6cf7aa68bab0655c65befe614e6930eacfc6ddeae86f24f2"
         }
       ],
       "modificationNotice": "Modified by FHH IA Ecosystem contributors from the Apache-2.0 source in anthropics/skills.",

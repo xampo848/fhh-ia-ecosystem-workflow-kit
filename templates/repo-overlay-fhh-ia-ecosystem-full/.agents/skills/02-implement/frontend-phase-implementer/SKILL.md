@@ -34,8 +34,9 @@ Use exists-or-skip for product docs. A missing optional path is not a failed sea
 - Exact matcher-selected `required_pattern_skills` paths when present.
 - Matcher-selected `fallback_docs` when required pattern skills are absent.
 - Relevant frontend docs from `docs/patterns/frontend/`
-- `frontend-design` when the slice includes visible UI and the main open question is visual direction, hierarchy, typography, palette, density, or avoiding a generic look.
-- `impeccable` when the slice needs deeper craft, polish, audit, distinctive refinement, or live visual iteration.
+- The PRD Contrato Visual (UI lock) when the slice includes visible UI. If it is missing or unlocked, return `blocked`.
+- `frontend-design` only to translate or sharpen that locked contract. Do not use it to invent the screen.
+- `impeccable` when the slice needs deeper craft, polish, audit, distinctive refinement, or live visual iteration after the lock exists.
 - Existing analogous frontend files and tests.
 
 ## Frontend Rules
@@ -66,9 +67,9 @@ Before editing, identify and record:
 
 For visible UI slices, also record:
 
-- the visual thesis being reused or sharpened;
-- the Design System primitives or shared components that carry that thesis;
-- whether `frontend-design` or `impeccable` was required and why.
+- the PRD Contrato Visual fields being implemented (surface, density, primary action, required states, thesis);
+- the Design System primitives or shared components that carry that lock;
+- whether `frontend-design` or `impeccable` was required and why. Do not record a newly invented thesis here.
 
 Reject the implementation or return `blocked` if satisfying the slice requires quality violations outside the assigned scope.
 
@@ -81,7 +82,7 @@ Reject the implementation or return `blocked` if satisfying the slice requires q
 5. Name the existing pattern, primitive, hook, or API module being reused.
 6. Record whether any matcher-suggested optional capability was actually used and whether it was active.
 7. Update API modules and hooks before components when server data is involved.
-8. For visible UI, define or restate the visual thesis before editing: hierarchy, density, rhythm, and the main differentiating move that keeps the screen from feeling generic.
+8. For visible UI, restate the locked Contrato Visual before editing. Implement that lock. If any required field is missing, return `blocked` instead of inventing hierarchy, density, or states.
 9. Implement presentational components with existing layout and design system conventions.
 10. Extract new shared components or primitives only when reuse or a genuine system gap is clear; otherwise keep the composition local.
 11. Reject generic default compositions. If the screen still reads like a stock SaaS dashboard, rework it before closing.
@@ -99,6 +100,7 @@ Reject the implementation or return `blocked` if satisfying the slice requires q
 ## Stop And Ask When
 
 - The UI behavior is ambiguous.
+- The PRD Contrato Visual is missing, unlocked, or too thin to implement without inventing the screen.
 - API payload shape is unknown or inconsistent.
 - The slice requires cross-feature imports.
 - A new design pattern would be needed instead of existing primitives.

@@ -103,6 +103,8 @@ Use a table with `Dimension`, `Status`, and `Notes` columns. Mark each row as `I
 
 ### 6. Lock Live Path And Phase Cut
 
+Before locking the cut or writing the PRD queue, offer `solution-sketch` once when the epic introduces an architecture or model shared by several child PRDs. Do not auto-start the skill. If the user declines, record `sketch: skipped` in the epic and continue. If `docs/design/<slug>-sketch.md` already exists, reuse it. Do not write the queue until the offer is skipped or a sketch is locked.
+
 Do this before writing any phase table or PRD queue when the epic changes a live production path, replaces or adds a provider or source, or introduces an architecture that must coexist with current behavior. If none of those apply, record `No aplica` in the epic and continue.
 
 Do not ask the user to pick a named strategy. Infer first. Ask only what would change the cut.

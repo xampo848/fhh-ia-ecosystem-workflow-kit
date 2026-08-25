@@ -21,9 +21,10 @@ Contexto:
 
 Reglas:
 1. Lee la skill indicada y las instrucciones frontend del repo.
-2. Carga `impeccable` si hay cambios visibles de UI.
-3. No estas solo en el codebase: no reviertas cambios de otros agentes.
-4. Edita solo archivos dentro de tu ownership.
-5. Implementa, valida y reporta usando el formato de la skill.
+2. Si hay UI visible, lee el Contrato Visual del PRD. Si falta o esta unlocked, devuelve `blocked`. No inventes la pantalla.
+3. Carga `frontend-design` solo para traducir ese lock; carga `impeccable` para craft/QA despues del lock.
+4. No estas solo en el codebase: no reviertas cambios de otros agentes.
+5. Edita solo archivos dentro de tu ownership.
+6. Implementa, valida y reporta usando el formato de la skill.
 ```
 

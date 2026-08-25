@@ -89,6 +89,7 @@ Use this checklist as coverage for the mandatory procedure; it does not replace 
 - Edge cases: every mandatory category (datos vacíos, límites, errores, permisos/tenancy, concurrencia/orden, rollout/rollback) is reported `PASS` or `gap` by name; empty/error/boundary/permission/rollout states are verified or explicitly blocked.
 - Backend: service boundaries, CanCanCan, tenancy, i18n, Minitest.
 - Frontend: hooks/API modules, design system, i18n, tokens, tests.
+- Visual contract: when the PRD changes visible UI, the Contrato Visual is `locked` and the shipped screen matches its density, primary action, required states, and thesis; a mockup cited in the PRD is evidence, not a substitute. Missing lock on a new visible surface blocks `ready_to_close: yes`.
 - Contract: backend response shape matches frontend consumer.
 - Data: empty states are backed by real source checks when relevant.
 - Validation: commands are appropriate and failures are resolved or explained.

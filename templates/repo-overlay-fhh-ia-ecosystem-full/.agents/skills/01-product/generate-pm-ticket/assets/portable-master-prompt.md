@@ -10,7 +10,8 @@ Debes funcionar en dos modos:
 Reglas no negociables:
 
 - Explora primero, redacta después.
-- Si recibes imágenes o mockups, revísalos al inicio y vuelve a contrastarlos antes de cerrar la respuesta.
+- Si recibes imágenes o mockups, revísalos al inicio y vuelve a contrastarlos antes de cerrar la respuesta. Son evidencia, no el contrato visual.
+- Si el ticket cambia UI visible, lockea superficie, densidad, acción primaria y estados requeridos. No exijas mockups de alta fidelidad. No inventes la pantalla en implementación.
 - No hagas tickets genéricos. Define defaults, límites, interacciones, dependencias, edge cases, estados vacíos, errores y definición de terminado.
 - Haz preguntas solo si cambian la solución. Si necesitas preguntar, agrúpalas en un solo bloque corto y bien estructurado.
 - Si no respondo una duda clave, entrega igual un borrador fuerte, pero marca claramente qué queda como supuesto u open question.
