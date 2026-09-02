@@ -25,6 +25,62 @@
       "autoFallback": false
     }
   },
+  "copilotModelRouting": {
+    "mode": "auto-with-fallback",
+    "catalogSource": "user-supplied-local-availability",
+    "tiers": {
+      "Liviano": [
+        "OpenAI GPT-5.6 Luna",
+        "Microsoft MAI-Code-1.1-Flash",
+        "OpenAI GPT-5 mini",
+        "Anthropic Claude Haiku 4.5",
+        "OpenAI GPT-5.4 mini",
+        "Google Gemini 3.5 Flash",
+        "Google Gemini 3.6 Flash",
+        "Google Gemini 3.7 Flash",
+        "xAI Grok 4.5",
+        "xAI Grok 4.6",
+        "Raptor mini (versión preliminar)",
+        "Kimi K2.7 Code"
+      ],
+      "Mediano": [
+        "Anthropic Claude Sonnet 5",
+        "xAI Grok 4.6",
+        "Anthropic Claude Sonnet 4.6",
+        "Anthropic Claude Sonnet 4.5",
+        "OpenAI GPT-5.4",
+        "OpenAI GPT-5.3-Codex",
+        "OpenAI GPT-5.2-Codex",
+        "OpenAI GPT-5.2",
+        "Google Gemini 3.1 Pro (versión preliminar)",
+        "Kimi K3"
+      ],
+      "Grande": [
+        "xAI Grok 4.6 xhigh",
+        "OpenAI GPT-5.5",
+        "OpenAI GPT-5.6 Sol",
+        "OpenAI GPT-5.6 Terra",
+        "OpenAI GPT-5.6 Luna",
+        "OpenAI GPT-5.4",
+        "Anthropic Claude Sonnet 5",
+        "Anthropic Claude Fable 5"
+      ]
+    },
+    "agentTiers": {
+      "capitana-alcance": "Grande",
+      "sherlock-estructura": "Liviano",
+      "arquitecta-fases": "Grande",
+      "turbo-backend": "Mediano",
+      "pixel-ninja": "Mediano",
+      "guardia-contrato": "Mediano",
+      "testinator-5000": "Mediano",
+      "lint-ranger": "Liviano",
+      "qa-relampago": "Grande",
+      "cavecrew-investigator": "Liviano",
+      "cavecrew-builder": "Mediano",
+      "cavecrew-reviewer": "Liviano"
+    }
+  },
   "agents": [
     {
       "section": "Delegate Skill Matrix",

@@ -5,6 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { validateDelegateRuntimeAdapters } from '../scripts/sync-delegate-runtime-adapters.mjs';
 import { validateTemplatePacks } from '../scripts/validate-template-packs.mjs';
+import { loadCopilotModelRouting, resolveCopilotModel } from '../scripts/copilot-model-routing.mjs';
 import manifest from '../templates/template-manifest.json' with { type: 'json' };
 
 test('template manifest declares expected packs', () => {
@@ -85,6 +86,51 @@ test('generated delegate artifacts publish model routing capabilities', async ()
   assert.match(routingPolicy, /\| Readiness and implementation slicing delegates \|/);
   assert.match(copilotAdapter, /subagent model pinning=true/);
   assert.match(copilotAdapter, /automatic fallback=false/);
+});
+
+test('Copilot model routing selects the first available candidate by agent tier', async () => {
+  const routing = await loadCopilotModelRouting();
+
+  const result = resolveCopilotModel({
+    agentSlug: 'sherlock-estructura',
+    availableModels: ['OpenAI GPT-5 mini', 'Anthropic Claude Haiku 4.5'],
+    routing
+  });
+
+  assert.equal(result.requestedTier, 'Liviano');
+  assert.equal(result.resolvedModel, 'OpenAI GPT-5 mini');
+  assert.equal(result.fallbackApplied, true);
+});
+
+test('Copilot model routing honors the configured preferred models', async () => {
+  const routing = await loadCopilotModelRouting();
+
+  const lightweight = resolveCopilotModel({
+    agentSlug: 'sherlock-estructura',
+    availableModels: ['OpenAI GPT-5.6 Luna'],
+    routing
+  });
+  const heavyweight = resolveCopilotModel({
+    agentSlug: 'arquitecta-fases',
+    availableModels: ['xAI Grok 4.6 xhigh'],
+    routing
+  });
+
+  assert.equal(lightweight.resolvedModel, 'OpenAI GPT-5.6 Luna');
+  assert.equal(heavyweight.resolvedModel, 'xAI Grok 4.6 xhigh');
+});
+
+test('Copilot model routing reports an explicit failure when a tier has no local candidate', async () => {
+  const routing = await loadCopilotModelRouting();
+
+  assert.throws(
+    () => resolveCopilotModel({
+      agentSlug: 'turbo-backend',
+      availableModels: ['Unknown local model'],
+      routing
+    }),
+    /No available Copilot model matches tier Mediano/
+  );
 });
 
 async function copyFixturePackage() {

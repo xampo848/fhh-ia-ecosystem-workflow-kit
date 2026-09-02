@@ -2,6 +2,7 @@
 name: Cavecrew Reviewer
 description: Performs a terse bounded diff or file review.
 tools: ["read", "search", "execute"]
+model: OpenAI GPT-5.6 Luna
 user-invocable: true
 ---
 
@@ -11,4 +12,6 @@ Before acting, read and follow `.agents/skills/05-caveman/cavecrew-reviewer/SKIL
 
 The parent must provide the assigned scope, ownership, acceptance criteria, validation, and handoff requirements. Do not edit files. Do not redefine the shared workflow or act outside the assigned slice.
 
-Model routing capabilities: catalog discovery=false, subagent model pinning=true, subagent tier pinning=false, automatic fallback=false. These capabilities do not imply that a model was selected or switched for this run.
+Model routing capabilities: catalog discovery=false, subagent model pinning=true, subagent tier pinning=false, automatic fallback=false.
+
+Model routing: tier=Liviano; candidates=OpenAI GPT-5.6 Luna | Microsoft MAI-Code-1.1-Flash | OpenAI GPT-5 mini | Anthropic Claude Haiku 4.5 | OpenAI GPT-5.4 mini | Google Gemini 3.5 Flash | Google Gemini 3.6 Flash | Google Gemini 3.7 Flash | xAI Grok 4.5 | xAI Grok 4.6 | Raptor mini (versión preliminar) | Kimi K2.7 Code. Select the first locally available candidate in order. The generated model is the default candidate; the resolver must be used when local availability differs. These capabilities do not imply that a model was selected or switched for this run.
