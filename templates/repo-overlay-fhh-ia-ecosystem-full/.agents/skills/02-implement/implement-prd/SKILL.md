@@ -64,7 +64,7 @@ Rules:
 ## Design Principles
 
 1. **Subagent-value policy**: Use subagents only when they reduce risk, context, rework, or review bias. Delegation is mandatory for `standard` risk boundaries, not for every non-trivial PRD. Inline execution is allowed in `controlled-lite` when one writer can own the slice safely and validation is focused.
-2. **Explicit delegation checkpoint**: before the first implementation slice, record whether delegation is `avoided`, `recommended`, or `required`, and name the concrete reason. “Continuity”, “one writer”, “docs-only”, “focused validation”, “independent review”, or “disjoint ownership” are valid reasons; “because it felt faster” is not enough without the underlying risk/cost explanation.
+2. **Explicit delegation checkpoint**: before the first implementation slice, record whether delegation is `avoided`, `recommended`, or `required`, and name the concrete reason. “Continuity”, “one writer”, “docs-only”, “focused validation”, “independent review”, or “disjoint ownership” are valid reasons; “because it felt faster” is not enough without the underlying risk/cost explanation. Persist this decision in `delegation_posture`/`delegation_reason` on the task tracker so it survives across turns and resumes instead of being re-decided implicitly.
 3. **Context-window protection policy**: when the PRD naturally expands into multiple phase skills, surfaces, or acceptance streams, prefer subagents so each phase can keep a smaller, cleaner context. Do not collapse readiness, discovery, slicing, matching, coding, and validation into one giant inline run unless the mode and heuristics below explicitly allow it.
 4. Project context wins over generic agent advice.
 5. Read first, code second, but load only the smallest reliable context set.
@@ -146,6 +146,7 @@ Use an index-first and path-first strategy:
 
 - Pass exact `SKILL.md` paths to subagents.
 - Pass only the PRD sections, discovery notes, ownership boundaries, and validation commands needed for the current slice.
+- Do not re-paste the full PRD text into every delegate prompt; reference the exact section, `_meta/discovery.md`, or tracker slice entry instead of repeating content the delegate can already resolve.
 - Do not summarize a skill as a substitute for reading the skill when the delegate will execute it.
 - If you skip a potentially relevant doc, record why it was not needed.
 - If the task starts requiring 4+ exploratory file reads, 2+ non-mechanical edits, or cross-layer reasoning, switch out of `small/local` and at least into `controlled-lite`.

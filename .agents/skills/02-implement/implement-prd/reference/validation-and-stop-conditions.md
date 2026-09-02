@@ -79,6 +79,8 @@ If any gate is `FAIL`, `PARTIAL`, `INCOMPLETE`, `MISSING`, or unsupported by evi
 
 - A slice is complete only in state `VERIFIED`, after `IMPLEMENTED`, `TESTED`, and `VALIDATED` evidence is recorded.
 - Run the narrowest falsifying checks at each slice; broad phase/global suites complement rather than replace slice validation.
+- Reserve broad or full validation suites for phase close and PRD closure; do not re-run them after every micro-edit inside a slice when the narrow command already falsifies the change.
+- In `resume` mode, skip re-running validation or tests for a slice already `VERIFIED` with `evidence_state: fresh`; revalidate only slices that are `stale`, incomplete, or not yet `VERIFIED`.
 - A dependent slice cannot start while its predecessor is implemented but untested, tested but unvalidated, or missing acceptance/quality evidence.
 - Never move to the next dependent phase with failing relevant tests.
 - Never silence failures without justification.

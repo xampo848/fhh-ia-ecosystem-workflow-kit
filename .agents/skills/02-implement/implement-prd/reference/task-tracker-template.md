@@ -12,6 +12,8 @@ mode: small/local | controlled-lite | controlled-implementation | standard | aut
 started: <ISO-date>
 execution_lock: <ignored path-to-prd-directory/_meta/execution-lock.toon>
 quality_gate: <verified path | none, with reason>
+delegation_posture: avoided | recommended | required
+delegation_reason: <one-line concrete reason, see SKILL.md Design Principle 2>
 validation_commands[N]: <command>
 loaded_docs[N]: <path>
 required_instructions[N]: <path>
