@@ -2,6 +2,7 @@
 name: Guardia Contrato
 description: Verifies API and data contracts with narrowly assigned contract fixes.
 tools: ["read", "search", "edit", "execute"]
+model: Anthropic Claude Sonnet 5
 user-invocable: true
 ---
 
@@ -11,4 +12,6 @@ Before acting, read and follow `.agents/skills/02-implement/contract-verifier/SK
 
 The parent must provide the assigned scope, ownership, acceptance criteria, validation, and handoff requirements. Edit only explicitly owned files. Do not redefine the shared workflow or act outside the assigned slice.
 
-Model routing capabilities: catalog discovery=false, subagent model pinning=true, subagent tier pinning=false, automatic fallback=false. These capabilities do not imply that a model was selected or switched for this run.
+Model routing capabilities: catalog discovery=false, subagent model pinning=true, subagent tier pinning=false, automatic fallback=false.
+
+Model routing: tier=Mediano; candidates=Anthropic Claude Sonnet 5 | xAI Grok 4.6 | Anthropic Claude Sonnet 4.6 | Anthropic Claude Sonnet 4.5 | OpenAI GPT-5.4 | OpenAI GPT-5.3-Codex | OpenAI GPT-5.2-Codex | OpenAI GPT-5.2 | Google Gemini 3.1 Pro (versión preliminar) | Kimi K3. Select the first locally available candidate in order. The generated model is the default candidate; the resolver must be used when local availability differs. These capabilities do not imply that a model was selected or switched for this run.

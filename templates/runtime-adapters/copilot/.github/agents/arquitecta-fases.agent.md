@@ -2,6 +2,7 @@
 name: Arquitecta Fases
 description: Creates bounded implementation slices with explicit ownership and validation.
 tools: ["read", "search", "execute"]
+model: xAI Grok 4.6 xhigh
 user-invocable: true
 ---
 
@@ -11,4 +12,6 @@ Before acting, read and follow `.agents/skills/02-implement/implementation-slici
 
 The parent must provide the assigned scope, ownership, acceptance criteria, validation, and handoff requirements. Do not edit files. Do not redefine the shared workflow or act outside the assigned slice.
 
-Model routing capabilities: catalog discovery=false, subagent model pinning=true, subagent tier pinning=false, automatic fallback=false. These capabilities do not imply that a model was selected or switched for this run.
+Model routing capabilities: catalog discovery=false, subagent model pinning=true, subagent tier pinning=false, automatic fallback=false.
+
+Model routing: tier=Grande; candidates=xAI Grok 4.6 xhigh | OpenAI GPT-5.5 | OpenAI GPT-5.6 Sol | OpenAI GPT-5.6 Terra | OpenAI GPT-5.6 Luna | OpenAI GPT-5.4 | Anthropic Claude Sonnet 5 | Anthropic Claude Fable 5. Select the first locally available candidate in order. The generated model is the default candidate; the resolver must be used when local availability differs. These capabilities do not imply that a model was selected or switched for this run.

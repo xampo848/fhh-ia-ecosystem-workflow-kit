@@ -42,7 +42,7 @@ async function expectedDelegateRuntimeAdapters({ root }) {
   outputs.set('templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md', matrix);
 
   for (const agent of catalog.agents) {
-    for (const [relativePath, content] of runtimeAdapterFiles(agent, catalog.runtimeCapabilities)) {
+    for (const [relativePath, content] of runtimeAdapterFiles(agent, catalog.runtimeCapabilities, catalog.copilotModelRouting)) {
       outputs.set(relativePath, content);
       outputs.set(path.join('templates/runtime-adapters', runtimeForPath(relativePath), relativePath), content);
     }
@@ -51,10 +51,10 @@ async function expectedDelegateRuntimeAdapters({ root }) {
   return outputs;
 }
 
-function runtimeAdapterFiles(agent, runtimeCapabilities) {
+function runtimeAdapterFiles(agent, runtimeCapabilities, copilotModelRouting) {
   return [
     [`.codex/agents/${agent.slug}.toml`, renderCodexAgent(agent, runtimeCapabilities.codex)],
-    [`.github/agents/${agent.slug}.agent.md`, renderCopilotAgent(agent, runtimeCapabilities.copilot)],
+    [`.github/agents/${agent.slug}.agent.md`, renderCopilotAgent(agent, runtimeCapabilities.copilot, copilotModelRouting)],
     [`.claude/agents/${agent.slug}.md`, renderClaudeAgent(agent, runtimeCapabilities.claude)]
   ];
 }
@@ -170,12 +170,15 @@ ${renderCapabilities(capabilities)}
 `;
 }
 
-function renderCopilotAgent(agent, capabilities) {
+function renderCopilotAgent(agent, capabilities, modelRouting) {
   const tools = agent.writable ? '["read", "search", "edit", "execute"]' : '["read", "search", "execute"]';
+  const tier = modelRouting.agentTiers[agent.slug];
+  const candidates = modelRouting.tiers[tier];
   return `---
 name: ${agent.alias}
 description: ${agent.description}
 tools: ${tools}
+model: ${candidates[0]}
 user-invocable: true
 ---
 
@@ -185,7 +188,9 @@ Before acting, read and follow \`${agent.shared_skill_path}\` and the applicable
 
 The parent must provide the assigned scope, ownership, acceptance criteria, validation, and handoff requirements. ${agent.writable ? 'Edit only explicitly owned files.' : 'Do not edit files.'} Do not redefine the shared workflow or act outside the assigned slice.
 
-${renderCapabilities(capabilities)} These capabilities do not imply that a model was selected or switched for this run.
+${renderCapabilities(capabilities)}
+
+Model routing: tier=${tier}; candidates=${candidates.join(' | ')}. Select the first locally available candidate in order. The generated model is the default candidate; the resolver must be used when local availability differs. These capabilities do not imply that a model was selected or switched for this run.
 `;
 }
 
