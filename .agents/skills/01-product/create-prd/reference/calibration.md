@@ -21,7 +21,11 @@ Read these when they exist and apply to the request:
 - `.agents/skills/registry.md`, `.agents/capabilities/README.md`, and `.agents/integrations/README.md` only when this PRD changes workflow skills, capabilities, or integrations
 - Persistent memory context when a memory capability is available
 
-Inspect the existing models, services, queries, controllers, schema, and tests that own the requested behavior. Use `semantic_search`, `grep_search`, `read_file`, and `file_search` proportionally.
+Inspect the existing models, services, queries, controllers, schema, and tests that own the requested behavior. Start with a bounded set of 8-15 owner artifacts; expand only to resolve a concrete ownership, contract, or inherited-invariant boundary.
+
+When delegated discovery is useful and Cavecrew/Caveman is available, prefer `cavecrew-investigator` for file-path-first compressed findings. Use a normal exploratory agent only when the calibration needs architecture commentary instead of a location/result list.
+
+Use `semantic_search`, `grep_search`, `read_file`, and `file_search` proportionally. Do not enumerate a whole module or stream calibration notes into chat; persist the artifact and surface it only under Summary Visibility.
 
 When a recent comparable PRD exists, read exactly one as a structure anchor. Calibrate tone, section density, table depth, and acceptance evidence from it; do not copy its business content.
 
