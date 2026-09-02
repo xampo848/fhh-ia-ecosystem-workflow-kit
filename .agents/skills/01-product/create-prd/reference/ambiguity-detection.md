@@ -27,6 +27,7 @@ Antes de continuar, necesito resolver estas dudas:
 ```
 
 Do not ask for facts that the repository already establishes.
+Do not reopen a resolved category or ask a serial follow-up unless an answer creates a materially different implementation.
 
 ## Challenge Before Resolving
 

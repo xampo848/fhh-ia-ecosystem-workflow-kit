@@ -45,6 +45,7 @@ Rules:
 - The **tier** is the canonical contract.
 - Exact model names are descriptive current defaults for each runtime.
 - Parity is evaluated by equivalent tier/risk fit, not exact same model name.
+- For `create-prd`, use Liviano for Phase 1 calibration and Phase 2 ambiguity detection, Mediano for Phase 3 pattern lock and Phase 5 self-audit, and Grande only for Phase 4 drafting. Apply this only when the runtime permits phase-level tier selection; never claim an automatic switch otherwise.
 - Do not claim automatic switching unless the runtime confirms it.
 
 ## User override

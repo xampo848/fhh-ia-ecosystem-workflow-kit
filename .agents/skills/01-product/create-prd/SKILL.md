@@ -56,6 +56,7 @@ Use this skill when:
 - Do not start `Phase 4` until `Phase 3` records its pattern decision.
 - Do not consider the PRD delivered until `Phase 5` completes, or until compact mode persists the same self-audit declaration.
 - If information is missing, stop and ask targeted questions; do not bypass the gate.
+- Load each phase reference only when entering that phase. On a continuation turn, reuse unchanged router, policy, and skill context rather than reloading it.
 
 ### Compact Path Gate
 
@@ -128,6 +129,8 @@ If `docs/design/<slug>-sketch.md` exists for this slug, inherit it as an anchor.
 ### Phase 4: Drafting
 
 With all ambiguities resolved, produce the PRD using the standard structure below.
+
+Prefer tables, IDs, and falsifiable statements over explanatory narrative. Keep every required mapping and quality gate, but omit generic process prose.
 
 Template source (mandatory): `.agents/skills/01-product/create-prd/PRD_TEMPLATE.md`
 

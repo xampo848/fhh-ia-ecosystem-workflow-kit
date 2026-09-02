@@ -263,6 +263,7 @@ test('token-efficiency cuts keep quality gates and compact discovery', async () 
   const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const calibrationPath = path.join(root, '.agents/skills/01-product/create-prd/reference/calibration.md');
   const createPrdPath = path.join(root, '.agents/skills/01-product/create-prd/SKILL.md');
+  const modelRoutingPath = path.join(root, '.agents/model-routing/README.md');
   const matcherPath = path.join(root, '.agents/skills/02-implement/implementation-skill-matcher/SKILL.md');
   const implementPrdPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
   const orchestrationPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/orchestration-flow.md');
@@ -273,6 +274,7 @@ test('token-efficiency cuts keep quality gates and compact discovery', async () 
   const [
     calibration,
     createPrd,
+    modelRouting,
     matcher,
     implementPrd,
     orchestration,
@@ -282,6 +284,7 @@ test('token-efficiency cuts keep quality gates and compact discovery', async () 
   ] = await Promise.all([
     fs.readFile(calibrationPath, 'utf8'),
     fs.readFile(createPrdPath, 'utf8'),
+    fs.readFile(modelRoutingPath, 'utf8'),
     fs.readFile(matcherPath, 'utf8'),
     fs.readFile(implementPrdPath, 'utf8'),
     fs.readFile(orchestrationPath, 'utf8'),
@@ -293,6 +296,13 @@ test('token-efficiency cuts keep quality gates and compact discovery', async () 
   assert.match(calibration, /Use exists-or-skip/);
   assert.match(calibration, /only when this PRD changes workflow skills, capabilities, or integrations/);
   assert.match(createPrd, /### Compact Path Gate/);
+  assert.match(createPrd, /Load each phase reference only when entering that phase/);
+  assert.match(createPrd, /Prefer tables, IDs, and falsifiable statements/);
+  assert.match(calibration, /bounded set of 8-15 owner artifacts/);
+  assert.match(calibration, /prefer `cavecrew-investigator`/);
+  assert.match(modelRouting, /use Liviano for Phase 1 calibration and Phase 2 ambiguity detection/);
+  assert.match(modelRouting, /Grande only for Phase 4 drafting/);
+  assert.match(modelRouting, /never claim an automatic switch otherwise/);
   assert.match(createPrd, /Split by failure, rollback, ownership, contract, or validation boundary/);
   assert.doesNotMatch(createPrd, /at least two execution slices/);
   assert.match(createPrd, /`implement-prd` must read `## Calibration`, `## Pattern Lock`, and `## Self-Audit`/);
