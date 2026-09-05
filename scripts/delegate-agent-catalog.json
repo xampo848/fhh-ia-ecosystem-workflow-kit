@@ -67,15 +67,15 @@
       ]
     },
     "agentTiers": {
-      "capitana-alcance": "Grande",
+      "capitana-alcance": "Liviano",
       "sherlock-estructura": "Liviano",
-      "arquitecta-fases": "Grande",
+      "arquitecta-fases": "Liviano",
       "turbo-backend": "Mediano",
       "pixel-ninja": "Mediano",
       "guardia-contrato": "Mediano",
-      "testinator-5000": "Mediano",
+      "testinator-5000": "Liviano",
       "lint-ranger": "Liviano",
-      "qa-relampago": "Grande",
+      "qa-relampago": "Mediano",
       "cavecrew-investigator": "Liviano",
       "cavecrew-builder": "Mediano",
       "cavecrew-reviewer": "Liviano"

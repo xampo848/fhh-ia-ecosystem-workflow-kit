@@ -2,7 +2,7 @@
 name: QA Relampago
 description: Performs an independent final QA review of evidence and residual risks.
 tools: ["read", "search", "execute"]
-model: xAI Grok 4.6 xhigh
+model: Anthropic Claude Sonnet 5
 user-invocable: true
 ---
 
@@ -14,4 +14,4 @@ The parent must provide the assigned scope, ownership, acceptance criteria, vali
 
 Model routing capabilities: catalog discovery=false, subagent model pinning=true, subagent tier pinning=false, automatic fallback=false.
 
-Model routing: tier=Grande; candidates=xAI Grok 4.6 xhigh | OpenAI GPT-5.5 | OpenAI GPT-5.6 Sol | OpenAI GPT-5.6 Terra | OpenAI GPT-5.6 Luna | OpenAI GPT-5.4 | Anthropic Claude Sonnet 5 | Anthropic Claude Fable 5. Select the first locally available candidate in order. The generated model is the default candidate; the resolver must be used when local availability differs. These capabilities do not imply that a model was selected or switched for this run.
+Model routing: tier=Mediano; candidates=Anthropic Claude Sonnet 5 | xAI Grok 4.6 | Anthropic Claude Sonnet 4.6 | Anthropic Claude Sonnet 4.5 | OpenAI GPT-5.4 | OpenAI GPT-5.3-Codex | OpenAI GPT-5.2-Codex | OpenAI GPT-5.2 | Google Gemini 3.1 Pro (versión preliminar) | Kimi K3. Select the first locally available candidate in order. The generated model is the default candidate; the resolver must be used when local availability differs. These capabilities do not imply that a model was selected or switched for this run.

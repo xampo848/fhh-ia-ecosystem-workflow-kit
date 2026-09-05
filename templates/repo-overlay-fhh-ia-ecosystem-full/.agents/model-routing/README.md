@@ -122,6 +122,23 @@ Rules:
 - Delegation policy must remain compatible with `implement-prd` wait barriers,
   one-writer-per-file ownership, and explicit handoff rules.
 
+## Implement-PRD role routing
+
+Use these defaults unless the task exposes a concrete escalation trigger:
+
+| Role | Default tier | Escalate when |
+| --- | --- | --- |
+| Orchestrator | Mediano | Architecture, deep debugging, or release-critical risk requires `Grande`; do not use `xhigh` for the whole session by default |
+| Readiness, discovery, slicing | Liviano | Unresolved ambiguity or high-impact architectural choice needs `Mediano` or `Grande` |
+| Implementation writer | Mediano | Destructive migration, security/tenancy, or deep cross-layer contract risk needs a targeted `Grande` review |
+| Focused validation | Liviano | Flaky, broad, or non-obvious failures need `Mediano` |
+| Final QA | Mediano | Release-critical or high-blast-radius review needs `Grande` |
+
+The orchestrator must record the requested tier and any escalation reason in
+the tracker. A runtime may not support changing its own model or pinning a
+subagent tier; in that case, report the limitation and do not claim that the
+requested tier was applied.
+
 ## Runtime parity
 
 Cross-runtime parity is **equivalent**, not strict exact-model identity.

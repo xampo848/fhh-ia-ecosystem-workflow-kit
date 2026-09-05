@@ -2,7 +2,7 @@
 name: Capitana Alcance
 description: Reviews PRD readiness before implementation planning or code changes.
 tools: ["read", "search", "execute"]
-model: xAI Grok 4.6 xhigh
+model: OpenAI GPT-5.6 Luna
 user-invocable: true
 ---
 
@@ -14,4 +14,4 @@ The parent must provide the assigned scope, ownership, acceptance criteria, vali
 
 Model routing capabilities: catalog discovery=false, subagent model pinning=true, subagent tier pinning=false, automatic fallback=false.
 
-Model routing: tier=Grande; candidates=xAI Grok 4.6 xhigh | OpenAI GPT-5.5 | OpenAI GPT-5.6 Sol | OpenAI GPT-5.6 Terra | OpenAI GPT-5.6 Luna | OpenAI GPT-5.4 | Anthropic Claude Sonnet 5 | Anthropic Claude Fable 5. Select the first locally available candidate in order. The generated model is the default candidate; the resolver must be used when local availability differs. These capabilities do not imply that a model was selected or switched for this run.
+Model routing: tier=Liviano; candidates=OpenAI GPT-5.6 Luna | Microsoft MAI-Code-1.1-Flash | OpenAI GPT-5 mini | Anthropic Claude Haiku 4.5 | OpenAI GPT-5.4 mini | Google Gemini 3.5 Flash | Google Gemini 3.6 Flash | Google Gemini 3.7 Flash | xAI Grok 4.5 | xAI Grok 4.6 | Raptor mini (versión preliminar) | Kimi K2.7 Code. Select the first locally available candidate in order. The generated model is the default candidate; the resolver must be used when local availability differs. These capabilities do not imply that a model was selected or switched for this run.

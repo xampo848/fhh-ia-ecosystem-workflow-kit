@@ -64,7 +64,7 @@ Rules:
 ## Design Principles
 
 1. **Subagent-value policy**: Use subagents only when they reduce risk, context, rework, or review bias. Delegation is mandatory for `standard` risk boundaries, not for every non-trivial PRD. Inline execution is allowed in `controlled-lite` when one writer can own the slice safely and validation is focused.
-2. **Explicit delegation checkpoint**: before the first implementation slice, record whether delegation is `avoided`, `recommended`, or `required`, and name the concrete reason. “Continuity”, “one writer”, “docs-only”, “focused validation”, “independent review”, or “disjoint ownership” are valid reasons; “because it felt faster” is not enough without the underlying risk/cost explanation. Persist this decision in `delegation_posture`/`delegation_reason` on the task tracker so it survives across turns and resumes instead of being re-decided implicitly.
+2. **Explicit delegation checkpoint**: before the first implementation slice, record whether delegation is `avoided`, `recommended`, or `required`, and name the concrete reason. “Continuity”, “one writer”, “docs-only”, “focused validation”, “independent review”, or “disjoint ownership” are valid reasons; “because it felt faster” is not enough without the underlying risk/cost explanation. Persist this decision in `delegation_posture`/`delegation_reason` on the task tracker so it survives across turns and resumes instead of being re-decided implicitly. Standard mode does not imply one delegate per named stage or per file.
 3. **Context-window protection policy**: when the PRD naturally expands into multiple phase skills, surfaces, or acceptance streams, prefer subagents so each phase can keep a smaller, cleaner context. Do not collapse readiness, discovery, slicing, matching, coding, and validation into one giant inline run unless the mode and heuristics below explicitly allow it.
 4. Project context wins over generic agent advice.
 5. Read first, code second, but load only the smallest reliable context set.
@@ -74,7 +74,7 @@ Rules:
 9. **Specialized-writer policy**: outside `small/local`, production code should be written by specialized implementer owners (`backend-phase-implementer`, `frontend-phase-implementer`, or `acceptance-test-engineer` for test-driven slices). The orchestrator coordinates, reviews, and validates; it does not become the default writer.
 10. Treat backend/frontend contracts as first-class deliverables.
 11. Validate each phase Definition of Done line by line before moving on.
-12. Maintain a physical phase/task tracker at `<prd-directory>/_meta/task_tracker.toon` for every mode except `small/local`. Create or update it at the start of Phase 2 or before the first write, whichever comes first. Use it for coordination, progress, handoffs, phase state, and delegation rationale; it is not the authority for PRD closure.
+12. Maintain a physical phase/task tracker at `<prd-directory>/_meta/task_tracker.toon` for every mode except `small/local`. Create or update it at the start of Phase 2 or before the first write, whichever comes first. Use it for coordination, progress, handoffs, phase state, and delegation rationale; it is not the authority for PRD closure. Map tracker work to PRD phases and observable outcomes, not automatically to every file listed in a phase.
 13. **Subagent wait barrier**: after launching any subagent, the orchestrator MUST wait for its completed handoff before reading dependent files, launching dependent subagents, validating, updating phase status, or producing the final answer. In Codex multi-agent runs, call `wait_agent` with the relevant agent id(s) whenever the next critical-path step depends on them. If the runtime exposes a different asynchronous/pending subagent handle, poll or re-open that handle until it returns a terminal result. If the runtime cannot wait, stop and tell the user the exact pending delegate instead of continuing from assumptions.
 14. Report progress after each delegated run only after the handoff has been received and reviewed.
 15. Challenge and teach: when there are better alternatives, explain the trade-off briefly, recommend one path, and proceed unless a stop condition applies.
@@ -86,14 +86,14 @@ Rules:
 21. A dependent slice starts only after its predecessor is `VERIFIED`: implementation, focused tests, relevant validation, quality checks, and acceptance evidence are all present.
 22. For any architectural replacement, cutover, snapshot/read-model migration, or persisted read-path change, implementation is not closable until **activation on existing data** is handled explicitly: bootstrap/backfill/repair path, rollout command, recovery path, and at least one real-data smoke check or equivalent operational verification.
 23. Production-ready closure is a hard gate, not a best-effort aspiration: do not stop at "implemented and tests pass" while any acceptance gap, regression risk, standards violation, missing test, or unreviewed edge case remains open.
-24. Final QA is mandatory for every mode. The only variance is whether it runs inline or through a fresh-context reviewer; closure never skips the QA checklist itself.
+24. Final QA is mandatory for every mode. The only variance is whether it runs inline or through a fresh-context reviewer; closure never skips the QA checklist itself. Run one full QA by default. Re-entry QA is targeted to changed files, findings, and affected acceptance criteria; repeat a full QA only when the repair changes the risk boundary or the prior evidence is stale.
 25. **Discovery reuse policy**: persist the discovery brief at `<prd-directory>/_meta/discovery.md` after Phase 1 and reuse it for later slices and resumes instead of re-running exploration, subject to the freshness check in Phase 1. Skip full discovery delegation when the PRD already states complete touched files, reused patterns, and validation commands; verify those inline instead of exploring from scratch.
 
 ## Delegation Heuristics
 
 Decide `avoided`, `recommended`, or `required` before Phase 2 using these signals:
 
-1. **Phase fan-out** - if the likely flow needs three or more distinct phases/skills (for example discovery + slicing + coding, or coding + contract verification + QA), delegation should move to at least `recommended`.
+1. **Phase fan-out** - if the likely flow needs three or more distinct phases/skills (for example discovery + slicing + coding, or coding + contract verification + QA), delegation should move to at least `recommended`; this does not create one delegate per phase automatically.
 2. **Surface count** - if the PRD spans backend + frontend, or code + docs + rollout/activation, delegation should move upward.
 3. **Ownership split** - if different slices naturally belong to different file owners or different validators, delegation should move upward.
 4. **Context pressure** - if one agent would need to keep too many files, rules, or acceptance criteria active at once, delegation should move upward to protect the context window.
@@ -104,6 +104,14 @@ Default interpretation:
 - `required` when the mode is `standard`, when the deterministic hazard rule applies, when three or more signals are true, or when the PRD already depends on multiple delegate-only phase skills for safe execution.
 - `recommended` when two signals are true, or when one focused delegate would clearly reduce context churn even if the work is still bounded.
 - `avoided` only when the work fits one surface, one writer, compact context, and focused validation without losing rigor.
+
+Default cost guardrails:
+
+- Use at most one implementation writer per PRD phase when the phase has one primary surface and cohesive ownership. Split only for disjoint ownership, a contract boundary, or a materially independent acceptance stream.
+- Combine readiness, discovery, and slicing into one compact preflight when the PRD already contains locked decisions, touched files, patterns, and validation commands. Keep the named checks, but do not pay separate bootstrap cost for equivalent summaries.
+- Use one validation delegate per phase or implementation group when its commands and evidence scope are clear. Do not repeat an equivalent suite already executed by the writer unless files or dependencies changed.
+- Treat an empty, timed-out, or invalid handoff as a failed delegation attempt: retry at most once with the same bounded context, then continue inline or stop. Do not launch a new broad delegate with the same objective.
+- Never load frontend instructions for a backend-only PRD. Load architecture docs only for the hazards listed in Mandatory Startup.
 
 If you choose `avoided` while phase fan-out is high, write an explicit exception note in the tracker explaining why inline execution is still safer.
 
@@ -122,7 +130,7 @@ Before planning or editing:
 7. If frontend files are touched and `.github/instructions/frontend.instructions.md` exists, read it.
 8. Read `docs/foundations/ARCHITECTURE.md` only when it exists and the work is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths.
 9. Load only relevant pattern docs from `docs/patterns/README.md` when that index exists.
-10. Initialize or update the physical task tracker file at `<prd-directory>/_meta/task_tracker.toon` using the exact TOON template in `reference/task-tracker-template.md`, except in `small/local` mode. Treat it as coordination state, not closure authority.
+10. Initialize or update the physical task tracker file at `<prd-directory>/_meta/task_tracker.toon` using the exact TOON template in `reference/task-tracker-template.md`, except in `small/local` mode. Treat it as coordination state, not closure authority. If the PRD has a complete orchestration brief and explicit slices, verify and reuse it instead of recreating readiness, discovery, and slicing from scratch.
 11. If the PRD changes how persisted data becomes visible in the UI/API, add an **activation checklist** to the tracker: existing-data bootstrap/backfill, deploy or repair command, success signal, failure signal, rollback/repair path, and smoke verification target.
 12. For every mode above `small/local`, initialize an ignored execution lock at `<prd-directory>/_meta/execution-lock.toon` before the first coding slice. Minimum fields: `lock_id`, `prd_path`, `slice_id`, `hazards`, `selected_patterns`, `required_checks`, `evidence_state`, `waiver_state`.
 
@@ -186,16 +194,14 @@ Right-sized flow:
 1. `small/local` - inline readiness, target read, edit, focused validation, close.
 2. `controlled-lite` - run the required stage pipeline as compact inline or one lightweight delegate per stage; one owner per slice; focused validation; mandatory QA checklist and closure evidence; escalate to fresh-context QA when risk triggers fire.
 3. `controlled-implementation` - run the same required stage pipeline; delegate a stage only when independent context, ownership, or review bias lowers risk; no ceremonial extra subagents.
-4. `standard` and `autonomous-safe` - full delegated flow of the same required stages:
-   - `prd-readiness-review` - Capitana Alcance.
-   - `codebase-discovery` - Sherlock Estructura.
-   - `implementation-slicing` - Arquitecta Fases.
+4. `standard` and `autonomous-safe` - risk-complete flow with compact delegation:
+  - One compact preflight may cover `prd-readiness-review`, `codebase-discovery`, and `implementation-slicing` when the PRD and persisted briefs are complete; use separate delegates only when ambiguity, ownership, or context pressure justifies them.
    - `implementation-skill-matcher` - maps each slice to required pattern skills, optional capabilities, fallback docs, and handoff metadata.
-   - Implementation slices with `backend-phase-implementer`, `frontend-phase-implementer`, and `acceptance-test-engineer`.
+  - Implementation groups with `backend-phase-implementer`, `frontend-phase-implementer`, and `acceptance-test-engineer`; default to one writer per cohesive PRD phase, not one writer per file.
    - `contract-verifier` whenever backend responses feed frontend behavior.
    - `validation-runner` after each meaningful slice.
    - For non-trivial visible frontend UI, require a locked Contrato Visual before any coding slice. Run `frontend-design` only to translate or sharpen that lock, never to invent the screen after JSX exists. Run `impeccable` before closure when premium craft or visual QA is still material.
-    - `qa-handoff-review` before final delivery for non-trivial work and whenever closure needs a fresh-context adversarial review.
+    - One `qa-handoff-review` before final delivery for non-trivial work and targeted re-entry review only for repaired findings or stale evidence.
     - `react-doctor` after meaningful React changes; `playwright-testing` by default for most navigable user-facing UI changes when tooling is available, with documented exceptions only.
    - `document-development` as the next expected skill after implementation closure when durable knowledge changed.
 5. Before closure of any data-activation or cutover slice, verify the surface against **existing realistic data**, not only factories/fixtures. If direct environment verification is impossible, the handoff must include an executable repair/bootstrap command and a clearly named unverified risk.

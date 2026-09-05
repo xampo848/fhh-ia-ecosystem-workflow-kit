@@ -317,6 +317,27 @@ test('token-efficiency cuts keep quality gates and compact discovery', async () 
   assert.match(frontend, /only when it exists and the slice is cross-layer/);
 });
 
+test('implement-prd keeps compact delegation without weakening QA', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const implementPrdPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
+  const orchestrationPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/orchestration-flow.md');
+  const modelRoutingPath = path.join(root, '.agents/model-routing/README.md');
+  const [implementPrd, orchestration, modelRouting] = await Promise.all([
+    fs.readFile(implementPrdPath, 'utf8'),
+    fs.readFile(orchestrationPath, 'utf8'),
+    fs.readFile(modelRoutingPath, 'utf8')
+  ]);
+
+  assert.match(implementPrd, /Standard mode does not imply one delegate per named stage or per file/);
+  assert.match(implementPrd, /Combine readiness, discovery, and slicing into one compact preflight/);
+  assert.match(implementPrd, /Never load frontend instructions for a backend-only PRD/);
+  assert.match(orchestration, /one cohesive implementation group per PRD phase/);
+  assert.match(orchestration, /Run one full QA checklist/);
+  assert.match(orchestration, /Re-entry QA is targeted to repaired findings/);
+  assert.match(modelRouting, /## Implement-PRD role routing/);
+  assert.match(modelRouting, /do not use `xhigh` for the whole session by default/);
+});
+
 test('implementation-slicing and implement-prd enforce use-case/edge-case traceability at closure', async () => {
   const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const slicingPath = path.join(root, '.agents/skills/02-implement/implementation-slicing/SKILL.md');

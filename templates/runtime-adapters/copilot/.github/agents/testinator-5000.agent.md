@@ -2,7 +2,7 @@
 name: Testinator 5000
 description: Proves acceptance criteria with assigned tests, fixtures, and focused fixes.
 tools: ["read", "search", "edit", "execute"]
-model: Anthropic Claude Sonnet 5
+model: OpenAI GPT-5.6 Luna
 user-invocable: true
 ---
 
@@ -14,4 +14,4 @@ The parent must provide the assigned scope, ownership, acceptance criteria, vali
 
 Model routing capabilities: catalog discovery=false, subagent model pinning=true, subagent tier pinning=false, automatic fallback=false.
 
-Model routing: tier=Mediano; candidates=Anthropic Claude Sonnet 5 | xAI Grok 4.6 | Anthropic Claude Sonnet 4.6 | Anthropic Claude Sonnet 4.5 | OpenAI GPT-5.4 | OpenAI GPT-5.3-Codex | OpenAI GPT-5.2-Codex | OpenAI GPT-5.2 | Google Gemini 3.1 Pro (versión preliminar) | Kimi K3. Select the first locally available candidate in order. The generated model is the default candidate; the resolver must be used when local availability differs. These capabilities do not imply that a model was selected or switched for this run.
+Model routing: tier=Liviano; candidates=OpenAI GPT-5.6 Luna | Microsoft MAI-Code-1.1-Flash | OpenAI GPT-5 mini | Anthropic Claude Haiku 4.5 | OpenAI GPT-5.4 mini | Google Gemini 3.5 Flash | Google Gemini 3.6 Flash | Google Gemini 3.7 Flash | xAI Grok 4.5 | xAI Grok 4.6 | Raptor mini (versión preliminar) | Kimi K2.7 Code. Select the first locally available candidate in order. The generated model is the default candidate; the resolver must be used when local availability differs. These capabilities do not imply that a model was selected or switched for this run.

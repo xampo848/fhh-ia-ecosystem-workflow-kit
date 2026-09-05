@@ -110,14 +110,35 @@ test('Copilot model routing honors the configured preferred models', async () =>
     availableModels: ['OpenAI GPT-5.6 Luna'],
     routing
   });
-  const heavyweight = resolveCopilotModel({
+  const slicing = resolveCopilotModel({
     agentSlug: 'arquitecta-fases',
-    availableModels: ['xAI Grok 4.6 xhigh'],
+    availableModels: ['OpenAI GPT-5.6 Luna'],
     routing
   });
 
   assert.equal(lightweight.resolvedModel, 'OpenAI GPT-5.6 Luna');
-  assert.equal(heavyweight.resolvedModel, 'xAI Grok 4.6 xhigh');
+  assert.equal(slicing.requestedTier, 'Liviano');
+  assert.equal(slicing.resolvedModel, 'OpenAI GPT-5.6 Luna');
+});
+
+test('implement-prd delegates use economical default tiers', async () => {
+  const routing = await loadCopilotModelRouting();
+
+  assert.deepEqual(routing.agentTiers, {
+    'capitana-alcance': 'Liviano',
+    'sherlock-estructura': 'Liviano',
+    'arquitecta-fases': 'Liviano',
+    'turbo-backend': 'Mediano',
+    'pixel-ninja': 'Mediano',
+    'guardia-contrato': 'Mediano',
+    'testinator-5000': 'Liviano',
+    'lint-ranger': 'Liviano',
+    'qa-relampago': 'Mediano',
+    'cavecrew-investigator': 'Liviano',
+    'cavecrew-builder': 'Mediano',
+    'cavecrew-reviewer': 'Liviano'
+  });
+  assert.equal(Object.values(routing.agentTiers).includes('Grande'), false);
 });
 
 test('Copilot model routing reports an explicit failure when a tier has no local candidate', async () => {

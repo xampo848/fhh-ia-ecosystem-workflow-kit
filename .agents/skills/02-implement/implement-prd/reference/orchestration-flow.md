@@ -13,7 +13,7 @@ Before Phase 0, confirm the operating mode selected by the router or by `impleme
 | `small/local` | Inline only. No subagents. Validate the narrow local change and close. Task tracker may be skipped. |
 | `controlled-lite` | Compact inline or lightweight-delegate versions of Capitana, Sherlock, Arquitecta, matcher, writer, validation, and QA. One owner per slice. Do not omit a named stage. Skip only ceremonial extra subagents, never the QA checklist or closure evidence. |
 | `controlled-implementation` | Targeted delegation. Delegate phases or slices when independent context, file ownership, validation, or review bias reduction materially lowers risk. Do not delegate merely because the task is non-trivial. |
-| `standard` | Full delegated flow when available. Use explicit ownership, contract verification, validation runner, and QA handoff as a closure gate. |
+| `standard` | Risk-complete flow with compact delegation. Use explicit ownership, contract verification, validation runner, and one QA handoff as closure gates; do not create one delegate per file or named stage by default. |
 | `autonomous-safe` | Standard flow without routine phase approvals. Stop only on stop conditions. |
 | `resume` | Reconstruct progress from PRD, diff, tests, and first incomplete acceptance criterion. Do not re-implement validated work. |
 
@@ -132,8 +132,8 @@ The resulting plan must define:
 Slicing quality bar (outside `small/local`):
 
 - Prefer one primary acceptance objective per slice.
-- Prefer 1-2 owned production files per slice; split slices that expand to 3+ owned production files unless atomicity requires grouping.
-- Prefer one specialized writer owner per slice; split backend/frontend producer-consumer changes unless the PRD requires atomic cutover.
+- Prefer one cohesive implementation group per PRD phase, usually 2-6 related production files. Split only for disjoint ownership, a contract boundary, or a materially independent acceptance stream; file count alone is not a split trigger.
+- Prefer one specialized writer owner per implementation group; split backend/frontend producer-consumer changes unless the PRD requires atomic cutover.
 - Split before coding whenever matcher confidence drops because a slice maps to multiple unrelated pattern families.
 
 Present the implementation plan before coding when the user is interacting phase by phase, the scope is non-routine, the operating mode is `controlled-implementation` with material risks, or a stop condition applies. If the user has asked for autonomous execution or the plan is routine, proceed unless a stop condition applies.
@@ -211,7 +211,7 @@ Validation must prove both the changed behavior and the most plausible adjacent 
 
 ## Phase 6: Final QA
 
-Run a final QA checklist for every PRD implementation before closure. This stage is mandatory outside `small/local`; compact/inline QA is allowed, omitting QA is not. Delegate to `qa-handoff-review` for standard PRDs, cross-layer work, security/tenancy-sensitive work, contract changes, user-visible changes, rollout-sensitive work, or any diff that would benefit from fresh-context review. Inline QA is allowed only for strictly local low-risk slices where the orchestrator can still prove the full checklist. Inside review-only sweeps, prefer `cavecrew-reviewer` when terse line-anchored findings are enough.
+Run one full QA checklist for every PRD implementation before closure. This stage is mandatory outside `small/local`; compact/inline QA is allowed, omitting QA is not. Delegate to `qa-handoff-review` for standard PRDs, cross-layer work, security/tenancy-sensitive work, contract changes, user-visible changes, rollout-sensitive work, or any diff that would benefit from fresh-context review. Re-entry QA is targeted to repaired findings, changed files, and affected acceptance criteria; repeat a full QA only when the repair changes the risk boundary or prior evidence is stale. Inside review-only sweeps, prefer `cavecrew-reviewer` when terse line-anchored findings are enough.
 
 If `## Self-Audit` exists, reconcile its residual risks before allowing `ready_to_close: yes`.
 
