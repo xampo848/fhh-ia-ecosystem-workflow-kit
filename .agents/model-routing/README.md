@@ -122,6 +122,23 @@ Rules:
 - Delegation policy must remain compatible with `implement-prd` wait barriers,
   one-writer-per-file ownership, and explicit handoff rules.
 
+## Implement-PRD role routing
+
+Use these defaults unless the task exposes a concrete escalation trigger:
+
+| Role | Default tier | Escalate when |
+| --- | --- | --- |
+| Orchestrator | Mediano | Architecture, deep debugging, or release-critical risk requires `Grande`; do not use `xhigh` for the whole session by default |
+| Readiness, discovery, slicing | Liviano | Unresolved ambiguity or high-impact architectural choice needs `Mediano` or `Grande` |
+| Implementation writer | Mediano | Destructive migration, security/tenancy, or deep cross-layer contract risk needs a targeted `Grande` review |
+| Focused validation | Liviano | Flaky, broad, or non-obvious failures need `Mediano` |
+| Final QA | Mediano | Release-critical or high-blast-radius review needs `Grande` |
+
+The orchestrator must record the requested tier and any escalation reason in
+the tracker. A runtime may not support changing its own model or pinning a
+subagent tier; in that case, report the limitation and do not claim that the
+requested tier was applied.
+
 ## Runtime parity
 
 Cross-runtime parity is **equivalent**, not strict exact-model identity.
@@ -176,7 +193,7 @@ user_confirmed_fallback: true | false | not-required
 | `create-prd` and high-ambiguity planning | ambiguous scope, synthesis risk, architecture/product trade-off | `balanced` by default, `premium` if risk is high | Grande | strongest allowed planning-capable equivalent | strongest allowed planning-capable equivalent | Usually avoided inline unless workflow explicitly delegates | Allowed; warn if user forces a cheaper tier that risks under-specification |
 | `implement-prd` orchestration and main writer slices | normal multi-step technical work | `balanced` | Mediano | closest allowed technical-workhorse equivalent | closest allowed technical-workhorse equivalent | Recommended/required depending on slice boundaries | Allowed; warn if user forces Liviano for non-trivial implementation |
 | Discovery, review, validation delegates | focused read/review/triage with mostly noisy failure modes | `lean` by default | Liviano | closest allowed lightweight equivalent | closest allowed lightweight equivalent | Recommended when they reduce risk/context; avoided in simple docs-only work | Allowed; warn if user forces Grande without added value |
-| Readiness and implementation slicing delegates | high-leverage scope, ownership, sequencing, and evidence decisions | `balanced` by default | Grande | strongest allowed planning-capable equivalent | strongest allowed planning-capable equivalent | Recommended when they reduce context or review bias | Allowed; warn if user forces Liviano for decisions that shape downstream rework |
+| Readiness and implementation slicing delegates | approved PRD with explicit scope, ownership, sequencing, and evidence | `lean` by default; escalate only for unresolved ambiguity | Liviano | closest lightweight planning-capable equivalent | closest lightweight planning-capable equivalent | Recommended only when they reduce context or review bias | Allowed; warn if user forces Liviano when unresolved ambiguity materially affects downstream rework |
 | Release-critical QA, deep debugging, architecture-sensitive review | high ambiguity, high blast radius, release or migration risk | `premium` | Grande or strongest equivalent | strongest available equivalent | strongest available equivalent | Recommended or required depending on risk | Allowed; never silently downgrade a user-requested stronger tier |
 
 ## Wrapper contract
