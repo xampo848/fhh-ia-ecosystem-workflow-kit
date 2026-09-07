@@ -154,6 +154,67 @@ test('Copilot model routing reports an explicit failure when a tier has no local
   );
 });
 
+test('Copilot model routing honors a user-pinned override without hiding it', async () => {
+  const routing = await loadCopilotModelRouting();
+
+  const result = resolveCopilotModel({
+    agentSlug: 'turbo-backend',
+    availableModels: ['Anthropic Claude Sonnet 5', 'OpenAI GPT-5.4'],
+    routing,
+    overrideModel: 'OpenAI GPT-5.4'
+  });
+
+  assert.equal(result.routingMode, 'user-pinned-model');
+  assert.equal(result.resolvedModel, 'OpenAI GPT-5.4');
+  assert.equal(result.overrideApplied, true);
+  assert.equal(result.fallbackApplied, false);
+  assert.equal(result.overrideWarning, null);
+});
+
+test('Copilot model routing falls back visibly when a user-pinned override is unavailable', async () => {
+  const routing = await loadCopilotModelRouting();
+
+  const result = resolveCopilotModel({
+    agentSlug: 'turbo-backend',
+    availableModels: ['Anthropic Claude Sonnet 5'],
+    routing,
+    overrideModel: 'Nonexistent Model'
+  });
+
+  assert.equal(result.overrideApplied, false);
+  assert.equal(result.fallbackApplied, true);
+  assert.equal(result.resolvedModel, 'Anthropic Claude Sonnet 5');
+  assert.match(result.overrideWarning, /Requested override "Nonexistent Model" is unavailable locally/);
+});
+
+test('Copilot model routing reports an explicit failure when an override and every tier candidate are unavailable', async () => {
+  const routing = await loadCopilotModelRouting();
+
+  assert.throws(
+    () => resolveCopilotModel({
+      agentSlug: 'turbo-backend',
+      availableModels: ['Unknown local model'],
+      routing,
+      overrideModel: 'Nonexistent Model'
+    }),
+    /Override model unavailable and no tier Mediano candidate matches/
+  );
+});
+
+test('Copilot model routing accepts a single permitted model without demanding artificial diversity', async () => {
+  const routing = await loadCopilotModelRouting();
+
+  const result = resolveCopilotModel({
+    agentSlug: 'turbo-backend',
+    availableModels: ['Anthropic Claude Sonnet 5'],
+    routing
+  });
+
+  assert.equal(result.resolvedModel, 'Anthropic Claude Sonnet 5');
+  assert.equal(result.fallbackApplied, false);
+});
+
+
 async function copyFixturePackage() {
   const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const targetRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-template-pack-'));

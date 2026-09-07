@@ -170,4 +170,11 @@ Look for a backup next to the overwritten file:
 <file>.workflow-kit-backup-<timestamp>
 ```
 
-Restore manually after reviewing both versions.
+Review both versions, then restore the latest backup for every managed file with:
+
+```sh
+workflow-kit rollback --target /path/to/repo --dry-run
+workflow-kit rollback --target /path/to/repo --apply --yes
+```
+
+`rollback` only restores files tracked in `.agents/workflow-kit/install-state.json` and only when a matching `.workflow-kit-backup-<timestamp>` file exists next to them; it never invents a backup or restores an unmanaged file.

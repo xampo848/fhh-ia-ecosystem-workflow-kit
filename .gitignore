@@ -4,3 +4,5 @@ dist/
 .DS_Store
 npm-debug.log*
 docs/prd/**/_meta/
+docs/plans/**/_meta/
+.agents/workflow-kit/diagnostics/

@@ -37,7 +37,7 @@ node scripts/sync-skill-registry.mjs --write
 node scripts/sync-skill-registry.mjs --check
 ```
 
-`npm run check:workflow` runs the check form and also validates adapters,
+`bun run check:workflow` runs the check form and also validates adapters,
 capability manifests, and overlay drift.
 
 ## Skill classes

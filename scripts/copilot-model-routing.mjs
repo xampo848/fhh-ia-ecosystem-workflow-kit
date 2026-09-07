@@ -9,7 +9,7 @@ export async function loadCopilotModelRouting({ root = packageRoot } = {}) {
   return catalog.copilotModelRouting;
 }
 
-export function resolveCopilotModel({ agentSlug, availableModels, routing }) {
+export function resolveCopilotModel({ agentSlug, availableModels, routing, overrideModel = null }) {
   if (!Array.isArray(availableModels)) {
     throw new TypeError('availableModels must be an array supplied by the local Copilot runtime');
   }
@@ -18,6 +18,36 @@ export function resolveCopilotModel({ agentSlug, availableModels, routing }) {
   if (!tier) throw new Error(`No Copilot model tier configured for agent: ${agentSlug}`);
 
   const candidates = routing.tiers[tier] ?? [];
+
+  if (overrideModel) {
+    if (availableModels.includes(overrideModel)) {
+      return {
+        routingMode: 'user-pinned-model',
+        requestedTier: tier,
+        requestedModels: candidates,
+        resolvedModel: overrideModel,
+        fallbackApplied: false,
+        overrideApplied: true,
+        overrideWarning: null
+      };
+    }
+
+    const fallbackModel = candidates.find((candidate) => availableModels.includes(candidate));
+    if (!fallbackModel) {
+      throw new Error(`Override model unavailable and no tier ${tier} candidate matches for agent ${agentSlug}: ${overrideModel}`);
+    }
+
+    return {
+      routingMode: 'user-pinned-model',
+      requestedTier: tier,
+      requestedModels: candidates,
+      resolvedModel: fallbackModel,
+      fallbackApplied: true,
+      overrideApplied: false,
+      overrideWarning: `Requested override "${overrideModel}" is unavailable locally; used tier ${tier} fallback "${fallbackModel}" instead.`
+    };
+  }
+
   const resolvedModel = candidates.find((candidate) => availableModels.includes(candidate));
   if (!resolvedModel) {
     throw new Error(`No available Copilot model matches tier ${tier} for agent ${agentSlug}`);
@@ -28,7 +58,9 @@ export function resolveCopilotModel({ agentSlug, availableModels, routing }) {
     requestedTier: tier,
     requestedModels: candidates,
     resolvedModel,
-    fallbackApplied: resolvedModel !== candidates[0]
+    fallbackApplied: resolvedModel !== candidates[0],
+    overrideApplied: false,
+    overrideWarning: null
   };
 }
 

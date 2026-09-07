@@ -9,6 +9,18 @@ Before accepting a command result as slice evidence:
 3. Mark `command_scope_confirmed: no` and `evidence_state: missing` when the command cannot be shown to cover that scope; a zero exit code alone is not evidence.
 4. Mark evidence `stale` and rerun required checks when files inside the validated scope change.
 
+For delegated work, accept a reused context only when its complete content,
+provenance, and current freshness are observable. A new delegate must read its
+role-required skill, applicable instructions, and controlling source; a resume
+must revalidate the relevant delta and affected dependencies. `unknown` cannot
+be treated as proof that any of these controls occurred.
+
+Before marking a delegated slice `VERIFIED`, confirm its envelope has a
+present, non-`none`, matching, complete immutable slice `execution_lock_id` for the
+same `run_id` and `slice_id`. An absent, mismatched, incomplete, stale, or
+unknown lock state blocks `VERIFIED`; lack of runtime model identity alone does
+not.
+
 ## Backend Validation
 
 Run from `backend/`. Prefer `make` targets:
@@ -117,6 +129,10 @@ Stop and ask the user before continuing when:
 - The slice cannot satisfy the `CODE_QUALITY.md` gate without broad unrelated refactoring.
 - A required validation command cannot be shown to cover the declared slice scope.
 - The handoff lacks a validated content reference for evidence required to reach `VERIFIED`.
+- A new delegate lacks a required role read, or a claimed pre-injected context lacks complete observable content, provenance, or current freshness.
+- A resumed delegate has not revalidated a relevant delta or affected dependency before reusing prior context.
+- A delegate restarts parent intake, readiness, discovery, slicing, matching, or router selection instead of executing its assigned slice.
+- The correlated immutable slice execution lock is absent, `none`, mismatched, incomplete, stale, or `unknown` when `VERIFIED` is requested.
 - A configured quality-gate or required domain-instruction path is missing; report the exact path and stop until it is created or corrected.
 - Coverage evidence for newly created production files or newly added methods/functions is missing, ambiguous, or not mapped to executed tests plus relevant edge-case assertions.
 - A failure is classified as pre-existing/unrelated to the current slice or PRD scope: present exactly three options — (A) repair it now inside this PRD's scope, (B) log it as an explicit residual risk in `## 10. Evidencia de Implementacion` and continue, (C) block closure until it is resolved elsewhere. Do not decide on the user's behalf.

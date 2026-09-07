@@ -4,6 +4,48 @@ All subagents in the `implement-prd` flow MUST return output in TOON format usin
 Schemas are **minimum required fields**. Subagents may add fields when the skill's handoff format requires it — they may NOT omit required fields.
 The orchestrator reads these schemas to update `<prd-directory>/_meta/task_tracker.toon` and plan the next step.
 
+## Delegation Envelope Prefix
+
+Every delegated handoff includes this `delegation-envelope/v1` prefix before its
+role-specific fields. It is a neutral record contract, not an SDK schema or
+runtime enforcement mechanism.
+
+```
+schema_version: delegation-envelope/v1
+run_id: <orchestrator correlation id>
+slice_id: <slice-id>
+execution_lock_id: <lock-id | none>
+role: <agent alias>
+skill_path: <exact SKILL.md path>
+runtime: <runtime | unknown>
+surface: <runtime surface | unknown>
+registered_agent: <registered identity | unknown>
+requested_tier: Liviano | Mediano | Grande
+escalation_reason: <reason | none>
+routing_mode: auto-with-fallback | user-pinned-model | user-pinned-tier
+requested_model: <runtime model identifier | inherit | unknown>
+availability_source: <runtime-observed source | unknown>
+resolved_model: <runtime-confirmed identifier | unknown>
+resolved_model_evidence: <runtime evidence reference | none>
+objective: <observable outcome>
+acceptance_criteria[N]: <AC id>
+files_owned[N]: <path>
+files_forbidden[N]: <path>
+verified_predecessors[N]: <slice id | none>
+producer_consumer_contract: <contract | none>
+required_reads[N]: <path or section>
+context_provenance: <source and freshness | unknown>
+open_questions[N]: <question | none>
+expected_evidence[N]: <evidence>
+```
+
+`requested_model` does not prove execution. `resolved_model: unknown` is
+required when runtime evidence is absent; a non-`unknown` value requires
+`resolved_model_evidence`. When a lock is required, `execution_lock_id` must be
+present, non-`none`, complete, and match the immutable slice lock for the same `run_id`
+and `slice_id`. A handoff with absent, `none`, mismatched, incomplete, stale, or
+missing lock/evidence data cannot promote its slice to `VERIFIED`.
+
 ---
 
 ## `capitana-alcance` → Orchestrator (PRD Readiness)
@@ -276,3 +318,8 @@ next: none | <specific follow-up>
 - `blocking_findings_open: yes` (any `critical`/`high` finding not `repaired` or `waived_by_user`) forbids `ready_to_close: yes` regardless of every other field's value.
 - A `waived_by_user` entry for a `critical`/`high` finding, or for authorization/tenancy/destructive-migration gaps, is valid only when it quotes the concrete risk the user accepted; a generic acknowledgement without a named risk is treated as `evidence_state: missing`.
 - `unrelated_failures[N]` with `user_decision: pending` blocks the slice from `VERIFIED`; the orchestrator must obtain an explicit `repair_now | log_as_risk | block` decision from the user before continuing.
+- `VERIFIED` requires a `delegation-envelope/v1` prefix with a present,
+  non-`none`, matching `execution_lock_id`, complete immutable slice-lock fields, and
+  `evidence_state: fresh`. `waived_by_user` does not permit an absent, `none`,
+  or mismatched lock. A missing runtime model identity remains
+  `resolved_model: unknown` and is not a `VERIFIED` blocker by itself.
