@@ -83,6 +83,12 @@ After emitting a routing decision trace with a selected workflow or skill:
    reload policy documents; only a genuine break signal justifies a new
    routing trace and a workflow switch.
 
+Delegates inherit the selected workflow and bounded slice from the
+orchestrator. They execute the supplied role-specific context and do not rerun
+router intake, readiness, discovery, or route selection. `unknown` runtime
+metadata never authorizes inherited context, a skipped required read, or a
+runtime capability; stop or use the explicitly authorized fallback instead.
+
 Natural-language binding examples:
 
 - "usa create-prd" -> load and run `create-prd`.

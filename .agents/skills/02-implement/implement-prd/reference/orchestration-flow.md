@@ -45,6 +45,29 @@ For every delegated phase or slice:
 5. Update `<prd-directory>/_meta/task_tracker.toon` only after the handoff has been reviewed.
 6. Start the next dependent delegate only after the current slice is `VERIFIED` or explicitly marked blocked with user-visible reason.
 
+### Delegated Context Preflight
+
+Before launching a delegate, prepare only the role-relevant envelope input:
+the observable objective and ACs, owned and forbidden files, verified
+predecessors, required reads, selected patterns, relevant discovery, focused
+checks, open questions, and context provenance/freshness. Do not paste the
+full PRD, tracker, or unrelated agent matrix.
+
+- A new delegate reads its complete required skill, applicable instructions,
+   and the source that controls its change. A parent read, summary, or source
+   reference does not satisfy that requirement.
+- Do not re-read an identical source when the runtime pre-injected its complete
+   content and makes both provenance and current freshness observable; record
+   that reuse in the envelope.
+- A resumed delegate may reuse prior context only after directed revalidation
+   of the relevant delta and affected dependencies. Ignore irrelevant changes;
+   revalidate a changed dependency or contract.
+- Delegates execute the assigned slice and must not restart intake, readiness,
+   discovery, slicing, matching, or router selection. They may stop when the
+   supplied scope is invalid or a required control is missing.
+- `unknown` does not prove injection, freshness, lock validity, or runtime
+   capability. It cannot enable a skipped read or a `VERIFIED` transition.
+
 Parallel delegation is allowed only for independent read-only work or disjoint write ownership. When parallel delegates are launched, the orchestrator must wait for all terminal handoffs before merging plans, validating, or closing the phase. In Codex, call `wait_agent` with the launched agent ids until every critical-path delegate has a final status.
 
 If the runtime cannot wait for a pending Codex subagent, stop the workflow and report:
@@ -175,7 +198,7 @@ For each slice:
 8. Report progress and current phase status.
 9. Add a compact learning note when the phase involved a meaningful engineering decision.
 10. If the slice contains visible frontend UI, confirm the PRD Contrato Visual is `locked` before coding, implement that lock rather than inventing layout, and verify that the result clears the premium visual bar from `.github/instructions/frontend.instructions.md`; do not close on “functional but generic”.
-11. Mark it `VERIFIED` only after implementation, focused tests, relevant validation, quality checks, and acceptance evidence all exist.
+11. Mark it `VERIFIED` only after implementation, focused tests, relevant validation, quality checks, acceptance evidence, and a present, non-`none`, matching, complete immutable slice lock for the same `run_id` and `slice_id` all exist.
 
 Use backend and frontend implementers only with explicit file ownership. Use `acceptance-test-engineer` whenever acceptance criteria are not clearly proven by existing tests.
 For visible frontend surfaces, treat `frontend-design` as a pre-code translator of the locked Contrato Visual, not as a substitute for it. Use `impeccable` for craft, polish, or visual QA after the lock exists. If the screen is still unlocked, stop; do not invent it in JSX.
@@ -244,6 +267,6 @@ Global closure checklist:
 - Confirm the QA checklist status for acceptance criteria, regressions, standards, tests, and edge cases is fully resolved.
 - If any closure item fails, return to the owning slice, fix the root cause, rerun the affected validation, and rerun QA before attempting closure again.
 - Complete `## 10. Evidencia de Implementacion` in the PRD: delivered changes, AC status and evidence, validation commands and results, quality/QA result, commit/PR/diff reference, residual risks or waivers, and closure date. Include a "Resumen del Ledger de Hallazgos" subsection listing every row from `findings_ledger` (id, severity, final status, and resolution: repaired in which slice, or the exact quoted risk if `waived_by_user`). If `findings_ledger` is empty, state that explicitly rather than omitting the subsection. Do not copy temporary AI coordination content into this section.
-- After the PRD evidence section is complete — including the Resumen del Ledger de Hallazgos — remove `<prd-directory>/_meta/`, including the tracker, execution lock, and PRD-creation orchestration notes.
+- After the PRD evidence section is complete — including the Resumen del Ledger de Hallazgos — remove `<prd-directory>/_meta/`, including the tracker, `locks/`, and PRD-creation orchestration notes.
 - Summarize PRD phases completed, files changed, tests/lint results, acceptance criteria coverage, key trade-offs, learning notes, and open risks.
 - Recommend `document-development` only when implementation knowledge should be captured; do not force documentation handoff for small/local, controlled-lite, or controlled closures with no durable knowledge value.

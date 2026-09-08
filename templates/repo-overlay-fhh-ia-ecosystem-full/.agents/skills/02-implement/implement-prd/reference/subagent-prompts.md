@@ -13,6 +13,8 @@ Usa esta skill:
 Contexto:
 - PRD: [path]
 - Operating mode: [small/local | standard | autonomous-safe | resume]
+- Delegation envelope: `delegation-envelope/v1` with `run_id`, `slice_id`, `execution_lock_id`, role, exact skill path, invocation, task, context, verification, and expected output fields
+- Model record: `requested_model` is a request; set `resolved_model: unknown` unless runtime evidence confirms execution identity
 - Slice: [objective]
 - Acceptance criteria: [criteria]
 - Evidence expected: [tests, validation, files, behavior]
@@ -35,6 +37,7 @@ Reglas:
 11. Output constraint: Return findings strictly in TOON format matching your schema in `.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md`. Avoid conversational filler.
 12. If one subtask collapses to pure locate-code lookup, a bounded 1-2 file patch, or a terse diff sweep, prefer the relevant cavecrew helper under `.agents/skills/05-caveman/` instead of expanding inline context.
 13. Synchronization: the parent orchestrator is blocked on your terminal handoff. Do not end until your assigned slice is either complete with evidence or explicitly blocked with the blocker and safe next action.
+14. Do not invent SDK fields, runtime schemas, generated IDs, automatic enforcement, or a resolved model identity. A `VERIFIED` outcome requires a present, matching, non-`none` execution lock and fresh command evidence.
 
 Salida obligatoria:
 - Files changed.
@@ -56,6 +59,8 @@ Usa esta skill:
 Contexto:
 - PRD: [path]
 - Operating mode: [small/local | standard | autonomous-safe | resume]
+- Delegation envelope: `delegation-envelope/v1` with correlated identity, invocation, task, context, verification, and output fields
+- Model record: preserve `requested_model`; report `resolved_model: unknown` without runtime execution evidence
 - Objetivo: [read-only objective]
 - Datos disponibles: [briefs, files, constraints]
 
@@ -69,6 +74,7 @@ Reglas:
 7. Output constraint: Return findings strictly in TOON format matching your schema in `.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md`. Avoid conversational filler.
 8. When a smaller locate-code or terse review helper is enough, use the relevant cavecrew helper under `.agents/skills/05-caveman/`.
 9. Synchronization: the parent orchestrator is blocked on your terminal handoff. Do not end until the assigned review/discovery is either complete with evidence or explicitly blocked with the blocker and safe next action.
+10. Do not invent SDK fields, runtime schemas, generated IDs, automatic enforcement, or a resolved model identity. Report any absent, `none`, mismatched, incomplete, stale, or missing lock/evidence condition as blocking `VERIFIED`.
 
 Salida obligatoria:
 - Patterns found.
@@ -90,6 +96,7 @@ Usa esta skill:
 Contexto:
 - PRD: [path]
 - Operating mode: [small/local | standard | autonomous-safe | resume]
+- Delegation envelope: verify `delegation-envelope/v1` correlation, including `execution_lock_id`, invocation record, verification evidence, and output
 - Execution plan: [summary]
 - Slice reports: [summaries]
 - Changed files or diff: [paths/diff]
@@ -104,6 +111,7 @@ Reglas:
 5. Desafia sobreingenieria, duplicacion, ownership leaks, contratos rotos y deuda tecnica nueva.
 6. Si no hay issues, dilo claramente y lista riesgos residuales.
 7. Incluye una nota docente breve sobre el patron de calidad protegido.
+8. Do not treat a requested model as execution evidence. `resolved_model: unknown` is valid without runtime evidence, but `VERIFIED` is invalid when the required lock is absent, `none`, mismatched, incomplete, stale, or missing evidence.
 ```
 
 ## Prompt Card Files

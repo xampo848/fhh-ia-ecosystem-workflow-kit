@@ -10,13 +10,18 @@ Copy and fill all fields. Use TOON format. Do not leave placeholder text — rem
 prd: <path-to-prd-file>
 mode: small/local | controlled-lite | controlled-implementation | standard | autonomous-safe | resume
 started: <ISO-date>
-execution_lock: <ignored path-to-prd-directory/_meta/execution-lock.toon>
+execution_locks[N]{slice_id,path,run_id,lock_id,evidence_state}:
+  <slice-id>,<ignored-path-to-prd-directory/_meta/locks/<slice-id>.toon>,<run-id>,<lock-id>,<fresh|stale|missing>
 quality_gate: <verified path | none, with reason>
 delegation_posture: avoided | recommended | required
 delegation_reason: <one-line concrete reason, see SKILL.md Design Principle 2>
 validation_commands[N]: <command>
 loaded_docs[N]: <path>
 required_instructions[N]: <path>
+
+# delegation_envelopes
+delegation_envelopes[N]{schema_version,run_id,slice_id,execution_lock_id,role,skill_path,runtime,surface,registered_agent,requested_tier,escalation_reason,routing_mode,requested_model,availability_source,resolved_model,resolved_model_evidence,objective,context_provenance,evidence_state,status}:
+  delegation-envelope/v1,<run-id>,<slice-id>,<lock-id|none>,<role>,<exact-skill-path>,<runtime|unknown>,<surface|unknown>,<registered-agent|unknown>,<Liviano|Mediano|Grande>,<reason|none>,<auto-with-fallback|user-pinned-model|user-pinned-tier>,<model|inherit|unknown>,<source|unknown>,<confirmed-model|unknown>,<runtime-evidence|none>,<observable-objective>,<source-and-freshness|unknown>,<fresh|stale|missing>,<NOT_STARTED|IMPLEMENTED|TESTED|VALIDATED|VERIFIED|BLOCKED>
 
 # acceptance_criteria
 ac[N]{id,description,status,evidence}:
@@ -92,8 +97,10 @@ handoff_log[N]{phase,agent,timestamp,status,notes}:
 - Record matcher evidence before the implementation owner starts on the same slice.
 - Distinguish slicing, matcher, and implementation handoffs in `handoff_log`.
 - Add to `open_risks` whenever a subagent returns a risk.
-- Record the ignored PRD-local execution lock; it is coordination state, as is this tracker. Persist closure evidence in the final response and durable PRD documentation before cleanup.
+- Record an ignored immutable PRD-local execution lock per slice; it is coordination state, as is this tracker. Persist closure evidence in the final response and durable PRD documentation before cleanup.
 - Record only a quality-gate path confirmed to exist; a missing configured path is a stop condition, not `none`.
+- Record one `delegation-envelope/v1` row for every delegated slice. Keep `requested_model` separate from `resolved_model`; use `resolved_model: unknown` unless runtime evidence exists, and never infer it from a label, catalog, or prompt.
+- Do not set a delegated slice to `VERIFIED` unless its envelope has a present, non-`none` `execution_lock_id` matching its immutable slice lock for the same `run_id` and `slice_id`, all lock fields are complete, and `evidence_state` is `fresh`. An absent, `none`, mismatched, incomplete, stale, or missing lock/evidence record blocks `VERIFIED`; lack of runtime model evidence alone does not.
 - Mark `evidence` in `ac` when the acceptance criterion has concrete proof (test path, validation output, or explicit residual risk).
 - Update `qa_gate` and `closure_gate` after validation and QA; Phase 8 cannot be `VERIFIED` while any item is not passing with evidence.
 - Append every finding returned by `lint-ranger` or `qa-relampago` to `findings_ledger` with a stable `id`; never overwrite or delete a row. Update only its `status` in place when it is repaired or waived.

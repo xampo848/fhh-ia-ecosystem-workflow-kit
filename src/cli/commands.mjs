@@ -1,6 +1,7 @@
 import { applyInstallPlan } from '../apply.mjs';
 import { formatDoctorResult, runDoctor } from '../doctor.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan } from '../planner.mjs';
+import { applyRollbackPlan, buildRollbackPlan, formatRollbackPlan } from '../rollback.mjs';
 import { runTui } from '../tui.mjs';
 import { buildUpgradePlan, commandExists, formatUpgradePlan, resolveUpgradePackageManager, runUpgradePlan } from '../upgrade.mjs';
 import packageJson from '../../package.json' with { type: 'json' };
@@ -94,6 +95,23 @@ export async function runDoctorCommand(options, { stdout }) {
   return result.ok ? 0 : 1;
 }
 
+export async function runRollbackCommand(options, { stdout, stderr }) {
+  const guardMessage = yesGuardMessage(options, 'apply rollback');
+  if (guardMessage) {
+    stderr.write(guardMessage);
+    return 2;
+  }
+
+  const plan = await buildRollbackPlan(options);
+  stdout.write(`${options.apply ? 'Rollback apply plan' : 'Rollback dry-run plan'}\n${formatRollbackPlan(plan)}\n`);
+
+  if (!options.apply || plan.operations.length === 0) return 0;
+
+  const restored = await applyRollbackPlan(plan);
+  stdout.write(`Restored files: ${restored.length}\n`);
+  return 0;
+}
+
 export async function runTuiCommand(_options, { stdout }) {
   const result = await runTui({ write: (message) => stdout.write(message) });
   return result.code;
@@ -105,5 +123,6 @@ export const commandHandlers = {
   upgrade: runUpgradeCommand,
   export: runExportCommand,
   doctor: runDoctorCommand,
+  rollback: runRollbackCommand,
   tui: runTuiCommand
 };

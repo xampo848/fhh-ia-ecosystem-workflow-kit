@@ -116,10 +116,70 @@ test('implement-prd keeps PRD-local coordination artifacts ignored and cleans th
   ]);
 
   assert.match(gitignore, /docs\/prd\/\*\*\/_meta\//);
-  assert.match(skill, /ignored execution lock at `<prd-directory>\/_meta\/execution-lock\.toon`/);
+  assert.match(skill, /ignored immutable execution lock for each coding slice at `<prd-directory>\/_meta\/locks\/<slice-id>\.toon`/);
   assert.match(skill, /<prd-directory>\/_meta\/task_tracker\.toon/);
   assert.match(skill, /<prd-directory>\/_meta\/` is removed/);
   assert.match(skill, /Complete `## 10\. Evidencia de Implementacion` in the PRD/);
+});
+
+test('neutral delegation envelope records requested and resolved models independently', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const routingPath = path.join(root, '.agents/model-routing/README.md');
+  const handoffPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md');
+  const trackerPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/task-tracker-template.md');
+  const [routing, handoffs, tracker] = await Promise.all([
+    fs.readFile(routingPath, 'utf8'),
+    fs.readFile(handoffPath, 'utf8'),
+    fs.readFile(trackerPath, 'utf8')
+  ]);
+
+  assert.match(routing, /schema_version: delegation-envelope\/v1/);
+  assert.match(routing, /invocation:/);
+  assert.match(routing, /task:/);
+  assert.match(routing, /context:/);
+  assert.match(routing, /verification:/);
+  assert.match(routing, /output:/);
+  assert.match(routing, /requested_model.*resolved_model/s);
+  assert.match(routing, /resolved_model: unknown/);
+  assert.match(routing, /not an SDK schema, runtime invocation API.*automatic enforcement mechanism/s);
+  assert.match(handoffs, /## Delegation Envelope Prefix/);
+  assert.match(handoffs, /resolved_model_evidence/);
+  assert.match(tracker, /# delegation_envelopes/);
+});
+
+test('neutral delegation envelope blocks VERIFIED for invalid locks but permits unknown resolved model', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const routingPath = path.join(root, '.agents/model-routing/README.md');
+  const handoffPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md');
+  const trackerPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/task-tracker-template.md');
+  const [routing, handoffs, tracker] = await Promise.all([
+    fs.readFile(routingPath, 'utf8'),
+    fs.readFile(handoffPath, 'utf8'),
+    fs.readFile(trackerPath, 'utf8')
+  ]);
+
+  assert.match(routing, /must not be\n?\s*`none`, and must equal the active lock/s);
+  assert.match(routing, /Missing,\n?\s*`none`, mismatched, stale, or missing lock\/evidence data blocks `VERIFIED`/s);
+  assert.match(handoffs, /run_id: <orchestrator correlation id>/);
+  assert.match(handoffs, /absent, `none`, mismatched, incomplete, stale, or\nmissing lock\/evidence data cannot promote its slice to `VERIFIED`/s);
+  assert.match(tracker, /absent, `none`, mismatched, incomplete, stale, or missing lock\/evidence record blocks `VERIFIED`/s);
+  assert.match(handoffs, /resolved_model: unknown.*not a `VERIFIED` blocker by itself/s);
+  assert.doesNotMatch(routing, /ask a delegate to self-report its model identity/);
+});
+
+test('immutable per-slice execution locks require the run correlation used by delegation envelopes', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const skillPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
+  const overlayPath = path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/02-implement/implement-prd/SKILL.md');
+  const [skill, overlay] = await Promise.all([
+    fs.readFile(skillPath, 'utf8'),
+    fs.readFile(overlayPath, 'utf8')
+  ]);
+
+  assert.match(skill, /immutable execution lock for each coding slice at `<prd-directory>\/_meta\/locks\/<slice-id>\.toon`/);
+  assert.match(skill, /`run_id` is stable for the PRD run; `lock_id` is stable for its slice/);
+  assert.match(skill, /matches its immutable slice lock/);
+  assert.equal(skill, overlay);
 });
 
 test('QA handoff workflow keeps explicit rerun and controlled-lite closure rules', async () => {

@@ -40,6 +40,30 @@ test('router distinguishes intake from full routing and visible traces', async (
   assert.match(router, /do not inspect product implementation files[\s\S]*do not edit code/i);
 });
 
+test('delegated context policy requires role reads, observable reuse, and directed resume validation', async () => {
+  const [instructions, router, flow, validation] = await Promise.all([
+    read('.agents/instructions.md'),
+    read('.agents/skills/00-router/workflow-router/SKILL.md'),
+    read('.agents/skills/02-implement/implement-prd/reference/orchestration-flow.md'),
+    read('.agents/skills/02-implement/implement-prd/reference/validation-and-stop-conditions.md')
+  ]);
+
+  assert.match(instructions, /A new delegate reads its complete required skill, applicable instructions,/);
+  assert.match(instructions, /complete content,\s+its provenance, and its current freshness observable/);
+  assert.match(instructions, /revalidates the relevant delta and affected dependencies/);
+  assert.match(instructions, /must not\s+restart those parent stages or recursively reroute/s);
+  assert.match(instructions, /`unknown` is a record of unavailable evidence, not permission/);
+  assert.match(router, /do not rerun\s+router intake, readiness, discovery, or route selection/s);
+  assert.match(flow, /## Delegated Context Preflight/);
+  assert.match(flow, /Do not paste the\s+full PRD, tracker, or unrelated agent matrix/s);
+  assert.match(flow, /parent read, summary, or source\s+reference does not satisfy that requirement/s);
+  assert.match(flow, /pre-injected its complete\s+content and makes both provenance and current freshness observable/s);
+  assert.match(flow, /must not restart intake, readiness,\s+discovery, slicing, matching, or router selection/s);
+  assert.match(validation, /A new delegate must read its\s+role-required skill, applicable instructions, and controlling source/s);
+  assert.match(validation, /present, non-`none`, matching, complete immutable slice `execution_lock_id`/);
+  assert.match(validation, /unknown lock state blocks `VERIFIED`/);
+});
+
 test('canonical instructions and router match the installable overlay', async () => {
   for (const relativePath of [
     '.agents/instructions.md',

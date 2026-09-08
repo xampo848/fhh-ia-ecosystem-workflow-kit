@@ -175,3 +175,55 @@ test('upgrade apply requires --yes', async () => {
   assert.equal(code, 2);
   assert.match(io.output.stderr, /Refusing to apply toolkit upgrade without --yes/);
 });
+
+test('rollback reports nothing to restore when no workflow-kit backups exist', async () => {
+  const target = await makeTempRepo();
+  const io = createMemoryIo();
+
+  const code = await runCli(['rollback', '--target', target, '--apply', '--yes'], io);
+
+  assert.equal(code, 0);
+  assert.match(io.output.stdout, /Nothing to roll back/);
+});
+
+test('rollback apply requires --yes', async () => {
+  const target = await makeTempRepo();
+  const io = createMemoryIo();
+
+  const code = await runCli(['rollback', '--target', target, '--apply'], io);
+
+  assert.equal(code, 2);
+  assert.match(io.output.stderr, /Refusing to apply rollback without --yes/);
+});
+
+test('rollback dry-run reports the restore plan without writing', async () => {
+  const target = await makeTempRepo();
+  await fs.writeFile(path.join(target, 'AGENTS.md'), 'existing local instructions\n', 'utf8');
+  await runCli(['init', '--target', target, '--runtime', 'codex', '--apply', '--yes'], createMemoryIo());
+
+  const io = createMemoryIo();
+  const code = await runCli(['rollback', '--target', target], io);
+
+  assert.equal(code, 0);
+  assert.match(io.output.stdout, /Rollback dry-run plan/);
+  assert.match(io.output.stdout, /restore AGENTS\.md <- AGENTS\.md\.workflow-kit-backup-/);
+  const current = await fs.readFile(path.join(target, 'AGENTS.md'), 'utf8');
+  assert.notEqual(current, 'existing local instructions\n');
+});
+
+test('rollback --apply --yes restores the most recent backup for a managed file', async () => {
+  const target = await makeTempRepo();
+  await fs.writeFile(path.join(target, 'AGENTS.md'), 'existing local instructions\n', 'utf8');
+  await runCli(['init', '--target', target, '--runtime', 'codex', '--apply', '--yes'], createMemoryIo());
+
+  const overwritten = await fs.readFile(path.join(target, 'AGENTS.md'), 'utf8');
+  assert.notEqual(overwritten, 'existing local instructions\n');
+
+  const io = createMemoryIo();
+  const code = await runCli(['rollback', '--target', target, '--apply', '--yes'], io);
+
+  assert.equal(code, 0);
+  assert.match(io.output.stdout, /Restored files: 1/);
+  const restored = await fs.readFile(path.join(target, 'AGENTS.md'), 'utf8');
+  assert.equal(restored, 'existing local instructions\n');
+});

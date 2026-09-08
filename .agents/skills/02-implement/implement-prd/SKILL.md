@@ -59,7 +59,7 @@ Rules:
 1. A PRD or dependent slice with two or more listed hazards MUST use `standard` mode; file count, one-writer framing, or an inline preference cannot downgrade it.
 2. `standard` under this rule requires blocking matcher completion before coding, independent validation, and fresh-context QA before closure.
 3. `autonomous-safe` may remove routine user pauses, but it retains every `standard` gate when the hazard rule applies.
-4. Record detected hazards and the resulting mode in the execution lock before the first coding slice.
+4. Record detected hazards and the resulting mode in the execution lock for each slice before coding begins.
 
 ## Design Principles
 
@@ -132,21 +132,24 @@ Before planning or editing:
 9. Load only relevant pattern docs from `docs/patterns/README.md` when that index exists.
 10. Initialize or update the physical task tracker file at `<prd-directory>/_meta/task_tracker.toon` using the exact TOON template in `reference/task-tracker-template.md`, except in `small/local` mode. Treat it as coordination state, not closure authority. If the PRD has a complete orchestration brief and explicit slices, verify and reuse it instead of recreating readiness, discovery, and slicing from scratch.
 11. If the PRD changes how persisted data becomes visible in the UI/API, add an **activation checklist** to the tracker: existing-data bootstrap/backfill, deploy or repair command, success signal, failure signal, rollback/repair path, and smoke verification target.
-12. For every mode above `small/local`, initialize an ignored execution lock at `<prd-directory>/_meta/execution-lock.toon` before the first coding slice. Minimum fields: `lock_id`, `prd_path`, `slice_id`, `hazards`, `selected_patterns`, `required_checks`, `evidence_state`, `waiver_state`.
+12. For every mode above `small/local`, initialize an ignored immutable execution lock for each coding slice at `<prd-directory>/_meta/locks/<slice-id>.toon`. Minimum fields: `run_id`, `lock_id`, `prd_path`, `slice_id`, `hazards`, `selected_patterns`, `required_checks`, `evidence_state`, `waiver_state`.
+13. For every delegated slice, initialize a `delegation-envelope/v1` record in the tracker using the neutral contract in `.agents/model-routing/README.md`. Record requested invocation data separately from runtime-observed resolution data; use `resolved_model: unknown` when runtime evidence is unavailable.
 
 ## Execution Lock Baseline
 
-For every mode above `small/local`, completion requires an explicit, ignored per-PRD execution lock. The lock is runtime coordination state; closure evidence is reported in the final response and durable PRD documentation, while the tracker cannot substitute for that evidence.
+For every mode above `small/local`, completion requires an explicit, ignored immutable execution lock per slice. Locks are runtime coordination state; closure evidence is reported in the final response and durable PRD documentation, while the tracker cannot substitute for that evidence.
 
 Minimum contract:
 
-1. `lock_id` is stable for the PRD run and appears in every slice handoff.
-2. The lock lives at `<prd-directory>/_meta/execution-lock.toon`, is ignored by Git, and must not contain the only durable record of a decision or validation result.
+1. `run_id` is stable for the PRD run; `lock_id` is stable for its slice. Both appear in every slice handoff.
+2. Each lock lives at `<prd-directory>/_meta/locks/<slice-id>.toon`, is ignored by Git, and must not contain the only durable record of a decision or validation result.
 3. Each slice records `hazards`, `selected_patterns`, and exact `required_checks` before coding starts.
 4. `evidence_state` must be `fresh` to promote a slice to `VERIFIED`.
 5. If files inside the slice scope change after validation, mark `evidence_state` as `stale` and rerun required checks.
 6. Waivers are allowed only as `waived_by_user` with a concrete reason and the exact acceptance/risk being waived.
 7. Missing lock fields are a hard stop for dependent slices.
+8. A slice may be `VERIFIED` only when `execution_lock_id` is present, not `none`, and matches its immutable slice lock for the same run and slice; its required command evidence must be `fresh`. A missing, `none`, mismatched, incomplete, stale, or missing lock/evidence record blocks `VERIFIED`.
+9. This workflow validates the envelope as coordination evidence only. It does not assert an SDK schema, runtime enforcement hook, generated ID format, or model execution identity that the runtime does not expose.
 
 ## Context Budget Policy
 
@@ -276,9 +279,10 @@ Do not declare the PRD complete until all of these are explicitly true:
 6. Coverage evidence exists for newly created production files and newly added methods/functions: each one maps to at least one executed test and at least one relevant edge-case assertion, or it is explicitly marked as `waived_by_user` with reason.
 7. Relevant edge cases, failure states, empty states, and rollout/cutover scenarios are verified or explicitly blocked.
 8. Final QA ends in `ready_to_close: yes`, which requires `blocking_findings_open: no` — no `critical`/`high` finding in `findings_ledger` remains `open` without being `repaired` or validly `waived_by_user` (a generic acknowledgement does not satisfy this for `critical`/`high` findings or authorization/tenancy/destructive-migration gaps).
-9. Every `VERIFIED` slice has fresh command evidence in the execution lock, or an explicit `waived_by_user` record.
-10. Complete `## 10. Evidencia de Implementacion` in the PRD with delivered changes, acceptance-criterion status, executed validations, QA result, identifiable change reference, residual risks or waivers, and closure date. Include a "Resumen del Ledger de Hallazgos" subsection listing every `findings_ledger` row with its id, severity, final status, and resolution (repaired in which slice, or the exact quoted risk if `waived_by_user`); state explicitly when the ledger is empty. This durable record must not include prompts, trackers, handoffs, or internal agent state.
-11. After `## 10. Evidencia de Implementacion` is complete, `<prd-directory>/_meta/` is removed. Do not declare closure while temporary AI coordination artifacts remain.
+9. Every `VERIFIED` slice has fresh command evidence in its immutable execution lock, or an explicit `waived_by_user` record.
+10. Every `VERIFIED` delegated slice has a `delegation-envelope/v1` record with a matching non-`none` execution lock; `resolved_model: unknown` remains valid when runtime execution evidence is unavailable.
+11. Complete `## 10. Evidencia de Implementacion` in the PRD with delivered changes, acceptance-criterion status, executed validations, QA result, identifiable change reference, residual risks or waivers, and closure date. Include a "Resumen del Ledger de Hallazgos" subsection listing every `findings_ledger` row with its id, severity, final status, and resolution (repaired in which slice, or the exact quoted risk if `waived_by_user`); state explicitly when the ledger is empty. This durable record must not include prompts, trackers, handoffs, or internal agent state.
+12. After `## 10. Evidencia de Implementacion` is complete, `<prd-directory>/_meta/` is removed. Do not declare closure while temporary AI coordination artifacts remain.
 
 If any item above is incomplete, the orchestrator must loop back through the owning slice, rerun the affected validation, and rerun QA until the checklist is satisfied.
 

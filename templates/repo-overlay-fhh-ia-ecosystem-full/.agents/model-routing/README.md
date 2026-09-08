@@ -185,6 +185,86 @@ fallback_reason: <optional reason>
 user_confirmed_fallback: true | false | not-required
 ```
 
+`requested_model` records an adapter request, not proof of execution. Set
+`resolved_model: unknown` unless the runtime exposes execution evidence that
+correlates to the delegated run. Do not ask a delegate to self-report its model
+identity and do not infer it from an agent label, prompt, catalog, or fallback
+choice.
+
+## Neutral Delegation Envelope
+
+Use `delegation-envelope/v1` for every non-trivial delegated slice. It is a
+portable record contract, not an SDK schema, runtime invocation API, generated
+identifier format, or automatic enforcement mechanism. The orchestrator records
+the envelope once in the tracker and passes only the applicable fields to a
+delegate prompt.
+
+```text
+schema_version: delegation-envelope/v1
+run_id: <orchestrator correlation id>
+slice_id: <slice id>
+execution_lock_id: <lock id | none>
+role: <orchestrator | delegate role>
+skill_path: <exact SKILL.md path>
+
+invocation:
+   runtime: <runtime name>
+   surface: <runtime surface | unknown>
+   registered_agent: <registered identity | unknown>
+   requested_tier: Liviano | Mediano | Grande
+   escalation_reason: <reason | none>
+   routing_mode: auto-with-fallback | user-pinned-model | user-pinned-tier
+   requested_model: <runtime model identifier | inherit | unknown>
+   availability_source: <runtime-observed source | unknown>
+   resolved_model: <runtime-confirmed identifier | unknown>
+   resolved_model_evidence: <runtime evidence reference | none>
+
+task:
+   objective: <observable outcome>
+   acceptance_criteria[N]: <AC id>
+   files_owned[N]: <path>
+   files_forbidden[N]: <path>
+   verified_predecessors[N]: <slice id | none>
+   producer_consumer_contract: <contract | none>
+
+context:
+   required_reads[N]: <path or section>
+   discovery_summary: <relevant bounded discovery | none>
+   selected_patterns[N]: <path or none>
+   provenance: <source and freshness | unknown>
+   open_questions[N]: <question | none>
+
+verification:
+   required_checks[N]: <command or check>
+   expected_evidence[N]: <evidence>
+   evidence_state: fresh | stale | missing
+
+output:
+   status: success | partial | blocked
+   files_changed[N]: <path | none>
+   ac_covered[N]: <AC id | none>
+   commands_executed[N]: <command | none>
+   validation_result: PASS | FAIL | NOT_RUN
+   gaps_or_risks[N]: <risk | none>
+   fallback_reason: <reason | none>
+```
+
+Rules:
+
+1. `requested_model` and `resolved_model` are separate fields. A missing or
+    unobservable runtime execution identity is recorded as `resolved_model:
+    unknown`; that fact alone does not block delivery.
+2. A non-`unknown` `resolved_model` requires `resolved_model_evidence` from the
+    runtime. This contract does not define how a runtime emits that evidence.
+3. When a lock is required, `execution_lock_id` must be present, must not be
+    `none`, and must equal the active lock for the same `run_id` and `slice_id`.
+4. A slice may be marked `VERIFIED` only when its correlated lock is present,
+    complete, and matching, and its command evidence is `fresh`. Missing,
+    `none`, mismatched, stale, or missing lock/evidence data blocks `VERIFIED`.
+5. These rules define workflow checks for the orchestrator and reviewers. They
+    do not claim runtime-side validation, automatic model resolution, or
+    enforcement.
+
 ## Cross-runtime routing matrix
 
 | Workflow / task | Risk signal | Cost posture | Tier | Codex default | GitHub/Copilot default | Delegation default | User override rule |
@@ -193,7 +273,7 @@ user_confirmed_fallback: true | false | not-required
 | `create-prd` and high-ambiguity planning | ambiguous scope, synthesis risk, architecture/product trade-off | `balanced` by default, `premium` if risk is high | Grande | strongest allowed planning-capable equivalent | strongest allowed planning-capable equivalent | Usually avoided inline unless workflow explicitly delegates | Allowed; warn if user forces a cheaper tier that risks under-specification |
 | `implement-prd` orchestration and main writer slices | normal multi-step technical work | `balanced` | Mediano | closest allowed technical-workhorse equivalent | closest allowed technical-workhorse equivalent | Recommended/required depending on slice boundaries | Allowed; warn if user forces Liviano for non-trivial implementation |
 | Discovery, review, validation delegates | focused read/review/triage with mostly noisy failure modes | `lean` by default | Liviano | closest allowed lightweight equivalent | closest allowed lightweight equivalent | Recommended when they reduce risk/context; avoided in simple docs-only work | Allowed; warn if user forces Grande without added value |
-| Readiness and implementation slicing delegates | high-leverage scope, ownership, sequencing, and evidence decisions | `balanced` by default | Grande | strongest allowed planning-capable equivalent | strongest allowed planning-capable equivalent | Recommended when they reduce context or review bias | Allowed; warn if user forces Liviano for decisions that shape downstream rework |
+| Readiness and implementation slicing delegates | approved PRD with explicit scope, ownership, sequencing, and evidence | `lean` by default; escalate only for unresolved ambiguity | Liviano | closest lightweight planning-capable equivalent | closest lightweight planning-capable equivalent | Recommended only when they reduce context or review bias | Allowed; warn if user forces Liviano when unresolved ambiguity materially affects downstream rework |
 | Release-critical QA, deep debugging, architecture-sensitive review | high ambiguity, high blast radius, release or migration risk | `premium` | Grande or strongest equivalent | strongest available equivalent | strongest available equivalent | Recommended or required depending on risk | Allowed; never silently downgrade a user-requested stronger tier |
 
 ## Wrapper contract

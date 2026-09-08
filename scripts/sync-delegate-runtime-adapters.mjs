@@ -146,7 +146,7 @@ If none apply, do the work inline in the orchestrator and record why delegation 
 
 ## Runtime Model Routing Capabilities
 
-These are declarative capabilities of the generated runtime adapters. They do not imply that a model was selected or switched for a specific run.
+These values are \`configured\` in this repository catalog, not \`observed\` runtime evidence (see \`docs/workflow/cross-runtime-capability-matrix.md\`). They do not imply that a model was selected or switched for a specific run.
 
 | Runtime | Discover catalog | Pin subagent model | Pin subagent tier | Auto fallback |
 | --- | --- | --- | --- | --- |
