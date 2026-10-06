@@ -245,7 +245,7 @@ Use the matching generated adapter for the active runtime: `.codex/agents/[alias
 
 **Fallback — prompt cards or inline:**
 When native agents are unavailable, use the matching prompt card in [agents/](agents/) or open the delegate `SKILL.md` directly and run its procedure inline. Antigravity uses this path until it documents a project custom-agent file format.
-Load [reference/delegate-skill-matrix.md](reference/delegate-skill-matrix.md) and [reference/subagent-prompts.md](reference/subagent-prompts.md) only when exact adapter paths or prompt templates are needed.
+Load [reference/delegate-skill-matrix.md](reference/delegate-skill-matrix.md) and [reference/subagent-prompts.md](reference/subagent-prompts.md) only when exact adapter paths or prompt templates are needed. In GitHub Copilot, always load the `Copilot Invocation Protocol` section of `reference/subagent-prompts.md` immediately before any `runSubagent` delegation. Before each delegation the orchestrator interprets the task and supplies a structured `taskContext` (and cost constraints when a limit applies) to the resolver defined there; role defaults are only the fallback.
 
 Do not invent tools or agents that are not available. When a delegate needs a lower-context helper, use the shared cavecrew helpers in `.agents/skills/05-caveman/`. If runtime adapters exist, use them; otherwise execute via shared `SKILL.md` paths.
 

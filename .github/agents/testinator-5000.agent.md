@@ -2,7 +2,7 @@
 name: Testinator 5000
 description: Proves acceptance criteria with assigned tests, fixtures, and focused fixes.
 tools: ["read", "search", "edit", "execute"]
-model: OpenAI GPT-5.6 Luna
+model: ["Claude Sonnet 5.5 (copilot)","GPT-6.1 Sol (copilot)","Claude Sonnet 5 (copilot)","GPT-6 Sol (copilot)","Grok 4.7 (copilot)","Grok 4.6 (copilot)","GPT-5.4 (copilot)","GPT-5.3-Codex (copilot)","Kimi K3 (copilot)"]
 user-invocable: true
 ---
 
@@ -14,4 +14,8 @@ The parent must provide the assigned scope, ownership, acceptance criteria, vali
 
 Model routing capabilities: catalog discovery=false, subagent model pinning=true, subagent tier pinning=false, automatic fallback=false.
 
-Model routing: tier=Liviano; candidates=OpenAI GPT-5.6 Luna | OpenAI GPT-6 Luna | Microsoft MAI-Code-1.1-Flash | OpenAI GPT-5 mini | Anthropic Claude Haiku 4.5 | OpenAI GPT-5.4 mini | Google Gemini 3.7 Flash | Google Gemini 3.8 Flash | xAI Grok 4.5 | xAI Grok 4.6. Select the first locally available candidate in order. The generated model is the default candidate; the resolver must be used when local availability differs. These capabilities do not imply that a model was selected or switched for this run.
+Copilot invocation identity: this agent's registered Copilot name is `Testinator 5000`. The Claude slug `testinator-5000` belongs to a different runtime and is not the Copilot agent name.
+
+Model routing: tier=Mediano; candidates=Claude Sonnet 5.5 (copilot) | GPT-6.1 Sol (copilot) | Claude Sonnet 5 (copilot) | GPT-6 Sol (copilot) | Grok 4.7 (copilot) | Grok 4.6 (copilot) | GPT-5.4 (copilot) | GPT-5.3-Codex (copilot) | Kimi K3 (copilot). The `model` front matter is a static priority list limited to this tier; it does not prove which model executed and it must be validated against the options the runtime currently exposes.
+
+The parent that starts this agent resolves the target tier from observed options and passes both `agentName` (`Testinator 5000`) and the selected qualified `model` explicitly to `runSubagent`, following the Copilot invocation protocol in `.agents/skills/02-implement/implement-prd/reference/subagent-prompts.md`. This agent cannot choose or change the model it is already running with, and these capabilities do not imply that a model was selected or switched for this run.

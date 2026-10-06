@@ -1,0 +1,15 @@
+diff --git a/src/sprintf.js b/src/sprintf.js
+index c0fc7c08b2e6fe38de2883034b8d28c8f34e9866..70047d1f19530de1acc5f8679b62fff7b3f613b9 100644
+--- a/src/sprintf.js
++++ b/src/sprintf.js
+@@ -58,6 +58,10 @@
+                     is_positive = arg >= 0
+                 }
+ 
++                if (match[7] && /[efg]/.test(match[8])) {
++                    match[7] = String(Math.max(match[8] === "g" ? 1 : 0, Math.min(100, Number(match[7]))))
++                }
++
+                 switch (match[8]) {
+                     case "b":
+                         arg = arg.toString(2)

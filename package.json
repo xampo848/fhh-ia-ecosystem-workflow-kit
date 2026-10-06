@@ -1,6 +1,6 @@
 {
   "name": "fhh-ia-ecosystem-workflow-kit",
-  "version": "0.7.38-document-development-lightweight",
+  "version": "0.7.40-contextual-model-selection",
   "private": true,
   "description": "Public GitHub-installable CLI/TUI workflow kit with safe install/export commands.",
   "license": "MIT",
@@ -20,6 +20,7 @@
     "check:release": "node scripts/validate-release-readiness.mjs",
     "check:docs": "node scripts/validate-docs.mjs",
     "check:legal": "node scripts/validate-legal-readiness.mjs",
+    "check:security": "node scripts/validate-dependency-security.mjs",
     "test": "node --test",
     "slides:dev": "slidev slides.md",
     "slides:build": "slidev build slides.md",
@@ -42,24 +43,32 @@
     "bin/",
     "docs/",
     "src/",
-    "templates/"
+    "templates/",
+    "patches/"
   ],
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "@inquirer/prompts": "^8.6.0"
+    "@inquirer/prompts": "^8.7.3"
   },
   "devDependencies": {
-    "@slidev/cli": "^52.19.1",
+    "@slidev/cli": "^52.20.1",
     "@slidev/theme-default": "^0.25.0",
-    "hono": "^4.13.3",
-    "yaml": "^2.9.0"
+    "hono": "^4.13.13",
+    "yaml": "^2.9.1"
   },
   "overrides": {
     "@hono/node-server": "^2.0.5",
-    "dompurify": "^3.4.12",
-    "hono": "^4.12.34",
+    "dompurify": "^3.4.16",
+    "hono": "^4.13.13",
+    "image-size": "^2.0.4",
+    "katex": "^0.18.11",
     "postcss": "^8.5.25"
+  },
+  "patchedDependencies": {
+    "braces@3.0.3": "patches/braces@3.0.3.patch",
+    "sprintf-js@1.0.3": "patches/sprintf-js@1.0.3.patch",
+    "@slidev/client@52.20.1": "patches/@slidev%2Fclient@52.20.1.patch"
   }
 }

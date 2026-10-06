@@ -73,13 +73,17 @@ Routing must resolve in this order:
 
 If the preferred model is unavailable (policy, plan, rollout, region, runtime
 constraint), use the nearest safe fallback in the same tier. If that is not
-possible, move one tier up before moving one tier down.
+possible, report the block and require an explicitly authorized tier change;
+never change tiers automatically.
 
 Fallback behavior must be explicit:
 
 - default mode is `auto-with-fallback`;
 - every fallback must emit a brief reason;
-- fallback must never silently violate a stronger user override.
+- fallback must never silently violate a stronger user override;
+- when the requested tier has no observed candidate, report it as blocked and
+  ask for a human choice; do not change tier or silently inherit the parent
+  model.
 
 ## User control mode
 
@@ -90,15 +94,15 @@ Allowed control modes:
 | Mode | Behavior |
 | --- | --- |
 | `auto-with-fallback` | System chooses by posture/tier and applies safe fallback when needed. |
-| `user-pinned-model` | User forces exact model; fallback only if that model is unavailable, with explicit warning. |
+| `user-pinned-model` | User forces exact model; fallback only with explicit user consent and a warning. |
 | `user-pinned-tier` | User forces tier; runtime may choose the closest model in that tier. |
 
 Rules:
 
 1. Default remains `auto-with-fallback` unless user requests otherwise.
 2. User may switch mode per task or per session.
-3. If `user-pinned-model` is blocked by policy, the system must ask for
-   confirmation before applying fallback.
+3. If `user-pinned-model` is unavailable or blocked by policy, the system must
+   ask for confirmation before applying any fallback.
 4. The system must preserve the no-silent-downgrade rule for stronger
    user-requested tiers.
 
@@ -116,21 +120,23 @@ Rules:
 
 - `controlled-lite` docs-only or one-surface work should usually avoid
   delegation when it adds ceremony.
-- Discovery/review/validation delegates usually map to **Liviano** defaults.
-- Main implementation/writer delegates usually map to **Mediano** defaults.
-- High-risk architecture or release-critical review may escalate to **Grande**.
+- Discovery and validation delegates usually map to **Liviano** defaults.
+- Readiness, slicing, acceptance-test, QA, review, and main implementation/writer delegates usually map to **Mediano** defaults.
+- High-risk architecture or release-critical review may escalate to **Grande** through an explicit risk rationale, never because the tier is assumed to be more expensive or better.
 - Delegation policy must remain compatible with `implement-prd` wait barriers,
   one-writer-per-file ownership, and explicit handoff rules.
 
 ## Implement-PRD role routing
 
-Use these defaults unless the task exposes a concrete escalation trigger:
+Use these defaults as the conservative fallback when no task context exists. They are not strength metrics. A Copilot orchestrator derives the tier from the task context first (see `Contextual task selection`) and may escalate on a concrete trigger or cheapen only a clearly mechanical task:
 
 | Role | Default tier | Escalate when |
 | --- | --- | --- |
 | Orchestrator | Mediano | Architecture, deep debugging, or release-critical risk requires `Grande`; do not use `xhigh` for the whole session by default |
-| Readiness, discovery, slicing | Liviano | Unresolved ambiguity or high-impact architectural choice needs `Mediano` or `Grande` |
+| Readiness (`capitana-alcance`) and slicing (`arquitecta-fases`) | Mediano | High risk, high ambiguity, or a named critical concern needs `Grande`; bounded, complete, low-risk mechanical checks may use `Liviano` |
+| Discovery (`sherlock-estructura`) | Liviano | Substantive, ambiguous, or incomplete-context work needs `Mediano` or `Grande` |
 | Implementation writer | Mediano | Destructive migration, security/tenancy, or deep cross-layer contract risk needs a targeted `Grande` review |
+| Acceptance tests (`testinator-5000`) and terse review (`cavecrew-reviewer`) | Mediano | A named critical concern or high risk needs `Grande` |
 | Focused validation | Liviano | Flaky, broad, or non-obvious failures need `Mediano` |
 | Final QA | Mediano | Release-critical or high-blast-radius review needs `Grande` |
 
@@ -194,6 +200,8 @@ routing_mode: auto-with-fallback | user-pinned-model | user-pinned-tier
 requested_tier: Liviano | Mediano | Grande
 requested_model: <optional runtime model identifier>
 resolved_model: <runtime-confirmed model identifier, if exposed>
+decision_mode: contextual | legacy
+contextual_tier: <tier derived from taskContext | none>
 fallback_reason: <optional reason>
 user_confirmed_fallback: true | false | not-required
 ```
@@ -203,6 +211,67 @@ user_confirmed_fallback: true | false | not-required
 correlates to the delegated run. Do not ask a delegate to self-report its model
 identity and do not infer it from an agent label, prompt, catalog, or fallback
 choice.
+
+### Copilot explicit invocation
+
+GitHub Copilot exposes a per-call `model` parameter for `runSubagent`, so the
+orchestrator passes the registered agent name and a runtime-qualified model
+(for example `Claude Sonnet 5.5 (copilot)`) explicitly. The selected model is the
+`requested_model`; the model that executed is `resolved_model` and stays
+`unknown` until correlated runtime evidence exists. Candidate lists are static
+and only valid after revalidation against options observed in the current
+session. Technical tiers do not imply billing levels; availability and cost
+constraints remain runtime-owned. The procedure lives in the `Copilot Invocation
+Protocol` of `.agents/skills/02-implement/implement-prd/reference/subagent-prompts.md`.
+The resolver and the evidence verifier ship in this directory as generated,
+Node-only helpers (`copilot-model-routing.mjs`, `delegate-agent-catalog.json`,
+`verify-copilot-model-evidence.mjs`); do not edit them by hand.
+
+### Contextual task selection
+
+The orchestrator interprets the task before each new non-trivial `runSubagent`
+invocation and passes an explicit structured `taskContext` to the resolver. The
+resolver only classifies the supplied signals; it does not read the task, call a
+live catalog, or switch a running agent. The rule enums live in the canonical
+catalog (`copilotModelRouting.contextPolicy`), not in this file.
+
+| Signal | Values |
+| --- | --- |
+| `objective` | non-empty string |
+| `workKind` | `lookup`, `mechanical-validation`, `evidence-synthesis`, `readiness`, `planning`, `implementation`, `test-design`, `contract-review`, `review`, `causal-investigation` |
+| `risk`, `ambiguity` | `low`, `medium`, `high` |
+| `contextCompleteness` | `complete`, `partial`, `unknown` |
+| `bounded` | explicit boolean |
+| `criticalConcerns` | optional list from the catalog enum (for example `security`, `data-loss`, `public-contract`) |
+
+Decision rules:
+
+1. Malformed, unsupported, or missing context blocks as `INVALID_CONTEXT`; unknown context is never defaulted to safe.
+2. High risk, high ambiguity, or any named critical concern requires `Grande`, and the named reason is recorded. `Grande` is a risk-justified tier, not an assumption of higher cost or an automatic escalation to a specific premium model.
+3. Only `lookup`, `mechanical-validation`, or synthesis of already validated evidence (`evidence-synthesis`) that is bounded, complete, low risk, low ambiguity, and has no concerns may use `Liviano`.
+4. All work outside that explicit exception needs at least `Mediano`, even for a read-only or ordinarily lightweight role.
+5. `partial` or `unknown` completeness never cheapens a role and returns `clarificationRequired` so the orchestrator clarifies before delegating.
+6. An explicit tier below the contextual requirement blocks (`TIER_CONFLICT`); a higher explicit tier is honored and recorded.
+7. A user-pinned model keeps user control, but when it is not shown adequate for the required tier the result carries a clear `overrideWarning` and a recorded `contextMismatch`.
+8. A call without `taskContext` is the legacy path: the output says `decisionMode: legacy` and no contextual check was applied. New non-trivial invocations must pass context.
+
+Selection stays within the required tier: exact qualified identities, no silent tier fallback, strict boolean fallback consent, and at most one pre-execution correction. Luna is an economical `Liviano` candidate and MAI a reliable alternative; neither is a quality-benchmark winner. `GPT-6.1 Sol` and `GPT-6 Sol` are ordinary `Mediano` candidates that remain `Grande` eligible. Output reports `suitability.basis: unbenchmarked` and `resolved_model: unknown`.
+
+`contextualPosture` names the decision rule (`mechanical-exception`, `role-floor`,
+or `critical`). The separate `costPosture` field uses `lean`, `balanced`, or
+`premium` as routing intent, not a model's price band. Structured CLI input rejects
+unknown fields and explicit null context/cost/budget objects instead of silently
+ignoring a misspelled constraint; omit optional objects to use the legacy path.
+
+### Optional cost and budget contract
+
+The resolver accepts caller-supplied token counts (`costEstimate`) and an optional `budget`. It never measures or invents telemetry. Prices live in the catalog (`copilotModelRouting.pricing`) with source, verification date, per-model standard and long-context rates, and cache read/write applicability.
+
+- Counts are non-negative integers: `uncachedInputTokens`, `cachedInputTokens`, `cacheWriteTokens`, `outputTokens`, plus `billingMode` and an explicit `estimationDate` (`YYYY-MM-DD`). `totalContextInputTokens` is optional and, if given, must equal the three input categories; it selects the standard or long rate.
+- A budget (`maxUsd`) requires complete counts and `billingMode: token`; otherwise it blocks. It accepts at most six decimal places and never rounds a limit up. `legacy-annual-request` billing is not a USD token estimate and blocks a budget.
+- A candidate with unknown pricing, an unsupported cache-write rate, an expired promotion, or an unpriced long context cannot pass a budget; it is excluded within the same required tier and never replaced by a cheaper tier.
+- An available user-pinned model over budget or unpriceable blocks (`BUDGET_EXCEEDED`); it is never substituted.
+- Estimates are list-rate figures, not actual spend, a billing receipt, or evidence of ability.
 
 ## Neutral Delegation Envelope
 
@@ -285,8 +354,9 @@ Rules:
 | Freeform routing, tiny docs, repetitive validation | low ambiguity, low blast radius | `lean` | Liviano | closest lightweight equivalent | closest lightweight equivalent | Avoided unless a narrow helper reduces context | Allowed; warn if user forces unnecessary premium |
 | `create-prd` and high-ambiguity planning | ambiguous scope, synthesis risk, architecture/product trade-off | `balanced` by default, `premium` if risk is high | Grande | strongest allowed planning-capable equivalent | strongest allowed planning-capable equivalent | Usually avoided inline unless workflow explicitly delegates | Allowed; warn if user forces a cheaper tier that risks under-specification |
 | `implement-prd` orchestration and main writer slices | normal multi-step technical work | `balanced` | Mediano | closest allowed technical-workhorse equivalent | closest allowed technical-workhorse equivalent | Recommended/required depending on slice boundaries | Allowed; warn if user forces Liviano for non-trivial implementation |
-| Discovery, review, validation delegates | focused read/review/triage with mostly noisy failure modes | `lean` by default | Liviano | closest allowed lightweight equivalent | closest allowed lightweight equivalent | Recommended when they reduce risk/context; avoided in simple docs-only work | Allowed; warn if user forces Grande without added value |
-| Readiness and implementation slicing delegates | approved PRD with explicit scope, ownership, sequencing, and evidence | `lean` by default; escalate only for unresolved ambiguity | Liviano | closest lightweight planning-capable equivalent | closest lightweight planning-capable equivalent | Recommended only when they reduce context or review bias | Allowed; warn if user forces Liviano when unresolved ambiguity materially affects downstream rework |
+| Discovery and validation delegates | focused read/triage with mostly noisy failure modes | `lean` by default | Liviano | closest allowed lightweight equivalent | closest allowed lightweight equivalent | Recommended when they reduce risk/context; avoided in simple docs-only work | Allowed; warn if user forces Grande without added value |
+| Acceptance-test, QA, and review delegates | substantive evidence judgment | `balanced` | Mediano | closest allowed technical-workhorse equivalent | closest allowed technical-workhorse equivalent | Recommended when they add independent review | Allowed; warn if user forces Liviano for substantive review |
+| Readiness and implementation slicing delegates | approved PRD with explicit scope, ownership, sequencing, and evidence | `balanced` by default; `lean` only for bounded, complete, low-risk mechanical checks; escalate for unresolved ambiguity | Mediano | closest allowed technical-workhorse equivalent | closest allowed technical-workhorse equivalent | Recommended only when they reduce context or review bias | Allowed; warn if user forces Liviano when unresolved ambiguity materially affects downstream rework |
 | Release-critical QA, deep debugging, architecture-sensitive review | high ambiguity, high blast radius, release or migration risk | `premium` | Grande or strongest equivalent | strongest available equivalent | strongest available equivalent | Recommended or required depending on risk | Allowed; never silently downgrade a user-requested stronger tier |
 
 ## Wrapper contract
