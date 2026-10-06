@@ -31,28 +31,23 @@
     "tiers": {
       "Liviano": [
         "OpenAI GPT-5.6 Luna",
+        "OpenAI GPT-6 Luna",
         "Microsoft MAI-Code-1.1-Flash",
         "OpenAI GPT-5 mini",
         "Anthropic Claude Haiku 4.5",
         "OpenAI GPT-5.4 mini",
-        "Google Gemini 3.5 Flash",
-        "Google Gemini 3.6 Flash",
         "Google Gemini 3.7 Flash",
+        "Google Gemini 3.8 Flash",
         "xAI Grok 4.5",
-        "xAI Grok 4.6",
-        "Raptor mini (versión preliminar)",
-        "Kimi K2.7 Code"
+        "xAI Grok 4.6"
       ],
       "Mediano": [
         "Anthropic Claude Sonnet 5",
+        "Anthropic Claude Sonnet 5.5",
         "xAI Grok 4.6",
-        "Anthropic Claude Sonnet 4.6",
-        "Anthropic Claude Sonnet 4.5",
+        "xAI Grok 4.7",
         "OpenAI GPT-5.4",
         "OpenAI GPT-5.3-Codex",
-        "OpenAI GPT-5.2-Codex",
-        "OpenAI GPT-5.2",
-        "Google Gemini 3.1 Pro (versión preliminar)",
         "Kimi K3"
       ],
       "Grande": [
@@ -60,10 +55,15 @@
         "OpenAI GPT-5.5",
         "OpenAI GPT-5.6 Sol",
         "OpenAI GPT-5.6 Terra",
+        "OpenAI GPT-6 Sol",
+        "OpenAI GPT-6.1 Sol",
         "OpenAI GPT-5.6 Luna",
         "OpenAI GPT-5.4",
         "Anthropic Claude Sonnet 5",
-        "Anthropic Claude Fable 5"
+        "Anthropic Claude Opus 5",
+        "Anthropic Claude Opus 5.5",
+        "Anthropic Claude Fable 5",
+        "Anthropic Claude Fable 5.1"
       ]
     },
     "agentTiers": {
@@ -76,6 +76,7 @@
       "testinator-5000": "Liviano",
       "lint-ranger": "Liviano",
       "qa-relampago": "Mediano",
+      "escriba-doc": "Liviano",
       "cavecrew-investigator": "Liviano",
       "cavecrew-builder": "Mediano",
       "cavecrew-reviewer": "Liviano"
@@ -180,6 +181,17 @@
       "description": "Performs an independent final QA review of evidence and residual risks.",
       "writes": "No, unless explicitly assigned",
       "writable": false
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Documentation",
+      "skill": "document-development",
+      "alias": "Escriba Doc",
+      "slug": "escriba-doc",
+      "shared_skill_path": ".agents/skills/03-quality/document-development/SKILL.md",
+      "description": "Synthesizes validated implementation evidence into development documentation with bounded reads.",
+      "writes": "Yes, the documentation file and epic ledger",
+      "writable": true
     },
     {
       "section": "Cavecrew Helper Delegates",

@@ -189,7 +189,7 @@ Requirements for FULL trace:
 | Production code change | Build, implement, develop, fix behavior, add UI, change backend/frontend, modify tests | `implement-prd` if PRD exists; otherwise propose `create-prd` or `generate-pm-ticket` and wait for user choice | Yes (always when no PRD) | `balanced`; `premium` for high-risk architecture or debugging |
 | PRD implementation | User references PRD path or says implement this PRD | `implement-prd` | No | `balanced` |
 | Review / QA | Review PR, review diff, validate quality, inspect frontend, audit UI, or sharpen visual direction | stack-gated review skill (`frontend-design`, `react-doctor`, `impeccable`, `pr-comments-resolution`, `playwright-testing`, `contract-verifier`, or inline review) | No | `lean` for pure visual direction, otherwise `balanced`; `premium` for large or release-critical diffs |
-| Documentation | Explain delivered feature, write guide, preserve knowledge | `document-development` | No | `lean` |
+| Documentation | Explain delivered feature, write guide, preserve knowledge | `document-development` | No | `lean` (tier Liviano; escalate to Mediano only on PRD/evidence contradiction or real complexity) |
 
 ## Deterministic intent resolution (required in every route)
 
@@ -308,7 +308,7 @@ Typical examples:
 - `workflow-router`
 - direct explanations
 - `generate-pm-ticket`
-- small `document-development`
+- `document-development` (tier Liviano by default; delegate `escriba-doc` when the runtime can pin a subagent model)
 - `validation-runner` on clear failures
 - simple `contract-verifier` checks
 

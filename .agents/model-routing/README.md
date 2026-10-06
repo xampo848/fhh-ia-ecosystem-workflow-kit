@@ -139,6 +139,19 @@ the tracker. A runtime may not support changing its own model or pinning a
 subagent tier; in that case, report the limitation and do not claim that the
 requested tier was applied.
 
+## Documentation role routing
+
+`document-development` synthesizes work that is already implemented and validated, so it defaults to `lean` and tier **Liviano**.
+
+| Aspect | Rule |
+| --- | --- |
+| Default tier | Liviano; delegate `escriba-doc` where the runtime can pin a subagent model |
+| Bounded reads | PRD, implementation evidence (tracker/QA handoff), and the key files that evidence cites |
+| Escalate to Mediano when | PRD contradicts the evidence or code, or real complexity appears (cross-layer flow, auth/tenancy, key-file set that cannot be bounded) |
+| Success criterion | In 2-3 real cases, Liviano output matches the quality of the previous default |
+
+Record the escalation reason when the tier is raised. Apply the same no-automatic-switching rule: report the recommended tier when the runtime cannot pin it.
+
 ## Runtime parity
 
 Cross-runtime parity is **equivalent**, not strict exact-model identity.

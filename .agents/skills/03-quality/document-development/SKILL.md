@@ -15,18 +15,26 @@ Esta skill es el cierre natural después de `implement-prd` cuando el cambio ya 
 - Documentar para stakeholders no técnicos (comerciales, PMs, CS)
 - Documentación de entrega junto a un PR
 
+## Modelo por defecto
+
+Documentar es sintetizar algo ya implementado y validado. Tier por defecto: **Liviano** (`lean`), según `.agents/model-routing/README.md`. En runtimes que permiten fijar el modelo del subagente (Copilot), delegar en `escriba-doc` (`.github/agents/escriba-doc.agent.md`); si no, ejecutar inline y reportar el tier recomendado sin afirmar que el modelo cambió.
+
+Escalar a **Mediano** solo si aparece alguno de estos disparadores, y registrar el motivo:
+
+- Contradicción entre el PRD y la evidencia de implementación o el código.
+- Complejidad real: flujo cross-layer, autorización/tenancy sensible, o un conjunto de archivos clave que no se puede acotar.
+
 ## Procedimiento
 
-### Paso 1 — Explorar el código
+### Paso 1 — Leer la evidencia (lectura acotada)
 
-Antes de escribir una línea, leer:
+Antes de escribir una línea, leer solo:
 
 1. El PRD o ticket del desarrollo (en `docs/prd/<feature-or-project>/<YYYY-MM-DD>-<slug>/` o en el contexto del usuario)
-2. Los servicios principales involucrados
-3. Los modelos y migraciones relevantes
-4. El controlador y las vistas/partials del flujo
-5. Los tests para entender comportamientos esperados y edge cases
-6. Las policies y reglas de autorización (roles, permisos por acción, restricciones por estado/ownership y feature flags)
+2. La evidencia de implementación y validación (tracker, handoff de QA, resumen de `implement-prd`)
+3. Los archivos clave que esa evidencia cita: servicios, modelos/migraciones, controlador/vistas, tests y policies de autorización (roles, permisos por acción, restricciones por estado/ownership y feature flags)
+
+Leer más código (otros servicios, migraciones, vistas) solo si hay una contradicción o si la evidencia no cubre un dato que el documento necesita. Si no hay evidencia de implementación (sistema existente sin PRD), leer los archivos clave directamente y aplicar el escalado por complejidad.
 
 Prestar atención especial a:
 
