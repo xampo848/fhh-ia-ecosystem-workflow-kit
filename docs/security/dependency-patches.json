@@ -1,0 +1,37 @@
+{
+  "verifiedOn": "2026-10-06",
+  "packages": [
+    {
+      "name": "braces",
+      "version": "3.0.3",
+      "patch": "patches/braces@3.0.3.patch",
+      "patchSha256": "f93f99224b2fc9d9f7bd32fcadb39eef018c30ccdd2a09eeab754aa1bda9356a",
+      "files": { "lib/parse.js": "7eae9844a848c8ff46fcc311318f6db9d33bf6bcba9252e5ca022b89ab7e7018" },
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "severity": "high",
+      "source": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+      "reason": "Deep brace or parenthesis nesting becomes literal text before recursive AST walkers; ordinary globs retain their behavior."
+    },
+    {
+      "name": "sprintf-js",
+      "version": "1.0.3",
+      "patch": "patches/sprintf-js@1.0.3.patch",
+      "patchSha256": "8435565c86f618f7174bae18b95c5e515c078e34cb827137c17e86ef7943527b",
+      "files": { "src/sprintf.js": "8c72f02c208f1fab0859427a17b063674e29cc49f5ef10185d1b8a550f9752b4" },
+      "advisory": "GHSA-hp3w-g68c-fv3c",
+      "severity": "moderate",
+      "source": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+      "reason": "Numeric precision is clamped to ECMAScript bounds before number formatting; ordinary precision and zero precision are preserved."
+    },
+    {
+      "name": "@slidev/client",
+      "version": "52.20.1",
+      "patch": "patches/@slidev%2Fclient@52.20.1.patch",
+      "patchSha256": "2cdd657c8f76ca145d884fb71175ed8eee582db4ba99fbf880087c40a38d1fb4",
+      "files": { "styles/code.css": "67768fd7a7c03d953cf3173e23676f5d289e0e15d926e5a837938c09005dfcfd" },
+      "advisory": null,
+      "source": "https://github.com/slidevjs/slidev",
+      "reason": "Equivalent explicit CSS replaces two UnoCSS directives that generate invalid pseudo-element CSS under the current build toolchain."
+    }
+  ]
+}
