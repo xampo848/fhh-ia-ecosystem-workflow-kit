@@ -19,6 +19,7 @@ Antigravity 2.0 documents project-scoped agents, worktrees, reusable skills, MCP
 | Acceptance tests | `acceptance-test-engineer` | Testinator 5000 | `.agents/skills/02-implement/acceptance-test-engineer/SKILL.md` | `.codex/agents/testinator-5000.toml` | `.github/agents/testinator-5000.agent.md` | `.claude/agents/testinator-5000.md` | Inline: no declared custom-agent file format | Tests, fixtures, assigned fixes |
 | Validation | `validation-runner` | Lint Ranger | `.agents/skills/02-implement/validation-runner/SKILL.md` | `.codex/agents/lint-ranger.toml` | `.github/agents/lint-ranger.agent.md` | `.claude/agents/lint-ranger.md` | Inline: no declared custom-agent file format | Assigned validation fixes only |
 | Final QA | `qa-handoff-review` | QA Relampago | `.agents/skills/02-implement/qa-handoff-review/SKILL.md` | `.codex/agents/qa-relampago.toml` | `.github/agents/qa-relampago.agent.md` | `.claude/agents/qa-relampago.md` | Inline: no declared custom-agent file format | No, unless explicitly assigned |
+| Documentation | `document-development` | Escriba Doc | `.agents/skills/03-quality/document-development/SKILL.md` | `.codex/agents/escriba-doc.toml` | `.github/agents/escriba-doc.agent.md` | `.claude/agents/escriba-doc.md` | Inline: no declared custom-agent file format | Yes, the documentation file and epic ledger |
 
 ## Cavecrew Helper Delegates
 

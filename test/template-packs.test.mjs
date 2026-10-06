@@ -134,6 +134,7 @@ test('implement-prd delegates use economical default tiers', async () => {
     'testinator-5000': 'Liviano',
     'lint-ranger': 'Liviano',
     'qa-relampago': 'Mediano',
+    'escriba-doc': 'Liviano',
     'cavecrew-investigator': 'Liviano',
     'cavecrew-builder': 'Mediano',
     'cavecrew-reviewer': 'Liviano'
