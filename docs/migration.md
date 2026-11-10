@@ -32,9 +32,11 @@ so they point to `.agents/instructions.md` instead of duplicating workflow
 logic.
 
 Older adapters often routed only at session startup. The current contract
-requires lightweight intake on every prompt: explicit skills win, direct
-answers stay lightweight, and non-trivial freeform work loads
-`workflow-router`. Run `doctor` after migration to find missing semantic rules,
+requires lightweight intake on every prompt through the generated level
+pre-filter (N0–N3): explicit skills win, N0 requests are handled without
+loading workflow files, N1 surgical changes ask for a short yes, and N2/N3
+freeform work loads `workflow-router`. If you customized an adapter, keep the
+`workflow-kit:level-prefilter` markers so updates can refresh the block. Run `doctor` after migration to find missing semantic rules,
 not only missing files.
 
 ## Rollback

@@ -142,7 +142,12 @@ run the canonical Node test runner to confirm real failures:
 node --test
 ```
 
-If failure is `overlay/content-drift` for `.agents/skills/00-router/workflow-router/SKILL.md`, align canonical and overlay skill contents before re-running validation.
+If failure is `overlay/content-drift` for `.agents/skills/00-router/workflow-router` (the core `SKILL.md` or its `reference/` files), align canonical and overlay skill contents before re-running validation.
+
+If failure is `Level pre-filter drift in <adapter>`, an adapter copy of the
+N0–N3 pre-filter no longer matches `.agents/instructions.md`. Do not edit the
+adapter block by hand; run `node scripts/sync-level-prefilter.mjs --write` and
+re-run `bun run check:workflow`.
 
 The failure message should name the missing file, unsafe script, invalid template pack, or missing documentation phrase.
 

@@ -7,10 +7,10 @@
   "compact_pattern_index": ".agents/skills/06-patterns/index.md",
   "structured_registry": ".agents/skills/registry.json",
   "source_hashes": {
-    ".agents/skills/index.md": "c5a18a35dc52c96d451b313d620119703faad8581a7311750e5334c21ffc1ce6",
+    ".agents/skills/index.md": "d7a7149c81a4cc935fc88170e9e91c75d2d288f0d82f34f666cd691fdde8eabe",
     ".agents/skills/06-patterns/index.md": "93951753002cd3cc900caaad297faf072c168a5b1c88145ae391719c4f683ac9",
-    ".agents/skills/registry.md": "ea5e27da1760af0e07ce625a801b7ed93593311c179e2569ef383afeee871731",
-    ".agents/skills/registry.json": "fb0e4972bc7b60e7efefe84ed641a7ddf914a1eca8a680368fe8d6f71d941489"
+    ".agents/skills/registry.md": "e2eabc5a2e121881b787354d819cce37f179782e9dab9a64c8eb644307a10bd9",
+    ".agents/skills/registry.json": "006e3657221fd2cdbbfb2e54bd94bee1f0af4bf9fa8b0f9f5d4772df267f4b21"
   },
   "entry_count": 42,
   "entries": [
@@ -390,7 +390,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "2b7d3427ad0c6f15501edf160b8c2270e52413bff9daabe7a8d39288311002a6"
+      "skill_sha256": "c4dff99ae9e47acf4832be2c05857228d96c5953bebb7abebff3f3ac732ea954"
     }
   ]
 }

@@ -569,24 +569,38 @@ function mergeSkillRegistryJson({ existingContent, templateContent, discoveredSk
 function mergeRegistryEntries(existingEntries, incomingEntries) {
   const normalizedIncoming = normalizeRegistryEntries(incomingEntries);
   const incomingKeys = new Set(normalizedIncoming.map((entry) => registryEntryIdentity(entry)));
+  // A skill file is registered once: an incoming entry for a path replaces any
+  // existing entry for the same path, even when an older update stored it under
+  // a different key (for example an auto-discovered built-in pattern skill).
+  const incomingPaths = new Set(normalizedIncoming.map(registryEntryPath).filter(Boolean));
   const merged = [];
   const seen = new Set();
+  const seenPaths = new Set();
 
   for (const entry of normalizeRegistryEntries(existingEntries)) {
     const key = registryEntryIdentity(entry);
+    const entryPath = registryEntryPath(entry);
     if (incomingKeys.has(key) || seen.has(key)) continue;
+    if (entryPath && (incomingPaths.has(entryPath) || seenPaths.has(entryPath))) continue;
     seen.add(key);
+    if (entryPath) seenPaths.add(entryPath);
     merged.push(entry);
   }
 
   for (const entry of normalizedIncoming) {
     const key = registryEntryIdentity(entry);
-    if (seen.has(key)) continue;
+    const entryPath = registryEntryPath(entry);
+    if (seen.has(key) || (entryPath && seenPaths.has(entryPath))) continue;
     seen.add(key);
+    if (entryPath) seenPaths.add(entryPath);
     merged.push(entry);
   }
 
   return merged;
+}
+
+function registryEntryPath(entry) {
+  return typeof entry.path === 'string' && entry.path.length > 0 ? entry.path : null;
 }
 
 function normalizeRegistryEntries(entries) {
