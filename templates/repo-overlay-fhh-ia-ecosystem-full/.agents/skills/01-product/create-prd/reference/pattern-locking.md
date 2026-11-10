@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Before drafting, lock the implementation approach to one comparable local pattern or explicitly record its absence. Persist the result in `<prd-directory>/_meta/orchestration.md` under `## Pattern Lock`.
+Before drafting, lock the implementation approach to one comparable local pattern or explicitly record its absence. Persist the result in `.ai-work/<prd-slug>/orchestration.md` under `## Pattern Lock`.
 
 ## Procedure
 

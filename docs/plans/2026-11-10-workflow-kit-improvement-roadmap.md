@@ -42,10 +42,10 @@ conflictos en todos los demás lotes.
 
 | # | Lote | Ítems | Depende de | Estado | PR |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Carga proporcional y vía rápida | U-03, U-18, U-09 (parte router), IA-03, U-19a | — | Implementado en #61, falta merge | #61 |
-| 1b | Política de modelos | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (verificación, D-27) | — | Implementado en #61, falta merge | #61 |
-| 2 | Ruta general de implementación | U-11, U-08, U-09 (parte ejecución), IA-02, D-26 | Lote 1 | Implementado en #61, falta merge | #61 |
-| 3 | Frenos de costo en ejecución | U-17, U-16, IA-11, IA-08, IA-07 | Lote 2 | Listo para implementar | — |
+| 1 | Carga proporcional y vía rápida | U-03, U-18, U-09 (parte router), IA-03, U-19a | — | Hecho (mergeado en #61) | #61 |
+| 1b | Política de modelos | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (verificación, D-27) | — | Hecho (mergeado en #61) | #61 |
+| 2 | Ruta general de implementación | U-11, U-08, U-09 (parte ejecución), IA-02, D-26 | Lote 1 | Hecho (mergeado en #61) | #61 |
+| 3 | Frenos de costo en ejecución | U-17, U-16, IA-11, IA-08, IA-07 | Lote 2 | Implementado (rama `feat/roadmap-lotes-3-a-8`) | pendiente |
 | 5 | Preparación más barata | U-12, IA-04, IA-05, IA-06, IA-01 | Lote 2 | Listo para implementar | — |
 | 4 | Validación sin duplicar | U-13, IA-09, IA-10 | Lote 3 | Listo para implementar | — |
 | 6 | Calidad de PRD y PR | U-07, U-06, U-01, U-05, D-25 | — (paralelizable) | Listo para implementar | — |
@@ -64,11 +64,11 @@ conflictos en todos los demás lotes.
 | U-11 | P0 | Ruta general de implementación (renombrar implement-prd) | 2 | En implementación | D-08 |
 | U-08 | P0 | Iteración económica sobre lo ya implementado (delta) | 2 | En implementación | D-09 |
 | IA-02 | P0 | Orquestador cargado por modo | 2 | En implementación | D-10 |
-| U-17 | P0 | Freno a implementaciones y tests excesivos | 3 | Listo para implementar | |
-| U-16 | P0 | Tracking de tareas largas (archivos que no se cierran) | 3 | Listo para implementar | P0 asignado en D-04. Diagnosticar antes con la tarea de OAuth GitHub (>7 días) |
-| IA-11 | P1 | Tracker compacto | 3 | Listo para implementar | |
-| IA-08 | P0 | Logs de validación acotados | 3 | Listo para implementar | |
-| IA-07 | P1 | Entregas de subagentes compactas | 3 | Listo para implementar | |
+| U-17 | P0 | Freno a implementaciones y tests excesivos | 3 | Implementado | |
+| U-16 | P0 | Tracking de tareas largas (archivos que no se cierran) | 3 | Implementado | P0 asignado en D-04. Diagnosticar antes con la tarea de OAuth GitHub (>7 días) |
+| IA-11 | P1 | Tracker compacto | 3 | Implementado | |
+| IA-08 | P0 | Logs de validación acotados | 3 | Implementado | |
+| IA-07 | P1 | Entregas de subagentes compactas | 3 | Implementado | |
 | U-13 | P1 | Investigar redundancia de pruebas por slice | 4 | Listo para implementar | D-19; la investigación (solo lectura) puede adelantarse |
 | IA-09 | P0 | Reutilizar checks vigentes | 4 | Listo para implementar | D-20 |
 | IA-10 | P1 | QA incremental | 4 | Listo para implementar | D-20 |
@@ -1896,6 +1896,7 @@ discuta.
 | 2026-11-10 | 1 | U-03, U-18, U-09 (router), IA-03, U-19a | #61 (reemplaza a #57) | Niveles N0–N3 y pre-filtro como fuente única en `instructions.md`; copia generada en `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md` y `ANTIGRAVITY.md` (`scripts/sync-level-prefilter.mjs`, en `check:workflow`); router dividido en núcleo de 193 líneas + `route-menus.md`, `route-gates.md` y `router-evals.md` (12 prompts de prueba); N1 quirúrgico ofrecido explícitamente; heurísticas de delegación movidas a `model-routing`; referencia rota eliminada; `doctor` avisa si un adapter perdió el pre-filtro; docs actualizadas; versión `0.8.0-proportional-loading`. Sin migración: solo archivos nuevos o actualizados (verificado con smoke de update desde 0.7.40). | `node --test` 209/209; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release` y `check:legal` OK. `check:security` falla también en `main` (advisory nuevo de `dompurify`), ajeno al lote. Evals: L01 PASS en Claude Code (N0, sin trace, 3 llamadas). Pendiente: L02–L12 en Claude Code y L01–L12 en Codex y Copilot. |
 | 2026-11-10 | 1b | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (preparación de D-27) | #61 (reemplaza a #58) | Perfiles `calidad`/`costo` en el catálogo (`modelProfiles`) con default por runtime; módulo único `src/model-profiles.mjs` que genera los agentes de Claude (`sonnet`/`opus`, `haiku` solo en `costo`), Codex (`model_reasoning_effort`) y Copilot (listas por tier) tanto en el kit como al instalar; `init` pregunta suscripción o API para Claude Code y Codex (la API key solo preselecciona), `--profile <runtime>=<perfil>`, el perfil queda en `install-state.json` y `update` lo conserva; `doctor` muestra el perfil y falla con `model-profile/agent-mismatch`; política de perfiles y fallback D-12 en `model-routing`; `document-development` según perfil (U-04); tabla de modelos ejecutados en el cierre con Copilot y guía de verificación real (D-27); capacidades corregidas (`claude.pinSubagentModel=true`, `codex.pinSubagentTier=true`); versión `0.9.0-model-profiles`. | `node --test` 215/215; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release`, `check:legal` OK. Smoke de update desde 0.7.40: con y sin `--profile`, `doctor` ok y modelos correctos por agente. Pendiente: pruebas A y B de U-02 en Copilot (las corre el usuario). |
 | 2026-11-10 | 2 | U-11, U-08, U-09 (ejecución), IA-02, D-26 | #61 (reemplaza a #60) | Nueva skill `implement-change` (núcleo de 130 líneas) con dos ejes: nivel (ceremonia) y tipo de entrada (evidencia); referencias `level-n1.md`, `level-n2.md`, `level-n3.md`, `input-types.md` y `modifiers.md` que se leen solo cuando aplican; los modos antiguos se mapean a niveles y `autonomous-safe`/`resume` pasan a modificadores; invariantes y cierre por nivel en el núcleo; iteración por delta con la sección 10 como mapa, frescura por `git diff` y regresión del feature original; bug sin reproducción se detiene; modo autónomo ofrecido por ejecución con supervisado por defecto (D-26, ajuste de D-25); `implement-prd` queda como alias permanente; router, gates y evals (L13 iteración, L14 bug) apuntan a `implement-change`; versión `0.10.0-implement-change`. | `node --test` 221/221; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release`, `check:legal` OK. Smoke de update desde 0.7.40: crea `implement-change/`, reescribe el alias, registro con ambas entradas, `doctor` ok. |
+| 2026-11-10 | 3 | U-17, U-16, IA-11, IA-08, IA-07 | rama `feat/roadmap-lotes-3-a-8` | Frenos en todos los niveles que el modo autónomo no levanta: tope de 2 rondas de reparación por slice, un intento de recuperación ante falla de entorno, un rerun para flaky, suite cara completa una sola vez y tests proporcionales (D-11); tracker como foto del estado con `events.log` aparte y sección 10 como resumen con hallazgos `critical`/`high` listados y el resto en conteos (D-13); espacio de trabajo único `.ai-work/<prd-slug>/` ignorado por git, con `_meta/` como respaldo de solo lectura, entrada en `.gitignore` agregada por el instalador y avisos en `doctor` (D-14); entregas compactas con envelope de retorno de 6 campos, solo la falta de evidencia bloquea y logs acotados a ~30 líneas por falla (D-15); nombres de modo antiguos reemplazados por niveles en las referencias compartidas; versión `0.11.0-execution-brakes`. Sin migración que mueva archivos. | `node --test` 224/224; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release`, `check:legal`, `check:security` OK. Smoke de update desde 0.7.40: `.gitignore` con `.ai-work/`, `doctor` ok. |
 
 Proceso (2026-11-10):
 
@@ -1905,6 +1906,13 @@ Proceso (2026-11-10):
 - Por pedido del usuario se dejó un PR único (#61) con un commit por lote, en
   vez de un PR por lote. Se cerraron #57, #58 y #60, cuyo contenido quedó
   rebasado sobre `main` en #61.
+
+Hallazgos del Lote 3:
+
+- El aviso de `doctor` sobre un PRD cerrado con espacio de trabajo vivo solo
+  informa; ofrecer el borrado desde el TUI queda para el Lote 8 (D-33).
+- La limpieza de los `_meta/` que ya existen en ooh-backoffice sigue siendo una
+  tarea aparte de ese proyecto; `doctor` los lista como `workspace/legacy-meta`.
 
 Hallazgos del Lote 2:
 

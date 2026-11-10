@@ -133,10 +133,12 @@ test('implement-prd keeps PRD-local coordination artifacts ignored and cleans th
     fs.readFile(gitignorePath, 'utf8')
   ]);
 
+  assert.match(gitignore, /^\.ai-work\/$/m);
   assert.match(gitignore, /docs\/prd\/\*\*\/_meta\//);
-  assert.match(skill, /ignored immutable execution lock for each coding slice at `<prd-directory>\/_meta\/locks\/<slice-id>\.toon`/);
-  assert.match(skill, /<prd-directory>\/_meta\/task_tracker\.toon/);
-  assert.match(skill, /<prd-directory>\/_meta\/` is removed/);
+  assert.match(skill, /ignored immutable execution lock for each coding slice at `\.ai-work\/<prd-slug>\/locks\/<slice-id>\.toon`/);
+  assert.match(skill, /\.ai-work\/<prd-slug>\/task_tracker\.toon/);
+  assert.match(skill, /Nothing temporary goes under `docs\/` or into a PR/);
+  assert.match(skill, /`\.ai-work\/<prd-slug>\/` is removed/);
   assert.match(skill, /Complete `## 10\. Evidencia de Implementacion` in the PRD/);
 });
 
@@ -194,7 +196,7 @@ test('immutable per-slice execution locks require the run correlation used by de
     readImplementBundle(path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full'))
   ]);
 
-  assert.match(skill, /immutable execution lock for each coding slice at `<prd-directory>\/_meta\/locks\/<slice-id>\.toon`/);
+  assert.match(skill, /immutable execution lock for each coding slice at `\.ai-work\/<prd-slug>\/locks\/<slice-id>\.toon`/);
   assert.match(skill, /`run_id` is stable for the PRD run; `lock_id` is stable for its slice/);
   assert.match(skill, /matches its immutable slice lock/);
   assert.equal(skill, overlay);
@@ -498,8 +500,8 @@ test('implement-prd closure loop keeps a persistent findings ledger and blocks o
   assert.match(stopConditions, /A failure is classified as pre-existing\/unrelated to the current slice or PRD scope/);
 
   // closure evidence persisted before _meta/ cleanup
-  assert.match(implementPrdSkill, /Include a "Resumen del Ledger de Hallazgos" subsection listing every `findings_ledger` row/);
-  assert.match(orchestrationFlow, /Include a "Resumen del Ledger de Hallazgos" subsection listing every row from `findings_ledger`/);
+  assert.match(implementPrdSkill, /Include a "Resumen del Ledger de Hallazgos" subsection listing every `critical` and `high` `findings_ledger` row[^\n]*remaining rows as counts by status/);
+  assert.match(orchestrationFlow, /Include a "Resumen del Ledger de Hallazgos" subsection listing every `critical` and `high` row from `findings_ledger`[^\n]*counts by status/);
 });
 
 test('solution-sketch is an offer-only sister skill with a commitable six-section template', async () => {

@@ -176,6 +176,9 @@ export async function buildInstallPlan(options = {}) {
   }
 
   operations.push(...await buildOneTimeDocsMigrationOperations({ targetPath }));
+  if (options.ensureWorkspaceIgnore !== false) {
+    operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode }));
+  }
 
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 
@@ -366,6 +369,8 @@ export async function buildUpdatePlan(options = {}) {
       });
     }
   }
+
+  operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode }));
 
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 
@@ -771,6 +776,44 @@ function extractDocsWorkflowBlock(content) {
   const end = content.indexOf(docsWorkflowMarkerEnd);
   if (start < 0 || end < start) return null;
   return content.slice(start, end + docsWorkflowMarkerEnd.length);
+}
+
+// The AI workspace (.ai-work/) must be ignored by Git in the target repository.
+// The entry is appended once; .gitignore stays user-owned, so the operation
+// carries no checksum and never enters install-state.
+export const workspaceDirectory = '.ai-work';
+const workspaceIgnoreEntry = `${workspaceDirectory}/`;
+
+export function gitignoreHasWorkspaceEntry(content) {
+  return String(content).split(/\r?\n/).some((line) => {
+    const entry = line.trim().replace(/^\//, '');
+    return entry === workspaceIgnoreEntry || entry === workspaceDirectory;
+  });
+}
+
+async function buildWorkspaceIgnoreOperations({ targetPath, backupMode }) {
+  const targetFile = path.join(targetPath, '.gitignore');
+  const block = `# AI workflow workspace (temporary coordination state)\n${workspaceIgnoreEntry}\n`;
+  let existing = null;
+  try {
+    existing = await fs.readFile(targetFile, 'utf8');
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+
+  if (existing === null) {
+    return [{ operation: 'create', relativePath: '.gitignore', targetFile, sourcePath: null, content: block }];
+  }
+  if (gitignoreHasWorkspaceEntry(existing)) return [];
+
+  const separator = existing.length === 0 || existing.endsWith('\n') ? '' : '\n';
+  return [{
+    operation: backupMode === 'none' ? 'merge_no_backup' : 'merge_with_backup',
+    relativePath: '.gitignore',
+    targetFile,
+    sourcePath: null,
+    content: `${existing}${separator}\n${block}`
+  }];
 }
 
 async function buildOneTimeDocsMigrationOperations({ targetPath }) {

@@ -16,7 +16,7 @@ Build the smallest useful map of the existing implementation. Do not write code.
 
 Discovery exists to reduce implementation risk. It is not a codebase tour.
 
-The orchestrator decides, before invoking this skill, whether a persisted brief at `<prd-directory>/_meta/discovery.md` can be reused or the PRD already states its touched files/patterns/validation commands explicitly (see `orchestration-flow.md` Phase 1). Only run this skill when neither shortcut applies.
+The orchestrator decides, before invoking this skill, whether a persisted brief at `.ai-work/<prd-slug>/discovery.md` can be reused or the PRD already states its touched files/patterns/validation commands explicitly (see `orchestration-flow.md` Phase 1). Only run this skill when neither shortcut applies.
 
 ## Inputs From Orchestrator
 
@@ -32,7 +32,7 @@ Use exists-or-skip. A missing optional path is not a failed search.
 
 - `.github/copilot-instructions.md` or `.agents/instructions.md`.
 - The PRD sections and readiness brief relevant to discovery.
-- `<prd-directory>/_meta/orchestration.md` `## Calibration` and `## Pattern Lock` when they exist.
+- `.ai-work/<prd-slug>/orchestration.md` `## Calibration` and `## Pattern Lock` when they exist.
 - `docs/foundations/ARCHITECTURE.md` only when it exists and the work is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths.
 - Backend instructions when they exist and confirmed backend files will be read or touched: `.github/instructions/backend.instructions.md`.
 - Frontend instructions when they exist and confirmed frontend files will be read or touched: `.github/instructions/frontend.instructions.md`.

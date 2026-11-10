@@ -1,14 +1,57 @@
 # Handoff Schemas
 
-All subagents in the `implement-prd` flow MUST return output in TOON format using the schema defined here.
-Schemas are **minimum required fields**. Subagents may add fields when the skill's handoff format requires it — they may NOT omit required fields.
-The orchestrator reads these schemas to update `<prd-directory>/_meta/task_tracker.toon` and plan the next step.
+All subagents in the `implement-change` flow (alias `implement-prd`) MUST return output in TOON format using the schema defined here.
+Schemas list the fields a role may report. The orchestrator reads them to update `.ai-work/<prd-slug>/task_tracker.toon` and plan the next step.
+
+## Compact Handoff Rules
+
+A delegate returns only what is new; it never echoes its inputs back.
+
+1. **Return envelope.** A handoff starts with the short return envelope below
+   (`run_id`, `slice_id`, `execution_lock_id`, `resolved_model`,
+   `resolved_model_evidence`). Objective, acceptance criteria, owned and
+   forbidden files, required reads, predecessors, and contract already live in
+   the slice lock; do not repeat them.
+2. **Fields with content.** Report status, result, and evidence, and give
+   detail only for findings and blockers. An empty list is omitted; writing
+   `| none` is accepted but not required.
+3. **Two kinds of missing data.** A missing bookkeeping field that the lock
+   determines (run, slice, role, skill path, tier) is completed by the
+   orchestrator and never blocks. Only missing **evidence** blocks: the
+   command, its result, or the validated content. All `VERIFIED` rigor stays:
+   a valid lock and fresh evidence.
+4. **Validation evidence and logs.** The full log is written to
+   `.ai-work/<prd-slug>/logs/`. The handoff carries one evidence row per
+   command (see `Validation Evidence` below) and at most ~30 relevant lines per
+   failure: the first error and its stack. Never paste a whole log.
+5. The orchestrator opens a full log only when the excerpt is not enough, and
+   then with a bounded read (grep or tail), never the whole file.
+
+### Return envelope
+
+```
+schema_version: delegation-envelope/v1
+run_id: <orchestrator correlation id>
+slice_id: <slice-id>
+execution_lock_id: <lock-id | none>
+resolved_model: <runtime-confirmed identifier | unknown>
+resolved_model_evidence: <runtime evidence reference | none>
+```
+
+### Validation Evidence
+
+```
+evidence[N]{command,exit_code,duration_s,passed,failed,log_path}:
+  <exact command>,<code>,<seconds>,<count>,<count>,<.ai-work/<prd-slug>/logs/<file> | none>
+failure_excerpt[N]{command,lines}: <command>,<first error and stack, at most ~30 lines>
+```
 
 ## Delegation Envelope Prefix
 
-Every delegated handoff includes this `delegation-envelope/v1` prefix before its
-role-specific fields. It is a neutral record contract, not an SDK schema or
-runtime enforcement mechanism.
+The orchestrator records this full `delegation-envelope/v1` request once, in
+the slice lock and the tracker, when it launches a delegate. It is a neutral
+record contract, not an SDK schema or runtime enforcement mechanism. Delegates
+answer with the return envelope above instead of repeating it.
 
 ```
 schema_version: delegation-envelope/v1
@@ -52,7 +95,8 @@ missing lock/evidence data cannot promote its slice to `VERIFIED`.
 
 ```
 decision: GO | STOP
-mode: small/local | controlled-implementation | standard | autonomous-safe | resume
+level: N1 | N2 | N3
+modifiers[N]: autonomous | resume
 scope: <one-line description>
 surfaces[N]: backend | frontend | both | none
 risks[N]: <risk description> | none

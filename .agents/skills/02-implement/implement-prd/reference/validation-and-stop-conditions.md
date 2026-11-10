@@ -87,6 +87,34 @@ If any gate is `FAIL`, `PARTIAL`, `INCOMPLETE`, `MISSING`, or unsupported by evi
 
 `waived_by_user` can close any gate above — the user retains final authority — but for a `critical`/`high` severity finding, or a gap touching authorization, tenancy, or a destructive migration, the waiver is valid only when it quotes the concrete risk the user is accepting. A generic acknowledgement ("ok", "proceed", "waived") with no named risk does not satisfy the floor; treat it as `evidence_state: missing` and ask the user to name the specific risk before accepting it.
 
+## Repair Rounds And Failure Classes
+
+These brakes apply at every level and are never lifted by the autonomous
+modifier: autonomy removes routine pauses, not brakes.
+
+1. **Repair-round limit: 2 per slice.** A repair round is any test, QA, or
+   re-entry repair cycle on the same slice. Ad hoc diagnostic scripts and
+   "runtime N" runs made to understand a failure count as rounds. At the third
+   round, stop and present to the user: what fails, the hypothesis, and the
+   options (continue, accept the risk, reduce scope, or split). Record the
+   current round in the tracker (`round: n/2`).
+2. **Product failure or environment failure.** Environment failures are:
+   database, ports, seeding or purging, infrastructure timeouts, a model that
+   cannot be launched, and a flaky test with no code change.
+   - Environment failure: **one** recovery attempt. If it still fails, stop and
+     report. Repairing the environment is outside the slice unless the user
+     asks for it.
+   - Flaky: rerun **once**. If it passes, record it as flaky and do not
+     investigate it inside the slice.
+   - An environment failure never consumes product repair rounds and never
+     becomes an open-ended `BLOCKED`.
+3. **Expensive suites (full E2E).** Per slice, run only the slice's specs. The
+   full suite runs **once**, at closure or in CI. A current result (same
+   command, scope, and content) is reused instead of rerun.
+4. **Proportional tests.** Write the tests for the acceptance criteria and the
+   edge cases in the PRD test strategy. Do not add tests outside that strategy
+   without a concrete finding that justifies them.
+
 ## Phase And Global Rules
 
 - A slice is complete only in state `VERIFIED`, after `IMPLEMENTED`, `TESTED`, and `VALIDATED` evidence is recorded.
@@ -99,7 +127,7 @@ If any gate is `FAIL`, `PARTIAL`, `INCOMPLETE`, `MISSING`, or unsupported by evi
 - Fix root causes; do not retry blindly.
 - Validate each phase Definition of Done line by line.
 - Ask before moving to the next PRD phase in interactive workflows only when the next phase changes scope, there is more than one valid technical option, validation exposes ambiguity, a stop condition applies, or the user explicitly asked to review each phase.
-- In autonomous-safe mode, continue through phases unless a stop condition applies.
+- With the autonomous modifier, continue through phases unless a stop condition, the repair-round limit, or an environment failure applies.
 - At the end, validate the global Definition of Done from the PRD.
 - Acceptance criteria require evidence: code path, test, validation output, smoke verification, or an explicit residual risk.
 - Code quality criteria require evidence: existing pattern reused, hardcoding check, SOLID/DRY/KISS notes, and new abstraction rationale if any.
@@ -123,6 +151,7 @@ Stop and ask the user before continuing when:
 - The agent cannot map an acceptance criterion to testable evidence.
 - Any production-ready closure gate is unresolved: acceptance criteria, regressions, standards, tests, edge cases, or QA readiness.
 - The fix requires changing behavior outside the PRD's stated scope.
+- A slice reaches its third repair round, or an environment failure survives its single recovery attempt (see Repair Rounds And Failure Classes).
 - The agent would need to overwrite or revert unrelated user or agent changes.
 - The slice requires hardcoding a value that should belong in i18n, design tokens, config, constants, enums, permissions, serializers, environment variables, factories, or fixtures.
 - The slice requires duplicating authoritative business knowledge instead of reusing or extending the owning module.
@@ -155,9 +184,9 @@ Cual prefieres?
 
 When resuming a partial PRD implementation:
 
-1. Read the physical task tracker file `<prd-directory>/_meta/task_tracker.toon` to restore the orchestration state and see progress. If it was cleaned after a completed run, reconstruct progress from the PRD, final response, diff, and tests.
+1. Read the physical task tracker file `.ai-work/<prd-slug>/task_tracker.toon` to restore the orchestration state and see progress. If it was cleaned after a completed run, reconstruct progress from the PRD, final response, diff, and tests.
 2. Run `prd-readiness-review` against the PRD and current user request.
-3. Apply the Phase 1 discovery-reuse check in `orchestration-flow.md`: read `<prd-directory>/_meta/discovery.md` if present and verify freshness (MCP change-detection when available, otherwise treat as stale if new commits/slices landed). Only run `codebase-discovery` with resume context when no fresh, reusable brief is available.
+3. Apply the Phase 1 discovery-reuse check in `orchestration-flow.md`: read `.ai-work/<prd-slug>/discovery.md` if present and verify freshness (MCP change-detection when available, otherwise treat as stale if new commits/slices landed). Only run `codebase-discovery` with resume context when no fresh, reusable brief is available.
 4. Detect implemented files.
 5. Run existing relevant tests to determine completion.
 6. Rebuild the slicing plan from the first incomplete acceptance criterion.
@@ -182,4 +211,4 @@ When resuming a partial PRD implementation:
 - Marking acceptance criteria as complete without evidence.
 - Marking a slice complete without a code quality gate result.
 - Closing the PRD while any QA checklist item is incomplete, waived without evidence, or still phrased as a TODO.
-- Asking the user to approve routine phase transitions when autonomous-safe mode was requested.
+- Asking the user to approve routine phase transitions when the autonomous modifier was requested.

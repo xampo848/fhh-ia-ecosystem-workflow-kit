@@ -29,7 +29,7 @@ Use exists-or-skip. A missing optional path is not a failed search.
 
 - `.github/copilot-instructions.md` or `.agents/instructions.md`.
 - The full PRD, including phases, decisions, open questions, and Definition of Done.
-- `<prd-directory>/_meta/orchestration.md` `## Calibration`, `## Pattern Lock`, and `## Self-Audit` when they exist.
+- `.ai-work/<prd-slug>/orchestration.md` `## Calibration`, `## Pattern Lock`, and `## Self-Audit` when they exist.
 - `docs/foundations/ARCHITECTURE.md` only when it exists and the PRD is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths.
 
 Do not load code quality documents during readiness. Code-writing delegates load `.github/instructions/quality-gate.instructions.md` when they actually write or review code.

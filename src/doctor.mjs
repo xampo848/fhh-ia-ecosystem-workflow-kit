@@ -5,6 +5,7 @@ import packageJson from '../package.json' with { type: 'json' };
 import { selectedTemplateFiles, parseRuntimeList, normalizeOverlay, readManagedInstallState } from './planner.mjs';
 import { validateWorkflowContract } from './workflow-contract/index.mjs';
 import { loadDelegateCatalog, modelSettingLine, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
+import { workspaceDiagnostics } from './workspace-diagnostics.mjs';
 
 function checksum(content) {
   return crypto.createHash('sha256').update(content, 'utf8').digest('hex');
@@ -75,6 +76,7 @@ export async function runDoctor(options = {}) {
   const diagnostics = [
     ...contract.diagnostics,
     ...await modelProfileDiagnostics({ targetPath, present, catalog, modelProfiles }),
+    ...await workspaceDiagnostics({ targetPath }),
     ...await managedDriftDiagnostics(targetPath),
     ...await managedVersionDiagnostics(targetPath)
   ].sort((a, b) => a.severity.localeCompare(b.severity)

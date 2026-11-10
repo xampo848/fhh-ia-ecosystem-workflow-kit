@@ -9,7 +9,7 @@ required stage pipeline in `level-n2.md` applies, with the full delegated flow.
 ## Startup
 
 1. Read the input completely (PRD sections per `input-types.md`).
-2. If `<prd-directory>/_meta/orchestration.md` exists, read `## Calibration`,
+2. If `.ai-work/<prd-slug>/orchestration.md` exists, read `## Calibration`,
    `## Pattern Lock`, and `## Self-Audit` before discovery or slicing. Reuse
    `touched_surfaces`, the locked pattern, and residual risks.
 3. Verify every quality-gate and domain-instruction path the input or the
@@ -20,13 +20,13 @@ required stage pipeline in `level-n2.md` applies, with the full delegated flow.
    tenancy-sensitive, or changes persistent read paths. Load only relevant
    pattern docs.
 5. Initialize or update the physical task tracker at
-   `<prd-directory>/_meta/task_tracker.toon` with the exact TOON template in
+   `.ai-work/<prd-slug>/task_tracker.toon` with the exact TOON template in
    `../../implement-prd/reference/task-tracker-template.md`. If the PRD has a
    complete orchestration brief and explicit slices, verify and reuse it.
 6. If persisted data becomes visible in the UI/API in a new way, add an
    **activation checklist**: existing-data bootstrap/backfill, deploy or repair
    command, success and failure signals, rollback/repair path, and smoke target.
-7. Initialize an ignored immutable execution lock for each coding slice at `<prd-directory>/_meta/locks/<slice-id>.toon` with `run_id`, `lock_id`, `prd_path`, `slice_id`, `hazards`, `selected_patterns`, `required_checks`, `evidence_state`, `waiver_state`.
+7. Initialize an ignored immutable execution lock for each coding slice at `.ai-work/<prd-slug>/locks/<slice-id>.toon` with `run_id`, `lock_id`, `prd_path`, `slice_id`, `hazards`, `selected_patterns`, `required_checks`, `evidence_state`, `waiver_state`.
 8. For every delegated slice, initialize a `delegation-envelope/v1` record in
    the tracker per `.agents/model-routing/README.md`, recording requested
    invocation data separately from runtime-observed resolution data
@@ -37,7 +37,7 @@ phase-by-phase flow.
 
 Working rules carried from the former `standard` mode:
 
-- Persist the discovery brief at `<prd-directory>/_meta/discovery.md` and reuse
+- Persist the discovery brief at `.ai-work/<prd-slug>/discovery.md` and reuse
   it for later slices and resumes, subject to the freshness check in the
   orchestration flow; skip full discovery delegation when the PRD already
   states touched files, reused patterns, and validation commands.
@@ -96,7 +96,7 @@ inline. Use `.agents/skills/05-caveman/` helpers for narrow lower-context work.
 ## Execution Lock Baseline
 
 1. `run_id` is stable for the PRD run; `lock_id` is stable for its slice. Both appear in every slice handoff.
-2. Each lock lives at `<prd-directory>/_meta/locks/<slice-id>.toon`, is ignored by Git, and must not contain the only durable record of a decision or validation result.
+2. Each lock lives at `.ai-work/<prd-slug>/locks/<slice-id>.toon`, is ignored by Git, and must not contain the only durable record of a decision or validation result.
 3. Each slice records `hazards`, `selected_patterns`, and exact `required_checks` before coding starts.
 4. `evidence_state` must be `fresh` to promote a slice to `VERIFIED`; files changed inside the slice scope after validation make it `stale`.
 5. Waivers are allowed only as `waived_by_user` with a concrete reason and the exact acceptance/risk being waived.
@@ -133,8 +133,8 @@ Do not declare the PRD complete until all of these are explicitly true:
 8. Final QA ends in `ready_to_close: yes`, which requires `blocking_findings_open: no` — no `critical`/`high` finding in `findings_ledger` remains `open` without being `repaired` or validly `waived_by_user` (a generic acknowledgement does not satisfy this for `critical`/`high` findings or authorization/tenancy/destructive-migration gaps).
 9. Every `VERIFIED` slice has fresh command evidence in its immutable execution lock, or an explicit `waived_by_user` record.
 10. Every `VERIFIED` delegated slice has a `delegation-envelope/v1` record with a matching non-`none` execution lock; `resolved_model: unknown` remains valid when runtime execution evidence is unavailable. In GitHub Copilot, `## 10. Evidencia de Implementacion` also carries a short executed-model table (`role | expected model | executed model | verdict`) produced with `.agents/model-routing/verify-copilot-model-evidence.mjs`; a `NOT_VERIFIED` or wrong-model row is recorded as a finding and blocks closure only for slices with a critical concern.
-11. Complete `## 10. Evidencia de Implementacion` in the PRD with delivered changes, acceptance-criterion status, executed validations, QA result, identifiable change reference, residual risks or waivers, and closure date. Include a "Resumen del Ledger de Hallazgos" subsection listing every `findings_ledger` row with its id, severity, final status, and resolution (repaired in which slice, or the exact quoted risk if `waived_by_user`); state explicitly when the ledger is empty. This durable record must not include prompts, trackers, handoffs, or internal agent state.
-12. After `## 10. Evidencia de Implementacion` is complete, `<prd-directory>/_meta/` is removed. Do not declare closure while temporary AI coordination artifacts remain.
+11. Complete `## 10. Evidencia de Implementacion` in the PRD with delivered changes, acceptance-criterion status, executed validations, QA result, identifiable change reference, residual risks or waivers, and closure date. Include a "Resumen del Ledger de Hallazgos" subsection listing every `critical` and `high` `findings_ledger` row with its id, severity, final status, and resolution (repaired in which slice, or the exact quoted risk if `waived_by_user`), and the remaining rows as counts by status; state explicitly when the ledger is empty. Section 10 is a durable summary, not a log: about 60 lines at N3 (15 at N1/N2 and per "Iteración N"); repair history stays in the PR and commits. This durable record must not include prompts, trackers, handoffs, or internal agent state.
+12. After `## 10. Evidencia de Implementacion` is complete, `.ai-work/<prd-slug>/` is removed. Do not declare closure while temporary AI coordination artifacts remain.
 
 If any item above is incomplete, loop back through the owning slice, rerun the
 affected validation, and rerun QA until the checklist is satisfied.

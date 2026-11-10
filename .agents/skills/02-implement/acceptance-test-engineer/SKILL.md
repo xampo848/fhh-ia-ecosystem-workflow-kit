@@ -44,6 +44,8 @@ Map acceptance criteria to tests and make the smallest test additions that would
 10. Preserve matcher validation hooks when they affect test evidence.
 11. Run the targeted test command and fix root causes.
 12. Do not mark acceptance criteria covered by manual reasoning alone when a reasonable automated test can cover it.
+13. Keep tests proportional: write the tests for the acceptance criteria and the edge cases in the PRD test strategy. Do not add tests outside that strategy without a concrete finding that justifies them, and name that finding in the handoff.
+14. Per slice, run only the slice's specs. A full expensive suite (complete E2E) runs once, at closure or in CI, and a current result for the same command, scope, and content is reused.
 
 ## Stop And Ask When
 

@@ -69,7 +69,7 @@ Use compact mode only when all of these are true:
 
 In compact mode:
 
-- keep the four `_meta/orchestration.md` sections;
+- keep the four `.ai-work/<prd-slug>/orchestration.md` sections;
 - fold Phase 2 and Phase 3 into one short pass when there are no blocking questions;
 - draft and self-audit in one pass only after calibration and pattern lock exist;
 - do not omit use cases, test strategy, edge-case matrix, class diagram, or slice ownership;
@@ -139,16 +139,16 @@ Template source (mandatory): `.agents/skills/01-product/create-prd/PRD_TEMPLATE.
 
 **File location:** `docs/prd/<feature-or-project>/<YYYY-MM-DD>-<feature-name>/<feature-name>.md`
 
-For every PRD created with this workflow, create `_meta/orchestration.md` in the same PRD directory. Persist the phase artifact as each applicable phase completes. The file must contain these four sections:
+For every PRD created with this workflow, create `.ai-work/<prd-slug>/orchestration.md` at the repository root, where `<prd-slug>` is the PRD directory name (`<YYYY-MM-DD>-<feature-name>`). Persist the phase artifact as each applicable phase completes. The file must contain these four sections:
 
 - `## Calibration`
 - `## Ambiguity Log`
 - `## Pattern Lock`
 - `## Self-Audit`
 
-`_meta/` is temporary AI coordination state, ignored by Git. It does not replace the final PRD and is removed by `implement-prd` at closure. `execution-lock.toon` and the implementation tracker also live in this directory and remain owned by `implement-prd`.
+`.ai-work/<prd-slug>/` is the single workspace for temporary AI coordination state, ignored by Git. Nothing temporary is written under `docs/` or enters a PR. It does not replace the final PRD and is removed by `implement-change` (alias `implement-prd`) at closure. Execution locks, the implementation tracker, handoffs, and validation logs also live in this directory and remain owned by `implement-change`. A PRD created before this layout may still have `<prd-directory>/_meta/`; read it when the `.ai-work/` copy is missing, and do not write new files there.
 
-This requirement applies only to PRDs created after this workflow change. Historical PRDs remain valid and do not require a retrofit of `_meta/orchestration.md` or the five-phase model.
+This requirement applies only to PRDs created after this workflow change. Historical PRDs remain valid and do not require a retrofit of `.ai-work/<prd-slug>/orchestration.md` or the five-phase model.
 
 Additional required sections:
 
@@ -331,12 +331,12 @@ Load and execute [reference/self-audit.md](reference/self-audit.md). This is a h
 
 ## Future Scope
 
-Product future scope remains out of the current PRD. Workflow reuse of `_meta/orchestration.md` is now in scope:
+Product future scope remains out of the current PRD. Workflow reuse of `.ai-work/<prd-slug>/orchestration.md` is now in scope:
 
 - `implement-prd` must read `## Calibration`, `## Pattern Lock`, and `## Self-Audit` when those sections exist.
 - `implementation-slicing` must use `touched_surfaces` from `## Calibration` to detect scope expansion.
 - `qa-handoff-review` must reconcile `## Self-Audit` residual risks before allowing `ready_to_close: yes`.
-- Missing `_meta/orchestration.md` is allowed only for historical PRDs created before this model.
+- Missing `.ai-work/<prd-slug>/orchestration.md` is allowed only for historical PRDs created before this model.
 
 ---
 

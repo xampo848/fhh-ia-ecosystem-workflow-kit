@@ -23,7 +23,7 @@ Act as an adversarial final reviewer. Find issues that would block merge, violat
 - Validation command results.
 - Matcher outputs and delegate usage-evidence handoffs.
 - Closure gate status from the task tracker when available.
-- `## Self-Audit` residual risks from `<prd-directory>/_meta/orchestration.md` when that file exists.
+- `## Self-Audit` residual risks from `.ai-work/<prd-slug>/orchestration.md` when that file exists.
 
 ## Mandatory Preconditions
 
@@ -64,6 +64,8 @@ When the PRD defines a Matriz de Edge Cases, report coverage explicitly by categ
 - **Block and escalate**: return `blocked` and `ready_to_close: no` when a material ambiguity changes closure interpretation, required evidence cannot be obtained, or the next action needs a user or orchestrator decision. State the ambiguity and required decision in `next`.
 
 The reviewer does not retry automatically. A re-entry is valid only after the named repair or validation step supplies new evidence; otherwise return `blocked` rather than creating another review loop.
+
+Repair rounds are capped at 2 per slice (`../implement-prd/reference/validation-and-stop-conditions.md`). When a finding would open a third round on the same slice, return `blocked` with what fails, the hypothesis, and the options for the user (continue, accept the risk, reduce scope, or split) instead of `partial`. Report an environment failure as such; it is not a product finding and does not consume repair rounds.
 
 ### Severity-Blocking Gate
 

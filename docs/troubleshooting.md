@@ -112,6 +112,21 @@ workflow-kit update --target /path/to/repo --profile claude=calidad --apply --ye
 Use the profile you actually want (`calidad` for subscriptions, `costo` for
 Copilot or per-token APIs).
 
+## Doctor reports `workspace/*` or `prd/section-10-oversized` warnings
+
+Temporary AI state (tracker, `events.log`, locks, handoffs, validation logs)
+lives in `.ai-work/<prd-slug>/`, ignored by Git. These warnings never fail
+`doctor`; they make leftovers visible:
+
+| Code | Meaning | Action |
+| --- | --- | --- |
+| `workspace/not-ignored` | `.ai-work/` exists but is not in `.gitignore` | run `workflow-kit update`, or add `.ai-work/` |
+| `workspace/closed-prd-leftover` | the PRD is closed but its workspace remains | delete that `.ai-work/<prd-slug>/` directory |
+| `workspace/stale` | no activity for more than 14 days | close, split, or archive the change; an open or blocked change may keep it |
+| `workspace/tracker-is-a-log` | the tracker grew past ~150 lines or repeats history blocks | keep the tracker as a snapshot; history goes to `events.log` |
+| `workspace/legacy-meta` | a `docs/prd/**/_meta/` directory from the old layout | delete it once its PRD is closed |
+| `prd/section-10-oversized` | `## 10. Evidencia de Implementacion` passes ~60 lines | keep a durable summary; repair history stays in the PR |
+
 ## Update shows `skip_modified` or `skip_unmanaged`
 
 - `skip_modified`: the file is managed but was changed locally after last apply, so update protects it.

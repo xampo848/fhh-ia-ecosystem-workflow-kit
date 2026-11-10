@@ -26,7 +26,7 @@ Usa esta skill:
 
 Contexto:
 - PRD: [path]
-- Operating mode: [small/local | standard | autonomous-safe | resume]
+- Operating mode: [N1 | standard | autonomous-safe | resume]
 - Delegation envelope: `delegation-envelope/v1` with `run_id`, `slice_id`, `execution_lock_id`, role, exact skill path, invocation, task, context, verification, and expected output fields
 - Model record: `requested_model` is a request; set `resolved_model: unknown` unless runtime evidence confirms execution identity
 - Slice: [objective]
@@ -72,7 +72,7 @@ Usa esta skill:
 
 Contexto:
 - PRD: [path]
-- Operating mode: [small/local | standard | autonomous-safe | resume]
+- Operating mode: [N1 | standard | autonomous-safe | resume]
 - Delegation envelope: `delegation-envelope/v1` with correlated identity, invocation, task, context, verification, and output fields
 - Model record: preserve `requested_model`; report `resolved_model: unknown` without runtime execution evidence
 - Objetivo: [read-only objective]
@@ -109,7 +109,7 @@ Usa esta skill:
 
 Contexto:
 - PRD: [path]
-- Operating mode: [small/local | standard | autonomous-safe | resume]
+- Operating mode: [N1 | standard | autonomous-safe | resume]
 - Delegation envelope: verify `delegation-envelope/v1` correlation, including `execution_lock_id`, invocation record, verification evidence, and output
 - Execution plan: [summary]
 - Slice reports: [summaries]

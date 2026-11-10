@@ -53,6 +53,15 @@ Behavior on update:
 2. Managed but locally edited files are preserved as `skip_modified`.
 3. Unmanaged files at colliding paths are preserved as `skip_unmanaged`.
 
+AI workspace (since `0.11.0`): temporary coordination state moved from
+`<prd-directory>/_meta/` to a single Git-ignored `.ai-work/<prd-slug>/` at the
+repository root. `update` appends `.ai-work/` to `.gitignore` (with a backup)
+and never takes ownership of that file. In-flight PRDs keep working: the
+legacy `_meta/` directory is read as a fallback, and `doctor` lists it as
+`workspace/legacy-meta` so you can delete it after closure. Execution now has
+brakes at every level: at most 2 repair rounds per slice, one recovery attempt
+for an environment failure, one rerun for a flaky test.
+
 Implementation route (since `0.10.0`): `implement-change` is the general
 route for PRDs, bugs, tickets, and iterations; `implement-prd` stays as a
 permanent alias, so "implementa este PRD" and existing references keep working.

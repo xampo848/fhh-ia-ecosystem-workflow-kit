@@ -36,6 +36,16 @@ N2/N3 when the step uses them: `orchestration-flow.md`, `delegate-skill-matrix.m
 `validation-and-stop-conditions.md`. Native delegate adapters are generated from
 `scripts/delegate-agent-catalog.json`; never edit them by hand.
 
+## Workspace
+
+All temporary AI state for a change lives in one Git-ignored directory:
+`.ai-work/<prd-slug>/` (the PRD directory name, or a short slug of the bug or
+ticket): tracker, `events.log`, `locks/`, handoffs, `logs/`, and the PRD
+orchestration notes. Nothing temporary goes under `docs/` or into a PR; the
+PRD keeps only the durable section 10. Remove the workspace after closure; an
+open or blocked change keeps it. Legacy `<prd-directory>/_meta/` is read-only
+fallback for PRDs started before this layout.
+
 ## Step 1 · Detect the input type
 
 | Type | Recognized by | Required evidence |
@@ -98,8 +108,9 @@ No level, modifier, or user hurry removes these:
    (today `.github/instructions/quality-gate.instructions.md`) and the layer
    instructions it touches. Verify each required path exists; a missing
    configured path is a hard stop, never an implicit pass.
-5. **Stop conditions** in `../implement-prd/reference/validation-and-stop-conditions.md`
-   always stop the run, autonomous or not.
+5. **Stop conditions and brakes** in `../implement-prd/reference/validation-and-stop-conditions.md`
+   always stop the run, autonomous or not: at most 2 repair rounds per slice,
+   one recovery attempt for an environment failure, one rerun for a flaky test.
 6. **One writer per file**, and a delegate's handoff is the only
    synchronization point: never continue from partial output or silence.
 7. **No closure without evidence**: closure follows the level table below.

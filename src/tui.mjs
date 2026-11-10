@@ -802,6 +802,7 @@ export async function runTui(options = {}) {
         runtime,
         overlay,
         profile,
+        ensureWorkspaceIgnore: mode !== 'export',
         backupMode: backupModeValue,
         toolkitVersion: currentToolkitMetadata().version
       });

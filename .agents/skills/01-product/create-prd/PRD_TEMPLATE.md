@@ -279,7 +279,7 @@ _(Vacio = PRD listo para implementar)_
 
 ## 10. Evidencia de Implementacion
 
-Esta seccion es el registro durable de cierre. `implement-prd` la completa antes de eliminar los artefactos temporales de `_meta/`; no registrar prompts, trackers, handoffs ni estado interno de agentes.
+Esta seccion es el registro durable de cierre: un resumen, no una bitacora. `implement-change` (alias `implement-prd`) la completa antes de eliminar los artefactos temporales de `.ai-work/<prd-slug>/`; no registrar prompts, trackers, handoffs ni estado interno de agentes. Tamano orientativo: unas 60 lineas en N3 y 15 en N1/N2; cada "Iteracion N" posterior, unas 15. Los hallazgos `critical` y `high` se listan uno por uno; el resto se resume en conteos por estado.
 
 **Estado**: No iniciada | En progreso | Cerrada | Bloqueada
 

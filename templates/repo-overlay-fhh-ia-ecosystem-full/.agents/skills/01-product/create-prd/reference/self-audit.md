@@ -2,7 +2,7 @@
 
 ## Purpose
 
-After drafting, perform the final hard gate before delivering the PRD. Persist the result in `<prd-directory>/_meta/orchestration.md` under `## Self-Audit`.
+After drafting, perform the final hard gate before delivering the PRD. Persist the result in `.ai-work/<prd-slug>/orchestration.md` under `## Self-Audit`.
 
 ## Quality Checklist
 

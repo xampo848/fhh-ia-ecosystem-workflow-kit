@@ -44,11 +44,11 @@ documented fallback docs and risk.
 
 ## Coordination state
 
-- Maintain the physical tracker at `<prd-directory>/_meta/task_tracker.toon`
+- Maintain the physical tracker at `.ai-work/<prd-slug>/task_tracker.toon`
   (template in `../../implement-prd/reference/task-tracker-template.md`) for
   coordination only; it is not closure authority.
 - Initialize the ignored immutable execution lock for each coding slice at
-  `<prd-directory>/_meta/locks/<slice-id>.toon` (fields in `level-n3.md`,
+  `.ai-work/<prd-slug>/locks/<slice-id>.toon` (fields in `level-n3.md`,
   "Execution Lock Baseline").
 - For visible UI, do not start a coding slice until the PRD Contrato Visual is
   `locked`.
@@ -66,5 +66,5 @@ Final QA is mandatory and focused: changed files, findings, and the acceptance
 criteria touched. Escalate to fresh-context QA when a risk trigger fires.
 Closure: the N1 evidence plus coverage of the touched acceptance criteria,
 focused QA with `ready_to_close: yes`, and `## 10. Evidencia de
-Implementacion` updated when a PRD exists. After that, `<prd-directory>/_meta/`
+Implementacion` updated when a PRD exists. After that, `.ai-work/<prd-slug>/`
 is removed.

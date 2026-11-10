@@ -77,6 +77,12 @@ an "Iteración N" subsection. **Autonomous** execution is offered for N2/N3 and
 chosen per run; supervised is the default. Former mode names map to levels:
 `small/local` → N1, `controlled-*` → N2, `standard` → N3.
 
+Execution brakes apply at every level and survive autonomous mode: at most 2
+repair rounds per slice, one recovery attempt for an environment failure, one
+rerun for a flaky test, and the full expensive suite once at closure. Temporary
+AI state lives in `.ai-work/<prd-slug>/` (Git-ignored) and is removed at
+closure; the PRD keeps only a compact section 10.
+
 ## Recommended first documents
 
 - `decisions/2026-01-01-workflow-adoption-baseline.md`

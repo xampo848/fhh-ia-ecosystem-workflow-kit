@@ -30,7 +30,7 @@ Apply the same challenge to the AI's own draft decisions before presenting them 
 
 ## After the user responds
 
-Record the decision, the discarded alternative, and the rationale in the phase artifact (`_meta/orchestration.md`, epic decision log, or project-formation stage log). Do not silently proceed without that record — an unrecorded decision is not confirmed.
+Record the decision, the discarded alternative, and the rationale in the phase artifact (`.ai-work/<prd-slug>/orchestration.md`, epic decision log, or project-formation stage log). Do not silently proceed without that record — an unrecorded decision is not confirmed.
 
 ## Failure mode to avoid
 
