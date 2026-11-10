@@ -18,13 +18,37 @@ async function read(root, relativePath) {
   }
 }
 
+// Always-loaded adapters that must carry the generated N0–N3 level pre-filter.
+const levelPrefilterEntrypoints = new Set([
+  'AGENTS.md',
+  'CLAUDE.md',
+  '.github/copilot-instructions.md',
+  'ANTIGRAVITY.md'
+]);
+const levelPrefilterStart = '<!-- workflow-kit:level-prefilter:start -->';
+const levelPrefilterEnd = '<!-- workflow-kit:level-prefilter:end -->';
+
 export async function validateAdapterContracts({ root, runtimes = [] }) {
   const diagnostics = [];
+  const checkedPrefilter = new Set();
 
   for (const runtime of runtimes.filter((item) => item !== 'neutral')) {
     for (const relativePath of runtimeEntrypoints[runtime] ?? []) {
       const content = await read(root, relativePath);
       if (content === null) continue;
+      if (levelPrefilterEntrypoints.has(relativePath) && !checkedPrefilter.has(relativePath)) {
+        checkedPrefilter.add(relativePath);
+        const start = content.indexOf(levelPrefilterStart);
+        const end = content.indexOf(levelPrefilterEnd);
+        if (start < 0 || end < start) {
+          diagnostics.push(diagnostic({
+            code: 'adapter/missing-level-prefilter',
+            path: relativePath,
+            severity: 'warning',
+            message: 'Missing the generated N0–N3 level pre-filter block. Every prompt will load the full workflow. Accept the updated adapter from workflow-kit update, or copy the block between the workflow-kit:level-prefilter markers from .agents/instructions.md.'
+          }));
+        }
+      }
       if (!content.includes('.agents/instructions.md')) {
         diagnostics.push(diagnostic({
           code: 'adapter/missing-neutral-reference',

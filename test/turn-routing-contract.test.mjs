@@ -202,7 +202,11 @@ test('Antigravity wrapper requires visible routing trace and workflow continuity
 });
 
 test('workflow router offers solution-sketch as a hard trigger without a fifth product menu option', async () => {
-  const router = await read('.agents/skills/00-router/workflow-router/SKILL.md');
+  const [core, menus] = await Promise.all([
+    read('.agents/skills/00-router/workflow-router/SKILL.md'),
+    read('.agents/skills/00-router/workflow-router/reference/route-menus.md')
+  ]);
+  const router = `${core}\n${menus}`;
 
   assert.match(router, /#### Solution sketch hard trigger/);
   assert.match(router, /never auto-start/);

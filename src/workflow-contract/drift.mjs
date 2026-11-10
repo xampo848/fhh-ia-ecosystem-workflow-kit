@@ -15,6 +15,7 @@ const mirroredFiles = [
 ];
 
 const mirroredDirectories = [
+  '.agents/skills/00-router/workflow-router',
   '.agents/skills/04-crosscutting/frontend-design',
   '.agents/skills/04-crosscutting/impeccable',
   '.agents/skills/05-caveman'

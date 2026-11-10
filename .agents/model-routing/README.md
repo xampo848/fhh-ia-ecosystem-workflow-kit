@@ -126,6 +126,27 @@ Rules:
 - Delegation policy must remain compatible with `implement-prd` wait barriers,
   one-writer-per-file ownership, and explicit handoff rules.
 
+### Delegation heuristics for routed implementation work
+
+The router names a delegation state for every N2/N3 route; these heuristics
+decide it (moved here from `workflow-router` so the router core stays small):
+
+- `required` when the work implies several implementation phases or skills,
+  cross-layer contracts, separate file owners, or more open threads than one
+  context window can hold well.
+- `recommended` when a focused delegate clearly reduces exploration noise,
+  isolates one slice, or preserves review independence. For narrow
+  locate/edit/review tasks, prefer cavecrew-style compressed helpers.
+- `avoided` only when the work fits a compact preflight plus one writer path,
+  with obvious validation and no benefit from phase separation. N0 and N1
+  never delegate.
+
+Signals that move delegation upward: more than one implementation surface or
+acceptance stream; discovery, slicing, and matching are materially different
+tasks from coding; backend responses feed frontend behavior; the PRD names
+several phases or deliverables; the context would outgrow a small working set.
+"Subagents exist" is never a reason by itself.
+
 ## Implement-PRD role routing
 
 Use these defaults as the conservative fallback when no task context exists. They are not strength metrics. A Copilot orchestrator derives the tier from the task context first (see `Contextual task selection`) and may escalate on a concrete trigger or cheapen only a clearly mechanical task:

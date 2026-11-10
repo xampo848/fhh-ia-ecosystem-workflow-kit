@@ -6,7 +6,10 @@ applyTo: "**"
 
 This file exists for GitHub/Copilot surfaces that load `.github/instructions/**`.
 
-For every new user prompt, apply this router-first order:
+For every new user prompt, first apply the level pre-filter from
+`.github/copilot-instructions.md` (generated from `.agents/instructions.md`).
+N0 and N1 requests follow the pre-filter and do not load `workflow-router`.
+For N2 and N3, apply this router-first order:
 
 1. Apply `.agents/instructions.md` before choosing a response path.
 2. Use `.agents/skills/index.md` for compact discovery.
@@ -35,8 +38,8 @@ This instruction file is bootstrap-only. Workflow policy remains in
 - Apply structured intake again for every new user prompt, including follow-up
 	turns in the same chat.
 - Never assume the workflow selected in a previous turn is still valid.
-- For any later non-trivial prompt, re-enter `workflow-router` before planning,
-	editing, or running implementation steps.
+- For any later non-trivial prompt (N2 or N3), re-enter `workflow-router` before
+	planning, editing, or running implementation steps.
 
 ## PR Comments Hard Trigger Safeguard
 

@@ -25,7 +25,10 @@ Visible UI also needs a **Contrato Visual (UI lock)** inside `create-prd` / `gen
 
 ```mermaid
 flowchart TD
-  pedido["Pedido del usuario"] --> router["workflow-router"]
+  pedido["Pedido del usuario"] --> nivel{"Pre-filtro de nivel<br/>N0 / N1 / N2-N3"}
+  nivel -->|N0| directo["Respuesta o cambio no semántico<br/>sin cargar el workflow"]
+  nivel -->|N1| quirurgico["Cambio quirúrgico<br/>una línea + sí corto"]
+  nivel -->|N2 / N3| router["workflow-router"]
 
   router --> ticket["Ticket chico<br/>generate-pm-ticket"]
   router --> prd["Feature clara<br/>create-prd"]
