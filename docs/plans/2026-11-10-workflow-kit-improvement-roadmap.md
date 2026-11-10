@@ -47,7 +47,7 @@ conflictos en todos los demás lotes.
 | 2 | Ruta general de implementación | U-11, U-08, U-09 (parte ejecución), IA-02, D-26 | Lote 1 | Hecho (mergeado en #61) | #61 |
 | 3 | Frenos de costo en ejecución | U-17, U-16, IA-11, IA-08, IA-07 | Lote 2 | Implementado (rama `feat/roadmap-lotes-3-a-8`) | pendiente |
 | 5 | Preparación más barata | U-12, IA-04, IA-05, IA-06, IA-01 | Lote 2 | Implementado (rama `feat/roadmap-lotes-3-a-8`) | pendiente |
-| 4 | Validación sin duplicar | U-13, IA-09, IA-10 | Lote 3 | IA-09 e IA-10 implementados; U-13 con matriz declarada y hallazgos pendientes de aprobación | pendiente |
+| 4 | Validación sin duplicar | U-13, IA-09, IA-10 | Lote 3 | IA-09 e IA-10 implementados; U-13 investigado: la matriz observada no justifica eliminar checks, hallazgos por aprobar | pendiente |
 | 6 | Calidad de PRD y PR | U-07, U-06, U-01, U-05, D-25 | — (paralelizable) | Implementado (rama `feat/roadmap-lotes-3-a-8`) | pendiente |
 | 7 | Runtimes y estructura | U-15, U-02 (solo si D-27 encuentra fallas), U-20, U-14, U-10, IA-12, U-19c | Lotes 1–6 | Listo para implementar | — |
 | 8 | Cierre: documentación, actualización segura y release | D-33 | Lote 7 | Listo para implementar | — |
@@ -1909,6 +1909,18 @@ Proceso (2026-11-10):
 - Por pedido del usuario se dejó un PR único (#61) con un commit por lote, en
   vez de un PR por lote. Se cerraron #57, #58 y #60, cuyo contenido quedó
   rebasado sobre `main` en #61.
+
+Hallazgos del Lote 4:
+
+- **U-13 no recomienda eliminar ningún check.** En ~300 ejecuciones de 3 PRDs
+  de ooh-backoffice hubo ~19 duplicados exactos y ~23 solapamientos, casi
+  todos re-ejecuciones de suites caras sobre contenido idéntico. Ninguna
+  repetición sobre contenido idéntico detectó un defecto de producto. La
+  reutilización por huella (IA-09) cubre esos casos sin borrar nada. Detalle y
+  hallazgos por aprobar en `docs/plans/2026-11-10-u13-validation-coverage-matrix.md`.
+- **Un defecto escapó en ds-04** (commit `5786c472b` de ooh-backoffice): un
+  escenario de interacción sin test. Es un caso para la ronda de casos borde
+  del PRD, no un check faltante del workflow.
 
 Hallazgos del Lote 5:
 
