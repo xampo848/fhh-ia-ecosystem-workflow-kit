@@ -157,3 +157,34 @@ Verdicts and exit codes: `VERIFIED` `0`, `NOT_VERIFIED` `1` (missing, malformed,
 ## 6. Record
 
 Keep per run: VS Code version, Copilot Chat version, invoked `agentName`, tier, selected model, request IDs, probe markers, verifier verdict, and any `BLOCKED` reason. Set `resolved_model` in the delegation envelope only when the verdict is `VERIFIED`.
+
+## 7. Verify a real implementation (U-02, roadmap D-27)
+
+The October smoke proved explicit invocation only. The open question is
+whether, in a long real run, the orchestrator passes `model` on **every**
+delegation; a call without it makes the subagent inherit the orchestrator's
+model and silently cancels the `costo` profile. Run two checks with the current
+VS Code and Copilot Chat versions:
+
+1. **Controlled smoke (A):** repeat sections 2–5 with one agent per tier.
+2. **Real run (B):** in the next N2 or N3 implementation with Copilot, keep the
+   Copilot Chat log for the whole session. At closure, run the verifier once
+   per delegation and fill the executed-model table that `implement-prd`
+   requires in `## 10. Evidencia de Implementacion`:
+
+   | Role | Expected model | Executed model | Verdict |
+   | --- | --- | --- | --- |
+   | `<agent alias>` | `<selected model>` | `<runtime model id>` | `VERIFIED` / `NOT_VERIFIED` / `MISMATCH` |
+
+Interpretation:
+
+- **A and B pass:** U-02 is done, with real-run evidence.
+- **A passes, B fails because `model` was omitted:** reinforce the invocation
+  protocol (per-role invocation snippet and a presence check before each
+  delegation).
+- **A fails:** record the exact limit (VS Code and Copilot versions, message,
+  log line) and an operational alternative, for example running critical roles
+  in the main session with a manually selected model.
+
+A `NOT_VERIFIED` or `MISMATCH` row is a finding; it blocks closure only for
+slices with a critical concern.

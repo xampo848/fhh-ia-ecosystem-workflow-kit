@@ -29,8 +29,13 @@ Runtime adapters should be boring:
 2. Re-apply the neutral **per-turn intake** on every user prompt; session startup alone is not enough.
 3. Tell it to use `.agents/skills/index.md` for startup discovery and `.agents/skills/registry.md` only for full inventory or fallback.
 4. Give explicit skill invocation precedence over automatic routing.
-5. Keep direct answers lightweight and load `workflow-router` for non-trivial freeform work.
-6. Avoid copying workflow algorithms into the adapter.
+5. Carry the generated **level pre-filter** (N0–N3) between the
+   `<!-- workflow-kit:level-prefilter:start -->` and `end` markers. N0 and N1
+   requests follow it without loading workflow files; N2 and N3 load
+   `workflow-router`. Never edit the block by hand: change it in
+   `.agents/instructions.md` and run `node scripts/sync-level-prefilter.mjs --write`.
+6. Avoid copying any other workflow algorithm into the adapter; the pre-filter
+   is the only exception.
 7. Keep runtime-specific details small and explicit.
 
 `AGENTS.md` is a shared adapter pack used by Codex and Copilot-compatible

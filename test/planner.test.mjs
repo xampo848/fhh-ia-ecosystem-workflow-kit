@@ -124,7 +124,7 @@ test('buildInstallPlan refreshes built-in registry entries while preserving cust
 
   assert.equal(workflowRouter.trigger.includes('Outdated trigger text'), false);
   assert.equal(workflowRouter.loading_posture, 'Startup-minimal');
-  assert.match(workflowRouter.runtime_notes, /Intake runs every prompt/);
+  assert.match(workflowRouter.runtime_notes, /level pre-filter runs every prompt/);
   assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'custom-skill'), true);
 });
 
@@ -411,4 +411,29 @@ test('buildUpdatePlan requires install state unless adopt-existing is enabled', 
   const adoptPlan = await buildUpdatePlan({ targetPath: target, runtime: 'codex', overlay: 'fhh-ia-ecosystem-full', adoptExisting: true });
   assert.equal(adoptPlan.hadExistingState, false);
   assert.equal(adoptPlan.operations.some((item) => item.operation === 'create'), true);
+});
+
+test('buildUpdatePlan keeps one registry entry per skill path and heals earlier duplicates', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+
+  const registryPath = path.join(target, '.agents/skills/registry.json');
+  const installed = JSON.parse(await fs.readFile(registryPath, 'utf8'));
+  const builtInPattern = installed.pattern_skills.find((entry) => entry.path.endsWith('add-project-pattern/SKILL.md'));
+  assert.ok(builtInPattern, 'the built-in add-project-pattern skill must be registered');
+  // Simulate a registry damaged by an older update: same path, different key.
+  installed.pattern_skills.push({ ...builtInPattern, key: 'add-project-pattern' });
+  await fs.writeFile(registryPath, `${JSON.stringify(installed, null, 2)}\n`, 'utf8');
+
+  for (let round = 0; round < 2; round += 1) {
+    const plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral' });
+    const operation = plan.operations.find((item) => item.relativePath === '.agents/skills/registry.json');
+    const merged = JSON.parse(operation.content);
+    for (const section of ['skills', 'pattern_skills']) {
+      const paths = merged[section].map((entry) => entry.path);
+      assert.equal(new Set(paths).size, paths.length, `${section} must not repeat a skill path (round ${round + 1})`);
+    }
+    assert.equal(merged.pattern_skills.find((entry) => entry.path === builtInPattern.path).key, builtInPattern.key);
+    await applyInstallPlan(plan);
+  }
 });

@@ -32,9 +32,11 @@ so they point to `.agents/instructions.md` instead of duplicating workflow
 logic.
 
 Older adapters often routed only at session startup. The current contract
-requires lightweight intake on every prompt: explicit skills win, direct
-answers stay lightweight, and non-trivial freeform work loads
-`workflow-router`. Run `doctor` after migration to find missing semantic rules,
+requires lightweight intake on every prompt through the generated level
+pre-filter (N0–N3): explicit skills win, N0 requests are handled without
+loading workflow files, N1 surgical changes ask for a short yes, and N2/N3
+freeform work loads `workflow-router`. If you customized an adapter, keep the
+`workflow-kit:level-prefilter` markers so updates can refresh the block. Run `doctor` after migration to find missing semantic rules,
 not only missing files.
 
 ## Rollback
@@ -50,6 +52,22 @@ Behavior on update:
 1. Managed and unchanged-from-last-apply files can be updated.
 2. Managed but locally edited files are preserved as `skip_modified`.
 3. Unmanaged files at colliding paths are preserved as `skip_unmanaged`.
+
+Implementation route (since `0.10.0`): `implement-change` is the general
+route for PRDs, bugs, tickets, and iterations; `implement-prd` stays as a
+permanent alias, so "implementa este PRD" and existing references keep working.
+The update rewrites `implement-prd/SKILL.md` as a short alias and adds
+`implement-change/`; the shared references stay under `implement-prd/reference/`.
+Former operating modes map to levels: `small/local` → N1, `controlled-lite` and
+`controlled-implementation` → N2, `standard` → N3; `autonomous-safe` and
+`resume` are now modifiers. No files are moved or deleted.
+
+Model profiles (since `0.9.0`): repositories installed before model profiles
+have no stored profile, so the first `update` applies the runtime default.
+For Claude Code that changes the delegate agents from `model: inherit` to
+`sonnet`/`opus` (`calidad`). If that project runs Claude Code or Codex through a
+per-token API key, pass `--profile claude=costo` (or `codex=costo`) on that
+update. The profile is then stored and kept by later updates.
 
 If your repo was installed before install-state support, run a one-time bootstrap:
 

@@ -17,7 +17,7 @@ This file is the tool-neutral AI contract layer for the repository.
   and `.agents/skills/registry.md` for the neutral full inventory and
   authoring contract
 3. **Workflow skills**: algorithmic instructions that say what sequence to
-   follow for a workflow such as `create-prd`, `implement-prd`, or
+   follow for a workflow such as `create-prd`, `implement-change`, or
    `document-development`
 4. **Standards/pattern skills**: algorithmic reusable procedures for repetitive
    work such as contracts, importers, serializers, validators, or UI checks
@@ -144,20 +144,77 @@ Examples:
 - plugins or connectors
 - repo-owned AI capabilities that only need attachment to the neutral flow
 
+## Task levels (N0–N3)
+
+Every prompt is classified into one task level before any workflow file is
+loaded. The level decides how much context is loaded, whether the user is asked
+first, how visible the routing is, and the cost posture.
+
+| Level | What it loads | Budget | Ask before acting? | Visibility | Cost posture |
+| --- | --- | --- | --- | --- | --- |
+| N0 Operational | nothing from the workflow | up to 3 tool calls; if more are needed, stop and propose N1 | No: the user's intent is enough | no trace | `lean` |
+| N1 Surgical | the target files, their tests, and at most one PRD | no tracker, no delegates, no Discovery; one focused check | Yes, a short "yes" | one line, for example `N1 · surgical · touches X and its test` | `lean` |
+| N2 Standard | the normal implementation route | per route | Yes | full or compact routing trace | `balanced` |
+| N3 High risk | full gates | per route | Yes | full or compact routing trace | `premium` |
+
+The cost posture follows from the level; it is not a separate decision.
+
+Level pre-filter (single source; generated copies live in the runtime
+adapters between the same markers and `check:workflow` fails when they drift):
+
+<!-- workflow-kit:level-prefilter:start -->
+Level pre-filter (apply to every new user prompt before loading any workflow file):
+
+| Signal | Minimum level |
+| --- | --- |
+| Read-only question, lookup, or local command without side effects | N0 |
+| Non-semantic edit (formatting, indentation, typo, comment, docs wording) | N0 |
+| Behavior-changing edit in 1–2 files with clear scope | N1 |
+| Uncertain scope, more than 2 files, or several pieces | N2 |
+| Contracts, data or migrations, auth or tenancy, dependencies, CI, or anything irreversible (push, deploy, delete) | N3 |
+| Hard triggers: explicit skill invocation, PR/review comments, explicit PRD | per that skill, whatever the level |
+
+- The level is the highest signal that applies; when unsure between two levels, pick the higher one.
+- N0: act directly without reading workflow files or emitting a trace; after 3 tool calls, stop and propose N1.
+- N1: emit one line (`N1 · surgical · <files>`), wait for a short yes, edit only the target files, and run one focused check (lint, build, or test). Add or update a test only when behavior changes; for a bug, the test must fail before the fix.
+- N2/N3: apply `.agents/instructions.md` and `workflow-router` before planning, editing, or implementing.
+- If something unexpected appears in N0 or N1 (another file, a contract, a test you do not understand), stop and propose a higher level.
+- The user can force a level ("hazlo quirúrgico", "hazlo completo"); forcing below an N3 signal requires naming the risk first.
+<!-- workflow-kit:level-prefilter:end -->
+
+Level rules:
+
+- The level is the highest level triggered by any signal. The N0/N1 boundary is
+  whether the change is **semantic**, not whether it reads or writes:
+  non-semantic edits are N0 without asking.
+- Focused check in N1 is not "mandatory test": run lint, build, or test as
+  appropriate. Adding or updating a test is mandatory only when behavior
+  changes. For a bug, the test must fail before the fix.
+- Escalation and de-escalation are proposed, never silent: if N0 or N1 meets
+  something unexpected, stop and propose a higher level; if N2 Discovery shows
+  the change is small, propose N1. Both cases ask the user.
+- The user can force a level. Forcing a level below an N3 signal requires
+  naming the concrete risk before proceeding.
+- A test set of prompts with their expected level lives in
+  `.agents/skills/00-router/workflow-router/reference/router-evals.md`.
+
 ## Mandatory per-turn intake
 
 Apply this contract before choosing a response path for every new user prompt.
 Do not assume that the workflow selected for a previous prompt still applies.
+Start with the level pre-filter above: N0 and N1 do not load the router.
 
-Outside an explicit skill invocation or a trivial direct answer, `workflow-router`
-is the default authority that decides which workflow runs next. Runtime adapters,
-repo overlays, and copied instruction wrappers must point back to this contract
-and then to the router instead of embedding alternate routing rules, workflow
-stacks, or implementation gates that can drift.
+Outside an explicit skill invocation, an N0 request, or an N1 request,
+`workflow-router` is the default authority that decides which workflow runs
+next. Runtime adapters, repo overlays, and copied instruction wrappers must
+point back to this contract and then to the router instead of embedding
+alternate routing rules, workflow stacks, or implementation gates that can
+drift. The only routing content an adapter may carry is the generated level
+pre-filter.
 
 Router-first enforcement:
 
-- For any non-trivial request, run `workflow-router` before planning, editing, or implementing.
+- For any non-trivial request (N2 or N3), run `workflow-router` before planning, editing, or implementing.
 - Do not skip router execution by jumping directly into coding or PRD creation.
 - If router is unavailable, stop non-trivial execution and report the missing file/tool.
 
@@ -170,6 +227,7 @@ User-owned PRD decision enforcement:
 Execution authorization gate:
 
 - Intent language from the user (for example: "quiero", "necesito", "hagamos") is not execution authorization by itself.
+- Level exceptions: in N0 the user's intent is enough; in N1 a short "yes" to the one-line surgical proposal authorizes it. N2 and N3 keep this gate unchanged.
 - Before explicit route authorization, the agent must stay in `awaiting-user-choice` for route-selection turns.
 - While in `awaiting-user-choice`, the agent must not inspect product code for implementation, must not plan implementation tasks, and must not edit files.
 - Execution starts only after the user explicitly authorizes the selected route (for example: "usa create-prd", "implementa este PRD", "haz el ticket", "procede con esa ruta").
@@ -187,10 +245,12 @@ Natural-language skill invocation binding:
 - Once invoked, the agent must execute that skill's protocol until completion or an explicit user redirect.
 
 1. If the user explicitly invokes a skill, load that skill and follow it.
-2. Otherwise perform structured per-turn intake before answering, planning, or editing.
-3. A direct answer may proceed without loading the full router only when the request is trivial,
-  informational, and does not require planning, file edits, or multi-step execution.
-4. For non-trivial, iterative, implementation-adjacent, or multi-step freeform work, locate
+2. Otherwise perform structured per-turn intake before answering, planning, or editing,
+  starting with the level pre-filter.
+3. A direct answer (N0) may proceed without loading the full router only when the request is trivial,
+  informational or non-semantic, and does not require planning or multi-step execution.
+  An N1 surgical change follows the N1 rules above without loading the router.
+4. For non-trivial (N2 or N3), iterative, implementation-adjacent, or multi-step freeform work, locate
   `workflow-router` through `.agents/skills/index.md`, load its `SKILL.md`, and follow its gates.
 5. Emit a visible routing trace when choosing a meaningful workflow,
   skill, capability, cost posture, delegation posture, or risk path.
@@ -267,7 +327,9 @@ selected rather than front-loaded into every runtime entrypoint.
 
 ## Loading rules
 
-- Load this file first from every runtime entrypoint.
+- Apply the generated level pre-filter from the runtime adapter first. Load
+  this file before any N2 or N3 work; N0 and N1 follow the pre-filter without
+  loading it.
 - Use `.agents/skills/index.md` as the neutral startup discovery contract.
 - Use `.agents/skills/registry.md` as the neutral full inventory, taxonomy,
   and authoring contract.
@@ -323,10 +385,10 @@ Use judgment before activating compressed output:
 
 Direct-answer defaults (automatic):
 
-- for trivial informational requests, prefer inline answers with `lean` posture;
+- for trivial informational requests (N0), prefer inline answers with `lean` posture;
 - target `0` tool calls when the answer is already reliable;
-- allow up to `2` focused read-only tool calls before escalating to non-trivial routing;
-- if more than `2` tool calls are needed, state the reason briefly and switch to explicit routed execution.
+- allow up to `3` focused tool calls in N0 before escalating;
+- if more than `3` tool calls are needed, state the reason briefly and propose N1 or explicit routed execution.
 
 Token-spike prevention defaults:
 
@@ -416,6 +478,10 @@ Runtime adapters may define:
 - tool-specific metadata;
 - current exact model defaults or model hints that implement the neutral tier policy;
 - sandbox/tool constraints;
-- how to point to the shared skill path and neutral routing policy.
+- how to point to the shared skill path and neutral routing policy;
+- the generated level pre-filter, copied verbatim from this file between the
+  `workflow-kit:level-prefilter` markers by `scripts/sync-level-prefilter.mjs`.
 
-Runtime adapters must not become the canonical owner of workflow logic.
+Runtime adapters must not become the canonical owner of workflow logic. The
+generated level pre-filter is the only workflow logic an adapter may carry; any
+other routing rule belongs here or in `workflow-router`.

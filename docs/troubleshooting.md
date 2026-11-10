@@ -97,6 +97,21 @@ workflow-kit update --target /path/to/repo --runtime codex,copilot --adopt-exist
 
 After that, regular `workflow-kit update --apply --yes` runs will perform managed, safe updates.
 
+## Doctor reports `model-profile/agent-mismatch`
+
+A delegate agent's model setting (`model:` in `.claude/agents`, the model list
+in `.github/agents`, or `model_reasoning_effort` in `.codex/agents`) does not
+match the profile stored in `.agents/workflow-kit/install-state.json`. This
+usually means a manual edit or a copy from another project. Do not fix the
+agent by hand; regenerate it:
+
+```bash
+workflow-kit update --target /path/to/repo --profile claude=calidad --apply --yes
+```
+
+Use the profile you actually want (`calidad` for subscriptions, `costo` for
+Copilot or per-token APIs).
+
 ## Update shows `skip_modified` or `skip_unmanaged`
 
 - `skip_modified`: the file is managed but was changed locally after last apply, so update protects it.
@@ -142,7 +157,12 @@ run the canonical Node test runner to confirm real failures:
 node --test
 ```
 
-If failure is `overlay/content-drift` for `.agents/skills/00-router/workflow-router/SKILL.md`, align canonical and overlay skill contents before re-running validation.
+If failure is `overlay/content-drift` for `.agents/skills/00-router/workflow-router` (the core `SKILL.md` or its `reference/` files), align canonical and overlay skill contents before re-running validation.
+
+If failure is `Level pre-filter drift in <adapter>`, an adapter copy of the
+N0–N3 pre-filter no longer matches `.agents/instructions.md`. Do not edit the
+adapter block by hand; run `node scripts/sync-level-prefilter.mjs --write` and
+re-run `bun run check:workflow`.
 
 The failure message should name the missing file, unsafe script, invalid template pack, or missing documentation phrase.
 

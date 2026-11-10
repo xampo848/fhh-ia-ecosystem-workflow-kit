@@ -7,12 +7,12 @@
   "compact_pattern_index": ".agents/skills/06-patterns/index.md",
   "structured_registry": ".agents/skills/registry.json",
   "source_hashes": {
-    ".agents/skills/index.md": "c5a18a35dc52c96d451b313d620119703faad8581a7311750e5334c21ffc1ce6",
+    ".agents/skills/index.md": "29936e5e0df5a3b6268da8c6a9481dc1c1c929dcb51ed29a3beefd76116000db",
     ".agents/skills/06-patterns/index.md": "93951753002cd3cc900caaad297faf072c168a5b1c88145ae391719c4f683ac9",
-    ".agents/skills/registry.md": "ea5e27da1760af0e07ce625a801b7ed93593311c179e2569ef383afeee871731",
-    ".agents/skills/registry.json": "fb0e4972bc7b60e7efefe84ed641a7ddf914a1eca8a680368fe8d6f71d941489"
+    ".agents/skills/registry.md": "ec0f6251d84e13f28d7b32c1733354eedafa2b71a7a4405cf1633a6da49ed045",
+    ".agents/skills/registry.json": "883f500df3c67833e363fdde95db88b19fe0075f242958cba5e53d3d977ff2dd"
   },
-  "entry_count": 42,
+  "entry_count": 43,
   "entries": [
     {
       "key": "acceptance-test-engineer",
@@ -165,7 +165,7 @@
       "class": "Workflow",
       "path": ".agents/skills/03-quality/document-development/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "49afadb7176cb8badac72b5cdc168e9580597a81c554904c70869274abf4f58f"
+      "skill_sha256": "6f9b59751d4f49d9b9e189bf08c7354cbc042def8f64e37d3697105db0c139b5"
     },
     {
       "key": "engineering-mentor",
@@ -213,13 +213,22 @@
       "skill_sha256": "1afa66d9be6126f895ae542135b889bbe52bf593826887176f059c87ddc82973"
     },
     {
+      "key": "implement-change",
+      "name": "implement-change",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/02-implement/implement-change/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "f8b8713b461305434038ae158837989072cf8e05e238de192740a36c4fbaa249"
+    },
+    {
       "key": "implement-prd",
       "name": "implement-prd",
       "group": "skills",
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "c26f6553d6a841bb03bc016a26aca7f65f0f4a4e2e6ba018db01d4d1d2c001c1"
+      "skill_sha256": "0ac2d3a8662c89d326c1f389ec0345e5704e4ee125ee9f4da6b541bb4fa2efc1"
     },
     {
       "key": "implementation-skill-matcher",
@@ -390,7 +399,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "2b7d3427ad0c6f15501edf160b8c2270e52413bff9daabe7a8d39288311002a6"
+      "skill_sha256": "0aff2836234aafca622dd5f0a2258db26a1c7b8b5f4711c17293850aa6eb7953"
     }
   ]
 }

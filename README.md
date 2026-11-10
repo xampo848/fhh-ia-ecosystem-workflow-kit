@@ -229,6 +229,11 @@ Apply after review:
 workflow-kit update --target /path/to/repo --apply --yes
 ```
 
+Delegate agents follow the repository's model profile (`calidad` for
+subscriptions, the default for Claude Code and Codex; `costo` for Copilot and
+per-token APIs). `update` keeps the stored profile; change it with
+`--profile claude=costo` (see `docs/quickstart.md`).
+
 Update behavior:
 
 - Only files tracked in `.agents/workflow-kit/install-state.json` are eligible for overwrite.
@@ -327,8 +332,8 @@ Ask the agent to do it:
 ```text
 Implement a new workflow route named "<workflow-name>".
 Requirements:
-1) Update .agents/skills/00-router/workflow-router/SKILL.md with trigger signals and disambiguation rules.
-2) Update .agents/instructions.md if startup/routing contract changes.
+1) Update .agents/skills/00-router/workflow-router/SKILL.md with trigger signals and disambiguation rules; keep it at or under 200 lines and move menus, gates, or examples to its reference/ files.
+2) Update .agents/instructions.md if startup/routing contract or task levels change, then run node scripts/sync-level-prefilter.mjs --write.
 3) Keep routing trace format consistent.
 4) Do not change unrelated routes.
 5) Run relevant validation checks and summarize results.
@@ -350,8 +355,8 @@ Requirements:
 
 When editing by hand, keep this order:
 
-1. Update routing behavior in `.agents/skills/00-router/workflow-router/SKILL.md`.
-2. Update startup contract in `.agents/instructions.md` if routing/entry behavior changes.
+1. Update routing behavior in `.agents/skills/00-router/workflow-router/SKILL.md` (core, at most 200 lines) or in its `reference/` files (`route-menus.md`, `route-gates.md`, `router-evals.md`).
+2. Update startup contract in `.agents/instructions.md` if routing/entry behavior or the task levels (N0–N3) change. The level pre-filter is copied to the runtime adapters by `node scripts/sync-level-prefilter.mjs --write`; `bun run check:workflow` fails if a copy drifts.
 3. Add or update skills under `.agents/skills/06-patterns/<domain>/<skill-name>/SKILL.md`.
 4. Register every new skill in `.agents/skills/registry.md`.
 
@@ -377,7 +382,9 @@ bun run check:templates
 workflow-kit update --target /path/to/repo
 ```
 
-3. Test routing behavior with three prompts:
+3. Test routing behavior with three prompts, plus the level test prompts in
+   `.agents/skills/00-router/workflow-router/reference/router-evals.md` when
+   the pre-filter or router changed:
 
 - one prompt that should trigger `workflow-router` only,
 - one prompt that should trigger your new workflow/skill,

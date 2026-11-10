@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isSupportedRuntime, runtimeTemplatePaths } from './runtime-matrix.mjs';
+import { loadDelegateCatalog, parseProfileOption, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
@@ -121,6 +122,8 @@ export async function buildInstallPlan(options = {}) {
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
   const files = await selectedTemplateFiles({ runtimes, overlay });
   const discoveredSkillEntries = await collectDiscoveredLocalSkillEntries(targetPath);
+  const catalog = await loadDelegateCatalog();
+  const modelProfiles = resolveModelProfiles({ catalog, runtimes, requested: parseProfileOption(options.profile) });
   const operations = [];
 
   for (const file of files) {
@@ -146,7 +149,9 @@ export async function buildInstallPlan(options = {}) {
       relativePath: file.relativePath,
       templateContent: content,
       existingContent,
-      discoveredSkillEntries
+      discoveredSkillEntries,
+      catalog,
+      modelProfiles
     });
 
     if (existingContent !== null) {
@@ -179,6 +184,7 @@ export async function buildInstallPlan(options = {}) {
     operations,
     runtimes,
     overlay,
+    modelProfiles,
     toolkitVersion: options.toolkitVersion
   });
 
@@ -191,6 +197,7 @@ export async function buildInstallPlan(options = {}) {
     previousToolkitVersion: null,
     runtimes,
     overlay,
+    modelProfiles,
     discoveredSkillEntries,
     operations,
     summary: summarizeOperations(operations),
@@ -208,6 +215,13 @@ export async function buildUpdatePlan(options = {}) {
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
   const files = await selectedTemplateFiles({ runtimes, overlay });
   const discoveredSkillEntries = await collectDiscoveredLocalSkillEntries(targetPath);
+  const catalog = await loadDelegateCatalog();
+  const modelProfiles = resolveModelProfiles({
+    catalog,
+    runtimes,
+    requested: parseProfileOption(options.profile),
+    stored: existingState?.modelProfiles
+  });
   const previousHashes = new Map(Object.entries(existingState?.files ?? {}));
   const operations = [];
 
@@ -238,7 +252,9 @@ export async function buildUpdatePlan(options = {}) {
       relativePath: file.relativePath,
       templateContent: content,
       existingContent,
-      discoveredSkillEntries
+      discoveredSkillEntries,
+      catalog,
+      modelProfiles
     });
 
     if (existingContent === null) {
@@ -358,6 +374,7 @@ export async function buildUpdatePlan(options = {}) {
     operations,
     runtimes,
     overlay,
+    modelProfiles,
     toolkitVersion: options.toolkitVersion
   });
 
@@ -371,6 +388,7 @@ export async function buildUpdatePlan(options = {}) {
     previousToolkitVersion: existingState?.toolkitVersion ?? null,
     runtimes,
     overlay,
+    modelProfiles,
     discoveredSkillEntries,
     operations,
     summary: summarizeOperations(operations),
@@ -388,6 +406,7 @@ export function selectPlanOperations(plan, selectedRelativePaths = []) {
     operations,
     runtimes: plan.runtimes,
     overlay: plan.overlay,
+    modelProfiles: plan.modelProfiles,
     toolkitVersion: plan.toolkitVersion
   });
 
@@ -431,6 +450,7 @@ export function formatPlan(plan) {
     `Target managed version: ${plan.previousToolkitVersion ?? 'none recorded'}`,
     `Runtimes: ${plan.runtimes.join(',')}`,
     `Overlay: ${plan.overlay}`,
+    `Model profiles: ${formatModelProfiles(plan.modelProfiles)}`,
     'Operations:'
   ];
 
@@ -461,6 +481,7 @@ async function readInstallState(stateFilePath) {
       generatedAt: parsed.generatedAt,
       runtimes: Array.isArray(parsed.runtimes) ? parseRuntimeList(parsed.runtimes.join(',')) : ['neutral'],
       overlay: normalizeOverlay(parsed.overlay ?? 'fhh-ia-ecosystem-full'),
+      modelProfiles: parsed.modelProfiles && typeof parsed.modelProfiles === 'object' ? parsed.modelProfiles : {},
       files: parsed.files
     };
   } catch (error) {
@@ -470,7 +491,12 @@ async function readInstallState(stateFilePath) {
   }
 }
 
-function buildNextInstallState({ previousState, operations, runtimes, overlay, toolkitVersion }) {
+function formatModelProfiles(modelProfiles = {}) {
+  const entries = Object.entries(modelProfiles);
+  return entries.length > 0 ? entries.map(([runtime, profile]) => `${runtime}=${profile}`).join(',') : 'none (no runtime with delegate agents)';
+}
+
+function buildNextInstallState({ previousState, operations, runtimes, overlay, modelProfiles, toolkitVersion }) {
   const files = { ...(previousState?.files ?? {}) };
 
   for (const item of operations) {
@@ -506,11 +532,17 @@ function buildNextInstallState({ previousState, operations, runtimes, overlay, t
     generatedAt: new Date().toISOString(),
     runtimes,
     overlay,
+    modelProfiles: { ...(previousState?.modelProfiles ?? {}), ...(modelProfiles ?? {}) },
     files
   };
 }
 
-function resolvePlannedContent({ relativePath, templateContent, existingContent, discoveredSkillEntries = [] }) {
+function resolvePlannedContent({ relativePath, templateContent, existingContent, discoveredSkillEntries = [], catalog, modelProfiles = {} }) {
+  if (catalog) {
+    const delegateAdapter = renderDelegateAdapterForPath(relativePath, catalog, modelProfiles);
+    if (delegateAdapter) return { strategy: 'template', content: delegateAdapter.content };
+  }
+
   if (relativePath === skillRegistryJsonPath) {
     return {
       strategy: 'merged',
@@ -569,24 +601,38 @@ function mergeSkillRegistryJson({ existingContent, templateContent, discoveredSk
 function mergeRegistryEntries(existingEntries, incomingEntries) {
   const normalizedIncoming = normalizeRegistryEntries(incomingEntries);
   const incomingKeys = new Set(normalizedIncoming.map((entry) => registryEntryIdentity(entry)));
+  // A skill file is registered once: an incoming entry for a path replaces any
+  // existing entry for the same path, even when an older update stored it under
+  // a different key (for example an auto-discovered built-in pattern skill).
+  const incomingPaths = new Set(normalizedIncoming.map(registryEntryPath).filter(Boolean));
   const merged = [];
   const seen = new Set();
+  const seenPaths = new Set();
 
   for (const entry of normalizeRegistryEntries(existingEntries)) {
     const key = registryEntryIdentity(entry);
+    const entryPath = registryEntryPath(entry);
     if (incomingKeys.has(key) || seen.has(key)) continue;
+    if (entryPath && (incomingPaths.has(entryPath) || seenPaths.has(entryPath))) continue;
     seen.add(key);
+    if (entryPath) seenPaths.add(entryPath);
     merged.push(entry);
   }
 
   for (const entry of normalizedIncoming) {
     const key = registryEntryIdentity(entry);
-    if (seen.has(key)) continue;
+    const entryPath = registryEntryPath(entry);
+    if (seen.has(key) || (entryPath && seenPaths.has(entryPath))) continue;
     seen.add(key);
+    if (entryPath) seenPaths.add(entryPath);
     merged.push(entry);
   }
 
   return merged;
+}
+
+function registryEntryPath(entry) {
+  return typeof entry.path === 'string' && entry.path.length > 0 ? entry.path : null;
 }
 
 function normalizeRegistryEntries(entries) {

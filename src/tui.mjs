@@ -6,11 +6,27 @@ import {
   createCapabilityGuide,
   defaultIntentFor,
   installPackageDetails,
+  modelProfileQuestions,
   runtimeSet,
   selectedCapabilityList,
   selectedRuntimeList
 } from './tui/model.mjs';
 import { createInteractivePrompter, createScriptedPrompter } from './tui/session.mjs';
+
+async function askModelProfiles({ prompter, runtime, env, write, paint }) {
+  const answers = [];
+  for (const question of modelProfileQuestions(runtime, env)) {
+    if (question.hint) write(`${paint.dim(question.hint)}\n`);
+    const value = await prompter.chooseOption({
+      title: question.title,
+      options: question.options,
+      defaultIndex: question.defaultIndex,
+      defaultValue: question.options[question.defaultIndex].value
+    });
+    answers.push(`${question.runtime}=${value}`);
+  }
+  return answers.length > 0 ? answers.join(',') : undefined;
+}
 import {
   animateIntro,
   colorizeFullPlanPreview,
@@ -739,6 +755,12 @@ export async function runTui(options = {}) {
 
     }
 
+    // D-07: ask the billing model once per subscription-capable runtime on
+    // install/export; update keeps the profile stored in install-state.
+    const profile = mode === 'update'
+      ? undefined
+      : await askModelProfiles({ prompter, runtime, env: options.env ?? process.env, write, paint });
+
     let overwriteModified = false;
     let backupMode = 'required';
 
@@ -779,6 +801,7 @@ export async function runTui(options = {}) {
         targetPath,
         runtime,
         overlay,
+        profile,
         backupMode: backupModeValue,
         toolkitVersion: currentToolkitMetadata().version
       });

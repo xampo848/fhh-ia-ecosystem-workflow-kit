@@ -320,7 +320,10 @@ test('Copilot delegate adapters emit tier model arrays and explicit identity gui
 
     const claude = await fs.readFile(path.join(sourceRoot, `.claude/agents/${agent.slug}.md`), 'utf8');
     const codex = await fs.readFile(path.join(sourceRoot, `.codex/agents/${agent.slug}.toml`), 'utf8');
-    assert.match(claude, /^model: inherit$/m);
+    const claudeTier = catalog.modelProfiles.profiles[catalog.modelProfiles.defaultByRuntime.claude].agentTiers[agent.slug];
+    const codexTier = catalog.modelProfiles.profiles[catalog.modelProfiles.defaultByRuntime.codex].agentTiers[agent.slug];
+    assert.match(claude, new RegExp(`^model: ${catalog.modelProfiles.runtimeTierSettings.claude[claudeTier]}$`, 'm'));
+    assert.match(codex, new RegExp(`^model_reasoning_effort = "${catalog.modelProfiles.runtimeTierSettings.codex[codexTier].model_reasoning_effort}"$`, 'm'));
     assert.match(codex, new RegExp(`sandbox_mode = "${agent.writable ? 'workspace-write' : 'read-only'}"`));
     assert.doesNotMatch(claude + codex, /\(copilot\)/);
   }
@@ -330,7 +333,7 @@ test('Copilot invocation protocol is mirrored and keeps selection, correction, c
   const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const overlay = path.join(sourceRoot, 'templates/repo-overlay-fhh-ia-ecosystem-full');
   const shared = [
-    '.agents/skills/02-implement/implement-prd/SKILL.md',
+    '.agents/skills/02-implement/implement-change/reference/level-n3.md',
     '.agents/skills/02-implement/implement-prd/reference/subagent-prompts.md',
     '.agents/model-routing/README.md'
   ];

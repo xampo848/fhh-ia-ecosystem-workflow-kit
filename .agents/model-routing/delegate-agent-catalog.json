@@ -3,7 +3,7 @@
     "codex": {
       "discoverCatalog": false,
       "pinSubagentModel": false,
-      "pinSubagentTier": false,
+      "pinSubagentTier": true,
       "autoFallback": false
     },
     "copilot": {
@@ -14,8 +14,8 @@
     },
     "claude": {
       "discoverCatalog": false,
-      "pinSubagentModel": false,
-      "pinSubagentTier": false,
+      "pinSubagentModel": true,
+      "pinSubagentTier": true,
       "autoFallback": false
     },
     "antigravity": {
@@ -24,6 +24,59 @@
       "pinSubagentTier": false,
       "autoFallback": false
     }
+  },
+  "modelProfiles": {
+    "description": "Per-project model profile by billing model (roadmap D-05a, D-07). calidad = subscription runtimes, never Liviano; costo = Copilot premium requests or per-token API, close to the original catalog. criticalConcerns escalate any role to Grande in both profiles; in costo it is the only path to Grande.",
+    "defaultByRuntime": { "claude": "calidad", "codex": "calidad", "copilot": "costo", "antigravity": "costo" },
+    "profiles": {
+      "calidad": {
+        "billing": "subscription",
+        "allowedTiers": ["Mediano", "Grande"],
+        "agentTiers": {
+          "capitana-alcance": "Mediano",
+          "sherlock-estructura": "Mediano",
+          "arquitecta-fases": "Grande",
+          "turbo-backend": "Grande",
+          "pixel-ninja": "Grande",
+          "guardia-contrato": "Grande",
+          "testinator-5000": "Grande",
+          "lint-ranger": "Mediano",
+          "qa-relampago": "Grande",
+          "escriba-doc": "Mediano",
+          "cavecrew-investigator": "Mediano",
+          "cavecrew-builder": "Mediano",
+          "cavecrew-reviewer": "Mediano"
+        }
+      },
+      "costo": {
+        "billing": "premium-requests-or-per-token",
+        "allowedTiers": ["Liviano", "Mediano", "Grande"],
+        "agentTiers": {
+          "capitana-alcance": "Mediano",
+          "sherlock-estructura": "Liviano",
+          "arquitecta-fases": "Mediano",
+          "turbo-backend": "Mediano",
+          "pixel-ninja": "Mediano",
+          "guardia-contrato": "Mediano",
+          "testinator-5000": "Mediano",
+          "lint-ranger": "Liviano",
+          "qa-relampago": "Mediano",
+          "escriba-doc": "Liviano",
+          "cavecrew-investigator": "Liviano",
+          "cavecrew-builder": "Mediano",
+          "cavecrew-reviewer": "Mediano"
+        }
+      }
+    },
+    "runtimeTierSettings": {
+      "claude": { "Liviano": "haiku", "Mediano": "sonnet", "Grande": "opus" },
+      "codex": {
+        "Liviano": { "model_reasoning_effort": "low" },
+        "Mediano": { "model_reasoning_effort": "medium" },
+        "Grande": { "model_reasoning_effort": "xhigh" }
+      }
+    },
+    "codexNote": "Codex agent TOML accepts model and model_reasoning_effort (official Codex subagents docs, verified 2026-11-10). The kit pins only the reasoning effort and inherits the session model because exact Codex model IDs vary by release; Liviano in Codex therefore means the session model at low effort unless a project sets an explicit model."
   },
   "copilotModelRouting": {
     "mode": "auto-with-fallback",
