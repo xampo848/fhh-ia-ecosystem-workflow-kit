@@ -53,6 +53,15 @@ Behavior on update:
 2. Managed but locally edited files are preserved as `skip_modified`.
 3. Unmanaged files at colliding paths are preserved as `skip_unmanaged`.
 
+Validation reuse and incremental QA (since `0.13.0`): expensive deterministic
+checks (package typecheck, unit suites, build) can reuse a previous result
+when `validation-fingerprint.mjs` proves the content is identical. Reuse starts
+in **shadow mode**: checks still run and only report what would have been
+reused. Switch a project to active reuse with `validation_reuse: active` in
+`.agents/project-context.md` after 2 or 3 clean implementations. QA re-entries
+are focused on the repair and its impact radius; the first QA and the closure
+suite stay complete.
+
 Cheaper preparation (since `0.12.0`): the update creates
 `.agents/project-context.md` as a template when it is missing and never
 overwrites it afterwards; fill it in with an initial Discovery (`doctor`

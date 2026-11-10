@@ -41,8 +41,8 @@ resolved_model_evidence: <runtime evidence reference | none>
 ### Validation Evidence
 
 ```
-evidence[N]{command,exit_code,duration_s,passed,failed,log_path}:
-  <exact command>,<code>,<seconds>,<count>,<count>,<.ai-work/<prd-slug>/logs/<file> | none>
+evidence[N]{command,exit_code,duration_s,passed,failed,log_path,fingerprint,reused_from}:
+  <exact command>,<code>,<seconds>,<count>,<count>,<.ai-work/<prd-slug>/logs/<file> | none>,<fingerprint | unknown>,<stage | none>
 failure_excerpt[N]{command,lines}: <command>,<first error and stack, at most ~30 lines>
 ```
 
@@ -314,6 +314,10 @@ next: none | qa-handoff-review
 
 ```
 status: success | partial | blocked
+review_scope: full | focused
+origin_review: <review id whose untouched verdicts are kept | none>
+impact_radius[N]: <path reviewed because the repair affects it>
+files_reviewed[N]{path,fingerprint}: <path>,<fingerprint | unknown>
 matcher_status_consumed: success | partial | blocked | skipped
 execution_lock_id: <lock-id>
 slice_id: <slice-id>

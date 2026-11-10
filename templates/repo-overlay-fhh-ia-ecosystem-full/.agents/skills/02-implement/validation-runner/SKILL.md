@@ -48,7 +48,8 @@ Frontend: `bun run lint` or `bun run test --run`
 8. When a failure is classified as "Pre-existing unrelated failure", do not decide its resolution unilaterally. Record it in `unrelated_failures[N]` and trigger the mandatory stop below instead of silently skipping or silently registering it as a follow-up.
 9. Re-run the failed command after a fix. Each fix-and-rerun cycle is one repair round; the limit is 2 per slice, and the third stops with options for the user (see `../implement-prd/reference/validation-and-stop-conditions.md`).
 10. Classify every failure as product or environment before fixing. Environment failures (database, ports, seeding or purging, infrastructure timeouts, a model that cannot be launched) get one recovery attempt and are then reported, not repaired inside the slice. A flaky test with no code change is rerun once and recorded as flaky.
-11. Report evidence compactly: command, exit code, duration, passed/failed counts, and the path of the full log under `.ai-work/<prd-slug>/logs/`. Include at most ~30 relevant lines per failure (first error and its stack); never paste a full log.
+11. Before running an expensive deterministic check (package typecheck, unit suite, build), apply Evidence Reuse in `../implement-prd/reference/validation-and-stop-conditions.md`: compute the fingerprint with `scripts/validation-fingerprint.mjs`, ask `decide`, and `record` every result. In shadow mode always run and report whether the result matched what would have been reused.
+12. Report evidence compactly: command, exit code, duration, passed/failed counts, and the path of the full log under `.ai-work/<prd-slug>/logs/`. Include at most ~30 relevant lines per failure (first error and its stack); never paste a full log.
 10. Escalate to broader validation only when narrow validation passes and risk warrants it.
 
 ## Stop And Ask When

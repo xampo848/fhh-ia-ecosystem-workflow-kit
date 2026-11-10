@@ -66,6 +66,33 @@ When the PRD defines a Matriz de Edge Cases, report coverage explicitly by categ
 
 The reviewer does not retry automatically. A re-entry is valid only after the named repair or validation step supplies new evidence; otherwise return `blocked` rather than creating another review loop.
 
+### Incremental Re-entry
+
+1. **The first QA is complete**: every gate and the six mandatory edge-case
+   categories.
+2. **A re-entry after a repair is focused.** Review the repaired findings, the
+   repair diff, and its impact radius. Gates that were not touched keep their
+   previous verdict, citing the review they come from
+   (`origin_review: <review id>`).
+3. **Deterministic impact radius.** The orchestrator computes it by searching
+   the usages of the symbols the repair changed and passes the list in
+   `impact_radius[N]`. Start from that list, not from judgment; add to it when
+   you find a consumer it missed.
+4. **Escalate to a full review** when the repair touches a `criticalConcern`,
+   a contract or public API, or a migration; touches files outside the repaired
+   slice; or the focused review finds a new `high` or `critical` finding.
+5. **Cumulative coverage before closing.** Every file in the final diff must
+   have been reviewed by some QA at its current version (same fingerprint).
+   Review any file that was not before returning `ready_to_close: yes`, so no
+   regression goes unreviewed.
+6. **Calibration (once per project).** In the first real implementation with
+   a QA re-entry, run both the focused and the full review and compare their
+   findings. If the full review finds something the focused one missed, report
+   it so the triggers above are adjusted before the scheme is trusted.
+
+The independent fresh-context reviewer, the findings ledger (a finding missing
+from the ledger is still open), and the round limit below all remain.
+
 Repair rounds are capped at 2 per slice (`../implement-prd/reference/validation-and-stop-conditions.md`). When a finding would open a third round on the same slice, return `blocked` with what fails, the hypothesis, and the options for the user (continue, accept the risk, reduce scope, or split) instead of `partial`. Report an environment failure as such; it is not a product finding and does not consume repair rounds.
 
 ### Severity-Blocking Gate

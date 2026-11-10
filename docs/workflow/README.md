@@ -83,6 +83,11 @@ rerun for a flaky test, and the full expensive suite once at closure. Temporary
 AI state lives in `.ai-work/<prd-slug>/` (Git-ignored) and is removed at
 closure; the PRD keeps only a compact section 10.
 
+Expensive deterministic checks (typecheck, unit suites, build) may reuse a
+previous result when a script-computed fingerprint proves nothing changed. It
+starts in shadow mode, never applies to integration, E2E, critical slices, or
+the closure suite, and QA re-entries are focused on the repair.
+
 ## Recommended first documents
 
 - `decisions/2026-01-01-workflow-adoption-baseline.md`

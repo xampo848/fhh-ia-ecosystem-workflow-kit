@@ -363,7 +363,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/qa-handoff-review/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "b6261818af353ad7cbbc6988869ec8496fcad4df1120d3e14f5b6c0e91192197"
+      "skill_sha256": "43b827cd5c1a91dca5560039384910b97ccf8a2945b038d82342590f735dfa9a"
     },
     {
       "key": "react-doctor",
@@ -390,7 +390,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/validation-runner/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "21484ebdc971a1a649977ac0b3fa40e1a253730aa378997b2d55851fcbaed2cc"
+      "skill_sha256": "d67103aa1d21e1bb8de2f6dd02e16d9960793e61055af1dbe635a4f70e6a76f3"
     },
     {
       "key": "workflow-router",
