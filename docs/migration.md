@@ -53,6 +53,13 @@ Behavior on update:
 2. Managed but locally edited files are preserved as `skip_modified`.
 3. Unmanaged files at colliding paths are preserved as `skip_unmanaged`.
 
+Reviewing an update (since `0.16.0`): the plan lists its one-time migrations
+under "Migrations", and `workflow-kit update --target <repo> --diff` prints the
+line diff of every file that would change, including managed files you edited
+(`skip_modified`), so you can merge them by hand. Updates never delete or move
+files; a second update right after is a no-op. The full version history is in
+`CHANGELOG.md`.
+
 Neutral structure (since `0.15.0`):
 
 - **Project instructions moved to a neutral place.** The quality gate and the

@@ -1,6 +1,7 @@
 import { applyInstallPlan } from '../apply.mjs';
 import { formatDoctorResult, runDoctor } from '../doctor.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan } from '../planner.mjs';
+import { renderPlanDiffs } from '../plan-insight.mjs';
 import { applyRollbackPlan, buildRollbackPlan, formatRollbackPlan } from '../rollback.mjs';
 import { runTui } from '../tui.mjs';
 import { buildUpgradePlan, commandExists, formatUpgradePlan, resolveUpgradePackageManager, runUpgradePlan } from '../upgrade.mjs';
@@ -17,6 +18,7 @@ export async function runInitCommand(options, { stdout, stderr }) {
 
   const plan = await buildInstallPlan({ ...options, toolkitVersion: packageJson.version });
   stdout.write(`${options.apply ? 'Apply plan' : 'Dry-run plan'}\n${formatPlan(plan)}\n`);
+  if (options.diff) stdout.write(`\nDiff of files that would change:\n${await renderPlanDiffs(plan)}\n`);
 
   if (!options.apply) return 0;
 
@@ -34,6 +36,7 @@ export async function runUpdateCommand(options, { stdout, stderr }) {
 
   const plan = await buildUpdatePlan({ ...options, toolkitVersion: packageJson.version });
   stdout.write(`${options.apply ? 'Update apply plan' : 'Update dry-run plan'}\n${formatPlan(plan)}\n`);
+  if (options.diff) stdout.write(`\nDiff of files that would change:\n${await renderPlanDiffs(plan)}\n`);
 
   if (!options.apply) return 0;
 

@@ -8,7 +8,9 @@ import path from 'node:path';
 
 export const projectInstructionNames = ['quality-gate', 'backend', 'frontend'];
 export const projectInstructionTemplateMarker = '<!-- workflow-kit:project-instructions:template -->';
-const defaultApplyTo = { 'quality-gate': '**' };
+// Frontmatter used when a project has no Copilot file yet. Layers without a
+// default get no generated copy until the project declares its own glob.
+const defaultFrontmatter = { 'quality-gate': 'applyTo: "**"' };
 
 export const neutralInstructionPath = (name) => `.agents/project/${name}.md`;
 export const copilotWrapperPath = (name) => `.github/instructions/${name}.instructions.md`;
@@ -16,18 +18,19 @@ export const copilotWrapperPath = (name) => `.github/instructions/${name}.instru
 const generatedNote = (name) => `<!-- Generated from ${neutralInstructionPath(name)} by workflow-kit. Edit that file, not this one. -->`;
 const frontmatterPattern = /^---\n([\s\S]*?)\n---\n/;
 
+// The frontmatter is kept verbatim: projects write applyTo as a string or as a
+// YAML list, and rewriting it could change which files load the instructions.
 export function splitWrapper(content) {
   const match = content.match(frontmatterPattern);
   const frontmatter = match ? match[1] : null;
-  const applyTo = frontmatter?.match(/^applyTo:\s*"?([^"\n]+)"?\s*$/m)?.[1] ?? null;
   const rest = match ? content.slice(match[0].length) : content;
   const generated = /<!-- Generated from \.agents\/project\/[a-z-]+\.md by workflow-kit\./.test(rest);
   const body = rest.replace(/^\s*<!-- Generated from \.agents\/project\/[a-z-]+\.md by workflow-kit\.[^\n]*-->\n/, '').replace(/^\n+/, '');
-  return { applyTo, body, generated };
+  return { frontmatter, body, generated };
 }
 
-export function renderCopilotWrapper(name, neutralContent, applyTo) {
-  return `---\napplyTo: "${applyTo}"\n---\n\n${generatedNote(name)}\n\n${neutralContent.replace(/^\n+/, '')}`;
+export function renderCopilotWrapper(name, neutralContent, frontmatter = defaultFrontmatter[name]) {
+  return `---\n${frontmatter}\n---\n\n${generatedNote(name)}\n\n${neutralContent.replace(/^\n+/, '')}`;
 }
 
 async function readOptional(file) {
@@ -42,7 +45,7 @@ async function readOptional(file) {
 // State of each project instruction in a target repository:
 // - migratedContent: body of a hand-written Copilot wrapper that must become
 //   the neutral file because no neutral file exists yet;
-// - applyTo: glob to keep on the generated wrapper.
+// - frontmatter: the Copilot frontmatter (applyTo) to keep on the generated copy.
 export async function inspectProjectInstructions({ targetPath }) {
   const result = {};
   for (const name of projectInstructionNames) {
@@ -52,7 +55,7 @@ export async function inspectProjectInstructions({ targetPath }) {
     result[name] = {
       neutral,
       wrapper,
-      applyTo: parsed?.applyTo ?? defaultApplyTo[name] ?? null,
+      frontmatter: parsed?.frontmatter ?? defaultFrontmatter[name] ?? null,
       migratedContent: neutral === null && parsed && !parsed.generated && parsed.body.trim().length > 0 ? parsed.body : null
     };
   }
@@ -67,8 +70,8 @@ export function planCopilotWrappers({ targetPath, inspection, neutralContents, b
     const neutral = neutralContents[name];
     const state = inspection[name];
     // A template placeholder or a layer without a glob is not worth a wrapper.
-    if (!neutral || neutral.includes(projectInstructionTemplateMarker) || !state.applyTo) continue;
-    const content = renderCopilotWrapper(name, neutral, state.applyTo);
+    if (!neutral || neutral.includes(projectInstructionTemplateMarker) || !state.frontmatter) continue;
+    const content = renderCopilotWrapper(name, neutral, state.frontmatter);
     const relativePath = copilotWrapperPath(name);
     const base = { relativePath, targetFile: path.join(targetPath, relativePath), sourcePath: null, content };
     if (state.wrapper === null) operations.push({ ...base, operation: 'create' });

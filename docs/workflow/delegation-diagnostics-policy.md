@@ -17,7 +17,7 @@ evidence.
   or during PRD closure. A stale diagnostic file older than the current PRD run
   must not be reused as evidence for a different run.
 - Deletion is manual and explicit; this policy does not add automatic cleanup
-  beyond the existing `_meta/` removal step in `implement-prd`.
+  beyond the existing `.ai-work/<prd-slug>/` removal step in `implement-prd`.
 
 ## What This Summary May Record
 

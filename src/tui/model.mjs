@@ -183,6 +183,18 @@ const MODEL_PROFILE_OPTIONS = [
   }
 ];
 
+// Stack packs carry framework rules that the neutral skills no longer hold.
+export function stackPackQuestion() {
+  return {
+    title: '¿Instalar un stack pack con las reglas de tu stack?',
+    options: [
+      { value: 'none', label: 'Ninguno', description: 'El proyecto escribe sus propias reglas en .agents/project/.' },
+      { value: 'rails-react', label: 'Rails API + React', description: 'Minitest, Bullet, MSW, TanStack Query y comandos make / bun run, en .agents/project/stack.md.' }
+    ],
+    defaultIndex: 0
+  };
+}
+
 const RUNTIME_BILLING = {
   claude: { label: 'Claude Code', apiKey: 'ANTHROPIC_API_KEY' },
   codex: { label: 'Codex', apiKey: 'OPENAI_API_KEY' }

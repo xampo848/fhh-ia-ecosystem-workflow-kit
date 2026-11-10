@@ -21,7 +21,7 @@ Adopt workflow documentation structure without losing legacy documents.
 - `docs/workflow/migration/legacy-docs-map.md` if legacy docs were detected.
 - Standards setup docs for backend and frontend.
 
-Note: workflow-kit does not auto-generate project-specific runtime instructions. Each target repository should provide `.github/instructions/backend.instructions.md` and `.github/instructions/frontend.instructions.md` when those code surfaces exist.
+Note: workflow-kit does not auto-generate project-specific runtime instructions. Each target repository should provide `.agents/project/backend.md` and `.agents/project/frontend.md` when those code surfaces exist.
 
 ## Migration policy
 
@@ -34,7 +34,7 @@ Note: workflow-kit does not auto-generate project-specific runtime instructions.
 
 - Backend standards consolidated in `docs/workflow/standards/backend.md` or linked canonical docs.
 - Frontend standards consolidated in `docs/workflow/standards/frontend.md` or linked canonical docs.
-- Backend/frontend runtime instruction files are present at `.github/instructions/backend.instructions.md` and `.github/instructions/frontend.instructions.md` (or explicitly marked as N/A when the surface does not exist).
+- Backend/frontend runtime instruction files are present at `.agents/project/backend.md` and `.agents/project/frontend.md` (or explicitly marked as N/A when the surface does not exist).
 - Legacy docs either migrated or explicitly marked as archived.
 - `docs/workflow/migration/legacy-docs-map.md` reviewed and updated.
 

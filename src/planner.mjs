@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { isSupportedRuntime, runtimeTemplatePaths } from './runtime-matrix.mjs';
 import { loadDelegateCatalog, parseProfileOption, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
 import { inspectProjectInstructions, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
+import { describeMigrations } from './plan-insight.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
@@ -207,6 +208,7 @@ export async function buildInstallPlan(options = {}) {
 
   return {
     mode: 'init',
+    migrations: describeMigrations({ operations, existingState: null, migratedInstructions }),
     targetPath,
     stateFilePath: path.join(targetPath, installStateRelativePath),
     nextInstallState,
@@ -412,6 +414,15 @@ export async function buildUpdatePlan(options = {}) {
     targetPath,
     stateFilePath,
     hadExistingState: Boolean(existingState),
+    migrations: describeMigrations({
+      operations,
+      existingState,
+      modelProfiles,
+      requestedProfiles: parseProfileOption(options.profile),
+      stackPack,
+      stackRequested: options.stack !== undefined,
+      migratedInstructions
+    }),
     nextInstallState,
     toolkitVersion: options.toolkitVersion ?? null,
     previousToolkitVersion: existingState?.toolkitVersion ?? null,
@@ -482,9 +493,14 @@ export function formatPlan(plan) {
     `Runtimes: ${plan.runtimes.join(',')}`,
     `Overlay: ${plan.overlay}`,
     `Model profiles: ${formatModelProfiles(plan.modelProfiles)}`,
-    `Stack pack: ${plan.stackPack ?? 'none'}`,
-    'Operations:'
+    `Stack pack: ${plan.stackPack ?? 'none'}`
   ];
+
+  if ((plan.migrations ?? []).length > 0) {
+    lines.push('Migrations (applied once, idempotent):');
+    for (const migration of plan.migrations) lines.push(`- ${migration.id}: ${migration.summary}`);
+  }
+  lines.push('Operations:');
 
   for (const item of plan.operations) {
     lines.push(`- ${item.operation}: ${item.relativePath}`);

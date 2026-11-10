@@ -50,7 +50,7 @@ conflictos en todos los demás lotes.
 | 4 | Validación sin duplicar | U-13, IA-09, IA-10 | Lote 3 | IA-09 e IA-10 implementados; U-13 investigado: la matriz observada no justifica eliminar checks, hallazgos por aprobar | pendiente |
 | 6 | Calidad de PRD y PR | U-07, U-06, U-01, U-05, D-25 | — (paralelizable) | Implementado (rama `feat/roadmap-lotes-3-a-8`) | pendiente |
 | 7 | Runtimes y estructura | U-15, U-02 (solo si D-27 encuentra fallas), U-20, U-14, U-10, IA-12, U-19c | Lotes 1–6 | Implementado (rama `feat/roadmap-lotes-3-a-8`); U-15 y U-02 esperan la verificación del usuario | pendiente |
-| 8 | Cierre: documentación, actualización segura y release | D-33 | Lote 7 | Listo para implementar | — |
+| 8 | Cierre: documentación, actualización segura y release | D-33 | Lote 7 | Implementado (rama `feat/roadmap-lotes-3-a-8`); falta el piloto real en ooh-backoffice | pendiente |
 
 ## 3. Inventario de ítems
 
@@ -1901,6 +1901,7 @@ discuta.
 | 2026-11-10 | 4 | U-13, IA-09, IA-10 | rama `feat/roadmap-lotes-3-a-8` | `validation-fingerprint.mjs` calcula la huella (archivos del alcance, lockfiles, configuración, código generado, migraciones, versiones) y decide reutilizar: solo typecheck, suites unitarias y build; ampliación de alcance solo en lint y tipos; nunca integración, E2E, slices críticos ni la suite del cierre; arranca en modo sombra (D-20, IA-09). QA incremental: primera completa, reentrada enfocada con radio de impacto determinístico, gatillos de revisión completa, cobertura acumulada y calibración única (IA-10). U-13: matriz declarada publicada; la matriz observada y sus hallazgos esperan aprobación uno a uno (D-19). Versión `0.13.0-validation-reuse`. | `node --test` 234/234; todos los `check:*` OK. Ningún check se eliminó. |
 | 2026-11-10 | 6 | U-07, U-06, U-01, U-05, D-25 | rama `feat/roadmap-lotes-3-a-8` | `create-prd`: ronda de casos borde por confirmación, presupuesto de preguntas (~10 por ronda, máximo 3 rondas), inventario de incógnitas con prueba exploratoria aprobada por el usuario, secciones nuevas `2.8 Supuestos e integraciones` y `2.9 Que queda obsoleto`, causa de iteración en la sección 10 (D-21, D-22); señales de tamaño con `prd-size-signals.mjs` y propuesta de dividir con 2 o más (D-25); lo obsoleto y los supuestos se siguen en Discovery, slicing y QA con búsqueda de verificación; `solution-sketch` con caminos de UI opcionales ofrecidos al entrar (vista nueva, crítica, diseño del equipo, sin parte visual), mockups HTML en dos etapas y máximo 3 rondas visuales (D-23); `pr-comments-resolution` evalúa cada comentario antes de ofrecer opciones, con veredicto, respuestas con fundamento aprobadas por el usuario, triage y regla de simetría en critical-stance (D-24); versión `0.14.0-prd-pr-quality`. | `node --test` 239/239; todos los `check:*` OK. |
 | 2026-11-10 | 7 | U-20, U-14, U-10, IA-12, U-15, U-19c | rama `feat/roadmap-lotes-3-a-8` | Instrucciones del proyecto en `.agents/project/` (quality gate, backend, frontend, `paths.json`), con copia generada para Copilot que conserva `applyTo`, migración de instrucciones escritas a mano con respaldo, regla de no saltar el quality gate en silencio y `validate-neutral-paths.mjs` (D-29); reglas de Rails y React fuera de las skills núcleo y dentro del stack pack `rails-react`, que las instalaciones previas reciben por defecto, con inventario de 28 reglas y `validate-stack-neutrality.mjs` (D-30); ningún archivo propio de skill supera 200 líneas, con 3 excepciones justificadas y `validate-skill-size.mjs` (D-31); notas docentes selectivas con preferencia por proyecto (D-32); reglas de delegación por runtime, sin caída silenciosa a inline, y guía de verificación para Codex (D-28); skills nativas de Claude Code con `disable-model-invocation` (U-19c); runtime `opencode` vía `AGENTS.md`; versión `0.15.0-neutral-structure`. | `node --test` 256/256; todos los `check:*` OK. Smoke de update desde 0.7.40 con instrucciones propias en `.github/instructions/`. |
+| 2026-11-10 | 8 | D-33 | rama `feat/roadmap-lotes-3-a-8` | El plan de `init` y `update` lista las migraciones que lleva (idempotentes: desaparecen una vez aplicadas) y `--diff` muestra el diff de cada archivo que cambiaría, incluidos los editados localmente; el TUI pregunta el stack pack al instalar y corre `doctor` después de aplicar; tests de actualización de punta a punta desde la estructura antigua para Claude Code, Codex, Copilot, Antigravity y los tres juntos (contenido propio conservado, `doctor` sin errores, segundo update sin escrituras); pasada de documentación (README, guías, runbooks, plantilla de instrucciones, slides) con búsqueda de nombres y rutas obsoletas; `CHANGELOG.md`; versión `0.16.0-safe-update`. | `node --test` 264/264 en serie; todos los `check:*` OK. Vista previa en seco contra ooh-backoffice (sin escribir): 54 archivos nuevos, 73 actualizados con respaldo, 1 protegido. |
 
 Proceso (2026-11-10):
 
@@ -1910,6 +1911,23 @@ Proceso (2026-11-10):
 - Por pedido del usuario se dejó un PR único (#61) con un commit por lote, en
   vez de un PR por lote. Se cerraron #57, #58 y #60, cuyo contenido quedó
   rebasado sobre `main` en #61.
+
+Hallazgos del Lote 8:
+
+- **La vista previa en ooh-backoffice encontró un caso real:** sus
+  instrucciones de Copilot usan `applyTo` como lista YAML de varias líneas y
+  la primera versión solo leía el formato de una línea, así que no regeneraba
+  esos archivos. Ahora el frontmatter se conserva tal cual (test agregado).
+- **Piloto pendiente (D-33, punto 5):** falta aplicar el update en una rama de
+  ooh-backoffice y correr un flujo N2 completo. La vista previa muestra un
+  archivo protegido, `.agents/skills/02-implement/implement-prd/SKILL.md`, que
+  ese proyecto editó: `update` no lo reemplaza por el alias. Conviene revisar
+  `workflow-kit update --diff` y decidir si se toma la versión nueva.
+- **No se implementó** un asistente de fusión línea a línea en el TUI: para un
+  archivo editado, el TUI ofrece proteger o sobrescribir con respaldo, y
+  `--diff` muestra las diferencias para combinarlas a mano.
+- **Versión:** se mantiene en `0.x` (`0.16.0`), como define `docs/versioning.md`
+  mientras el paquete no esté aprobado para publicación.
 
 Hallazgos del Lote 7:
 

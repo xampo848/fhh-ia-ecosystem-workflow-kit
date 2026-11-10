@@ -540,9 +540,9 @@ defaults:
 <table class="wk-table mt-4">
   <thead><tr><th>Modo</th><th>Cuándo aplica</th><th>Postura de ejecución</th></tr></thead>
   <tbody>
-    <tr><td>small/local</td><td>1–2 archivos, alcance evidente.</td><td>Validación focalizada y cierre rápido.</td></tr>
-    <tr><td>controlled-lite / controlled-implementation</td><td>Dependencias parciales o riesgo moderado.</td><td>Ownership explícito, delegación selectiva y checkpoints.</td></tr>
-    <tr><td>standard / autonomous-safe</td><td>Cross-layer, contrato, migración o UI relevante.</td><td>Slicing completo, gates de evidencia y handoffs formales.</td></tr>
+    <tr><td>N1 quirúrgico</td><td>1–2 archivos, alcance evidente.</td><td>Validación focalizada y cierre rápido.</td></tr>
+    <tr><td>N2 estándar</td><td>Dependencias parciales o riesgo moderado.</td><td>Ownership explícito, delegación selectiva y checkpoints.</td></tr>
+    <tr><td>N3 alto riesgo (autónomo es opcional)</td><td>Cross-layer, contrato, migración o UI relevante.</td><td>Slicing completo, gates de evidencia y handoffs formales.</td></tr>
     <tr><td>resume</td><td>Ejecución interrumpida.</td><td>Reconstruir estado desde tracker y evidencia antes de continuar.</td></tr>
   </tbody>
 </table>

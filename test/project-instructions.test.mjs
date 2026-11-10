@@ -25,9 +25,9 @@ test('workflow skills name neutral paths only', async () => {
 
 test('the kit quality gate wrapper is generated from the neutral file', async () => {
   const neutral = await read(root, '.agents/project/quality-gate.md');
-  assert.equal(await read(root, '.github/instructions/quality-gate.instructions.md'), renderCopilotWrapper('quality-gate', neutral, '**'));
-  const parsed = splitWrapper(renderCopilotWrapper('backend', '# Backend\n', 'backend/**'));
-  assert.deepEqual(parsed, { applyTo: 'backend/**', body: '# Backend\n', generated: true });
+  assert.equal(await read(root, '.github/instructions/quality-gate.instructions.md'), renderCopilotWrapper('quality-gate', neutral));
+  const parsed = splitWrapper(renderCopilotWrapper('backend', '# Backend\n', 'applyTo: "backend/**"'));
+  assert.deepEqual(parsed, { frontmatter: 'applyTo: "backend/**"', body: '# Backend\n', generated: true });
 });
 
 test('fresh install: neutral quality gate for every runtime, Copilot wrapper only with Copilot', async () => {
@@ -106,4 +106,21 @@ test('implementation skills never skip a missing quality gate silently', async (
   ]);
   for (const content of [core, contract, backend]) assert.match(content, /quality gate: no configurado/);
   assert.match(core, /at N3 that is a stop/);
+});
+
+test('a multi-line applyTo list is kept verbatim when instructions are migrated', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'copilot' }));
+  await fs.rm(path.join(target, '.agents/project/frontend.md'));
+  const frontmatter = 'applyTo:\n  - "app/javascript/**/*.js"\n  - "app/javascript/**/*.erb"';
+  const rules = '# Frontend Instructions\n\n- Usar los tokens del design system.\n';
+  await write(target, '.github/instructions/frontend.instructions.md', `---\n${frontmatter}\n---\n\n${rules}`);
+
+  await applyInstallPlan(await buildUpdatePlan({ targetPath: target, runtime: 'copilot' }));
+  assert.equal(await read(target, '.agents/project/frontend.md'), rules);
+  const wrapper = await read(target, '.github/instructions/frontend.instructions.md');
+  assert.ok(wrapper.startsWith(`---\n${frontmatter}\n---\n`), 'the list form of applyTo is preserved');
+  assert.match(wrapper, /Generated from \.agents\/project\/frontend\.md/);
+  assert.ok(wrapper.endsWith(rules));
+  assert.deepEqual(await projectInstructionDiagnostics({ targetPath: target, runtimes: ['copilot'] }), []);
 });
