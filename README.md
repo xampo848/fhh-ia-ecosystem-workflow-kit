@@ -229,6 +229,11 @@ Apply after review:
 workflow-kit update --target /path/to/repo --apply --yes
 ```
 
+Delegate agents follow the repository's model profile (`calidad` for
+subscriptions, the default for Claude Code and Codex; `costo` for Copilot and
+per-token APIs). `update` keeps the stored profile; change it with
+`--profile claude=costo` (see `docs/quickstart.md`).
+
 Update behavior:
 
 - Only files tracked in `.agents/workflow-kit/install-state.json` are eligible for overwrite.

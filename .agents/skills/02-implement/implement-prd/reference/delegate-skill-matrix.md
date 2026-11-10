@@ -78,7 +78,7 @@ These values are `configured` in this repository catalog, not `observed` runtime
 
 | Runtime | Discover catalog | Pin subagent model | Pin subagent tier | Auto fallback |
 | --- | --- | --- | --- | --- |
-| codex | false | false | false | false |
+| codex | false | false | true | false |
 | copilot | false | true | false | false |
-| claude | false | false | false | false |
+| claude | false | true | true | false |
 | antigravity | false | false | false | false |

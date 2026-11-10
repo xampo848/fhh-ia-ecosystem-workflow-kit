@@ -320,7 +320,10 @@ test('Copilot delegate adapters emit tier model arrays and explicit identity gui
 
     const claude = await fs.readFile(path.join(sourceRoot, `.claude/agents/${agent.slug}.md`), 'utf8');
     const codex = await fs.readFile(path.join(sourceRoot, `.codex/agents/${agent.slug}.toml`), 'utf8');
-    assert.match(claude, /^model: inherit$/m);
+    const claudeTier = catalog.modelProfiles.profiles[catalog.modelProfiles.defaultByRuntime.claude].agentTiers[agent.slug];
+    const codexTier = catalog.modelProfiles.profiles[catalog.modelProfiles.defaultByRuntime.codex].agentTiers[agent.slug];
+    assert.match(claude, new RegExp(`^model: ${catalog.modelProfiles.runtimeTierSettings.claude[claudeTier]}$`, 'm'));
+    assert.match(codex, new RegExp(`^model_reasoning_effort = "${catalog.modelProfiles.runtimeTierSettings.codex[codexTier].model_reasoning_effort}"$`, 'm'));
     assert.match(codex, new RegExp(`sandbox_mode = "${agent.writable ? 'workspace-write' : 'read-only'}"`));
     assert.doesNotMatch(claude + codex, /\(copilot\)/);
   }

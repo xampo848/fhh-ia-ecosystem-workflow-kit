@@ -165,7 +165,7 @@
       "class": "Workflow",
       "path": ".agents/skills/03-quality/document-development/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "49afadb7176cb8badac72b5cdc168e9580597a81c554904c70869274abf4f58f"
+      "skill_sha256": "6f9b59751d4f49d9b9e189bf08c7354cbc042def8f64e37d3697105db0c139b5"
     },
     {
       "key": "engineering-mentor",
@@ -219,7 +219,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "c26f6553d6a841bb03bc016a26aca7f65f0f4a4e2e6ba018db01d4d1d2c001c1"
+      "skill_sha256": "f9293a25070c499903ce45977cba04af477e0fb75244b1d677b486b983e678aa"
     },
     {
       "key": "implementation-skill-matcher",

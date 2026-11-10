@@ -9,7 +9,7 @@ test('parseArgs applies defaults when no flags are given', () => {
   assert.equal(options.dryRun, true);
   assert.equal(options.apply, false);
   assert.equal(options.yes, false);
-  assert.equal(options.runtime, 'neutral');
+  assert.equal(options.runtime, undefined, 'init/export default to neutral; update/doctor reuse stored runtimes');
   assert.equal(options.overlay, 'fhh-ia-ecosystem-full');
 });
 

@@ -97,6 +97,21 @@ workflow-kit update --target /path/to/repo --runtime codex,copilot --adopt-exist
 
 After that, regular `workflow-kit update --apply --yes` runs will perform managed, safe updates.
 
+## Doctor reports `model-profile/agent-mismatch`
+
+A delegate agent's model setting (`model:` in `.claude/agents`, the model list
+in `.github/agents`, or `model_reasoning_effort` in `.codex/agents`) does not
+match the profile stored in `.agents/workflow-kit/install-state.json`. This
+usually means a manual edit or a copy from another project. Do not fix the
+agent by hand; regenerate it:
+
+```bash
+workflow-kit update --target /path/to/repo --profile claude=calidad --apply --yes
+```
+
+Use the profile you actually want (`calidad` for subscriptions, `costo` for
+Copilot or per-token APIs).
+
 ## Update shows `skip_modified` or `skip_unmanaged`
 
 - `skip_modified`: the file is managed but was changed locally after last apply, so update protects it.

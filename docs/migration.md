@@ -53,6 +53,13 @@ Behavior on update:
 2. Managed but locally edited files are preserved as `skip_modified`.
 3. Unmanaged files at colliding paths are preserved as `skip_unmanaged`.
 
+Model profiles (since `0.9.0`): repositories installed before model profiles
+have no stored profile, so the first `update` applies the runtime default.
+For Claude Code that changes the delegate agents from `model: inherit` to
+`sonnet`/`opus` (`calidad`). If that project runs Claude Code or Codex through a
+per-token API key, pass `--profile claude=costo` (or `codex=costo`) on that
+update. The profile is then stored and kept by later updates.
+
 If your repo was installed before install-state support, run a one-time bootstrap:
 
 ```bash

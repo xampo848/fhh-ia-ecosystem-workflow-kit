@@ -39,13 +39,17 @@ test('tui confirmed apply writes selected files through planner apply', async ()
   let output = '';
 
   const result = await runTui({
-    ask: scriptedAsk(['', target, '6', '', '', 'yes']),
+    // Runtime 6 = all adapters, so Codex and Claude Code each ask for their billing profile.
+    ask: scriptedAsk(['', target, '6', '', '', '', '', 'yes']),
     color: false,
+    env: {},
     write: (message) => { output += message; }
   });
 
   assert.equal(result.code, 0);
   assert.equal(result.applied, true);
+  assert.match(output, /¿Cómo se cobra Codex en este proyecto\?/);
+  assert.match(output, /¿Cómo se cobra Claude Code en este proyecto\?/);
   assert.match(output, /Apply completed successfully\./);
   assert.match(output, /Applied writes:/);
   await fs.access(path.join(target, '.agents/instructions.md'));
@@ -235,7 +239,9 @@ test('tui export mode writes workflow files into the selected output directory',
   let output = '';
 
   const result = await runTui({
-    ask: scriptedAsk(['3', target, '2', '', '', 'yes']),
+    // Runtime 2 = Codex, which asks for its billing profile once.
+    ask: scriptedAsk(['3', target, '2', '', '', '', 'yes']),
+    env: {},
     color: false,
     write: (message) => { output += message; }
   });
@@ -264,4 +270,24 @@ test('tui doctor mode reports repository diagnostics without writing files', asy
   assert.match(output, /Doctor: failed/);
   assert.match(output, /Missing files:/);
   await assert.rejects(fs.access(path.join(target, '.agents/instructions.md')), { code: 'ENOENT' });
+});
+
+test('tui preselects the costo profile when an API key is present and installs matching agents', async () => {
+  const target = await makeTempRepo();
+  let output = '';
+
+  // Runtime 4 = Claude Code; the empty answer accepts the preselected costo profile.
+  const result = await runTui({
+    ask: scriptedAsk(['', target, '4', '', '', '', 'yes']),
+    color: false,
+    env: { ANTHROPIC_API_KEY: 'test-only-not-a-real-key' },
+    write: (message) => { output += message; }
+  });
+
+  assert.equal(result.applied, true);
+  assert.match(output, /ANTHROPIC_API_KEY está definida/);
+  const sherlock = await fs.readFile(path.join(target, '.claude/agents/sherlock-estructura.md'), 'utf8');
+  assert.match(sherlock, /^model: haiku$/m);
+  const state = JSON.parse(await fs.readFile(path.join(target, '.agents/workflow-kit/install-state.json'), 'utf8'));
+  assert.deepEqual(state.modelProfiles, { claude: 'costo' });
 });
