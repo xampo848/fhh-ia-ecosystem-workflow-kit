@@ -10,9 +10,14 @@ implementa recién cuando el usuario lo autoriza explícitamente.
 - Primero se decide, después se implementa. Las dudas se conversan **una a la
   vez**; cada decisión registra contexto, opciones, recomendación de la IA y lo
   que eligió el usuario.
-- Un lote = un PR. El PR de cada lote actualiza este documento: estado de los
-  ítems, decisiones aplicadas y una fila en la bitácora (sección 7).
-- Además, cada PR de lote (D-33):
+- **Un lote = un commit, todos en un PR único** (ajuste del usuario,
+  2026-11-10; antes era un PR por lote). El PR del roadmap es
+  [#61](https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/pull/61). El
+  commit de cada lote actualiza este documento: estado de los ítems,
+  decisiones aplicadas y una fila en la bitácora (sección 7). Los problemas
+  que aparezcan (CI, revisión, smoke) se corrigen sobre la marcha en el mismo
+  PR.
+- Además, cada commit de lote (D-33):
   - actualiza la documentación que su cambio afecta directamente (README,
     guías, runbooks);
   - sube `package.json.version`, como exige `docs/versioning.md`;
@@ -37,9 +42,9 @@ conflictos en todos los demás lotes.
 
 | # | Lote | Ítems | Depende de | Estado | PR |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Carga proporcional y vía rápida | U-03, U-18, U-09 (parte router), IA-03, U-19a | — | En implementación (rama `feat/lote-1-carga-proporcional`) | pendiente |
-| 1b | Política de modelos | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (verificación, D-27) | — | En implementación (rama `feat/lote-1b-politica-modelos`, apilada sobre el Lote 1) | pendiente |
-| 2 | Ruta general de implementación | U-11, U-08, U-09 (parte ejecución), IA-02, D-26 | Lote 1 | En implementación (rama `feat/lote-2-ruta-implementacion`, apilada sobre el 1b) | pendiente |
+| 1 | Carga proporcional y vía rápida | U-03, U-18, U-09 (parte router), IA-03, U-19a | — | Implementado en #61, falta merge | #61 |
+| 1b | Política de modelos | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (verificación, D-27) | — | Implementado en #61, falta merge | #61 |
+| 2 | Ruta general de implementación | U-11, U-08, U-09 (parte ejecución), IA-02, D-26 | Lote 1 | Implementado en #61, falta merge | #61 |
 | 3 | Frenos de costo en ejecución | U-17, U-16, IA-11, IA-08, IA-07 | Lote 2 | Listo para implementar | — |
 | 5 | Preparación más barata | U-12, IA-04, IA-05, IA-06, IA-01 | Lote 2 | Listo para implementar | — |
 | 4 | Validación sin duplicar | U-13, IA-09, IA-10 | Lote 3 | Listo para implementar | — |
@@ -1888,9 +1893,18 @@ discuta.
 
 | Fecha | Lote | Ítems | PR | Resultado | Validación |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-10 | 1 | U-03, U-18, U-09 (router), IA-03, U-19a | rama `feat/lote-1-carga-proporcional` | Niveles N0–N3 y pre-filtro como fuente única en `instructions.md`; copia generada en `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md` y `ANTIGRAVITY.md` (`scripts/sync-level-prefilter.mjs`, en `check:workflow`); router dividido en núcleo de 193 líneas + `route-menus.md`, `route-gates.md` y `router-evals.md` (12 prompts de prueba); N1 quirúrgico ofrecido explícitamente; heurísticas de delegación movidas a `model-routing`; referencia rota eliminada; `doctor` avisa si un adapter perdió el pre-filtro; docs actualizadas; versión `0.8.0-proportional-loading`. Sin migración: solo archivos nuevos o actualizados (verificado con smoke de update desde 0.7.40). | `node --test` 209/209; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release` y `check:legal` OK. `check:security` falla también en `main` (advisory nuevo de `dompurify`), ajeno al lote. Evals: L01 PASS en Claude Code (N0, sin trace, 3 llamadas). Pendiente: L02–L12 en Claude Code y L01–L12 en Codex y Copilot. |
-| 2026-11-10 | 1b | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (preparación de D-27) | rama `feat/lote-1b-politica-modelos` (apilada sobre el Lote 1) | Perfiles `calidad`/`costo` en el catálogo (`modelProfiles`) con default por runtime; módulo único `src/model-profiles.mjs` que genera los agentes de Claude (`sonnet`/`opus`, `haiku` solo en `costo`), Codex (`model_reasoning_effort`) y Copilot (listas por tier) tanto en el kit como al instalar; `init` pregunta suscripción o API para Claude Code y Codex (la API key solo preselecciona), `--profile <runtime>=<perfil>`, el perfil queda en `install-state.json` y `update` lo conserva; `doctor` muestra el perfil y falla con `model-profile/agent-mismatch`; política de perfiles y fallback D-12 en `model-routing`; `document-development` según perfil (U-04); tabla de modelos ejecutados en el cierre con Copilot y guía de verificación real (D-27); capacidades corregidas (`claude.pinSubagentModel=true`, `codex.pinSubagentTier=true`); versión `0.9.0-model-profiles`. | `node --test` 215/215; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release`, `check:legal` OK. Smoke de update desde 0.7.40: con y sin `--profile`, `doctor` ok y modelos correctos por agente. Pendiente: pruebas A y B de U-02 en Copilot (las corre el usuario). |
-| 2026-11-10 | 2 | U-11, U-08, U-09 (ejecución), IA-02, D-26 | rama `feat/lote-2-ruta-implementacion` (apilada sobre el 1b) | Nueva skill `implement-change` (núcleo de 130 líneas) con dos ejes: nivel (ceremonia) y tipo de entrada (evidencia); referencias `level-n1.md`, `level-n2.md`, `level-n3.md`, `input-types.md` y `modifiers.md` que se leen solo cuando aplican; los modos antiguos se mapean a niveles y `autonomous-safe`/`resume` pasan a modificadores; invariantes y cierre por nivel en el núcleo; iteración por delta con la sección 10 como mapa, frescura por `git diff` y regresión del feature original; bug sin reproducción se detiene; modo autónomo ofrecido por ejecución con supervisado por defecto (D-26, ajuste de D-25); `implement-prd` queda como alias permanente; router, gates y evals (L13 iteración, L14 bug) apuntan a `implement-change`; versión `0.10.0-implement-change`. | `node --test` 221/221; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release`, `check:legal` OK. Smoke de update desde 0.7.40: crea `implement-change/`, reescribe el alias, registro con ambas entradas, `doctor` ok. |
+| 2026-11-10 | 1 | U-03, U-18, U-09 (router), IA-03, U-19a | #61 (reemplaza a #57) | Niveles N0–N3 y pre-filtro como fuente única en `instructions.md`; copia generada en `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md` y `ANTIGRAVITY.md` (`scripts/sync-level-prefilter.mjs`, en `check:workflow`); router dividido en núcleo de 193 líneas + `route-menus.md`, `route-gates.md` y `router-evals.md` (12 prompts de prueba); N1 quirúrgico ofrecido explícitamente; heurísticas de delegación movidas a `model-routing`; referencia rota eliminada; `doctor` avisa si un adapter perdió el pre-filtro; docs actualizadas; versión `0.8.0-proportional-loading`. Sin migración: solo archivos nuevos o actualizados (verificado con smoke de update desde 0.7.40). | `node --test` 209/209; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release` y `check:legal` OK. `check:security` falla también en `main` (advisory nuevo de `dompurify`), ajeno al lote. Evals: L01 PASS en Claude Code (N0, sin trace, 3 llamadas). Pendiente: L02–L12 en Claude Code y L01–L12 en Codex y Copilot. |
+| 2026-11-10 | 1b | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (preparación de D-27) | #61 (reemplaza a #58) | Perfiles `calidad`/`costo` en el catálogo (`modelProfiles`) con default por runtime; módulo único `src/model-profiles.mjs` que genera los agentes de Claude (`sonnet`/`opus`, `haiku` solo en `costo`), Codex (`model_reasoning_effort`) y Copilot (listas por tier) tanto en el kit como al instalar; `init` pregunta suscripción o API para Claude Code y Codex (la API key solo preselecciona), `--profile <runtime>=<perfil>`, el perfil queda en `install-state.json` y `update` lo conserva; `doctor` muestra el perfil y falla con `model-profile/agent-mismatch`; política de perfiles y fallback D-12 en `model-routing`; `document-development` según perfil (U-04); tabla de modelos ejecutados en el cierre con Copilot y guía de verificación real (D-27); capacidades corregidas (`claude.pinSubagentModel=true`, `codex.pinSubagentTier=true`); versión `0.9.0-model-profiles`. | `node --test` 215/215; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release`, `check:legal` OK. Smoke de update desde 0.7.40: con y sin `--profile`, `doctor` ok y modelos correctos por agente. Pendiente: pruebas A y B de U-02 en Copilot (las corre el usuario). |
+| 2026-11-10 | 2 | U-11, U-08, U-09 (ejecución), IA-02, D-26 | #61 (reemplaza a #60) | Nueva skill `implement-change` (núcleo de 130 líneas) con dos ejes: nivel (ceremonia) y tipo de entrada (evidencia); referencias `level-n1.md`, `level-n2.md`, `level-n3.md`, `input-types.md` y `modifiers.md` que se leen solo cuando aplican; los modos antiguos se mapean a niveles y `autonomous-safe`/`resume` pasan a modificadores; invariantes y cierre por nivel en el núcleo; iteración por delta con la sección 10 como mapa, frescura por `git diff` y regresión del feature original; bug sin reproducción se detiene; modo autónomo ofrecido por ejecución con supervisado por defecto (D-26, ajuste de D-25); `implement-prd` queda como alias permanente; router, gates y evals (L13 iteración, L14 bug) apuntan a `implement-change`; versión `0.10.0-implement-change`. | `node --test` 221/221; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release`, `check:legal` OK. Smoke de update desde 0.7.40: crea `implement-change/`, reescribe el alias, registro con ambas entradas, `doctor` ok. |
+
+Proceso (2026-11-10):
+
+- `check:security` fallaba en `main` por advisories nuevos de `dompurify`,
+  `zod` y `markdown-it`, y bloqueaba la CI de todos los PRs. Se corrigió en
+  #59 (mergeado) subiendo versiones; no hizo falta ningún parche local.
+- Por pedido del usuario se dejó un PR único (#61) con un commit por lote, en
+  vez de un PR por lote. Se cerraron #57, #58 y #60, cuyo contenido quedó
+  rebasado sobre `main` en #61.
 
 Hallazgos del Lote 2:
 
