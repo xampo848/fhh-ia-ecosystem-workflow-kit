@@ -18,7 +18,8 @@ For compact PRDs, the goal is not to create more slices. The goal is to find the
 
 ## Inputs From Orchestrator
 
-- PRD readiness brief.
+- `.agents/delegation/delegate-contract.md` (read first; not `.agents/instructions.md` or the router).
+- PRD readiness brief and, at N3, the PRD index (`.ai-work/<prd-slug>/prd-index.toon`) plus only the PRD sections the slices need; ask for a section by its reference instead of rereading the whole PRD.
 - Codebase discovery brief, targeted lookup notes, or explicit reason discovery was skipped.
 - Candidate operating mode.
 - User constraints, branch status, and resume state.

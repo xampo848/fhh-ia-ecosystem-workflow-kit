@@ -30,7 +30,9 @@ The orchestrator decides, before invoking this skill, whether a persisted brief 
 
 Use exists-or-skip. A missing optional path is not a failed search.
 
-- `.github/copilot-instructions.md` or `.agents/instructions.md`.
+- `.agents/delegation/delegate-contract.md` (not `.agents/instructions.md` or the router).
+- `.agents/project-context.md` **first**: structure map, validation commands and their cost, test conventions, known environment quirks, and pointers to architecture docs. Explore only what is specific to the change; the brief is a **delta** over this file, not a full map. If the area is not covered or the file contradicts the code, record it under `project_context_gaps` so closure can propose the correction; never edit the file yourself.
+- At N3, the PRD index (`.ai-work/<prd-slug>/prd-index.toon`) and only the PRD sections it points to for the areas under discovery.
 - The PRD sections and readiness brief relevant to discovery.
 - `.ai-work/<prd-slug>/orchestration.md` `## Calibration` and `## Pattern Lock` when they exist.
 - `docs/foundations/ARCHITECTURE.md` only when it exists and the work is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths.

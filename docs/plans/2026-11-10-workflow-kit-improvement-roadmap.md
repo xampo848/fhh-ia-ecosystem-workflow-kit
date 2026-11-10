@@ -46,7 +46,7 @@ conflictos en todos los demás lotes.
 | 1b | Política de modelos | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (verificación, D-27) | — | Hecho (mergeado en #61) | #61 |
 | 2 | Ruta general de implementación | U-11, U-08, U-09 (parte ejecución), IA-02, D-26 | Lote 1 | Hecho (mergeado en #61) | #61 |
 | 3 | Frenos de costo en ejecución | U-17, U-16, IA-11, IA-08, IA-07 | Lote 2 | Implementado (rama `feat/roadmap-lotes-3-a-8`) | pendiente |
-| 5 | Preparación más barata | U-12, IA-04, IA-05, IA-06, IA-01 | Lote 2 | Listo para implementar | — |
+| 5 | Preparación más barata | U-12, IA-04, IA-05, IA-06, IA-01 | Lote 2 | Implementado (rama `feat/roadmap-lotes-3-a-8`) | pendiente |
 | 4 | Validación sin duplicar | U-13, IA-09, IA-10 | Lote 3 | Listo para implementar | — |
 | 6 | Calidad de PRD y PR | U-07, U-06, U-01, U-05, D-25 | — (paralelizable) | Listo para implementar | — |
 | 7 | Runtimes y estructura | U-15, U-02 (solo si D-27 encuentra fallas), U-20, U-14, U-10, IA-12, U-19c | Lotes 1–6 | Listo para implementar | — |
@@ -72,11 +72,11 @@ conflictos en todos los demás lotes.
 | U-13 | P1 | Investigar redundancia de pruebas por slice | 4 | Listo para implementar | D-19; la investigación (solo lectura) puede adelantarse |
 | IA-09 | P0 | Reutilizar checks vigentes | 4 | Listo para implementar | D-20 |
 | IA-10 | P1 | QA incremental | 4 | Listo para implementar | D-20 |
-| U-12 | P0 | Base de conocimiento fija para Discovery | 5 | Listo para implementar | |
-| IA-04 | P0 | Lectura delegada del PRD | 5 | Listo para implementar | |
-| IA-05 | P1 | Preparación combinada (fases 0–2) | 5 | Listo para implementar | |
-| IA-06 | P1 | Matcher proporcional | 5 | Listo para implementar | D-18 |
-| IA-01 | P0 | Arranque mínimo de delegados | 5 | Listo para implementar | D-18; incluye contrato de delegado con garantía de cobertura |
+| U-12 | P0 | Base de conocimiento fija para Discovery | 5 | Implementado | |
+| IA-04 | P0 | Lectura delegada del PRD | 5 | Implementado | |
+| IA-05 | P1 | Preparación combinada (fases 0–2) | 5 | Implementado | |
+| IA-06 | P1 | Matcher proporcional | 5 | Implementado | D-18 |
+| IA-01 | P0 | Arranque mínimo de delegados | 5 | Implementado | D-18; incluye contrato de delegado con garantía de cobertura |
 | U-07 | P0 | PRD con más y mejores preguntas (casos borde, APIs) | 6 | Listo para implementar | D-21 |
 | U-06 | P0 | Detectar y retirar lo que queda obsoleto | 6 | Listo para implementar | D-22; toca también discovery, slicing y QA |
 | U-01 | P1 | Sketch de UI con impeccable y crítica de vistas | 6 | Listo para implementar | D-23 |
@@ -1897,6 +1897,7 @@ discuta.
 | 2026-11-10 | 1b | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (preparación de D-27) | #61 (reemplaza a #58) | Perfiles `calidad`/`costo` en el catálogo (`modelProfiles`) con default por runtime; módulo único `src/model-profiles.mjs` que genera los agentes de Claude (`sonnet`/`opus`, `haiku` solo en `costo`), Codex (`model_reasoning_effort`) y Copilot (listas por tier) tanto en el kit como al instalar; `init` pregunta suscripción o API para Claude Code y Codex (la API key solo preselecciona), `--profile <runtime>=<perfil>`, el perfil queda en `install-state.json` y `update` lo conserva; `doctor` muestra el perfil y falla con `model-profile/agent-mismatch`; política de perfiles y fallback D-12 en `model-routing`; `document-development` según perfil (U-04); tabla de modelos ejecutados en el cierre con Copilot y guía de verificación real (D-27); capacidades corregidas (`claude.pinSubagentModel=true`, `codex.pinSubagentTier=true`); versión `0.9.0-model-profiles`. | `node --test` 215/215; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release`, `check:legal` OK. Smoke de update desde 0.7.40: con y sin `--profile`, `doctor` ok y modelos correctos por agente. Pendiente: pruebas A y B de U-02 en Copilot (las corre el usuario). |
 | 2026-11-10 | 2 | U-11, U-08, U-09 (ejecución), IA-02, D-26 | #61 (reemplaza a #60) | Nueva skill `implement-change` (núcleo de 130 líneas) con dos ejes: nivel (ceremonia) y tipo de entrada (evidencia); referencias `level-n1.md`, `level-n2.md`, `level-n3.md`, `input-types.md` y `modifiers.md` que se leen solo cuando aplican; los modos antiguos se mapean a niveles y `autonomous-safe`/`resume` pasan a modificadores; invariantes y cierre por nivel en el núcleo; iteración por delta con la sección 10 como mapa, frescura por `git diff` y regresión del feature original; bug sin reproducción se detiene; modo autónomo ofrecido por ejecución con supervisado por defecto (D-26, ajuste de D-25); `implement-prd` queda como alias permanente; router, gates y evals (L13 iteración, L14 bug) apuntan a `implement-change`; versión `0.10.0-implement-change`. | `node --test` 221/221; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release`, `check:legal` OK. Smoke de update desde 0.7.40: crea `implement-change/`, reescribe el alias, registro con ambas entradas, `doctor` ok. |
 | 2026-11-10 | 3 | U-17, U-16, IA-11, IA-08, IA-07 | rama `feat/roadmap-lotes-3-a-8` | Frenos en todos los niveles que el modo autónomo no levanta: tope de 2 rondas de reparación por slice, un intento de recuperación ante falla de entorno, un rerun para flaky, suite cara completa una sola vez y tests proporcionales (D-11); tracker como foto del estado con `events.log` aparte y sección 10 como resumen con hallazgos `critical`/`high` listados y el resto en conteos (D-13); espacio de trabajo único `.ai-work/<prd-slug>/` ignorado por git, con `_meta/` como respaldo de solo lectura, entrada en `.gitignore` agregada por el instalador y avisos en `doctor` (D-14); entregas compactas con envelope de retorno de 6 campos, solo la falta de evidencia bloquea y logs acotados a ~30 líneas por falla (D-15); nombres de modo antiguos reemplazados por niveles en las referencias compartidas; versión `0.11.0-execution-brakes`. Sin migración que mueva archivos. | `node --test` 224/224; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release`, `check:legal`, `check:security` OK. Smoke de update desde 0.7.40: `.gitignore` con `.ai-work/`, `doctor` ok. |
+| 2026-11-10 | 5 | U-12, IA-04, IA-05, IA-06, IA-01 | rama `feat/roadmap-lotes-3-a-8` | `.agents/project-context.md` como base de conocimiento fija (plantilla que el instalador crea una vez y nunca sobrescribe; Discovery la lee primero y entrega un delta; solo el orquestador la actualiza al cierre; `doctor` avisa si sigue siendo plantilla, supera 200 líneas o apunta a rutas inexistentes; Engram queda como captura opcional) (D-16); en N2 una sola pasada inline con tres veredictos y definición de "incertidumbre concreta"; en N3 índice del PRD con huella, verificado con `verify-prd-index.mjs` al crearse y contrastado por QA (D-17); contrato de delegados único en `.agents/delegation/delegate-contract.md`, con resumen generado en los 39 adapters, inventario de reglas y `validate-delegate-contract.mjs` en `check:workflow`; matcher proporcional (D-18); versión `0.12.0-cheaper-preparation`. | `node --test` 230/230; todos los `check:*` OK. |
 
 Proceso (2026-11-10):
 
@@ -1906,6 +1907,18 @@ Proceso (2026-11-10):
 - Por pedido del usuario se dejó un PR único (#61) con un commit por lote, en
   vez de un PR por lote. Se cerraron #57, #58 y #60, cuyo contenido quedó
   rebasado sobre `main` en #61.
+
+Hallazgos del Lote 5:
+
+- **Skills de terceros exentos del contrato:** los tres helpers cavecrew
+  (`05-caveman`) siguen leyendo `.github/copilot-instructions.md`. Son código
+  de terceros con inventario de integridad en `docs/legal/third-party/`, así
+  que no se editan; sus adapters generados sí llevan el resumen del contrato.
+- **Rutas de capa pendientes:** los skills delegados aún nombran
+  `.github/instructions/*` para el quality gate y las instrucciones de backend
+  y frontend. Eso lo resuelve U-20 (Lote 7).
+- **Primera versión de `project-context.md`:** la crea una tarea N2 por
+  proyecto; en ooh-backoffice queda pendiente del usuario.
 
 Hallazgos del Lote 3:
 

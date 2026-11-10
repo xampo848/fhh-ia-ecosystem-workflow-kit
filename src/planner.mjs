@@ -10,7 +10,9 @@ const templatesRoot = path.join(packageRoot, 'templates');
 export const installStateRelativePath = '.agents/workflow-kit/install-state.json';
 const installStateSchemaVersion = '1.0.0';
 const skillRegistryJsonPath = '.agents/skills/registry.json';
+// Project-owned once created: the installer writes them only when missing.
 const skillCatalogPreservePaths = new Set([
+  '.agents/project-context.md',
   '.agents/skills/index.md',
   '.agents/skills/06-patterns/index.md',
   '.agents/skills/registry.md',

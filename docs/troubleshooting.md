@@ -112,6 +112,18 @@ workflow-kit update --target /path/to/repo --profile claude=calidad --apply --ye
 Use the profile you actually want (`calidad` for subscriptions, `costo` for
 Copilot or per-token APIs).
 
+## Doctor reports `project-context/*` warnings
+
+`.agents/project-context.md` is the project's fixed knowledge base: structure
+map, validation commands with their cost, test conventions, environment
+quirks, and pointers to architecture docs. Discovery reads it first.
+
+| Code | Meaning | Action |
+| --- | --- | --- |
+| `project-context/not-initialized` | the file is still the installed template | run an initial Discovery of the project (an N2 task), review the result, and remove the template marker |
+| `project-context/too-long` | more than 200 lines | point to other documents instead of copying them |
+| `project-context/missing-path` | it names a path that no longer exists | fix it at the next closure; only the orchestrator edits this file |
+
 ## Doctor reports `workspace/*` or `prd/section-10-oversized` warnings
 
 Temporary AI state (tracker, `events.log`, locks, handoffs, validation logs)

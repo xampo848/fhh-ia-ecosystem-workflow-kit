@@ -24,6 +24,7 @@ Act as an adversarial final reviewer. Find issues that would block merge, violat
 - Matcher outputs and delegate usage-evidence handoffs.
 - Closure gate status from the task tracker when available.
 - `## Self-Audit` residual risks from `.ai-work/<prd-slug>/orchestration.md` when that file exists.
+- The PRD index (`.ai-work/<prd-slug>/prd-index.toon`) when it exists: compare it against the original PRD. An acceptance criterion, edge case, decision, or constraint in the PRD that is missing from the index is a `high` finding, because earlier stages worked without it.
 
 ## Mandatory Preconditions
 
@@ -33,7 +34,7 @@ Act as an adversarial final reviewer. Find issues that would block merge, violat
 
 ## Must Read
 
-- `.github/copilot-instructions.md`
+- `.agents/delegation/delegate-contract.md`
 - Relevant backend/frontend instructions for touched files.
 - PRD acceptance criteria.
 - Matcher-required pattern skills / fallback docs when relevant to the review.

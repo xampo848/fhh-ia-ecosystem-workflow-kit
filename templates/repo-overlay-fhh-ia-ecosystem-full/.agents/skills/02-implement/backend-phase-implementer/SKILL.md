@@ -27,7 +27,7 @@ Implement the assigned backend slice completely: code, tests, i18n, focused vali
 
 Use exists-or-skip for product docs. A missing optional path is not a failed search.
 
-- `.github/copilot-instructions.md` or `.agents/instructions.md`
+- `.agents/delegation/delegate-contract.md` (not `.agents/instructions.md` or the router)
 - `.github/instructions/backend.instructions.md` when it exists
 - `docs/foundations/ARCHITECTURE.md` only when it exists and the slice is cross-layer, architectural, migration-heavy, authorization-sensitive, or tenancy-sensitive
 - `.github/instructions/quality-gate.instructions.md` when it exists; if the PRD requires this path and it is missing, return `blocked`

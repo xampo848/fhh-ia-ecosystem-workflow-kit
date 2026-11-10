@@ -30,6 +30,10 @@ Two independent axes decide the work:
 | [reference/input-types.md](reference/input-types.md) | always, but only the section of the detected input type |
 | [reference/modifiers.md](reference/modifiers.md) | autonomous execution or resume applies |
 
+Read `.agents/project-context.md` (the project's fixed knowledge base:
+structure, validation commands and their cost, test conventions, environment
+quirks) before exploring code at any level; Discovery is a delta over it.
+
 Shared references stay under `../implement-prd/reference/` and are read only in
 N2/N3 when the step uses them: `orchestration-flow.md`, `delegate-skill-matrix.md`,
 `subagent-prompts.md`, `handoff-schemas.md`, `task-tracker-template.md`,

@@ -293,27 +293,12 @@ context:
 ### Delegated context contract
 
 The orchestrator performs intake, readiness, discovery, slicing, and matching
-for a delegated slice. A delegate executes that bounded slice; it must not
-restart those parent stages or recursively reroute the same request.
-
-Before a delegate acts, apply the context required by its role:
-
-- A new delegate reads its complete required skill, applicable instructions,
-  and the source that controls the assigned change. A parent summary or a path
-  mention is not evidence that this content was received.
-- Reuse pre-injected content only when the runtime makes the complete content,
-  its provenance, and its current freshness observable. In that case, record
-  the provenance and do not re-read the identical source.
-- A resumed delegate revalidates the relevant delta and affected dependencies
-  before reusing prior context. Irrelevant changes do not invalidate context;
-  a changed dependency or contract requires a directed revalidation.
-- Required input is the role-relevant subset: owned files, relevant PRD
-  sections and ACs, required reads, selected patterns, focused checks, and
-  open questions. Do not re-paste the full PRD, tracker, or unrelated agent
-  matrix.
-
-`unknown` is a record of unavailable evidence, not permission to assume
-freshness, injected content, runtime capability, or a completed control.
+for a delegated slice. A delegate executes that bounded slice and follows
+`.agents/delegation/delegate-contract.md`, the single source of delegate rules
+(required reads, observable reuse, resume validation, bounded input, brakes,
+compact handoff, and the escape rule). Delegates do not load this file or
+`workflow-router`; that is the explicit exception to the loading rules below.
+Runtime adapters carry the generated summary of that contract.
 
 If the runtime cannot load `workflow-router` or the registry, do not silently
 continue with unrestricted implementation work. Only trivial direct answers may proceed;
@@ -329,7 +314,8 @@ selected rather than front-loaded into every runtime entrypoint.
 
 - Apply the generated level pre-filter from the runtime adapter first. Load
   this file before any N2 or N3 work; N0 and N1 follow the pre-filter without
-  loading it.
+  loading it, and delegates load `.agents/delegation/delegate-contract.md`
+  instead.
 - Use `.agents/skills/index.md` as the neutral startup discovery contract.
 - Use `.agents/skills/registry.md` as the neutral full inventory, taxonomy,
   and authoring contract.

@@ -23,7 +23,7 @@ Map acceptance criteria to tests and make the smallest test additions that would
 
 ## Must Read
 
-- `.github/copilot-instructions.md`
+- `.agents/delegation/delegate-contract.md`
 - Backend instructions for `backend/**` tests.
 - Frontend instructions for `front/**` tests.
 - Exact matcher-selected `required_pattern_skills` paths when present.

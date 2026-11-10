@@ -15,6 +15,22 @@ architecture, or pattern docs unless a risk trigger justifies them.
 Never load frontend instructions for a backend-only PRD. When a budget is exceeded,
 record why and propose N3 instead of expanding context silently.
 
+## Preparation: one inline pass
+
+At N2 the orchestrator prepares in **one inline pass** with three separate
+verdicts, instead of three stages that each reread the input:
+
+1. **Readiness:** is the input ready? List every open question explicitly and
+   ask the user before cutting slices; never assume the answer, because the
+   orchestrator is reviewing an input it will implement itself.
+2. **Discovery delta:** read `.agents/project-context.md` first and explore
+   only what is specific to the change.
+3. **Slices:** the executable slices with owner, files, and checks.
+
+Delegate one of those stages only on concrete uncertainty: more than 5
+exploratory files are needed, the area is not covered by
+`.agents/project-context.md`, or the input contradicts the code.
+
 ## Required stage pipeline (N2 and N3)
 
 Capitana Alcance → Sherlock Estructura → Arquitecta Fases → matcher → writer → validation → QA Relampago.
@@ -64,6 +80,11 @@ only after its predecessor is `VERIFIED`.
 
 Final QA is mandatory and focused: changed files, findings, and the acceptance
 criteria touched. Escalate to fresh-context QA when a risk trigger fires.
+If the change altered patterns, validation commands, structure, or exposed an
+environment quirk, the orchestrator proposes a small diff to
+`.agents/project-context.md` in the same change. Only the orchestrator edits
+that file, and only at closure.
+
 Closure: the N1 evidence plus coverage of the touched acceptance criteria,
 focused QA with `ready_to_close: yes`, and `## 10. Evidencia de
 Implementacion` updated when a PRD exists. After that, `.ai-work/<prd-slug>/`

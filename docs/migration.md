@@ -53,6 +53,15 @@ Behavior on update:
 2. Managed but locally edited files are preserved as `skip_modified`.
 3. Unmanaged files at colliding paths are preserved as `skip_unmanaged`.
 
+Cheaper preparation (since `0.12.0`): the update creates
+`.agents/project-context.md` as a template when it is missing and never
+overwrites it afterwards; fill it in with an initial Discovery (`doctor`
+reports `project-context/not-initialized` until then). Delegates now read
+`.agents/delegation/delegate-contract.md` instead of `.agents/instructions.md`,
+and the generated agent adapters embed its summary. At N3,
+`prd-readiness-review` builds a PRD index that later stages use instead of
+rereading the PRD.
+
 AI workspace (since `0.11.0`): temporary coordination state moved from
 `<prd-directory>/_meta/` to a single Git-ignored `.ai-work/<prd-slug>/` at the
 repository root. `update` appends `.ai-work/` to `.gitignore` (with a backup)

@@ -23,7 +23,7 @@ Prove that the backend response shape and frontend consumption shape match. Do n
 
 ## Must Read
 
-- `.github/copilot-instructions.md`
+- `.agents/delegation/delegate-contract.md`
 - Backend and frontend instructions when both sides are touched.
 - Exact matcher-selected `required_pattern_skills` paths when present.
 - Matcher-selected `fallback_docs` when required pattern skills are absent.

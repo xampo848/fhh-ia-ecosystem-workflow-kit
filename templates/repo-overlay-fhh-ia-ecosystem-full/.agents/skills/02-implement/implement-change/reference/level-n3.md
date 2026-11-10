@@ -8,7 +8,14 @@ required stage pipeline in `level-n2.md` applies, with the full delegated flow.
 
 ## Startup
 
-1. Read the input completely (PRD sections per `input-types.md`).
+1. `capitana-alcance` reads the input completely **once** (PRD sections per
+   `input-types.md`) and delivers the PRD index
+   (`.ai-work/<prd-slug>/prd-index.toon`, defined in
+   `../../prd-readiness-review/SKILL.md`). Verify it with
+   `verify-prd-index.mjs` as soon as it arrives. The orchestrator keeps the
+   index, not the whole PRD, and reads a referenced section when it needs
+   detail. Discovery and slicing receive the index and only the sections they
+   need. Read `.agents/project-context.md` before any Discovery.
 2. If `.ai-work/<prd-slug>/orchestration.md` exists, read `## Calibration`,
    `## Pattern Lock`, and `## Self-Audit` before discovery or slicing. Reuse
    `touched_surfaces`, the locked pattern, and residual risks.
@@ -57,7 +64,9 @@ Working rules carried from the former `standard` mode:
 - One compact preflight may cover `prd-readiness-review`, `codebase-discovery`,
   and `implementation-slicing` when the PRD and persisted briefs are complete.
 - `implementation-skill-matcher` maps each slice to required pattern skills
-  before coding; matcher completion is blocking for dependent slices.
+  before coding; matcher completion is blocking for dependent slices. Apply
+  its Proportional Entry first: with 0 candidates in the patterns index, record
+  `matching: sin candidatos para <surface>` in the lock instead of delegating.
 - Implementation groups use `backend-phase-implementer`,
   `frontend-phase-implementer`, and `acceptance-test-engineer`, one writer per
   cohesive PRD phase, not one per file. `contract-verifier` runs whenever
@@ -112,9 +121,21 @@ recovery path, and at least one real-data smoke check. If direct verification
 is impossible, the handoff includes an executable repair/bootstrap command and
 a clearly named unverified risk.
 
+## Project context at closure
+
+When the implementation changed patterns, validation commands, or structure,
+or Discovery recorded `project_context_gaps`, the orchestrator proposes a small
+diff to `.agents/project-context.md` that ships in the same PR. Only the
+orchestrator edits that file, and only at closure; delegates never touch it
+mid-run. Candidates come from `events.log`; when the optional Engram
+capability is attached, it may be used to capture findings during the run and
+to recall them here, but the flow must work fully without it.
+
 ## QA
 
-Final QA runs through a fresh-context reviewer. Run one full QA by default;
+Final QA runs through a fresh-context reviewer. It compares the PRD index
+against the original PRD; a criterion, edge case, decision, or constraint
+missing from the index is a `high` finding. Run one full QA by default;
 re-entry QA is targeted to changed files, findings, and affected acceptance
 criteria, and a full QA repeats only when a repair changes the risk boundary or
 the prior evidence is stale.

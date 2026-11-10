@@ -75,6 +75,49 @@ async function collectPrds(targetPath) {
   return { prds, legacyMeta };
 }
 
+export const projectContextPath = '.agents/project-context.md';
+export const projectContextLineLimit = 200;
+const projectContextTemplateMarker = '<!-- workflow-kit:project-context:template -->';
+const pathLike = /^[A-Za-z0-9_.@-][A-Za-z0-9_.@/-]*$/;
+
+// Checks that the project's fixed knowledge base is filled in, short, and
+// still points to paths that exist.
+export async function projectContextDiagnostics({ targetPath }) {
+  let content;
+  try {
+    content = await fs.readFile(path.join(targetPath, projectContextPath), 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+
+  if (content.includes(projectContextTemplateMarker)) {
+    return [warning('project-context/not-initialized', projectContextPath, 'Still the template. Generate the first version with an initial Discovery of the project (an N2 task), review it, and remove the template marker.')];
+  }
+
+  const diagnostics = [];
+  const lines = content.split('\n').length;
+  if (lines > projectContextLineLimit) {
+    diagnostics.push(warning('project-context/too-long', projectContextPath, `${lines} lines (limit: ${projectContextLineLimit}). Point to other documents instead of copying them.`));
+  }
+
+  const missing = new Set();
+  for (const match of content.matchAll(/`([^`\n]+)`/g)) {
+    const candidate = match[1].trim().replace(/\/\*\*$/, '').replace(/\/$/, '');
+    const looksLikePath = pathLike.test(candidate) && (candidate.includes('/') || /\.[a-z0-9]{1,5}$/i.test(candidate));
+    if (!looksLikePath || candidate.startsWith('-')) continue;
+    try {
+      await fs.access(path.join(targetPath, candidate));
+    } catch {
+      missing.add(candidate);
+    }
+  }
+  for (const candidate of [...missing].sort()) {
+    diagnostics.push(warning('project-context/missing-path', projectContextPath, `Points to \`${candidate}\`, which does not exist. Update the file at the next closure.`));
+  }
+  return diagnostics;
+}
+
 export async function workspaceDiagnostics({ targetPath, now = Date.now() }) {
   const diagnostics = [];
   const relative = (absolute) => path.relative(targetPath, absolute).split(path.sep).join('/');

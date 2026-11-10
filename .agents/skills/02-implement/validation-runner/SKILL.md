@@ -34,7 +34,7 @@ Frontend: `bun run lint` or `bun run test --run`
 
 ## Procedure
 
-1. Read `.github/copilot-instructions.md`.
+1. Read `.agents/delegation/delegate-contract.md`.
 2. Read matcher-selected required pattern skill paths or fallback docs when validation behavior depends on them. If a required path is missing, return `blocked`.
 3. Record whether any matcher-suggested optional capability was actually used and whether it was active.
 4. Choose the narrowest validation command based on touched files, matcher `validation_hooks`, and risk.
