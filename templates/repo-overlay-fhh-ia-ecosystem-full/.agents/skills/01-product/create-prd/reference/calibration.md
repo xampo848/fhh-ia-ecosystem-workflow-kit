@@ -31,6 +31,51 @@ When a recent comparable PRD exists, read exactly one as a structure anchor. Cal
 
 Determine existing columns and services, naming conventions, reusable base classes or concerns, bounded-context ownership, namespace and table conventions, and inherited parent-epic invariants.
 
+## Unknowns Inventory
+
+Run this whenever the PRD involves an external integration, real data, or
+third-party limits. List every external or poorly known dependency (external
+API, shape and volume of real data, a third party's limits, legacy data
+quality) and classify it:
+
+- **verificada**: evidence in code, contract, or documentation;
+- **asumida**: taken as true without evidence;
+- **desconocida**: nobody on the thread knows.
+
+For an assumed or unknown item that affects an acceptance criterion, in this
+order:
+
+1. Ask the user whether they know.
+2. Propose a bounded, read-only **exploratory probe** (call the API sandbox,
+   count or sample real data, read the third party's documentation). It needs
+   the user's explicit approval, never uses production credentials unless the
+   user says so, and its result is recorded as a verified assumption with its
+   evidence.
+3. If it cannot be verified beforehand, record it as a risk and make the
+   **first slice** of the implementation verify it, with a stop condition if it
+   turns out false.
+
+Every item goes into the PRD's `Supuestos e integraciones` table.
+
+## Obsolescence Scan
+
+For each concept the PRD changes (a fixed value that becomes dynamic, a
+replaced entity, a renamed endpoint), search for what the change makes
+obsolete: usages of the symbol and of the literal value, flag names,
+translation keys, tests, fixtures, and documentation. Control question: "after
+the change, are there two sources of truth for X?".
+
+- If every consumer is in the repository, the PRD removes or adapts it.
+- If there are external consumers (public API, mobile apps, reports, other
+  services) or persisted data, retire it in stages (add the new, migrate,
+  remove the old). The final removal may be a later slice or future scope with
+  an explicit ticket, never implicit. This is a business decision: ask the
+  user.
+
+Record each item in the PRD's `Que queda obsoleto` table, with a verification
+search that must return zero usages. Only what **this** change makes obsolete
+counts; unrelated dead code is a suggestion, not scope.
+
 ## Required Artifact
 
 Write these fields under `## Calibration`:
@@ -42,6 +87,8 @@ Write these fields under `## Calibration`:
 - `comparable_anchor`
 - major risks
 - unresolved questions
+- `unknowns`: the Unknowns Inventory, or `none`
+- `obsolete_items`: the Obsolescence Scan result, or `none`
 
 ## Summary Visibility
 

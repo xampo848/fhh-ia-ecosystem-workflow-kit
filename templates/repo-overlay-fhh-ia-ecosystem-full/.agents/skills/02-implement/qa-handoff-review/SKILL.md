@@ -24,6 +24,8 @@ Act as an adversarial final reviewer. Find issues that would block merge, violat
 - Matcher outputs and delegate usage-evidence handoffs.
 - Closure gate status from the task tracker when available.
 - `## Self-Audit` residual risks from `.ai-work/<prd-slug>/orchestration.md` when that file exists.
+- The PRD's `Que queda obsoleto` table when it exists: run the verification search of every row. The result must be zero remaining usages, or each remaining usage must be justified; an unjustified leftover is a finding (two sources of truth).
+- The PRD's `Supuestos e integraciones` table when it exists: an `asumido` row that affects an acceptance criterion needs evidence of verification.
 - The PRD index (`.ai-work/<prd-slug>/prd-index.toon`) when it exists: compare it against the original PRD. An acceptance criterion, edge case, decision, or constraint in the PRD that is missing from the index is a `high` finding, because earlier stages worked without it.
 
 ## Mandatory Preconditions

@@ -53,6 +53,15 @@ Behavior on update:
 2. Managed but locally edited files are preserved as `skip_modified`.
 3. Unmanaged files at colliding paths are preserved as `skip_unmanaged`.
 
+PRD and PR quality (since `0.14.0`): new PRDs carry two more sections,
+`2.8 Supuestos e integraciones` and `2.9 Que queda obsoleto`; existing PRDs
+stay valid without them. `create-prd` asks edge cases by confirmation, limits
+question rounds, and measures size signals before declaring a PRD ready.
+`solution-sketch` offers optional UI paths (including "use the team's design")
+with HTML mockups under `docs/design/<slug>-mockups/`. `pr-comments-resolution`
+now evaluates every comment before offering options and asks for approval of
+each reply text.
+
 Validation reuse and incremental QA (since `0.13.0`): expensive deterministic
 checks (package typecheck, unit suites, build) can reuse a previous result
 when `validation-fingerprint.mjs` proves the content is identical. Reuse starts

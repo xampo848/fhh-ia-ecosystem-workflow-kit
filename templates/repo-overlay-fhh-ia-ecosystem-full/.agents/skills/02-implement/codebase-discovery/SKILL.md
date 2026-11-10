@@ -32,6 +32,7 @@ Use exists-or-skip. A missing optional path is not a failed search.
 
 - `.agents/delegation/delegate-contract.md` (not `.agents/instructions.md` or the router).
 - `.agents/project-context.md` **first**: structure map, validation commands and their cost, test conventions, known environment quirks, and pointers to architecture docs. Explore only what is specific to the change; the brief is a **delta** over this file, not a full map. If the area is not covered or the file contradicts the code, record it under `project_context_gaps` so closure can propose the correction; never edit the file yourself.
+- The PRD's `Que queda obsoleto` table when it exists: verify each row against the current code, which may have changed since the PRD was written. A new obsolete item in the slice's own files that is trivial is added; anything else is reported in `obsolete_items_found` for the orchestrator to ask about or record. Never widen scope silently.
 - At N3, the PRD index (`.ai-work/<prd-slug>/prd-index.toon`) and only the PRD sections it points to for the areas under discovery.
 - The PRD sections and readiness brief relevant to discovery.
 - `.ai-work/<prd-slug>/orchestration.md` `## Calibration` and `## Pattern Lock` when they exist.

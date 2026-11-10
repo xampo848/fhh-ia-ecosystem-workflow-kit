@@ -121,6 +121,15 @@ recovery path, and at least one real-data smoke check. If direct verification
 is impossible, the handoff includes an executable repair/bootstrap command and
 a clearly named unverified risk.
 
+## Iteration causes
+
+Whenever the run iterates (a QA re-entry, a repair round, or a later
+iteration), record its cause in section 10's "Iteraciones y causa" row: `hueco
+del PRD`, `error de implementación`, `entorno`, or `cambio de requisito`. This
+is how the project measures whether better PRD questions reduce rework. A PRD
+that already arrives large (size signals in `create-prd/reference/self-audit.md`)
+is not rewritten: propose phase-by-phase execution as in `modifiers.md`.
+
 ## Project context at closure
 
 When the implementation changed patterns, validation commands, or structure,

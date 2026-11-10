@@ -21,7 +21,9 @@ For compact PRDs, the goal is not to create more slices. The goal is to find the
 - `.agents/delegation/delegate-contract.md` (read first; not `.agents/instructions.md` or the router).
 - PRD readiness brief and, at N3, the PRD index (`.ai-work/<prd-slug>/prd-index.toon`) plus only the PRD sections the slices need; ask for a section by its reference instead of rereading the whole PRD.
 - Codebase discovery brief, targeted lookup notes, or explicit reason discovery was skipped.
-- Candidate operating mode.
+- Candidate level (N2 or N3).
+- The PRD's `Que queda obsoleto` table: every row belongs to a slice, with the same traceability rule as acceptance criteria. The removal goes in its own slice when it can fail on its own, and a test or check proves the old path is gone or adapted.
+- The PRD's `Supuestos e integraciones` table: an `asumido` row that affects an acceptance criterion and was not verified becomes the first slice, with a stop condition if the assumption is false.
 - User constraints, branch status, and resume state.
 
 ## Procedure

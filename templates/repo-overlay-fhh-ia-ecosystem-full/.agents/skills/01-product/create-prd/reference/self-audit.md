@@ -29,6 +29,36 @@ Challenge the draft:
 - Can a reviewer distinguish current scope, future scope, and blocked unknowns?
 - If `visible_ui: yes`, would `implement-prd` still have to invent density, hierarchy, primary action, or UI states?
 - Does the PRD match the repository's structure and rigor?
+- Would `implement-change` discover the behavior of an external dependency at execution time?
+- Does any assumed item in `Supuestos e integraciones` affect an acceptance criterion without verification or an early verification slice?
+- After the change, would two sources of truth remain for anything listed (or missing) in `Que queda obsoleto`?
+
+## Size Signals
+
+Measure the PRD before declaring it ready. Run
+`node .agents/skills/01-product/create-prd/scripts/prd-size-signals.mjs --prd <prd> [--hazards <n>] [--question-rounds <n>]`
+or count by hand:
+
+| Signal | Default threshold |
+| --- | --- |
+| implementation slices | more than 8 |
+| acceptance criteria | more than 20 |
+| phases | more than 3 |
+| distinct hazard types (migration, public contract, tenancy, background execution, external integration, visible UI) | 4 or more |
+| blocking questions still open after 3 rounds | counts as one signal |
+| lines | more than about 600 (secondary: never counts alone) |
+
+- **1 signal:** record a warning in the Self-Audit; it does not block.
+- **2 or more:** propose splitting before declaring `ready for
+  implement-prd`, normally along the PRD's own phase boundaries into an epic
+  with child PRDs (`create-epic` and its `Contrato entre Fases`). The user
+  decides.
+- **If the user decides not to split:** record the reason. Phase-by-phase
+  execution with a review pause and a partial section 10 closure per phase is
+  the recommended way to implement it; the user may still choose autonomous
+  execution (`implement-change/reference/modifiers.md`).
+- Thresholds are defaults calibrated on real PRDs. A project may override them
+  with a `prd_size_thresholds` line in `.agents/project-context.md`.
 
 ## Required Artifact
 

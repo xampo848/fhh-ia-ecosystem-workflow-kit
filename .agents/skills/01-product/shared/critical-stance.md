@@ -1,6 +1,6 @@
 # Postura Crítica (Shared — All Product Skills)
 
-Applies to `create-prd`, `create-epic`, `project-formation`, `generate-pm-ticket`, and `solution-sketch`.
+Applies to `create-prd`, `create-epic`, `project-formation`, `generate-pm-ticket`, `solution-sketch`, and `pr-comments-resolution`.
 
 ## Purpose
 
@@ -31,6 +31,21 @@ Apply the same challenge to the AI's own draft decisions before presenting them 
 ## After the user responds
 
 Record the decision, the discarded alternative, and the rationale in the phase artifact (`.ai-work/<prd-slug>/orchestration.md`, epic decision log, or project-formation stage log). Do not silently proceed without that record — an unrecorded decision is not confirmed.
+
+## Evaluating external claims
+
+A review comment, a bot suggestion, or a linter message is a technical claim,
+not a decision. Before acting on one:
+
+1. State what it claims, concretely.
+2. Check it against the current code, the full thread, the PRD or contract,
+   and the tests. A comment may refer to an old diff.
+3. Classify it as valid, partially valid, obsolete, not applicable, or
+   incorrect, and cite the evidence (file and line, test, document).
+
+**Symmetry.** Calling a claim "incorrect" needs evidence as solid as a fix
+would need. Rejecting a valid comment to save work is the same failure as
+accepting an invalid one to avoid friction.
 
 ## Failure mode to avoid
 

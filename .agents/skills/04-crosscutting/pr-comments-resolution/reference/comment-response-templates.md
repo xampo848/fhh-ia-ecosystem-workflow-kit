@@ -26,9 +26,30 @@ Would you like to start with comment 1?
 ### Comment [N]: [Title]
 
 **File:** [path/to/file]
-**Issue:** [what is wrong]
-**Impact:** [why it matters]
-**Risk if unchanged:** [risk]
+**Claim:** [what the comment says]
+**Verdict:** valid | partially valid | obsolete | not applicable | incorrect
+**Evidence:** [file:line, test, PRD decision, or commit]
+**Impact:** [why it matters, when valid or partially valid]
+**Risk if unchanged:** [risk, when valid or partially valid]
+```
+
+## Grounded Replies (no code change)
+
+Show the reply to the user and post it only after approval. Be respectful and
+specific; cite evidence, not opinion.
+
+```markdown
+<!-- obsolete -->
+Thanks for flagging this. It is already addressed in [commit/PR]: [what changed]. The line this comment points to no longer exists in the current diff.
+
+<!-- not applicable -->
+Thanks. This is intentional: [PRD decision or contract reference]. Changing it is outside this PR's scope; I can open a follow-up for [future scope] if you think it is worth it.
+
+<!-- incorrect -->
+I checked this against the current code: [file:line] does [actual behavior], and [test name] covers it. So [claim] does not hold here. Happy to look again if I am missing a case.
+
+<!-- partially valid -->
+Good catch on [valid part]: fixed in [commit]. On [the rest]: [evidence why it does not apply].
 ```
 
 ## Options (2/3/4 Model)

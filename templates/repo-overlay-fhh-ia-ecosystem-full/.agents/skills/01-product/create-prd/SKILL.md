@@ -164,6 +164,8 @@ Additional required sections:
 - Casos de Uso table (mandatory, see below)
 - Estrategia de Tests table (mandatory, see below)
 - Matriz de Edge Cases table (mandatory, see below)
+- Supuestos e integraciones table, from the Unknowns Inventory in `reference/calibration.md` (`Ninguno` with a one-line reason when there is no external or poorly known dependency)
+- Que queda obsoleto table, from the Obsolescence Scan in `reference/calibration.md` (`Ninguno` with a one-line reason when nothing becomes obsolete)
 - Evidencia de Implementacion section (initialized in the PRD template and completed only at `implement-prd` closure)
 
 ### Casos de Uso (mandatory)

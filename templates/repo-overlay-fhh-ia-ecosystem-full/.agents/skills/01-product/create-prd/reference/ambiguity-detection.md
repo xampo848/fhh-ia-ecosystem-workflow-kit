@@ -26,6 +26,30 @@ Antes de continuar, necesito resolver estas dudas:
 2. [Concrete question]
 ```
 
+## Question Budget
+
+- Ask at most about 10 questions per round, grouped by category, each with the
+  answer you propose, so the user only confirms or corrects.
+- At most 3 rounds. If blocking questions still appear after the third round,
+  the PRD is too large: count it as a size signal (see `self-audit.md`) and
+  propose splitting it.
+- Do not ask non-blocking questions. Record each as an assumption with its
+  default value in the PRD's `Supuestos e integraciones` section; the user can
+  change it.
+
+## Edge-Case Confirmation Round
+
+After the blocking questions, run one confirmation round for edge cases
+instead of filling the matrix alone during drafting:
+
+1. Present the six mandatory categories (datos vacíos, límites, errores,
+   permisos/tenancy, concurrencia/orden, rollout/rollback) already prefilled
+   from the code, each with your proposal.
+2. Ask explicitly only about the rows that are business decisions (they cannot
+   be deduced from the code). The user may answer "ok" for the whole block or
+   correct single rows.
+3. In the compact path, cover only the categories the change touches.
+
 Do not ask for facts that the repository already establishes.
 Do not reopen a resolved category or ask a serial follow-up unless an answer creates a materially different implementation.
 

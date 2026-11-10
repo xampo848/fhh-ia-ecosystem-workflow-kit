@@ -129,7 +129,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/codebase-discovery/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "b81191e41d0a362744e768857ec3b1bca894990173fdef0054623f7455b421db"
+      "skill_sha256": "70d34bedc9ad3885129cb91c14459f8e6388be4b0e8f7624185fa586b00ce88c"
     },
     {
       "key": "contract-verifier",
@@ -156,7 +156,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "926c0038cba070729487a2e90e826ff046705f6585088739fcd676b8f47cc5c4"
+      "skill_sha256": "d40465a15fae03af08a64e701058bdf5a343c9a45d9da7a57f39f71173c4f0ef"
     },
     {
       "key": "document-development",
@@ -246,7 +246,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/implementation-slicing/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "d9bdd98d0b3f87d883c095835d4bfd426ed688dba4f07d152bfb9f181b16edf8"
+      "skill_sha256": "b663cba27a8dd553f86e698e18464d11aed1538f5b76d17d020b89e3a284b465"
     },
     {
       "key": "pattern-authoring-add-project-pattern",
@@ -282,7 +282,7 @@
       "class": "Cross-cutting overlay",
       "path": ".agents/skills/04-crosscutting/pr-comments-resolution/SKILL.md",
       "loading_posture": "Overlay",
-      "skill_sha256": "7530e1e56c628c7a945d49b67473721dcc00e9c15304dcec141bf007d1eea814"
+      "skill_sha256": "1aa56c52921085f5c94b7286178653bc7fbbea5c1fab60e5ced5a706abd8e740"
     },
     {
       "key": "prd-readiness-review",
@@ -363,7 +363,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/qa-handoff-review/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "43b827cd5c1a91dca5560039384910b97ccf8a2945b038d82342590f735dfa9a"
+      "skill_sha256": "cd580a80788586b3c62384b33d4ab7dc7581461c1b747a757015ceb2e28b978b"
     },
     {
       "key": "react-doctor",
@@ -381,7 +381,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/solution-sketch/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "25b570f3c1616ab492018b5d67ab2d9eba92c0a0b0d816a070668c0cc5874231"
+      "skill_sha256": "55c5053019e1bf365e51848f5dd56ec2ad2bfed4d097bfa234dbad38099a2b00"
     },
     {
       "key": "validation-runner",

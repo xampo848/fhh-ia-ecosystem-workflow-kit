@@ -4,6 +4,7 @@
 **Fecha**: [YYYY-MM-DD]
 **Estado**: Borrador | Locked
 **Siguiente flujo**: create-prd | create-epic | project-formation
+**ui-path**: shape | critique | team-design | skipped _(solo si el sketch involucra UI)_
 
 This is a whiteboard, not a PRD. Do not add acceptance criteria, edge-case matrices, or implementation slices.
 
@@ -87,3 +88,23 @@ Do not invent placeholders. If a name is still unknown, leave it in section 6.
 
 - [Question that would change the spec]
 - [Or `none` if create-prd can start]
+
+---
+
+## 7. Visual _(opcional, solo con un ui-path elegido)_
+
+Problemas concretos de la vista actual (camino b), con evidencia: archivo, elemento, heuristica.
+
+| Propuesta | Jerarquia | Densidad | Accion principal | Estados | Accesibilidad |
+| --- | --- | --- | --- | --- | --- |
+| A | | | | | |
+| B | | | | | |
+
+**Elegida**: [A | B | diseno del equipo: fuente]
+**Mockups**: `docs/design/[slug]-mockups/` | no generados
+**Contrato Visual propuesto**: superficie, densidad o composicion, accion primaria, estados requeridos, tesis visual, primitivas a reutilizar.
+
+### Registro de feedback
+
+| Ronda (max 3) | Version | Comentario | Cambio |
+| --- | --- | --- | --- |

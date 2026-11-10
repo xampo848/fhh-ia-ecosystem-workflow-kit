@@ -140,6 +140,24 @@ Completar cuando hay UI visible. Si no hay pantalla de usuario, dejar `UI lock: 
 
 `implement-prd` no puede inventar esta pantalla. Un mockup o foto ancla; no sustituye los campos de arriba.
 
+### 2.8 Supuestos e integraciones
+
+Toda dependencia externa o poco conocida (API de terceros, forma y volumen de datos reales, limites, calidad de datos legados). Si no hay ninguna, escribir `Ninguno` con una razon de una linea.
+
+| Supuesto | Fuente | Estado | Evidencia | Que pasa si es falso |
+| --- | --- | --- | --- | --- |
+| [Comportamiento que se da por cierto] | [Codigo / contrato / documentacion / usuario / prueba exploratoria] | verificado \| asumido \| bloqueante | [Ruta, enlace o resultado de la prueba] | [Criterios o slices afectados y plan] |
+
+Un supuesto `asumido` que afecta un criterio de aceptacion necesita verificacion antes de cerrar el PRD o un primer slice que lo verifique, con condicion de parada si resulta falso.
+
+### 2.9 Que queda obsoleto
+
+Lo que este desarrollo deja obsoleto forma parte del alcance. Si no hay nada, escribir `Ninguno` con una razon de una linea. Solo cuenta lo que **este** cambio vuelve obsoleto; el codigo muerto no relacionado se anota como sugerencia, fuera del alcance.
+
+| Elemento | Tipo | Ubicacion | Reemplazado por | Accion | Consumidores | Slice | Busqueda de verificacion |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| [Constante, parametro, endpoint, test, doc...] | codigo \| constante o parametro \| configuracion \| flag \| endpoint o campo \| test \| fixture o seed \| traduccion \| documentacion \| datos | [Ruta] | [Nuevo elemento] | eliminar \| adaptar \| deprecar en etapas | [En el repo / externos: cuales] | [P1-S2] | `[comando de busqueda que debe dar cero usos]` |
+
 ---
 
 ## 3. Modelo de Datos
@@ -291,4 +309,7 @@ Esta seccion es el registro durable de cierre: un resumen, no una bitacora. `imp
 | Calidad y QA | [Quality gate y `ready_to_close` con evidencia] |
 | Referencia de cambio | [Commit, PR o diff identificable] |
 | Riesgos o waivers | [Ninguno o riesgo, aprobador y motivo] |
+| Checks reutilizados | [Ninguno, o `comando`: reutilizado de <etapa>, huella <x>] |
+| Iteraciones y causa | [Ninguna, o por cada reentrada, ronda de reparacion o iteracion: `hueco del PRD` \| `error de implementacion` \| `entorno` \| `cambio de requisito`] |
+| Modo de ejecucion | [supervisado \| autonomo] |
 | Fecha de cierre | [YYYY-MM-DD] |
