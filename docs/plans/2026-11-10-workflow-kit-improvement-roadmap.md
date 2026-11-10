@@ -38,7 +38,7 @@ conflictos en todos los demás lotes.
 | # | Lote | Ítems | Depende de | Estado | PR |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Carga proporcional y vía rápida | U-03, U-18, U-09 (parte router), IA-03, U-19a | — | En implementación (rama `feat/lote-1-carga-proporcional`) | pendiente |
-| 1b | Política de modelos | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (verificación, D-27) | — | Listo para implementar | — |
+| 1b | Política de modelos | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (verificación, D-27) | — | En implementación (rama `feat/lote-1b-politica-modelos`, apilada sobre el Lote 1) | pendiente |
 | 2 | Ruta general de implementación | U-11, U-08, U-09 (parte ejecución), IA-02, D-26 | Lote 1 | Listo para implementar | — |
 | 3 | Frenos de costo en ejecución | U-17, U-16, IA-11, IA-08, IA-07 | Lote 2 | Listo para implementar | — |
 | 5 | Preparación más barata | U-12, IA-04, IA-05, IA-06, IA-01 | Lote 2 | Listo para implementar | — |
@@ -55,7 +55,7 @@ conflictos en todos los demás lotes.
 | U-18 | P0 | Vía rápida para consultas operativas | 1 | En implementación | Se vuelve el nivel N0 de D-01 |
 | U-09 | P0 | Cambios quirúrgicos como opción explícita | 1 / 2 | En implementación (parte router) | Lote 1: el router lo ofrece. Lote 2: cómo se ejecuta |
 | IA-03 | P1 | Router liviano después de decidir | 1 | En implementación | D-06 |
-| U-19 | P0 | Optimizar para Claude Code | 1 / 1b / 7 | U-19a en implementación; U-19b y U-19c listos para implementar | Dividido en U-19a (Lote 1), U-19b (Lote 1b) y U-19c (Lote 7); ver D-03 |
+| U-19 | P0 | Optimizar para Claude Code | 1 / 1b / 7 | U-19a y U-19b en implementación; U-19c listo para implementar | Dividido en U-19a (Lote 1), U-19b (Lote 1b) y U-19c (Lote 7); ver D-03 |
 | U-11 | P0 | Ruta general de implementación (renombrar implement-prd) | 2 | Listo para implementar | D-08 |
 | U-08 | P0 | Iteración económica sobre lo ya implementado (delta) | 2 | Listo para implementar | D-09 |
 | IA-02 | P0 | Orquestador cargado por modo | 2 | Listo para implementar | D-10 |
@@ -77,7 +77,7 @@ conflictos en todos los demás lotes.
 | U-01 | P1 | Sketch de UI con impeccable y crítica de vistas | 6 | Listo para implementar | D-23 |
 | U-05 | P1 | PR comments siempre evaluados críticamente | 6 | Listo para implementar | D-24; critical-stance hoy no lo cubre |
 | U-15 | P0 | Funcionamiento completo en Codex (y Claude) | 7 | Listo para implementar | D-28 |
-| U-02 | P0 | Modelo correcto por subagente en Copilot | 1b (verificación) / 7 (corrección si hace falta) | Listo para verificar | D-27: smoke controlado + ejecución real con verificador; implementado en #55 solo para invocación explícita |
+| U-02 | P0 | Modelo correcto por subagente en Copilot | 1b (verificación) / 7 (corrección si hace falta) | Verificar (guía y tabla de cierre listas; falta que el usuario corra A y B) | D-27: smoke controlado + ejecución real con verificador; implementado en #55 solo para invocación explícita |
 | U-20 | P1 | Referencias neutrales a la plataforma (rutas por runtime) | 7 | Listo para implementar | D-29; era el segundo U-13 de la tabla (ID duplicado) |
 | U-14 | P1 | Extraer reglas de frameworks y librerías | 7 | Listo para implementar | D-30 |
 | U-10 | P1 | Skills de máximo 200 líneas por archivo | 7 | Listo para implementar | D-31; último a propósito |
@@ -1889,6 +1889,27 @@ discuta.
 | Fecha | Lote | Ítems | PR | Resultado | Validación |
 | --- | --- | --- | --- | --- | --- |
 | 2026-11-10 | 1 | U-03, U-18, U-09 (router), IA-03, U-19a | rama `feat/lote-1-carga-proporcional` | Niveles N0–N3 y pre-filtro como fuente única en `instructions.md`; copia generada en `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md` y `ANTIGRAVITY.md` (`scripts/sync-level-prefilter.mjs`, en `check:workflow`); router dividido en núcleo de 193 líneas + `route-menus.md`, `route-gates.md` y `router-evals.md` (12 prompts de prueba); N1 quirúrgico ofrecido explícitamente; heurísticas de delegación movidas a `model-routing`; referencia rota eliminada; `doctor` avisa si un adapter perdió el pre-filtro; docs actualizadas; versión `0.8.0-proportional-loading`. Sin migración: solo archivos nuevos o actualizados (verificado con smoke de update desde 0.7.40). | `node --test` 209/209; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release` y `check:legal` OK. `check:security` falla también en `main` (advisory nuevo de `dompurify`), ajeno al lote. Evals: L01 PASS en Claude Code (N0, sin trace, 3 llamadas). Pendiente: L02–L12 en Claude Code y L01–L12 en Codex y Copilot. |
+| 2026-11-10 | 1b | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (preparación de D-27) | rama `feat/lote-1b-politica-modelos` (apilada sobre el Lote 1) | Perfiles `calidad`/`costo` en el catálogo (`modelProfiles`) con default por runtime; módulo único `src/model-profiles.mjs` que genera los agentes de Claude (`sonnet`/`opus`, `haiku` solo en `costo`), Codex (`model_reasoning_effort`) y Copilot (listas por tier) tanto en el kit como al instalar; `init` pregunta suscripción o API para Claude Code y Codex (la API key solo preselecciona), `--profile <runtime>=<perfil>`, el perfil queda en `install-state.json` y `update` lo conserva; `doctor` muestra el perfil y falla con `model-profile/agent-mismatch`; política de perfiles y fallback D-12 en `model-routing`; `document-development` según perfil (U-04); tabla de modelos ejecutados en el cierre con Copilot y guía de verificación real (D-27); capacidades corregidas (`claude.pinSubagentModel=true`, `codex.pinSubagentTier=true`); versión `0.9.0-model-profiles`. | `node --test` 215/215; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release`, `check:legal` OK. Smoke de update desde 0.7.40: con y sin `--profile`, `doctor` ok y modelos correctos por agente. Pendiente: pruebas A y B de U-02 en Copilot (las corre el usuario). |
+
+Hallazgos del Lote 1b:
+
+- **Bug previo corregido:** `workflow-kit update` sin `--runtime` ignoraba los
+  runtimes guardados y trataba el repo como `neutral`, porque el parser fijaba
+  `runtime: 'neutral'` por defecto. El comando que recomienda el README nunca
+  actualizaba adapters ni agentes. Ahora `update` y `doctor` reutilizan los
+  runtimes de `install-state.json` (test de regresión agregado).
+- **Codex sí permite fijar modelo por agente:** la documentación oficial de
+  Codex confirma que `.codex/agents/*.toml` acepta `model` y
+  `model_reasoning_effort`, que tienen prioridad sobre el padre; sin ellos el
+  subagente hereda modelo y esfuerzo de la sesión. El kit fija solo el esfuerzo
+  porque los IDs de modelo cambian entre versiones. Para D-28: la misma
+  documentación dice que Codex lanza subagentes "tras un pedido directo o una
+  instrucción aplicable del proyecto o de un skill", así que el punto del
+  permiso se reformula al implementar el Lote 7.
+- **Actualizar cambia los agentes de Claude Code** de `model: inherit` a
+  `sonnet`/`opus` en proyectos sin perfil guardado. Está documentado en
+  `docs/migration.md`; quien use Claude Code por API debe pasar
+  `--profile claude=costo` en ese update.
 
 Hallazgos del Lote 1:
 

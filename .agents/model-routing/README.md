@@ -48,6 +48,47 @@ Rules:
 - For `create-prd`, use Liviano for Phase 1 calibration and Phase 2 ambiguity detection, Mediano for Phase 3 pattern lock and Phase 5 self-audit, and Grande only for Phase 4 drafting. Apply this only when the runtime permits phase-level tier selection; never claim an automatic switch otherwise.
 - Do not claim automatic switching unless the runtime confirms it.
 
+## Model profiles (`calidad` / `costo`)
+
+The tier assigned to each delegate depends on how the runtime is billed, not
+on the model brand. Each project fixes one profile per runtime; the catalog
+(`delegate-agent-catalog.json` → `modelProfiles`) holds both assignments.
+
+| Profile | Default runtimes | Billing | Rule |
+| --- | --- | --- | --- |
+| `calidad` | Claude Code, Codex | subscription (usage limits per window, not credits per request) | quality first; never Liviano |
+| `costo` | GitHub Copilot, Antigravity, and any API-key/per-token runtime | premium requests with model multipliers, or pay per token | close to the original catalog; Liviano allowed |
+
+| Role | `calidad` | `costo` |
+| --- | --- | --- |
+| `turbo-backend`, `pixel-ninja`, `testinator-5000`, `guardia-contrato` | Grande | Mediano |
+| `arquitecta-fases`, `qa-relampago` | Grande | Mediano |
+| `capitana-alcance`, `cavecrew-builder`, `cavecrew-reviewer` | Mediano | Mediano |
+| `sherlock-estructura`, `cavecrew-investigator`, `lint-ranger` | Mediano | Liviano |
+| `escriba-doc` | Mediano | Liviano, escalating to Mediano (see Documentation role routing) |
+
+Rules:
+
+- `criticalConcerns` (security, migrations, public contracts, and the rest of
+  the catalog list) escalate any role to Grande in both profiles. In `costo`
+  this is the only path to Grande; never escalate silently there.
+- In `calidad`, a `lean` posture means less context and less delegation, not a
+  smaller model.
+- Runtime mapping: Claude Code `Mediano` = `sonnet`, `Grande` = `opus`
+  (`Liviano` = `haiku`, `costo` only). Codex pins `model_reasoning_effort`
+  (`medium` for Mediano, `xhigh` for Grande, `low` for Liviano) and inherits
+  the session model, because Codex model IDs change between releases. Copilot
+  keeps the per-tier candidate lists of `copilotModelRouting`.
+- The profile is a user setting stored in `.agents/workflow-kit/install-state.json`.
+  `workflow-kit init` asks "subscription or API?" for Claude Code and Codex
+  (an `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` only preselects `costo`; the user
+  confirms). Non-interactive runs use the runtime default. `update` keeps the
+  stored value; change it with `workflow-kit update --profile <runtime>=<calidad|costo>`.
+  Never edit generated agent files by hand; `doctor` fails when an agent's
+  model setting does not match its profile.
+- Subscriptions are not unlimited: Opus consumes usage limits faster. If they
+  are hit often in `calidad`, lower `qa-relampago` to Mediano first.
+
 ## User override
 
 Explicit user override is allowed.
@@ -84,6 +125,23 @@ Fallback behavior must be explicit:
 - when the requested tier has no observed candidate, report it as blocked and
   ask for a human choice; do not change tier or silently inherit the parent
   model.
+
+When a pinned delegate model cannot be launched (rejected before execution,
+for example `BLOCKED_MODEL`), apply this order:
+
+1. Try **once** the next candidate of the same tier and the same profile.
+2. Then the orchestrator's own model, **only if its tier is not lower** than
+   the requested one; record it in `resolved_model` with the reason.
+3. **Never downgrade silently.** If only a lower tier is available, stop and
+   ask: continue with the lower tier (recorded as `waived_by_user`) or wait.
+4. **Never upgrade silently in `costo`.** Using a Grande model in Copilot or an
+   API project without saying so is a billing surprise.
+5. **Independent QA without a launchable delegate:** the orchestrator may run
+   QA inline only when its tier is enough; record it as "reduced
+   independence" and let the user decide whether it is acceptable for closure.
+6. **Never block indefinitely.** A model that cannot be launched is an
+   environment failure: one recovery attempt, then stop with options for the
+   user.
 
 ## User control mode
 
@@ -149,7 +207,7 @@ several phases or deliverables; the context would outgrow a small working set.
 
 ## Implement-PRD role routing
 
-Use these defaults as the conservative fallback when no task context exists. They are not strength metrics. A Copilot orchestrator derives the tier from the task context first (see `Contextual task selection`) and may escalate on a concrete trigger or cheapen only a clearly mechanical task:
+Use these defaults as the conservative fallback when no task context exists in the `costo` profile; the `calidad` profile uses the tiers in `Model profiles` above and never Liviano. They are not strength metrics. A Copilot orchestrator derives the tier from the task context first (see `Contextual task selection`) and may escalate on a concrete trigger or cheapen only a clearly mechanical task:
 
 | Role | Default tier | Escalate when |
 | --- | --- | --- |
@@ -168,13 +226,13 @@ requested tier was applied.
 
 ## Documentation role routing
 
-`document-development` synthesizes work that is already implemented and validated, so it defaults to `lean` and tier **Liviano**.
+`document-development` synthesizes work that is already implemented and validated, so it runs with a `lean` posture. Its tier depends on the model profile.
 
 | Aspect | Rule |
 | --- | --- |
-| Default tier | Liviano; delegate `escriba-doc` where the runtime can pin a subagent model |
+| Default tier | `calidad`: Mediano. `costo`: Liviano; delegate `escriba-doc` where the runtime can pin a subagent model |
 | Bounded reads | PRD, implementation evidence (tracker/QA handoff), and the key files that evidence cites |
-| Escalate to Mediano when | PRD contradicts the evidence or code, or real complexity appears (cross-layer flow, auth/tenancy, key-file set that cannot be bounded) |
+| Escalate to Mediano when (`costo`) | PRD contradicts the evidence or code, or real complexity appears (cross-layer flow, auth/tenancy, key-file set that cannot be bounded) |
 | Success criterion | In 2-3 real cases, Liviano output matches the quality of the previous default |
 
 Record the escalation reason when the tier is raised. Apply the same no-automatic-switching rule: report the recommended tier when the runtime cannot pin it.

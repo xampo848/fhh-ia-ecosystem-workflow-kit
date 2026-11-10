@@ -170,3 +170,38 @@ export function createCapabilityGuide({ capability, scope, intent, runtimes }) {
     runtimeHint: `Detected runtimes: ${[...runtimes].join(', ') || 'neutral'}`
   };
 }
+const MODEL_PROFILE_OPTIONS = [
+  {
+    value: 'calidad',
+    label: 'Suscripción (perfil calidad)',
+    description: 'Claude Pro/Max o ChatGPT: Sonnet/GPT Sol por defecto y Opus/GPT Sol extra-high para implementar; nunca modelos chicos.'
+  },
+  {
+    value: 'costo',
+    label: 'API por token (perfil costo)',
+    description: 'Pago por uso: modelos chicos para lectura, validación y documentación; Grande solo ante riesgos críticos.'
+  }
+];
+
+const RUNTIME_BILLING = {
+  claude: { label: 'Claude Code', apiKey: 'ANTHROPIC_API_KEY' },
+  codex: { label: 'Codex', apiKey: 'OPENAI_API_KEY' }
+};
+
+// One question per selected runtime that can run on a subscription (D-07).
+// An API key in the environment only preselects "costo"; the user confirms.
+export function modelProfileQuestions(runtimeList = '', env = {}) {
+  const runtimes = runtimeSet(runtimeList);
+  return Object.entries(RUNTIME_BILLING)
+    .filter(([runtime]) => runtimes.has(runtime))
+    .map(([runtime, info]) => {
+      const hasApiKey = Boolean(env?.[info.apiKey]);
+      return {
+        runtime,
+        title: `¿Cómo se cobra ${info.label} en este proyecto?`,
+        hint: hasApiKey ? `${info.apiKey} está definida: se preselecciona API por token. Confírmalo o cámbialo.` : null,
+        options: MODEL_PROFILE_OPTIONS,
+        defaultIndex: hasApiKey ? 1 : 0
+      };
+    });
+}
