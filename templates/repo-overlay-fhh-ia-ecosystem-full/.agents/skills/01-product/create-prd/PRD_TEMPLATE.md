@@ -13,43 +13,11 @@
 
 > **Alcance estricto**: [Clear statement of what IS and is NOT in scope for this PRD]
 
-### Contexto de Epica Padre _(si aplica)_
-
-**parent_epic**: `[path/to/epic.md]`
-
-| Invariante heredada | AC hijo | Estado | Change request aprobado |
-| ------------------- | -------- | ------ | ----------------------- |
-| INV-[AREA]-01 | AC-[N] | Mapeada | No aplica |
-
-Una contradiccion exige un change request aprobado por el usuario con ID de invariante, motivo y aprobador antes de continuar.
-
-**Path vivo heredado**: [Debe seguir en el sistema nuevo | Se puede cortar | No aplica]
-**Secuencia de corte heredada**: [fase 1 -> ... | No aplica]
-**Este PRD respeta el corte**: Si | Change request `INV-CUT-NN`
 **Sketch heredado**: `docs/design/<slug>-sketch.md` | No aplica | `sketch: skipped`
 **UI lock**: locked | not-applicable | missing
 **Visible UI**: Si | No
 
-### Contrato entre Fases _(si aplica)_
-
-**Ledger leido**: `docs/epics/<feature-or-project>/<slug>-ledger.md`
-**PRD anterior en la cola**: `[path/to/previous-prd.md]` (`No aplica` si es el primer PRD de la epica)
-
-**Precondiciones (que asume que ya existe de fases previas)**:
-
-| ID | Precondicion | Origen (PRD/ledger) | Verificado en discovery |
-| -- | ------------- | -------------------- | ------------------------ |
-| PRE-[N] | [Lo que este PRD asume que ya esta implementado o decidido] | [PRD/ledger row] | Si/No |
-
-Si una precondicion no se verifica contra el codigo real durante el calibration, este PRD no puede continuar sin resolver la discrepancia con el usuario.
-
-**Postcondiciones (que garantiza para fases siguientes)**:
-
-| ID | Postcondicion | Como se prueba |
-| -- | -------------- | --------------- |
-| POST-[N] | [Lo que este PRD deja garantizado para que el proximo PRD lo pueda asumir] | [Test/evidencia] |
-
-`document-development` copia estas postcondiciones al ledger de la epica al cerrar este PRD.
+_Si el PRD pertenece a una epica, insertar aqui las secciones "Contexto de Epica Padre" y "Contrato entre Fases" desde `template-sections/epic-context.md`. Si no, omitirlas._
 
 ### Estado Actual
 
@@ -116,29 +84,11 @@ Una categoria sin caso aplicable se marca `No aplica` con una justificacion de u
 
 ### 2.7 Contrato Visual (UI lock)
 
-Completar cuando hay UI visible. Si no hay pantalla de usuario, dejar `UI lock: not-applicable` y una razon de una linea.
-
 **UI lock**: locked | not-applicable
-**Superficie**: Nueva | Evolucion de [ruta o componente existente]
-**Densidad / composicion**: Tabla | Formulario | Wizard | Detalle | Dashboard | Otro: [nombre]
-**Accion primaria**: [La unica accion que debe ganar jerarquia]
-**Estados requeridos**: loading | vacio | error | permisos | 1 item | N items
-**Tesis visual**: [Una frase: jerarquia, ritmo y el movimiento que evita un look generico]
-**Reutilizar**: [Primitiva del Design System o pantalla hermana]
-**Evidencia opcional**: [path de screen actual / Figma / foto / mockup | ninguna]
-**No lockear aqui**: hex, tipografias nuevas, animacion, salvo decision de producto ya existente
 
-```text
-[Wireframe ASCII de la pantalla principal]
-+--------------------------------------+
-| Titulo                    [Accion]   |
-|--------------------------------------|
-| [contenido primario]                 |
-| [estado vacio / error / lista]       |
-+--------------------------------------+
-```
+Si hay UI visible, reemplazar este bloque por la seccion completa de `template-sections/visual-contract.md` y dejar `UI lock: locked`. Si no hay pantalla de usuario, dejar `UI lock: not-applicable` y una razon de una linea.
 
-`implement-prd` no puede inventar esta pantalla. Un mockup o foto ancla; no sustituye los campos de arriba.
+---
 
 ### 2.8 Supuestos e integraciones
 
@@ -275,8 +225,8 @@ _(Vacio = PRD listo para implementar)_
 ## 8. Definition of Done Global
 
 - [ ] Todas las fases completadas
-- [ ] `bundle exec rails test` en verde
-- [ ] `bundle exec rubocop` sin offenses
+- [ ] `[comando de tests del proyecto, segun .agents/project-context.md]` en verde
+- [ ] `[comando de lint del proyecto]` sin hallazgos
 - [ ] Retrocompatibilidad: archivos sin columnas nuevas siguen importando
 - [ ] Columnas BD en ingles
 - [ ] Sin queries N+1

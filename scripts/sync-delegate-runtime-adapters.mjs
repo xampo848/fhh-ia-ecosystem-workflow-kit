@@ -112,6 +112,8 @@ function renderMatrix(agents, runtimeCapabilities) {
 
 <!-- ${generatedMarker} -->
 
+Read it when a delegation needs the exact adapter path, write boundary, or parallelization rule for a role.
+
 Use the shared skill path as the execution contract. Native adapters are generated from the same catalog and only specialize runtime discovery and tool configuration.
 
 Antigravity 2.0 documents project-scoped agents, worktrees, reusable skills, MCPs, and hooks, but does not declare a project custom-agent file format. Run the shared skill inline there until Google publishes one; do not create an undocumented adapter directory.

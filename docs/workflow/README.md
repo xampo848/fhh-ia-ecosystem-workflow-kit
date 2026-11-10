@@ -88,6 +88,11 @@ previous result when a script-computed fingerprint proves nothing changed. It
 starts in shadow mode, never applies to integration, E2E, critical slices, or
 the closure suite, and QA re-entries are focused on the repair.
 
+Project rules are runtime-neutral: the quality gate and the backend and
+frontend instructions live in `.agents/project/`, stack-specific rules in
+`.agents/project/stack.md`, and the fixed knowledge base in
+`.agents/project-context.md`. Runtime folders only hold generated copies.
+
 ## Recommended first documents
 
 - `decisions/2026-01-01-workflow-adoption-baseline.md`

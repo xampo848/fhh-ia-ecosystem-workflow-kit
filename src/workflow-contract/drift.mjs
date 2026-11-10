@@ -17,6 +17,7 @@ const mirroredFiles = [
 
 const mirroredDirectories = [
   '.agents/delegation',
+  '.agents/project',
   '.agents/skills/00-router/workflow-router',
   '.agents/skills/02-implement/implement-change',
   '.agents/skills/04-crosscutting/frontend-design',

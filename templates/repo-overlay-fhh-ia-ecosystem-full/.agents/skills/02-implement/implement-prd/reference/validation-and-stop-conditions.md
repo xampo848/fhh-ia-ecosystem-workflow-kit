@@ -1,5 +1,7 @@
 # Validation And Stop Conditions
 
+Read it when validating a slice, deciding whether to stop, or closing; it holds the brakes that apply at every level.
+
 ## Evidence Integrity
 
 Before accepting a command result as slice evidence:
@@ -21,29 +23,19 @@ same `run_id` and `slice_id`. An absent, mismatched, incomplete, stale, or
 unknown lock state blocks `VERIFIED`; lack of runtime model identity alone does
 not.
 
-## Backend Validation
+## Backend And Frontend Validation
 
-Run from `backend/`. Prefer `make` targets:
+The commands belong to the project, not to this workflow. Use the validation
+commands declared in `.agents/project-context.md`, with their cost, and the
+stack rules in `.agents/project/stack.md` when present:
 
-- `make test-fast`
-- `make tests_run`
-- `make test-full`
-- `make tests`
-- `make test-coverage` only when risk warrants it
-
-Use targeted `bundle exec rails test path/to/test.rb` only when it is already established for the slice or when it is the narrowest reliable check.
-
-For lint, run targeted RuboCop against touched backend files when the slice warrants it.
-
-## Frontend Validation
-
-Run from `front/`:
-
-- `bun run test`
-- `bun run lint`
-- `bun run lint:styles`
-- `bun run validate:css`
-- `bun run validate:all` only for broad changes
+- run the fast, focused command first; a single test file only when it is the
+  narrowest reliable check;
+- run coverage or the broad "validate everything" command only when risk
+  warrants it or at closure;
+- lint only the touched files unless the change is broad;
+- if no command is declared for a touched layer, stop and ask instead of
+  guessing one, then record it in `.agents/project-context.md` at closure.
 
 ## Auxiliary Validation Skills
 
@@ -64,7 +56,7 @@ Before marking any implementation slice complete, verify every configured qualit
 - KISS/YAGNI risks were checked so the slice does not introduce speculative abstractions or unnecessary design patterns.
 - Hardcoding risks were checked for strings, colors, secrets, roles, tenant IDs, permissions, statuses, thresholds, URLs, and API shapes.
 - Acceptance criteria are mapped to testable evidence.
-- Visible frontend UI passed the premium visual bar from `.github/instructions/frontend.instructions.md`, including hierarchy, rhythm, states, and Design System alignment.
+- Visible frontend UI passed the premium visual bar from `.agents/project/frontend.md`, including hierarchy, rhythm, states, and Design System alignment.
 
 Validation output must include a quality gate result in the delegate handoff or final response.
 
@@ -115,44 +107,12 @@ modifier: autonomy removes routine pauses, not brakes.
    edge cases in the PRD test strategy. Do not add tests outside that strategy
    without a concrete finding that justifies them.
 
-## Evidence Reuse
+## References
 
-A check is not rerun when nothing it depends on changed. The check still
-exists; only its result is reused, and only when a script proves the content
-is identical.
+Load a reference only when its condition holds:
 
-1. **Fingerprint by script.** Compute it with
-   `node .agents/skills/02-implement/validation-runner/scripts/validation-fingerprint.mjs fingerprint --scope <paths> [--config <paths>] [--generated <paths>] [--migrations <paths>] [--tool <name=version>]`.
-   It hashes the scope files, lockfiles, the given configuration, generated
-   code, migrations, and the runtime and tool versions. Never compute or guess
-   a fingerprint by hand: if the script cannot run, the fingerprint is
-   `unknown` and the check runs.
-2. **Registry.** Every check records one line in
-   `.ai-work/<prd-slug>/validation-registry.jsonl` (`record`): command, scope,
-   fingerprint, result, stage, and time.
-3. **Decide before running** (`decide`):
-   - same command, scope, and fingerprint with PASS: reuse it and note
-     "reutilizado de <etapa>, huella <x>";
-   - same command, scope, and fingerprint with FAIL: do not rerun it "to see
-     if it passes" (a flaky rerun follows the brakes above);
-   - a PASS over a wider scope covers a narrower one **only for lint and
-     types**; a narrower scope never covers a wider one, and this never applies
-     to tests;
-   - a different or `unknown` fingerprint: run.
-4. **What is reused.** Only expensive deterministic checks: package
-   typecheck, unit suites, and build. Cheap checks (lint of a few files) simply
-   run. Integration and E2E are never reused between stages because they
-   depend on state the fingerprint cannot see (database, seeds, environment
-   variables, external services).
-5. **Never reused:** slices that touch a `criticalConcern`, and the full suite
-   at closure, which always runs once.
-6. **Shadow mode first.** Reuse starts in shadow mode: `decide` answers `RUN`
-   and reports what it would have reused. A project switches to active reuse by
-   adding `validation_reuse: active` to `.agents/project-context.md` after 2 or
-   3 implementations whose shadow results never differed. If a defect escapes
-   that a reused check would have caught, go back to shadow.
-7. **Transparency.** Section 10 lists each reused check as "reutilizado de
-   <etapa>, huella <x>".
+- [evidence-reuse.md](evidence-reuse.md) — read it before running an expensive deterministic check (package typecheck, unit suite, build)
+- [validation-anti-patterns.md](validation-anti-patterns.md) — read it when reviewing a validation or closure decision that feels like a shortcut
 
 ## Phase And Global Rules
 
@@ -231,23 +191,3 @@ When resuming a partial PRD implementation:
 6. Rebuild the slicing plan from the first incomplete acceptance criterion.
 7. Do not re-implement validated work.
 8. Preserve unrelated user or agent changes.
-
-## Anti-Patterns
-
-- Using persona names without loading their skill.
-- Delegating without file ownership.
-- Implementing before readiness and discovery.
-- Bulk-loading all docs or all skills.
-- Moving to another phase with failing relevant validation.
-- Treating empty UI state as verified without checking the data source.
-- Hardcoding user-facing strings or colors.
-- Hardcoding secrets, permissions, tenant IDs, roles, statuses, thresholds, URLs, or API shapes.
-- Adding backend business logic to controllers.
-- Adding frontend business logic directly in components.
-- Creating new abstractions before naming the existing pattern.
-- Applying a design pattern without proving why a simpler design is insufficient.
-- Duplicating business rules, enum mappings, contract shapes, permission checks, or data transformations.
-- Marking acceptance criteria as complete without evidence.
-- Marking a slice complete without a code quality gate result.
-- Closing the PRD while any QA checklist item is incomplete, waived without evidence, or still phrased as a TODO.
-- Asking the user to approve routine phase transitions when the autonomous modifier was requested.

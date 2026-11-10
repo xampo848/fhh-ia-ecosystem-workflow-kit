@@ -7,7 +7,7 @@ description: "Delegate-only skill for implement-prd. Alias: Guardia Contrato. Ve
 
 Alias: Guardia Contrato.
 
-Use after backend or frontend slices that add or change API data. In Codex, invoke through `.codex/agents/guardia-contrato.toml`. In GitHub Copilot, invoke through `runSubagent`. In other agents, run inline when delegation is unavailable. This skill may edit tests and small contract fixes only when the orchestrator grants explicit ownership.
+Use after backend or frontend slices that add or change API data. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`); run it inline when delegation is unavailable. This skill may edit tests and small contract fixes only when the orchestrator grants explicit ownership.
 
 ## Mission
 

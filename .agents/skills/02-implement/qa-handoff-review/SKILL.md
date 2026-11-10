@@ -8,7 +8,7 @@ context: fork
 
 Alias: QA Relampago.
 
-Use after all implementation and validation slices finish. In Codex, invoke through `.codex/agents/qa-relampago.toml` as a fresh review. In GitHub Copilot, run this as a fresh `runSubagent` review when available. In other agents, run inline when delegation is unavailable.
+Use after all implementation and validation slices finish. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`); run it inline when delegation is unavailable. In other agents, run inline when delegation is unavailable.
 
 ## Mission
 
@@ -119,7 +119,7 @@ Use this checklist as coverage for the mandatory procedure; it does not replace 
 - PRD scope: no missing acceptance criteria and no unrequested expansion.
 - Use cases: every PRD use case links to an implemented/verified slice and at least one executed test; report orphans by ID.
 - Edge cases: every mandatory category (datos vacíos, límites, errores, permisos/tenancy, concurrencia/orden, rollout/rollback) is reported `PASS` or `gap` by name; empty/error/boundary/permission/rollout states are verified or explicitly blocked.
-- Backend: service boundaries, CanCanCan, tenancy, i18n, Minitest.
+- Backend: service boundaries, authorization, tenancy, i18n, and tests, against the project's rules in `.agents/project/backend.md` and `.agents/project/stack.md`.
 - Frontend: hooks/API modules, design system, i18n, tokens, tests.
 - Visual contract: when the PRD changes visible UI, the Contrato Visual is `locked` and the shipped screen matches its density, primary action, required states, and thesis; a mockup cited in the PRD is evidence, not a substitute. Missing lock on a new visible surface blocks `ready_to_close: yes`.
 - Contract: backend response shape matches frontend consumer.

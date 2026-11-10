@@ -89,7 +89,7 @@ test('UI sketch is optional, offered on entry, and bridges to the Contrato Visua
 
 test('PR comments are evaluated critically before any option is offered', async () => {
   const [skill, templates, stance] = await Promise.all([
-    read('.agents/skills/04-crosscutting/pr-comments-resolution/SKILL.md'),
+    Promise.all(['SKILL.md', 'reference/triage-and-special-rules.md'].map((file) => read(`.agents/skills/04-crosscutting/pr-comments-resolution/${file}`))).then((parts) => parts.join('\n')),
     read('.agents/skills/04-crosscutting/pr-comments-resolution/reference/comment-response-templates.md'),
     read('.agents/skills/01-product/shared/critical-stance.md')
   ]);

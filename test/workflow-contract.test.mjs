@@ -10,6 +10,25 @@ import { makeTempRepo } from './helpers.mjs';
 
 const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 
+// Skills are split into a core file plus references read on demand. Content
+// assertions read the core together with its sibling references.
+async function readWithSiblings(filePath) {
+  const isCore = path.basename(filePath) === 'SKILL.md';
+  const directory = path.dirname(filePath);
+  const files = [];
+  async function walk(current) {
+    for (const entry of await fs.readdir(current, { withFileTypes: true })) {
+      const absolute = path.join(current, entry.name);
+      // A template is read together with its conditional sections.
+      if (entry.isDirectory()) { if ((isCore && entry.name !== 'scripts' && entry.name !== 'agents') || entry.name === 'template-sections') await walk(absolute); }
+      else if (entry.name.endsWith('.md')) files.push(absolute);
+    }
+  }
+  await walk(directory);
+  files.sort((a, b) => (a === filePath ? -1 : b === filePath ? 1 : a.localeCompare(b)));
+  return (await Promise.all(files.map((file) => fs.readFile(file, 'utf8')))).join('\n');
+}
+
 // implement-change is the general route; implement-prd is its alias. Content
 // assertions read the whole bundle: core, level/input references, and alias.
 async function readImplementBundle(base = repoRoot) {
@@ -149,7 +168,7 @@ test('neutral delegation envelope records requested and resolved models independ
   const trackerPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/task-tracker-template.md');
   const [routing, handoffs, tracker] = await Promise.all([
     fs.readFile(routingPath, 'utf8'),
-    fs.readFile(handoffPath, 'utf8'),
+    readWithSiblings(handoffPath),
     fs.readFile(trackerPath, 'utf8')
   ]);
 
@@ -174,7 +193,7 @@ test('neutral delegation envelope blocks VERIFIED for invalid locks but permits 
   const trackerPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/task-tracker-template.md');
   const [routing, handoffs, tracker] = await Promise.all([
     fs.readFile(routingPath, 'utf8'),
-    fs.readFile(handoffPath, 'utf8'),
+    readWithSiblings(handoffPath),
     fs.readFile(trackerPath, 'utf8')
   ]);
 
@@ -207,8 +226,8 @@ test('QA handoff workflow keeps explicit rerun and controlled-lite closure rules
   const qaPath = path.join(root, '.agents/skills/02-implement/qa-handoff-review/SKILL.md');
   const slicingPath = path.join(root, '.agents/skills/02-implement/implementation-slicing/SKILL.md');
   const [qaSkill, slicingSkill] = await Promise.all([
-    fs.readFile(qaPath, 'utf8'),
-    fs.readFile(slicingPath, 'utf8')
+    readWithSiblings(qaPath),
+    readWithSiblings(slicingPath)
   ]);
 
   assert.match(qaSkill, /## Executable Procedure/);
@@ -223,8 +242,8 @@ test('create-prd requires use cases, test strategy, and edge-case matrix before 
   const skillPath = path.join(root, '.agents/skills/01-product/create-prd/SKILL.md');
   const templatePath = path.join(root, '.agents/skills/01-product/create-prd/PRD_TEMPLATE.md');
   const [skill, template] = await Promise.all([
-    fs.readFile(skillPath, 'utf8'),
-    fs.readFile(templatePath, 'utf8')
+    readWithSiblings(skillPath),
+    readWithSiblings(templatePath)
   ]);
 
   assert.match(skill, /Hard Gate: Use Cases, Test Strategy, and Edge Cases Are Non-Optional/);
@@ -271,15 +290,15 @@ test('visible UI requires a locked visual contract before implementation', async
     ticketTemplate,
     decision
   ] = await Promise.all([
-    fs.readFile(createPrdPath, 'utf8'),
-    fs.readFile(templatePath, 'utf8'),
+    readWithSiblings(createPrdPath),
+    readWithSiblings(templatePath),
     fs.readFile(calibrationPath, 'utf8'),
     fs.readFile(ambiguityPath, 'utf8'),
     fs.readFile(selfAuditPath, 'utf8'),
     readImplementBundle(),
     fs.readFile(frontendPath, 'utf8'),
     fs.readFile(readinessPath, 'utf8'),
-    fs.readFile(ticketPath, 'utf8'),
+    readWithSiblings(ticketPath),
     fs.readFile(ticketTemplatePath, 'utf8'),
     fs.readFile(decisionPath, 'utf8')
   ]);
@@ -300,7 +319,7 @@ test('visible UI requires a locked visual contract before implementation', async
   assert.match(ticket, /lock a compact visual contract/);
   assert.match(ticketTemplate, /## Contrato visual/);
   assert.match(decision, /Visible UI is a contract, not a Pixel Ninja invention/);
-  assert.doesNotMatch(createPrd, /demand high-fidelity mockups as a universal/);
+  assert.doesNotMatch(await fs.readFile(createPrdPath, 'utf8'), /demand high-fidelity mockups as a universal/);
 });
 
 test('create-epic locks live path and phase cut before the PRD queue', async () => {
@@ -311,11 +330,11 @@ test('create-epic locks live path and phase cut before the PRD queue', async () 
   const prdSkillPath = path.join(root, '.agents/skills/01-product/create-prd/SKILL.md');
   const prdTemplatePath = path.join(root, '.agents/skills/01-product/create-prd/PRD_TEMPLATE.md');
   const [epicSkill, epicTemplate, playbook, prdSkill, prdTemplate] = await Promise.all([
-    fs.readFile(epicSkillPath, 'utf8'),
+    readWithSiblings(epicSkillPath),
     fs.readFile(epicTemplatePath, 'utf8'),
     fs.readFile(playbookPath, 'utf8'),
-    fs.readFile(prdSkillPath, 'utf8'),
-    fs.readFile(prdTemplatePath, 'utf8')
+    readWithSiblings(prdSkillPath),
+    readWithSiblings(prdTemplatePath)
   ]);
 
   assert.match(epicSkill, /### 6\. Lock Live Path And Phase Cut/);
@@ -363,12 +382,12 @@ test('token-efficiency cuts keep quality gates and compact discovery', async () 
     frontend
   ] = await Promise.all([
     fs.readFile(calibrationPath, 'utf8'),
-    fs.readFile(createPrdPath, 'utf8'),
+    readWithSiblings(createPrdPath),
     fs.readFile(modelRoutingPath, 'utf8'),
     fs.readFile(matcherPath, 'utf8'),
     readImplementBundle(),
-    fs.readFile(orchestrationPath, 'utf8'),
-    fs.readFile(qaPath, 'utf8'),
+    readWithSiblings(orchestrationPath),
+    readWithSiblings(qaPath),
     fs.readFile(backendPath, 'utf8'),
     fs.readFile(frontendPath, 'utf8')
   ]);
@@ -404,7 +423,7 @@ test('implement-prd keeps compact delegation without weakening QA', async () => 
   const modelRoutingPath = path.join(root, '.agents/model-routing/README.md');
   const [implementPrd, orchestration, modelRouting] = await Promise.all([
     readImplementBundle(),
-    fs.readFile(orchestrationPath, 'utf8'),
+    readWithSiblings(orchestrationPath),
     fs.readFile(modelRoutingPath, 'utf8')
   ]);
 
@@ -423,7 +442,7 @@ test('implementation-slicing and implement-prd enforce use-case/edge-case tracea
   const slicingPath = path.join(root, '.agents/skills/02-implement/implementation-slicing/SKILL.md');
   const implementPrdPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
   const [slicingSkill, implementPrdSkill] = await Promise.all([
-    fs.readFile(slicingPath, 'utf8'),
+    readWithSiblings(slicingPath),
     readImplementBundle()
   ]);
 
@@ -438,7 +457,7 @@ test('implementation-slicing and implement-prd enforce use-case/edge-case tracea
 test('qa-handoff-review reports edge-case coverage by mandatory category', async () => {
   const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const qaPath = path.join(root, '.agents/skills/02-implement/qa-handoff-review/SKILL.md');
-  const qaSkill = await fs.readFile(qaPath, 'utf8');
+  const qaSkill = await readWithSiblings(qaPath);
 
   assert.match(qaSkill, /### Edge-Case Coverage Gate/);
   assert.match(qaSkill, /A category is `PASS` only when every PRD row for it has concrete validation evidence/);
@@ -466,12 +485,12 @@ test('implement-prd closure loop keeps a persistent findings ledger and blocks o
     validationRunnerSkill
   ] = await Promise.all([
     readImplementBundle(),
-    fs.readFile(orchestrationFlowPath, 'utf8'),
-    fs.readFile(stopConditionsPath, 'utf8'),
-    fs.readFile(handoffSchemasPath, 'utf8'),
+    readWithSiblings(orchestrationFlowPath),
+    readWithSiblings(stopConditionsPath),
+    readWithSiblings(handoffSchemasPath),
     fs.readFile(trackerTemplatePath, 'utf8'),
-    fs.readFile(qaPath, 'utf8'),
-    fs.readFile(validationRunnerPath, 'utf8')
+    readWithSiblings(qaPath),
+    readWithSiblings(validationRunnerPath)
   ]);
 
   // findings ledger: persisted, never overwritten, consumed on QA re-entry
@@ -511,8 +530,8 @@ test('solution-sketch is an offer-only sister skill with a commitable six-sectio
   const workflowReadmePath = path.join(root, 'docs/workflow/README.md');
   const decisionPath = path.join(root, 'docs/workflow/decisions/2026-08-24-solution-sketch-flow.md');
   const [skill, template, workflowReadme, decision] = await Promise.all([
-    fs.readFile(skillPath, 'utf8'),
-    fs.readFile(templatePath, 'utf8'),
+    readWithSiblings(skillPath),
+    readWithSiblings(templatePath),
     fs.readFile(workflowReadmePath, 'utf8'),
     fs.readFile(decisionPath, 'utf8')
   ]);
@@ -552,14 +571,14 @@ test('product hooks offer solution-sketch only on T2-T4 and inherit a locked ske
     implementPrd,
     ticket
   ] = await Promise.all([
-    fs.readFile(createPrdPath, 'utf8'),
+    readWithSiblings(createPrdPath),
     fs.readFile(patternLockPath, 'utf8'),
-    fs.readFile(prdTemplatePath, 'utf8'),
-    fs.readFile(epicPath, 'utf8'),
-    fs.readFile(shapingPath, 'utf8'),
+    readWithSiblings(prdTemplatePath),
+    readWithSiblings(epicPath),
+    readWithSiblings(shapingPath),
     fs.readFile(stancePath, 'utf8'),
     readImplementBundle(),
-    fs.readFile(ticketPath, 'utf8')
+    readWithSiblings(ticketPath)
   ]);
 
   assert.match(patternLock, /## Solution Sketch Offer/);

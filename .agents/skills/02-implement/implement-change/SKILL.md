@@ -109,17 +109,28 @@ No level, modifier, or user hurry removes these:
    gets a test that fails before the fix; existing tests of the touched area
    (and, for an iteration, the tests listed in the PRD's section 10) run again.
 4. **Quality gate.** Code-writing work applies the project quality gate
-   (today `.github/instructions/quality-gate.instructions.md`) and the layer
-   instructions it touches. Verify each required path exists; a missing
-   configured path is a hard stop, never an implicit pass.
+   (`.agents/project/quality-gate.md`) and the instructions of the layers it
+   touches (`.agents/project/backend.md`, `.agents/project/frontend.md`, and
+   `.agents/project/stack.md` when present); `.agents/project/paths.json` maps
+   these names for projects with another layout. Nothing is skipped silently:
+   if the quality gate is not configured, say `quality gate: no configurado`
+   in the trace; at N3 that is a stop, and a path the input requires that is
+   missing is always a hard stop.
 5. **Stop conditions and brakes** in `../implement-prd/reference/validation-and-stop-conditions.md`
    always stop the run, autonomous or not: at most 2 repair rounds per slice,
    one recovery attempt for an environment failure, one rerun for a flaky test.
 6. **One writer per file**, and a delegate's handoff is the only
    synchronization point: never continue from partial output or silence.
 7. **No closure without evidence**: closure follows the level table below.
-8. **Teach and challenge** only when it matters: when a better alternative
-   exists, state the trade-off briefly, recommend one path, and continue.
+8. **Challenge always, teach selectively.** When a better alternative exists,
+   state the trade-off briefly, recommend one path, and continue. Write a
+   learning note only when the phase had a relevant decision (a trade-off with
+   a discarded alternative, a challenge that changed something, a new
+   abstraction, an accepted risk or a level escalation, or a `high`/`critical`
+   QA finding); with none, write nothing. At closure give one consolidated note
+   of at most 3 points. `teaching_notes: siempre | nunca` in
+   `.agents/project-context.md` changes this default (`selectivas`), and
+   "explícame" or "modo docente" turns on a note per phase for the run.
 
 ## Closure by level
 

@@ -1,0 +1,10 @@
+{
+  "description": "Logical names for project-owned files. Skills name the default path; a project with another layout changes the path here instead of editing skills.",
+  "paths": {
+    "project-context": ".agents/project-context.md",
+    "quality-gate": ".agents/project/quality-gate.md",
+    "backend-instructions": ".agents/project/backend.md",
+    "frontend-instructions": ".agents/project/frontend.md",
+    "stack-rules": ".agents/project/stack.md"
+  }
+}

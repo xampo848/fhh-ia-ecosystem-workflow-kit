@@ -53,6 +53,31 @@ Behavior on update:
 2. Managed but locally edited files are preserved as `skip_modified`.
 3. Unmanaged files at colliding paths are preserved as `skip_unmanaged`.
 
+Neutral structure (since `0.15.0`):
+
+- **Project instructions moved to a neutral place.** The quality gate and the
+  backend and frontend instructions now live in `.agents/project/`
+  (`quality-gate.md`, `backend.md`, `frontend.md`), so every runtime applies
+  them, not only Copilot. If your repository has hand-written
+  `.github/instructions/backend.instructions.md` or `frontend.instructions.md`,
+  `update` copies their content to the neutral file and regenerates the Copilot
+  file from it, keeping your `applyTo` glob and leaving a backup. From then on
+  edit the neutral file; `doctor` reports `project-instructions/wrapper-stale`
+  when the generated copy is out of date.
+- **Stack rules left the skills.** Rails and React rules (Minitest, Bullet,
+  MSW, TanStack Query, `make` and `bun run` commands) are now a stack pack.
+  A repository installed before this version gets
+  `.agents/project/stack.md` from the `rails-react` pack on its next `update`,
+  so it keeps the same rules. Use `--stack none` to opt out; new installs get
+  no pack unless you pass `--stack rails-react`. The file is yours afterwards.
+- **Skills are split.** No own skill file passes 200 lines; long sections moved
+  to `reference/` files that state when to read them. Nothing is deleted from
+  your repository: old files are rewritten and new ones added.
+- **Claude Code** gets `.claude/skills/` wrappers so workflow skills work as
+  slash commands; they never start on their own.
+- **OpenCode** is accepted as a runtime (`--runtime opencode`) through the
+  shared `AGENTS.md`.
+
 PRD and PR quality (since `0.14.0`): new PRDs carry two more sections,
 `2.8 Supuestos e integraciones` and `2.9 Que queda obsoleto`; existing PRDs
 stay valid without them. `create-prd` asks edge cases by confirmation, limits

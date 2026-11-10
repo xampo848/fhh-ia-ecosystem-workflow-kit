@@ -82,12 +82,32 @@ Working rules carried from the former `standard` mode:
   when commands and scope are clear, and do not repeat an equivalent suite the
   writer already ran unless files or dependencies changed.
 
-Native adapters: `.codex/agents/<slug>.toml`, `.github/agents/<slug>.agent.md`,
-`.claude/agents/<slug>.md`.
+Native adapters for each runtime are listed in
+`../../implement-prd/reference/delegate-skill-matrix.md`.
 In GitHub Copilot, always load the `Copilot Invocation Protocol` section of `../../implement-prd/reference/subagent-prompts.md` immediately before any `runSubagent` delegation. Before each delegation the orchestrator interprets the task and supplies a structured `taskContext` (and cost constraints when a limit applies) to the resolver defined there; role defaults are only the fallback.
 Without native agents, use the
 prompt cards in `../../implement-prd/agents/` or run the delegate `SKILL.md`
 inline. Use `.agents/skills/05-caveman/` helpers for narrow lower-context work.
+
+## Runtime parity for delegation
+
+The delegation rules are the same in every runtime; only the mechanism
+changes. This skill is the applicable instruction that authorizes launching
+the generated custom agents listed in the delegate matrix:
+
+- **Claude Code:** launch the generated agent by name; its `model` comes from
+  the project's model profile.
+- **Codex:** spawn the generated agent by name and wait with `wait_agent`; its
+  `model_reasoning_effort` comes from the profile and the model is inherited
+  from the session unless the project pins one.
+- **GitHub Copilot:** `runSubagent` with `agentName` and an explicit `model`
+  on every delegation (`Copilot Invocation Protocol`).
+- **Other runtimes:** run the role skill inline.
+
+For every delegation record in `events.log` whether it ran as a subagent or
+inline and, when the runtime exposes it, the model that executed. Closure
+summarizes that in section 10. If a delegation that should have been a
+subagent ran inline, say so; never present inline work as delegated.
 
 ## Join contract
 

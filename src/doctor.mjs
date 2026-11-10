@@ -6,6 +6,7 @@ import { selectedTemplateFiles, parseRuntimeList, normalizeOverlay, readManagedI
 import { validateWorkflowContract } from './workflow-contract/index.mjs';
 import { loadDelegateCatalog, modelSettingLine, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
 import { projectContextDiagnostics, workspaceDiagnostics } from './workspace-diagnostics.mjs';
+import { projectInstructionDiagnostics } from './project-instructions.mjs';
 
 function checksum(content) {
   return crypto.createHash('sha256').update(content, 'utf8').digest('hex');
@@ -78,6 +79,8 @@ export async function runDoctor(options = {}) {
     ...await modelProfileDiagnostics({ targetPath, present, catalog, modelProfiles }),
     ...await workspaceDiagnostics({ targetPath }),
     ...await projectContextDiagnostics({ targetPath }),
+    ...await projectInstructionDiagnostics({ targetPath, runtimes }),
+    ...await stackPackDiagnostics({ targetPath, stackPack: storedState?.stackPack }),
     ...await managedDriftDiagnostics(targetPath),
     ...await managedVersionDiagnostics(targetPath)
   ].sort((a, b) => a.severity.localeCompare(b.severity)
@@ -90,10 +93,27 @@ export async function runDoctor(options = {}) {
     runtimes,
     overlay,
     modelProfiles,
+    stackPack: storedState?.stackPack ?? 'none',
     present,
     missing,
     diagnostics
   };
+}
+
+async function stackPackDiagnostics({ targetPath, stackPack }) {
+  if (!stackPack || stackPack === 'none') return [];
+  try {
+    await fs.access(path.join(targetPath, '.agents/project/stack.md'));
+    return [];
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  return [{
+    code: 'stack-pack/missing',
+    path: '.agents/project/stack.md',
+    message: `The ${stackPack} stack pack is recorded but its rules file is missing, so stack-specific rules are not applied. Run workflow-kit update --stack ${stackPack} --apply --yes to restore it.`,
+    severity: 'warning'
+  }];
 }
 
 // Fails when a delegate agent's model setting does not match the project's
@@ -125,6 +145,7 @@ export function formatDoctorResult(result) {
     `Runtimes: ${result.runtimes.join(',')}`,
     `Overlay: ${result.overlay}`,
     `Model profiles: ${Object.entries(result.modelProfiles ?? {}).map(([runtime, profile]) => `${runtime}=${profile}`).join(',') || 'none'}`,
+    `Stack pack: ${result.stackPack ?? 'none'}`,
     result.ok ? 'Doctor: ok' : 'Doctor: failed'
   ];
 

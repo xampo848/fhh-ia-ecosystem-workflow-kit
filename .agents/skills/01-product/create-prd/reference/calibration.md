@@ -1,5 +1,7 @@
 # Calibration
 
+Read it in Phase 1, before writing any PRD content.
+
 ## Purpose
 
 Before writing PRD content, calibrate the repository and available ecosystem. Record the result in `.ai-work/<prd-slug>/orchestration.md` under `## Calibration` before starting Phase 2. One active PRD has one writer for this file; concurrent sessions must not edit it.

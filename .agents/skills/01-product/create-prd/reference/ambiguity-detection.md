@@ -1,5 +1,7 @@
 # Ambiguity Detection
 
+Read it in Phase 2, after calibration, when detecting ambiguities and asking the user.
+
 ## Purpose
 
 After calibration, identify only ambiguities that block the design or produce materially different implementations. Ask them together in one structured message, then persist the result in `.ai-work/<prd-slug>/orchestration.md` under `## Ambiguity Log`.

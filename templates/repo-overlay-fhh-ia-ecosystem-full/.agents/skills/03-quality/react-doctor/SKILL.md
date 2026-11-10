@@ -25,7 +25,7 @@ Examples:
 
 ## Must Read
 
-- `.github/copilot-instructions.md`
+- `.agents/instructions.md`
 - `.agents/instructions.md`
 - `.agents/skills/00-router/workflow-router/SKILL.md`
 

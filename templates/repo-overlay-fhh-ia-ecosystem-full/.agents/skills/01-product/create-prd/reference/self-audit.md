@@ -1,5 +1,7 @@
 # Self-Audit And Hardening
 
+Read it in Phase 5, after drafting and before delivering the PRD.
+
 ## Purpose
 
 After drafting, perform the final hard gate before delivering the PRD. Persist the result in `.ai-work/<prd-slug>/orchestration.md` under `## Self-Audit`.

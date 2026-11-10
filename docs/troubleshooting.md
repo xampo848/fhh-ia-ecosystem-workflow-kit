@@ -112,6 +112,18 @@ workflow-kit update --target /path/to/repo --profile claude=calidad --apply --ye
 Use the profile you actually want (`calidad` for subscriptions, `costo` for
 Copilot or per-token APIs).
 
+## Doctor reports `project-instructions/*` or `stack-pack/missing`
+
+Project rules live in `.agents/project/`; runtime folders only hold generated
+copies.
+
+| Code | Meaning | Action |
+| --- | --- | --- |
+| `project-instructions/not-migrated` | rules exist only in `.github/instructions/`, so other runtimes skip them | run `workflow-kit update`; it copies them to `.agents/project/` and regenerates the Copilot file with a backup |
+| `project-instructions/wrapper-stale` | the generated Copilot file differs from the neutral one | run `workflow-kit update`; edit `.agents/project/<name>.md`, never the generated copy |
+| `project-instructions/quality-gate-missing` | no quality gate is configured | run `workflow-kit update` to restore the default; until then code-writing work reports `quality gate: no configurado` and N3 work stops |
+| `stack-pack/missing` | a stack pack is recorded but `.agents/project/stack.md` is gone | run `workflow-kit update --stack <pack> --apply --yes` |
+
 ## Doctor reports `project-context/*` warnings
 
 `.agents/project-context.md` is the project's fixed knowledge base: structure

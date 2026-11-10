@@ -1,5 +1,7 @@
 # Solution Sketch: [Name]
 
+Use this template when persisting the sketch at `docs/design/<slug>-sketch.md`.
+
 **Slug**: `[slug]`
 **Fecha**: [YYYY-MM-DD]
 **Estado**: Borrador | Locked

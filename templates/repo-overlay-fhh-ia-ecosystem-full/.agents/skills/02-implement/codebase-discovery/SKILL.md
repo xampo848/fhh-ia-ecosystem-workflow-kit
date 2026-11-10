@@ -8,7 +8,7 @@ context: fork
 
 Alias: Sherlock Estructura.
 
-Use after PRD readiness passes when the orchestrator cannot name the likely touched files, analogous patterns, tests, and validation commands with high confidence. In Codex, invoke through `.codex/agents/sherlock-estructura.toml`. In GitHub Copilot, invoke through `runSubagent`. In other agents, run inline when delegation is unavailable.
+Use after PRD readiness passes when the orchestrator cannot name the likely touched files, analogous patterns, tests, and validation commands with high confidence. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`); run it inline when delegation is unavailable.
 
 ## Mission
 
@@ -37,11 +37,11 @@ Use exists-or-skip. A missing optional path is not a failed search.
 - The PRD sections and readiness brief relevant to discovery.
 - `.ai-work/<prd-slug>/orchestration.md` `## Calibration` and `## Pattern Lock` when they exist.
 - `docs/foundations/ARCHITECTURE.md` only when it exists and the work is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths.
-- Backend instructions when they exist and confirmed backend files will be read or touched: `.github/instructions/backend.instructions.md`.
-- Frontend instructions when they exist and confirmed frontend files will be read or touched: `.github/instructions/frontend.instructions.md`.
+- Backend instructions when they exist and confirmed backend files will be read or touched: `.agents/project/backend.md`.
+- Frontend instructions when they exist and confirmed frontend files will be read or touched: `.agents/project/frontend.md`.
 - `docs/patterns/README.md` only as an index when it exists; load only pattern docs that match the discovered implementation surface.
 
-Do not load `CODE_QUALITY.md` or `.github/instructions/quality-gate.instructions.md` during discovery. Code-writing and code-review delegates load the quality gate on demand.
+Do not load `CODE_QUALITY.md` or `.agents/project/quality-gate.md` during discovery. Code-writing and code-review delegates load the quality gate on demand.
 
 ## Context Budget
 
@@ -96,7 +96,7 @@ Frontend docs, load only when directly relevant:
 
 Return exactly the TOON schema defined in `.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md` for `sherlock-estructura`.
 
-Ensure you populate the `required_instructions[N]` field with `.github/instructions/backend.instructions.md` and/or `.github/instructions/frontend.instructions.md` if those surfaces are touched.
+Ensure you populate the `required_instructions[N]` field with `.agents/project/backend.md` and/or `.agents/project/frontend.md` if those surfaces are touched.
 
 For `controlled-lite`, keep findings compact and prioritize:
 

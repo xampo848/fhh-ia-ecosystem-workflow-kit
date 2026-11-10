@@ -8,7 +8,7 @@ context: fork
 
 Alias: Capitana Alcance.
 
-Use as the first `implement-prd` delegate when the selected mode requires delegation. In Codex, invoke through `.codex/agents/capitana-alcance.toml`. In GitHub Copilot, invoke through `runSubagent` and pass this exact `SKILL.md` path. In other agents, run the same procedure inline when delegation is unavailable or when `implement-prd` selected `controlled-lite`.
+Use as the first `implement-prd` delegate when the selected mode requires delegation. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`), passing this exact `SKILL.md` path; run the same procedure inline when delegation is unavailable or at compact N2.
 
 ## Mission
 
@@ -32,7 +32,7 @@ Use exists-or-skip. A missing optional path is not a failed search.
 - `.ai-work/<prd-slug>/orchestration.md` `## Calibration`, `## Pattern Lock`, and `## Self-Audit` when they exist.
 - `docs/foundations/ARCHITECTURE.md` only when it exists and the PRD is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths.
 
-Do not load code quality documents during readiness. Code-writing delegates load `.github/instructions/quality-gate.instructions.md` when they actually write or review code.
+Do not load code quality documents during readiness. Code-writing delegates load `.agents/project/quality-gate.md` when they actually write or review code.
 
 ## Procedure
 

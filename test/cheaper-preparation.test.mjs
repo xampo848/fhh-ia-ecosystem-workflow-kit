@@ -22,7 +22,7 @@ test('delegate contract covers the rule inventory and every delegate role skill'
 });
 
 test('delegate contract validation fails when a skill or the contract drops a rule', async () => {
-  const fixture = await fs.mkdtemp(path.join((await import('node:os')).tmpdir(), 'workflow-kit-delegate-'));
+  const fixture = await makeTempRepo('workflow-kit-delegate-');
   await fs.cp(path.join(root, '.agents'), path.join(fixture, '.agents'), { recursive: true });
   await fs.mkdir(path.join(fixture, 'scripts'));
   for (const file of ['delegate-agent-catalog.json', 'delegate-rule-inventory.json']) {

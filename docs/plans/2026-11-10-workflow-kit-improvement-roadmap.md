@@ -49,7 +49,7 @@ conflictos en todos los demás lotes.
 | 5 | Preparación más barata | U-12, IA-04, IA-05, IA-06, IA-01 | Lote 2 | Implementado (rama `feat/roadmap-lotes-3-a-8`) | pendiente |
 | 4 | Validación sin duplicar | U-13, IA-09, IA-10 | Lote 3 | IA-09 e IA-10 implementados; U-13 investigado: la matriz observada no justifica eliminar checks, hallazgos por aprobar | pendiente |
 | 6 | Calidad de PRD y PR | U-07, U-06, U-01, U-05, D-25 | — (paralelizable) | Implementado (rama `feat/roadmap-lotes-3-a-8`) | pendiente |
-| 7 | Runtimes y estructura | U-15, U-02 (solo si D-27 encuentra fallas), U-20, U-14, U-10, IA-12, U-19c | Lotes 1–6 | Listo para implementar | — |
+| 7 | Runtimes y estructura | U-15, U-02 (solo si D-27 encuentra fallas), U-20, U-14, U-10, IA-12, U-19c | Lotes 1–6 | Implementado (rama `feat/roadmap-lotes-3-a-8`); U-15 y U-02 esperan la verificación del usuario | pendiente |
 | 8 | Cierre: documentación, actualización segura y release | D-33 | Lote 7 | Listo para implementar | — |
 
 ## 3. Inventario de ítems
@@ -60,7 +60,7 @@ conflictos en todos los demás lotes.
 | U-18 | P0 | Vía rápida para consultas operativas | 1 | En implementación | Se vuelve el nivel N0 de D-01 |
 | U-09 | P0 | Cambios quirúrgicos como opción explícita | 1 / 2 | En implementación (router en Lote 1, ejecución en Lote 2) | Lote 1: el router lo ofrece. Lote 2: cómo se ejecuta |
 | IA-03 | P1 | Router liviano después de decidir | 1 | En implementación | D-06 |
-| U-19 | P0 | Optimizar para Claude Code | 1 / 1b / 7 | U-19a y U-19b en implementación; U-19c listo para implementar | Dividido en U-19a (Lote 1), U-19b (Lote 1b) y U-19c (Lote 7); ver D-03 |
+| U-19 | P0 | Optimizar para Claude Code | 1 / 1b / 7 | Implementado (U-19a y U-19b en #61; U-19c en el Lote 7) | Dividido en U-19a (Lote 1), U-19b (Lote 1b) y U-19c (Lote 7); ver D-03 |
 | U-11 | P0 | Ruta general de implementación (renombrar implement-prd) | 2 | En implementación | D-08 |
 | U-08 | P0 | Iteración económica sobre lo ya implementado (delta) | 2 | En implementación | D-09 |
 | IA-02 | P0 | Orquestador cargado por modo | 2 | En implementación | D-10 |
@@ -81,12 +81,12 @@ conflictos en todos los demás lotes.
 | U-06 | P0 | Detectar y retirar lo que queda obsoleto | 6 | Implementado | D-22; toca también discovery, slicing y QA |
 | U-01 | P1 | Sketch de UI con impeccable y crítica de vistas | 6 | Implementado | D-23 |
 | U-05 | P1 | PR comments siempre evaluados críticamente | 6 | Implementado | D-24; critical-stance hoy no lo cubre |
-| U-15 | P0 | Funcionamiento completo en Codex (y Claude) | 7 | Listo para implementar | D-28 |
+| U-15 | P0 | Funcionamiento completo en Codex (y Claude) | 7 | Verificar (reglas y guía listas; falta el smoke y la ejecución real en Codex) | D-28 |
 | U-02 | P0 | Modelo correcto por subagente en Copilot | 1b (verificación) / 7 (corrección si hace falta) | Verificar (guía y tabla de cierre listas; falta que el usuario corra A y B) | D-27: smoke controlado + ejecución real con verificador; implementado en #55 solo para invocación explícita |
-| U-20 | P1 | Referencias neutrales a la plataforma (rutas por runtime) | 7 | Listo para implementar | D-29; era el segundo U-13 de la tabla (ID duplicado) |
-| U-14 | P1 | Extraer reglas de frameworks y librerías | 7 | Listo para implementar | D-30 |
-| U-10 | P1 | Skills de máximo 200 líneas por archivo | 7 | Listo para implementar | D-31; último a propósito |
-| IA-12 | P2 | Notas docentes selectivas | 7 | Listo para implementar | D-32 |
+| U-20 | P1 | Referencias neutrales a la plataforma (rutas por runtime) | 7 | Implementado | D-29; era el segundo U-13 de la tabla (ID duplicado) |
+| U-14 | P1 | Extraer reglas de frameworks y librerías | 7 | Implementado | D-30 |
+| U-10 | P1 | Skills de máximo 200 líneas por archivo | 7 | Implementado | D-31; último a propósito |
+| IA-12 | P2 | Notas docentes selectivas | 7 | Implementado | D-32 |
 | U-04 | P0 | document-development con modelo pequeño | 1b | Reemplazado | D-05 prohíbe el tier Liviano. document-development pasa a Mediano; lo que se mantiene de #54 es la lectura acotada |
 
 ## 4. Correcciones a la tabla original
@@ -1900,6 +1900,7 @@ discuta.
 | 2026-11-10 | 5 | U-12, IA-04, IA-05, IA-06, IA-01 | rama `feat/roadmap-lotes-3-a-8` | `.agents/project-context.md` como base de conocimiento fija (plantilla que el instalador crea una vez y nunca sobrescribe; Discovery la lee primero y entrega un delta; solo el orquestador la actualiza al cierre; `doctor` avisa si sigue siendo plantilla, supera 200 líneas o apunta a rutas inexistentes; Engram queda como captura opcional) (D-16); en N2 una sola pasada inline con tres veredictos y definición de "incertidumbre concreta"; en N3 índice del PRD con huella, verificado con `verify-prd-index.mjs` al crearse y contrastado por QA (D-17); contrato de delegados único en `.agents/delegation/delegate-contract.md`, con resumen generado en los 39 adapters, inventario de reglas y `validate-delegate-contract.mjs` en `check:workflow`; matcher proporcional (D-18); versión `0.12.0-cheaper-preparation`. | `node --test` 230/230; todos los `check:*` OK. |
 | 2026-11-10 | 4 | U-13, IA-09, IA-10 | rama `feat/roadmap-lotes-3-a-8` | `validation-fingerprint.mjs` calcula la huella (archivos del alcance, lockfiles, configuración, código generado, migraciones, versiones) y decide reutilizar: solo typecheck, suites unitarias y build; ampliación de alcance solo en lint y tipos; nunca integración, E2E, slices críticos ni la suite del cierre; arranca en modo sombra (D-20, IA-09). QA incremental: primera completa, reentrada enfocada con radio de impacto determinístico, gatillos de revisión completa, cobertura acumulada y calibración única (IA-10). U-13: matriz declarada publicada; la matriz observada y sus hallazgos esperan aprobación uno a uno (D-19). Versión `0.13.0-validation-reuse`. | `node --test` 234/234; todos los `check:*` OK. Ningún check se eliminó. |
 | 2026-11-10 | 6 | U-07, U-06, U-01, U-05, D-25 | rama `feat/roadmap-lotes-3-a-8` | `create-prd`: ronda de casos borde por confirmación, presupuesto de preguntas (~10 por ronda, máximo 3 rondas), inventario de incógnitas con prueba exploratoria aprobada por el usuario, secciones nuevas `2.8 Supuestos e integraciones` y `2.9 Que queda obsoleto`, causa de iteración en la sección 10 (D-21, D-22); señales de tamaño con `prd-size-signals.mjs` y propuesta de dividir con 2 o más (D-25); lo obsoleto y los supuestos se siguen en Discovery, slicing y QA con búsqueda de verificación; `solution-sketch` con caminos de UI opcionales ofrecidos al entrar (vista nueva, crítica, diseño del equipo, sin parte visual), mockups HTML en dos etapas y máximo 3 rondas visuales (D-23); `pr-comments-resolution` evalúa cada comentario antes de ofrecer opciones, con veredicto, respuestas con fundamento aprobadas por el usuario, triage y regla de simetría en critical-stance (D-24); versión `0.14.0-prd-pr-quality`. | `node --test` 239/239; todos los `check:*` OK. |
+| 2026-11-10 | 7 | U-20, U-14, U-10, IA-12, U-15, U-19c | rama `feat/roadmap-lotes-3-a-8` | Instrucciones del proyecto en `.agents/project/` (quality gate, backend, frontend, `paths.json`), con copia generada para Copilot que conserva `applyTo`, migración de instrucciones escritas a mano con respaldo, regla de no saltar el quality gate en silencio y `validate-neutral-paths.mjs` (D-29); reglas de Rails y React fuera de las skills núcleo y dentro del stack pack `rails-react`, que las instalaciones previas reciben por defecto, con inventario de 28 reglas y `validate-stack-neutrality.mjs` (D-30); ningún archivo propio de skill supera 200 líneas, con 3 excepciones justificadas y `validate-skill-size.mjs` (D-31); notas docentes selectivas con preferencia por proyecto (D-32); reglas de delegación por runtime, sin caída silenciosa a inline, y guía de verificación para Codex (D-28); skills nativas de Claude Code con `disable-model-invocation` (U-19c); runtime `opencode` vía `AGENTS.md`; versión `0.15.0-neutral-structure`. | `node --test` 256/256; todos los `check:*` OK. Smoke de update desde 0.7.40 con instrucciones propias en `.github/instructions/`. |
 
 Proceso (2026-11-10):
 
@@ -1909,6 +1910,40 @@ Proceso (2026-11-10):
 - Por pedido del usuario se dejó un PR único (#61) con un commit por lote, en
   vez de un PR por lote. Se cerraron #57, #58 y #60, cuyo contenido quedó
   rebasado sobre `main` en #61.
+
+Hallazgos del Lote 7:
+
+- **Beneficio medido (D-31, punto 7), en líneas de política cargadas** contra
+  el estado anterior al roadmap:
+
+  | Flujo | Antes | Ahora | Cambio |
+  | --- | --- | --- | --- |
+  | N0 (consulta o cambio no semántico) | 1067 | 18 (pre-filtro del adapter) | −98 % |
+  | N1 (cambio quirúrgico) | 1368 | ~214 | −84 % |
+  | N2 | 1553 | ~1185 | −24 % |
+  | N3, orquestador | 2257 | ~2070, cargadas por etapa | −8 % |
+  | Arranque de cada delegado | 517 | 161 | −69 % |
+
+  El ahorro grande está en N0, N1 y en los delegados. En N3 el orquestador
+  casi no baja, porque `instructions.md` creció con los niveles; ahí la ganancia
+  viene de los delegados y de leer las referencias por etapa.
+- **No se dividieron** `instructions.md` (473 líneas) ni
+  `model-routing/README.md` (472): no son archivos de skill y U-10 no los
+  cubre. Son candidatos para una pasada posterior.
+- **Plantillas:** la del PRD separó sus secciones condicionales (épica padre y
+  Contrato Visual) y quedó en 261 líneas; ella y la plantilla de épica son
+  excepciones justificadas porque se copian completas al redactar.
+- **Skills de terceros** (impeccable, frontend-design, caveman) quedan fuera de
+  los tres validadores nuevos, para no romper su inventario de integridad.
+- **Tests que llenaban el disco:** cada corrida de la suite dejaba más de cien
+  repos temporales de ~2 MB en la carpeta temporal del sistema y nunca los
+  borraba; tras muchas corridas el disco se llenó (4001 carpetas, 6,2 GB). Los
+  tests ahora borran sus temporales al terminar cada archivo. Las carpetas
+  viejas `workflow-kit-*` de la carpeta temporal las debe borrar el usuario.
+- **U-15 (Codex):** la documentación oficial dice que Codex lanza subagentes
+  tras un pedido directo o una instrucción aplicable de un skill, así que no
+  hace falta un permiso aparte: `implement-change` es esa instrucción. Queda
+  la verificación real (smoke y ejecución) a cargo del usuario.
 
 Hallazgos del Lote 4:
 

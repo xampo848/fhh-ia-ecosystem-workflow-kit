@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { makeTempRepo } from './helpers.mjs';
 import {
   computeFingerprint,
   decideReuse,
@@ -13,7 +14,7 @@ import {
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 
 async function project() {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-fingerprint-'));
+  const dir = await makeTempRepo('workflow-kit-fingerprint-');
   await fs.mkdir(path.join(dir, 'src'));
   await fs.writeFile(path.join(dir, 'src/a.ts'), 'export const a = 1;\n');
   await fs.writeFile(path.join(dir, 'src/b.ts'), 'export const b = 2;\n');
@@ -90,11 +91,11 @@ test('critical slices, closure and shadow mode always run', async () => {
 
 test('reuse and incremental QA rules are documented with their safeguards', async () => {
   const [stops, qa, runner] = await Promise.all([
-    fs.readFile(path.join(root, '.agents/skills/02-implement/implement-prd/reference/validation-and-stop-conditions.md'), 'utf8'),
+    fs.readFile(path.join(root, '.agents/skills/02-implement/implement-prd/reference/evidence-reuse.md'), 'utf8'),
     fs.readFile(path.join(root, '.agents/skills/02-implement/qa-handoff-review/SKILL.md'), 'utf8'),
     fs.readFile(path.join(root, '.agents/skills/02-implement/validation-runner/SKILL.md'), 'utf8')
   ]);
-  assert.match(stops, /## Evidence Reuse/);
+  assert.match(stops, /^# Evidence Reuse/);
   assert.match(stops, /Never compute or guess\s+a fingerprint by hand/);
   assert.match(stops, /Integration and E2E are never reused/);
   assert.match(stops, /Reuse starts in shadow mode/);

@@ -44,7 +44,7 @@ test('delegated context policy requires role reads, observable reuse, and direct
   const [instructions, router, flow, validation] = await Promise.all([
     read('.agents/instructions.md'),
     read('.agents/skills/00-router/workflow-router/SKILL.md'),
-    read('.agents/skills/02-implement/implement-prd/reference/orchestration-flow.md'),
+    Promise.all(['orchestration-flow.md', 'orchestration-flow-execution.md'].map((file) => read(`.agents/skills/02-implement/implement-prd/reference/${file}`))).then((parts) => parts.join('\n')),
     read('.agents/skills/02-implement/implement-prd/reference/validation-and-stop-conditions.md')
   ]);
 

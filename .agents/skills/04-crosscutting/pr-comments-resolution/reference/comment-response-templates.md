@@ -1,5 +1,7 @@
 # PR Comment Response Templates
 
+Read it only when drafting the user-facing message or reply for a comment.
+
 Use these templates only when you are drafting a concrete response for the current comment.
 
 ## Initial Pending Summary

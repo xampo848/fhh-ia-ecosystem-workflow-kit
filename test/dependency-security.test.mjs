@@ -7,11 +7,12 @@ import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { evaluateDependencyAudit, verifyDependencyPatches } from '../scripts/validate-dependency-security.mjs';
+import { makeTempRepo } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 const fixture = async (context) => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'verified-security-'));
+  const root = await makeTempRepo('verified-security-');
   context.after(() => fs.rm(root, { recursive: true, force: true }));
   const entry = { name: 'braces', version: '3.0.3', patch: 'patches/fix.patch', patchSha256: sha256('fix'), files: { 'index.js': sha256('safe') }, advisory: 'GHSA-vfj7-8cjw-p6xm', severity: 'high', source: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm' };
   await fs.mkdir(path.join(root, 'patches'), { recursive: true });

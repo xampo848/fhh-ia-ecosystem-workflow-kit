@@ -26,8 +26,11 @@ Delegate contract (summary of `.agents/delegation/delegate-contract.md`):
    and the source that controls the assigned change. A parent summary or a path
    mention is not evidence that this content was received. "Applicable
    instructions" means: this contract, the layer instructions for the layers
-   the slice touches, the quality gate for code-writing roles, and the relevant
-   section of `.agents/project-context.md`.
+   the slice touches (`.agents/project/backend.md`, `.agents/project/frontend.md`,
+   and `.agents/project/stack.md` when present), the quality gate
+   (`.agents/project/quality-gate.md`) for code-writing roles, and the relevant
+   section of `.agents/project-context.md`. If the quality gate is missing,
+   report `quality gate: no configurado`; never skip it silently.
 3. **Observable reuse.** Reuse pre-injected content only when the runtime makes the complete content,
    its provenance, and its current freshness observable. In that case, record
    the provenance and do not re-read the identical source.

@@ -7,7 +7,7 @@ description: "Delegate-only skill for implement-prd. Alias: Lint Ranger. Runs an
 
 Alias: Lint Ranger.
 
-Use after a slice changes files or before final QA. In Codex, invoke through `.codex/agents/lint-ranger.toml`. In GitHub Copilot, invoke through `runSubagent`. In other agents, run inline when delegation is unavailable. This skill may edit only files explicitly assigned for validation fixes.
+Use after a slice changes files or before final QA. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`); run it inline when delegation is unavailable. This skill may edit only files explicitly assigned for validation fixes.
 
 ## Mission
 
@@ -28,9 +28,10 @@ Prefer the deterministic wrapper script for slices only when the target reposito
 
 If `bin/validate-slice` does not exist in the target repository, its absence is not a failure — fall back directly to the commands below without reporting a blocker for the missing script.
 
-If the wrapper is too broad for an isolated quick check, fallback to:
-Backend: `bundle exec rubocop` or `make test-fast`
-Frontend: `bun run lint` or `bun run test --run`
+If the wrapper is too broad for an isolated quick check, fall back to the
+narrowest lint or fast test command declared for the touched layer in
+`.agents/project-context.md` (or `.agents/project/stack.md`). If no command is
+declared for that layer, report it instead of guessing one.
 
 ## Procedure
 

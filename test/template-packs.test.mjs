@@ -11,6 +11,7 @@ import { validateTemplatePacks } from '../scripts/validate-template-packs.mjs';
 import { decideContextualTier, estimateModelCost, loadCopilotModelRouting, resolveCopilotModel, runCopilotRoutingCli } from '../scripts/copilot-model-routing.mjs';
 import { parseCcreqLine, verifyCopilotModelEvidence, runEvidenceCli } from '../scripts/verify-copilot-model-evidence.mjs';
 import manifest from '../templates/template-manifest.json' with { type: 'json' };
+import { makeTempRepo } from './helpers.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -945,7 +946,7 @@ test('Copilot evidence verifier rejects missing or malformed inputs', () => {
 
 test('Copilot evidence verifier CLI maps verdicts to distinct exit codes', async () => {
   const script = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../scripts/verify-copilot-model-evidence.mjs');
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'copilot-evidence-'));
+  const dir = await makeTempRepo('copilot-evidence-');
   const logPath = path.join(dir, 'chat.log');
   await fs.writeFile(logPath, `${sonnetLine}\n${ccreq('22222222', { chain: 'gpt-6.1-sol' })}\n`, 'utf8');
   const run = (args) => execFileAsync(process.execPath, [script, ...args]).then(
@@ -986,7 +987,7 @@ test('Copilot portable helpers are byte-identical generated copies of the script
 test('Copilot portable CLIs run in a consumer root that has only the installed model-routing helpers', async () => {
   const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const overlayHelpers = path.join(sourceRoot, 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents/model-routing');
-  const consumer = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'copilot-consumer-')));
+  const consumer = await fs.realpath(await makeTempRepo('copilot-consumer-'));
   const helpers = path.join(consumer, '.agents/model-routing');
   await fs.mkdir(helpers, { recursive: true });
   for (const file of portableHelpers) await fs.copyFile(path.join(overlayHelpers, file), path.join(helpers, file));
@@ -1045,7 +1046,7 @@ test('Copilot portable CLIs run in a consumer root that has only the installed m
 
 test('Copilot model routing CLI reports non-object or malformed --input as a usage error without a stack trace', async () => {
   const script = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../scripts/copilot-model-routing.mjs');
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'copilot-input-'));
+  const dir = await makeTempRepo('copilot-input-');
 
   for (const [name, body] of [['null', 'null'], ['array', '[]'], ['number', '7'], ['string', '"x"'], ['truncated', '{']]) {
     const inputPath = path.join(dir, `${name}.json`);
@@ -1064,7 +1065,7 @@ test('Copilot model routing CLI reports non-object or malformed --input as a usa
 test('Copilot routing CLI accepts structured files, stdin, legacy arguments, and explicit roots', async () => {
   const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const script = path.join(sourceRoot, 'scripts/copilot-model-routing.mjs');
-  const consumer = await fs.mkdtemp(path.join(os.tmpdir(), 'copilot-api-'));
+  const consumer = await makeTempRepo('copilot-api-');
   const request = { agentSlug: 'turbo-backend', availableModels: ['Claude Sonnet 5.5 (copilot)'] };
   const input = path.join(consumer, 'request.json');
   await fs.writeFile(input, JSON.stringify(request));
@@ -1085,7 +1086,7 @@ test('Copilot routing CLI accepts structured files, stdin, legacy arguments, and
 });
 
 test('Copilot CLI APIs report catalog parse and IO errors as usage errors without stack traces', async () => {
-  const consumer = await fs.mkdtemp(path.join(os.tmpdir(), 'copilot-io-'));
+  const consumer = await makeTempRepo('copilot-io-');
   const missingCatalog = await runCopilotRoutingCli(['turbo-backend', 'Claude Sonnet 5.5'], { root: consumer });
   assert.equal(missingCatalog.exitCode, 2);
   assert.match(missingCatalog.stderr, /Unable to read routing catalog/);
@@ -1105,7 +1106,7 @@ test('Copilot CLI APIs report catalog parse and IO errors as usage errors withou
 
 async function copyFixturePackage() {
   const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-  const targetRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-template-pack-'));
+  const targetRoot = await makeTempRepo('workflow-kit-template-pack-');
   await fs.cp(path.join(sourceRoot, 'templates'), path.join(targetRoot, 'templates'), { recursive: true });
   await fs.mkdir(path.join(targetRoot, 'scripts'), { recursive: true });
   for (const file of ['delegate-agent-catalog.json', 'copilot-model-routing.mjs', 'verify-copilot-model-evidence.mjs']) {
@@ -1116,7 +1117,7 @@ async function copyFixturePackage() {
 
 async function copyFixtureRepository() {
   const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-  const targetRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-repo-pack-'));
+  const targetRoot = await makeTempRepo('workflow-kit-repo-pack-');
   await fs.cp(sourceRoot, targetRoot, {
     recursive: true,
     filter(source) {

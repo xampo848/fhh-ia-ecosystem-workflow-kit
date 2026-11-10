@@ -8,7 +8,7 @@ context: fork
 
 Alias: Arquitecta Fases.
 
-Use after `prd-readiness-review` and `codebase-discovery` when the selected mode requires delegated planning. In Codex, invoke through `.codex/agents/arquitecta-fases.toml`. In GitHub Copilot, invoke through `runSubagent`. In other agents, run inline when delegation is unavailable or when `implement-prd` selected `controlled-lite`. This skill plans execution; it does not edit product code.
+Use after `prd-readiness-review` and `codebase-discovery` when the selected mode requires delegated planning. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`); run it inline when delegation is unavailable or at compact N2. This skill plans execution; it does not edit product code.
 
 ## Mission
 

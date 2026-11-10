@@ -115,23 +115,6 @@ Mandatory turn footer:
 For response patterns, use `project-formation/assets/facilitator-response-patterns.md`.
 For ambiguity reduction prompts, use `project-formation/assets/ambiguity-question-ladder.md`.
 
-## Session continuity protocol
-
-At the start of every turn:
-
-1. Load the latest stage state from `project-formation/assets/session-state-template.md` fields.
-2. Re-state in one line: current stage, last decision, and open blocker.
-3. If user message is ambiguous, ask one recenter question before rerouting.
-4. Preserve unresolved assumptions and risks unless explicitly closed.
-
-If context is weak or contradictory, do not advance stage. Run a recovery turn first.
-
-Recovery turn format:
-
-- "Here is where we left off"
-- "Here are the open decisions"
-- "Choose your next move"
-
 ## Research posture
 
 When external context matters, use reputable primary sources first:
@@ -170,26 +153,11 @@ At minimum, produce:
 
 After dossier completion, offer optional handoff to `create-epic`.
 
-## Required session state
+## References
 
-Track and refresh the following state each turn:
+Load a reference only when its condition holds:
 
-- current stage,
-- stage confidence,
-- open risks,
-- unresolved assumptions,
-- next question.
-
-Also track:
-
-- likely next stage,
-- available user actions,
-- last explicit user choice,
-- interview prep status (`not-needed`, `queued`, `in-progress`, `completed`),
-- ambiguity status (`high`, `partial`, `clear`),
-- top ambiguity to resolve next.
-
-State template: `project-formation/assets/session-state-template.md`.
+- [reference/session-state.md](reference/session-state.md) — read it when resuming a formation session or persisting its state
 
 ## Completion criteria
 

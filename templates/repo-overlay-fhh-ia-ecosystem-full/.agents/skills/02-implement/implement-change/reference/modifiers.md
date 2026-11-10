@@ -28,7 +28,16 @@ never the level's gates.
      without stopping, so the user can review it at any time;
    - if a phase exhausts its repair rounds, stop there; do not start the next
      phase.
-5. **Visibility:** the trace shows the active mode (`· autónomo` or
+5. **Subagents are stated, never assumed.** In the same question, when the
+   runtime needs an explicit request to launch subagents (Codex spawns agents
+   after a direct request or an applicable project or skill instruction), ask
+   once whether to delegate to the generated agents. If the user declines, or
+   the runtime exposes no way to spawn them, say so in the trace
+   (`ejecución inline: subagentes no autorizados o no disponibles`) and apply
+   the smallest context load for the level. Never fall back to inline
+   execution silently: a silent fallback piles every stage into the
+   orchestrator's context window.
+6. **Visibility:** the trace shows the active mode (`· autónomo` or
    `· supervisado`), and the closure records which mode was used.
 
 ## Resume
