@@ -13,7 +13,7 @@ metadata:
 
 Safe entrypoint for N2/N3 freeform requests without an explicit skill, or when
 the user asks which route to use. It avoids three failures: skipping
-production-ready workflows such as `implement-prd`, starting heavy workflows
+production-ready workflows such as `implement-change`, starting heavy workflows
 such as `create-epic` when a smaller artifact is enough, and loading more
 context than the task needs.
 
@@ -84,7 +84,7 @@ metadata never authorizes inherited context, a skipped required read, or a
 runtime capability; stop or use the explicitly authorized fallback instead.
 
 Natural-language binding: "usa create-prd" runs `create-prd`; "implementa este
-PRD" runs `implement-prd`; "haz el ticket" after options runs
+PRD" runs `implement-change` (alias `implement-prd`); "haz el ticket" runs
 `generate-pm-ticket`; "usa solution-sketch" or "hacé el sketch" runs
 `solution-sketch`. For `project-formation`, `create-prd`, `create-epic`, and
 `generate-pm-ticket`, never auto-load the skill: present the options from
@@ -121,7 +121,7 @@ Routing decision:
 - Optional - Alternative considered / Why not / Context loaded
 ```
 
-Name the triggering signal and the precedence rule applied. For `implement-prd`,
+Name the triggering signal and the precedence rule applied. For `implement-change`,
 say why direct coding is not acceptable; for `create-epic`, why a smaller flow
 is insufficient; for `premium`, the concrete risk. Never invent token counts.
 
@@ -135,8 +135,8 @@ is insufficient; for `premium`, the concrete risk. Never invent token counts.
 | Feature specification | clear feature with rules, UX states, API/data impact, AC | propose `create-prd` | Yes |
 | Tiny backlog item | small task with clear AC, no full PRD | propose `generate-pm-ticket` | Yes |
 | Workflow extension maintenance | add/edit router rules, registry entries, `.agents/skills/**` | direct workflow-maintenance edits with validation | No |
-| Production code change | build, implement, fix behavior, backend/frontend, tests | `implement-prd` if a PRD exists; else offer N1 when it fits, or propose `create-prd` / `generate-pm-ticket` | Yes when no PRD |
-| PRD implementation | PRD path or "implement this PRD" | `implement-prd` | No |
+| Production code change | build, implement, fix behavior, backend/frontend, tests | `implement-change` when a PRD, a reproducible bug, a ticket with criteria, or an iteration over an implemented PRD exists; else offer N1 when it fits, or propose `create-prd` / `generate-pm-ticket` | Yes when no input exists |
+| PRD implementation | PRD path or "implement this PRD" | `implement-change` (alias `implement-prd`) | No |
 | Review / QA | review PR or diff, validate quality, audit UI | stack-gated review skill (see `reference/route-gates.md`) | No |
 | Documentation | explain delivered feature, guide, preserve knowledge | `document-development` | No |
 
@@ -168,7 +168,7 @@ Offer `solution-sketch` as the recommended next step and never auto-start it whe
 
 1. explicit skill invocation
 2. `pr-comments-resolution` hard trigger
-3. `implement-prd` / production implementation gates
+3. `implement-change` / production implementation gates
 4. `project-formation` hard trigger
 5. `solution-sketch` hard trigger (offer only; never auto-start)
 6. `create-prd` / `generate-pm-ticket` / `create-epic`
@@ -176,7 +176,7 @@ Offer `solution-sketch` as the recommended next step and never auto-start it whe
 8. direct answer
 
 Example: "resolve PR comments and implement the PRD changes" applies rule 2
-first; after comment resolution, emit a new trace for `implement-prd`.
+first; after comment resolution, emit a new trace for `implement-change`.
 
 ## Confidence levels
 

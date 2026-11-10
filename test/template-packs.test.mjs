@@ -333,7 +333,7 @@ test('Copilot invocation protocol is mirrored and keeps selection, correction, c
   const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const overlay = path.join(sourceRoot, 'templates/repo-overlay-fhh-ia-ecosystem-full');
   const shared = [
-    '.agents/skills/02-implement/implement-prd/SKILL.md',
+    '.agents/skills/02-implement/implement-change/reference/level-n3.md',
     '.agents/skills/02-implement/implement-prd/reference/subagent-prompts.md',
     '.agents/model-routing/README.md'
   ];

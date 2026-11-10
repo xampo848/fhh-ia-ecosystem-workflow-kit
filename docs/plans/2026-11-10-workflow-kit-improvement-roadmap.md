@@ -39,7 +39,7 @@ conflictos en todos los demás lotes.
 | --- | --- | --- | --- | --- | --- |
 | 1 | Carga proporcional y vía rápida | U-03, U-18, U-09 (parte router), IA-03, U-19a | — | En implementación (rama `feat/lote-1-carga-proporcional`) | pendiente |
 | 1b | Política de modelos | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (verificación, D-27) | — | En implementación (rama `feat/lote-1b-politica-modelos`, apilada sobre el Lote 1) | pendiente |
-| 2 | Ruta general de implementación | U-11, U-08, U-09 (parte ejecución), IA-02, D-26 | Lote 1 | Listo para implementar | — |
+| 2 | Ruta general de implementación | U-11, U-08, U-09 (parte ejecución), IA-02, D-26 | Lote 1 | En implementación (rama `feat/lote-2-ruta-implementacion`, apilada sobre el 1b) | pendiente |
 | 3 | Frenos de costo en ejecución | U-17, U-16, IA-11, IA-08, IA-07 | Lote 2 | Listo para implementar | — |
 | 5 | Preparación más barata | U-12, IA-04, IA-05, IA-06, IA-01 | Lote 2 | Listo para implementar | — |
 | 4 | Validación sin duplicar | U-13, IA-09, IA-10 | Lote 3 | Listo para implementar | — |
@@ -53,12 +53,12 @@ conflictos en todos los demás lotes.
 | --- | --- | --- | --- | --- | --- |
 | U-03 | P0 | Carga de instrucciones proporcional a la tarea | 1 | En implementación | D-01, D-02 |
 | U-18 | P0 | Vía rápida para consultas operativas | 1 | En implementación | Se vuelve el nivel N0 de D-01 |
-| U-09 | P0 | Cambios quirúrgicos como opción explícita | 1 / 2 | En implementación (parte router) | Lote 1: el router lo ofrece. Lote 2: cómo se ejecuta |
+| U-09 | P0 | Cambios quirúrgicos como opción explícita | 1 / 2 | En implementación (router en Lote 1, ejecución en Lote 2) | Lote 1: el router lo ofrece. Lote 2: cómo se ejecuta |
 | IA-03 | P1 | Router liviano después de decidir | 1 | En implementación | D-06 |
 | U-19 | P0 | Optimizar para Claude Code | 1 / 1b / 7 | U-19a y U-19b en implementación; U-19c listo para implementar | Dividido en U-19a (Lote 1), U-19b (Lote 1b) y U-19c (Lote 7); ver D-03 |
-| U-11 | P0 | Ruta general de implementación (renombrar implement-prd) | 2 | Listo para implementar | D-08 |
-| U-08 | P0 | Iteración económica sobre lo ya implementado (delta) | 2 | Listo para implementar | D-09 |
-| IA-02 | P0 | Orquestador cargado por modo | 2 | Listo para implementar | D-10 |
+| U-11 | P0 | Ruta general de implementación (renombrar implement-prd) | 2 | En implementación | D-08 |
+| U-08 | P0 | Iteración económica sobre lo ya implementado (delta) | 2 | En implementación | D-09 |
+| IA-02 | P0 | Orquestador cargado por modo | 2 | En implementación | D-10 |
 | U-17 | P0 | Freno a implementaciones y tests excesivos | 3 | Listo para implementar | |
 | U-16 | P0 | Tracking de tareas largas (archivos que no se cierran) | 3 | Listo para implementar | P0 asignado en D-04. Diagnosticar antes con la tarea de OAuth GitHub (>7 días) |
 | IA-11 | P1 | Tracker compacto | 3 | Listo para implementar | |
@@ -1890,6 +1890,21 @@ discuta.
 | --- | --- | --- | --- | --- | --- |
 | 2026-11-10 | 1 | U-03, U-18, U-09 (router), IA-03, U-19a | rama `feat/lote-1-carga-proporcional` | Niveles N0–N3 y pre-filtro como fuente única en `instructions.md`; copia generada en `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md` y `ANTIGRAVITY.md` (`scripts/sync-level-prefilter.mjs`, en `check:workflow`); router dividido en núcleo de 193 líneas + `route-menus.md`, `route-gates.md` y `router-evals.md` (12 prompts de prueba); N1 quirúrgico ofrecido explícitamente; heurísticas de delegación movidas a `model-routing`; referencia rota eliminada; `doctor` avisa si un adapter perdió el pre-filtro; docs actualizadas; versión `0.8.0-proportional-loading`. Sin migración: solo archivos nuevos o actualizados (verificado con smoke de update desde 0.7.40). | `node --test` 209/209; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release` y `check:legal` OK. `check:security` falla también en `main` (advisory nuevo de `dompurify`), ajeno al lote. Evals: L01 PASS en Claude Code (N0, sin trace, 3 llamadas). Pendiente: L02–L12 en Claude Code y L01–L12 en Codex y Copilot. |
 | 2026-11-10 | 1b | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (preparación de D-27) | rama `feat/lote-1b-politica-modelos` (apilada sobre el Lote 1) | Perfiles `calidad`/`costo` en el catálogo (`modelProfiles`) con default por runtime; módulo único `src/model-profiles.mjs` que genera los agentes de Claude (`sonnet`/`opus`, `haiku` solo en `costo`), Codex (`model_reasoning_effort`) y Copilot (listas por tier) tanto en el kit como al instalar; `init` pregunta suscripción o API para Claude Code y Codex (la API key solo preselecciona), `--profile <runtime>=<perfil>`, el perfil queda en `install-state.json` y `update` lo conserva; `doctor` muestra el perfil y falla con `model-profile/agent-mismatch`; política de perfiles y fallback D-12 en `model-routing`; `document-development` según perfil (U-04); tabla de modelos ejecutados en el cierre con Copilot y guía de verificación real (D-27); capacidades corregidas (`claude.pinSubagentModel=true`, `codex.pinSubagentTier=true`); versión `0.9.0-model-profiles`. | `node --test` 215/215; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release`, `check:legal` OK. Smoke de update desde 0.7.40: con y sin `--profile`, `doctor` ok y modelos correctos por agente. Pendiente: pruebas A y B de U-02 en Copilot (las corre el usuario). |
+| 2026-11-10 | 2 | U-11, U-08, U-09 (ejecución), IA-02, D-26 | rama `feat/lote-2-ruta-implementacion` (apilada sobre el 1b) | Nueva skill `implement-change` (núcleo de 130 líneas) con dos ejes: nivel (ceremonia) y tipo de entrada (evidencia); referencias `level-n1.md`, `level-n2.md`, `level-n3.md`, `input-types.md` y `modifiers.md` que se leen solo cuando aplican; los modos antiguos se mapean a niveles y `autonomous-safe`/`resume` pasan a modificadores; invariantes y cierre por nivel en el núcleo; iteración por delta con la sección 10 como mapa, frescura por `git diff` y regresión del feature original; bug sin reproducción se detiene; modo autónomo ofrecido por ejecución con supervisado por defecto (D-26, ajuste de D-25); `implement-prd` queda como alias permanente; router, gates y evals (L13 iteración, L14 bug) apuntan a `implement-change`; versión `0.10.0-implement-change`. | `node --test` 221/221; `check`, `check:workflow`, `check:templates`, `check:docs`, `check:release`, `check:legal` OK. Smoke de update desde 0.7.40: crea `implement-change/`, reescribe el alias, registro con ambas entradas, `doctor` ok. |
+
+Hallazgos del Lote 2:
+
+- **Directorio conservado:** `implement-change` vive en su propio directorio y
+  `implement-prd/SKILL.md` pasa a ser un alias de pocas líneas; las referencias
+  compartidas (flujo de orquestación, matriz de delegados, prompts, handoffs,
+  tracker, validación) siguen en `implement-prd/reference/`. Así las 73
+  menciones existentes siguen siendo válidas, las instalaciones no necesitan
+  una migración que mueva o borre archivos, y el registro no repite rutas.
+  Unificar la ubicación queda para U-20/U-10 (Lote 7) con su migración (D-33).
+- **Texto heredado:** `validation-and-stop-conditions.md` y
+  `orchestration-flow.md` todavía nombran los modos antiguos. El núcleo trae la
+  tabla de equivalencias; el Lote 3 reescribe esas referencias al aplicar D-11
+  y D-13.
 
 Hallazgos del Lote 1b:
 

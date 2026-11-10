@@ -17,7 +17,7 @@ This file is the tool-neutral AI contract layer for the repository.
   and `.agents/skills/registry.md` for the neutral full inventory and
   authoring contract
 3. **Workflow skills**: algorithmic instructions that say what sequence to
-   follow for a workflow such as `create-prd`, `implement-prd`, or
+   follow for a workflow such as `create-prd`, `implement-change`, or
    `document-development`
 4. **Standards/pattern skills**: algorithmic reusable procedures for repetitive
    work such as contracts, importers, serializers, validators, or UI checks

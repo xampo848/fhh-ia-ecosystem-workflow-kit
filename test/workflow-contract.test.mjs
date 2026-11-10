@@ -8,6 +8,21 @@ import { validateOverlayDrift } from '../src/workflow-contract/drift.mjs';
 import { validateWorkflowContract } from '../src/workflow-contract/index.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
+const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+
+// implement-change is the general route; implement-prd is its alias. Content
+// assertions read the whole bundle: core, level/input references, and alias.
+async function readImplementBundle(base = repoRoot) {
+  const changeDir = path.join(base, '.agents/skills/02-implement/implement-change');
+  const references = (await fs.readdir(path.join(changeDir, 'reference'))).sort();
+  const parts = await Promise.all([
+    fs.readFile(path.join(changeDir, 'SKILL.md'), 'utf8'),
+    ...references.map((file) => fs.readFile(path.join(changeDir, 'reference', file), 'utf8')),
+    fs.readFile(path.join(base, '.agents/skills/02-implement/implement-prd/SKILL.md'), 'utf8')
+  ]);
+  return parts.join('\n');
+}
+
 async function installedTarget() {
   const target = await makeTempRepo();
   const plan = await buildInstallPlan({
@@ -114,7 +129,7 @@ test('implement-prd keeps PRD-local coordination artifacts ignored and cleans th
   const skillPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
   const gitignorePath = path.join(root, '.gitignore');
   const [skill, gitignore] = await Promise.all([
-    fs.readFile(skillPath, 'utf8'),
+    readImplementBundle(),
     fs.readFile(gitignorePath, 'utf8')
   ]);
 
@@ -175,8 +190,8 @@ test('immutable per-slice execution locks require the run correlation used by de
   const skillPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
   const overlayPath = path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/02-implement/implement-prd/SKILL.md');
   const [skill, overlay] = await Promise.all([
-    fs.readFile(skillPath, 'utf8'),
-    fs.readFile(overlayPath, 'utf8')
+    readImplementBundle(),
+    readImplementBundle(path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full'))
   ]);
 
   assert.match(skill, /immutable execution lock for each coding slice at `<prd-directory>\/_meta\/locks\/<slice-id>\.toon`/);
@@ -259,7 +274,7 @@ test('visible UI requires a locked visual contract before implementation', async
     fs.readFile(calibrationPath, 'utf8'),
     fs.readFile(ambiguityPath, 'utf8'),
     fs.readFile(selfAuditPath, 'utf8'),
-    fs.readFile(implementPrdPath, 'utf8'),
+    readImplementBundle(),
     fs.readFile(frontendPath, 'utf8'),
     fs.readFile(readinessPath, 'utf8'),
     fs.readFile(ticketPath, 'utf8'),
@@ -349,7 +364,7 @@ test('token-efficiency cuts keep quality gates and compact discovery', async () 
     fs.readFile(createPrdPath, 'utf8'),
     fs.readFile(modelRoutingPath, 'utf8'),
     fs.readFile(matcherPath, 'utf8'),
-    fs.readFile(implementPrdPath, 'utf8'),
+    readImplementBundle(),
     fs.readFile(orchestrationPath, 'utf8'),
     fs.readFile(qaPath, 'utf8'),
     fs.readFile(backendPath, 'utf8'),
@@ -371,7 +386,7 @@ test('token-efficiency cuts keep quality gates and compact discovery', async () 
   assert.match(createPrd, /`implement-prd` must read `## Calibration`, `## Pattern Lock`, and `## Self-Audit`/);
   assert.match(matcher, /\.agents\/skills\/06-patterns\/index\.md` as the first candidate catalog/);
   assert.match(matcher, /`\.agents\/skills\/registry\.md` only after the compact index yields at least one/);
-  assert.match(implementPrd, /Required stage pipeline \(every mode except `small\/local`\)/);
+  assert.match(implementPrd, /Required stage pipeline \(N2 and N3\)/);
   assert.match(implementPrd, /Capitana Alcance → Sherlock Estructura → Arquitecta Fases → matcher → writer → validation → QA Relampago/);
   assert.match(implementPrd, /Do not omit a stage to save tokens/);
   assert.match(orchestration, /Do not omit a named stage/);
@@ -386,12 +401,12 @@ test('implement-prd keeps compact delegation without weakening QA', async () => 
   const orchestrationPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/orchestration-flow.md');
   const modelRoutingPath = path.join(root, '.agents/model-routing/README.md');
   const [implementPrd, orchestration, modelRouting] = await Promise.all([
-    fs.readFile(implementPrdPath, 'utf8'),
+    readImplementBundle(),
     fs.readFile(orchestrationPath, 'utf8'),
     fs.readFile(modelRoutingPath, 'utf8')
   ]);
 
-  assert.match(implementPrd, /Standard mode does not imply one delegate per named stage or per file/);
+  assert.match(implementPrd, /N3 does\s+not\s+imply one delegate per named stage or per file/);
   assert.match(implementPrd, /Combine readiness, discovery, and slicing into one compact preflight/);
   assert.match(implementPrd, /Never load frontend instructions for a backend-only PRD/);
   assert.match(orchestration, /one cohesive implementation group per PRD phase/);
@@ -407,7 +422,7 @@ test('implementation-slicing and implement-prd enforce use-case/edge-case tracea
   const implementPrdPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
   const [slicingSkill, implementPrdSkill] = await Promise.all([
     fs.readFile(slicingPath, 'utf8'),
-    fs.readFile(implementPrdPath, 'utf8')
+    readImplementBundle()
   ]);
 
   assert.match(slicingSkill, /Map every PRD use case \(`UC-N`\) to at least one slice/);
@@ -448,7 +463,7 @@ test('implement-prd closure loop keeps a persistent findings ledger and blocks o
     qaSkill,
     validationRunnerSkill
   ] = await Promise.all([
-    fs.readFile(implementPrdPath, 'utf8'),
+    readImplementBundle(),
     fs.readFile(orchestrationFlowPath, 'utf8'),
     fs.readFile(stopConditionsPath, 'utf8'),
     fs.readFile(handoffSchemasPath, 'utf8'),
@@ -541,7 +556,7 @@ test('product hooks offer solution-sketch only on T2-T4 and inherit a locked ske
     fs.readFile(epicPath, 'utf8'),
     fs.readFile(shapingPath, 'utf8'),
     fs.readFile(stancePath, 'utf8'),
-    fs.readFile(implementPrdPath, 'utf8'),
+    readImplementBundle(),
     fs.readFile(ticketPath, 'utf8')
   ]);
 

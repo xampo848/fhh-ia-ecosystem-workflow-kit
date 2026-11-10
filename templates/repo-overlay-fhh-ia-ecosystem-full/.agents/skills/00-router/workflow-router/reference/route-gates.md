@@ -11,24 +11,27 @@ frontend, change API contracts or serializers, change data models, migrations,
 jobs, analytics, permissions, tenancy, or tests.
 
 ```text
-Development request -> do not code directly -> route through implement-prd, its safe predecessor, or an authorized N1 surgical change.
+Development request -> do not code directly -> route through implement-change, its safe predecessor, or an authorized N1 surgical change.
 ```
 
 "Just do it" does not override this for N2/N3 work; speed does not override
 production safety.
 
-### When a PRD exists
+### When an input exists (PRD, bug, ticket, iteration)
 
-Use `implement-prd` immediately when the user provides a PRD path, says the PRD
-is approved, or asks to implement it. Say:
+Use `implement-change` (alias `implement-prd`) when the user provides a PRD
+path, says the PRD is approved, asks to implement it, reports a reproducible
+bug, gives a ticket with acceptance criteria, or asks to change something
+already implemented from a PRD (iteration). Say:
 
 ```text
-Voy a usar implement-prd porque esto ya es trabajo de desarrollo y necesitamos mantener discovery, slicing, tests, contratos y QA antes de tocar código.
+Voy a usar implement-change porque esto ya es trabajo de desarrollo: el nivel decide la ceremonia y el tipo de entrada la evidencia, sin saltarse tests, contratos ni QA.
 ```
 
-Then load `.agents/skills/02-implement/implement-prd/SKILL.md`.
+Then load `.agents/skills/02-implement/implement-change/SKILL.md`. An iteration
+is usually N1: propose it and wait for the user's "yes".
 
-### When no PRD exists
+### When no PRD, bug, ticket, or iteration exists
 
 Do not choose the predecessor for the user. Present the options from
 `route-menus.md` ("Production change without a PRD"):
