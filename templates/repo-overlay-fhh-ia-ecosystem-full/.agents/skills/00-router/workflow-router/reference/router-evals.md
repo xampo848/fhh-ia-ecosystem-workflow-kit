@@ -21,11 +21,13 @@ change to the pre-filter or the router, and recording the result in the PR.
 | L05 | "El botón Guardar no valida el email vacío; arréglalo en ese formulario" | N1 | n1-surgical |
 | L06 | "Cambia el timeout por defecto de 30 a 60 segundos en la config del cliente" | N1 | n1-surgical |
 | L07 | "Agrega filtros por fecha y estado al listado de campañas" | N2 | create-prd |
-| L08 | "Implementa este PRD: docs/prd/x/x.md" | N2 | implement-prd |
+| L08 | "Implementa este PRD: docs/prd/x/x.md" | N2 | implement-change |
 | L09 | "Agrega una columna nueva a la tabla de cotizaciones con su migración" | N3 | create-prd |
 | L10 | "Cambia los permisos para que los agentes vean solo sus anunciantes" | N3 | create-prd |
 | L11 | "Resuelve los comentarios del PR" | N2 | pr-comments-resolution |
 | L12 | "Haz push de la rama y despliega a staging" | N3 | direct-answer |
+| L13 | "En el listado de campañas que ya implementamos (PRD ds-14), agrega ordenar por fecha de término" | N1 | implement-change |
+| L14 | "Al guardar una cotización sin ítems, la API responde 500; debería responder 422" | N2 | implement-change |
 <!-- router-evals:level-prompts:end -->
 
 Notes:
@@ -36,6 +38,10 @@ Notes:
 - L12 is irreversible: the action itself is not routed to a workflow, but it is
   N3, so it always asks before acting.
 - L05 is a bug: the N1 test must fail before the fix.
+- L13 is an iteration: the PRD's section 10 is the map, the level is proposed
+  (usually N1) and the original feature's regression tests run.
+- L14 is a bug input touching an API response: reproduce, failing-first test,
+  one-line root cause.
 
 ## Trigger examples
 
@@ -43,9 +49,9 @@ Notes:
 | --- | --- | --- |
 | "Explícame si esta idea tiene sentido" | direct answer, or `create-prd` if the user wants a spec-ready decision | `lean` or `balanced` |
 | "Quiero agregar un dashboard de métricas DORA" | propose `create-prd` (or `generate-pm-ticket` if tiny) and wait | `balanced` |
-| "Implementa este PRD" | `implement-prd` | `balanced` |
+| "Implementa este PRD" | `implement-change` (alias `implement-prd`) | `balanced` |
 | "Crea la épica para GitHub Intelligence" | `create-epic` | `balanced`; `premium` if architecture impact is high |
-| "Arregla este bug en frontend" | N1 surgical offer if very small and clear; otherwise `implement-prd` or a predecessor | `lean` for N1, otherwise `balanced` |
+| "Arregla este bug en frontend" | N1 surgical offer if very small and clear; otherwise `implement-change` (bug input) or a predecessor | `lean` for N1, otherwise `balanced` |
 | "Haz un ticket para esto" | `generate-pm-ticket` | `lean` |
 | "Agrega un workflow nuevo al router" | workflow extension maintenance | `lean` |
 | "Crea una skill propia y déjala registrada" | workflow extension maintenance (`SKILL.md` + registry) | `lean` |
@@ -58,7 +64,7 @@ Notes:
 - Coding directly for N2/N3 development work.
 - Starting `create-epic` because the idea sounds big when one PRD fits.
 - Asking the user to choose from a long skill list, or loading every skill or pattern.
-- Treating `implement-prd` as optional when production code changes are non-trivial.
+- Treating `implement-change` as optional when production code changes are non-trivial.
 - Routing workflow-extension maintenance to product workflows.
 - Hiding that a skill was skipped, or hiding the N1 option when it fits.
 - Using `premium` without a concrete risk, or claiming an automatic model switch the runtime did not confirm.
@@ -73,7 +79,7 @@ Routing is complete when:
 
 - the selected workflow is the smallest safe path for the request's level;
 - heavy workflows are protected by confirmation;
-- development work cannot bypass `implement-prd` unless an N1 surgical change was explicitly offered and authorized;
+- development work cannot bypass `implement-change` unless an N1 surgical change was explicitly offered and authorized;
 - the trace records workflow, level, confidence, reason, cost posture, delegation state with one reason, and the precedence rule when several triggers matched;
 - the route authorization state is explicit and execution does not start before it;
 - only the references whose condition held were loaded.

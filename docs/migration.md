@@ -53,6 +53,15 @@ Behavior on update:
 2. Managed but locally edited files are preserved as `skip_modified`.
 3. Unmanaged files at colliding paths are preserved as `skip_unmanaged`.
 
+Implementation route (since `0.10.0`): `implement-change` is the general
+route for PRDs, bugs, tickets, and iterations; `implement-prd` stays as a
+permanent alias, so "implementa este PRD" and existing references keep working.
+The update rewrites `implement-prd/SKILL.md` as a short alias and adds
+`implement-change/`; the shared references stay under `implement-prd/reference/`.
+Former operating modes map to levels: `small/local` → N1, `controlled-lite` and
+`controlled-implementation` → N2, `standard` → N3; `autonomous-safe` and
+`resume` are now modifiers. No files are moved or deleted.
+
 Model profiles (since `0.9.0`): repositories installed before model profiles
 have no stored profile, so the first `update` applies the runtime default.
 For Claude Code that changes the delegate agents from `model: inherit` to

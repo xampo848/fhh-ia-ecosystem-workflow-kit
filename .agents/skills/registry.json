@@ -125,14 +125,24 @@
       "runtime_notes": "Owned by `project-formation`."
     },
     {
+      "name": "implement-change",
+      "class": "Workflow",
+      "path": ".agents/skills/02-implement/implement-change/SKILL.md",
+      "trigger": "An approved PRD, a bug, a ticket, or an iteration over an implemented PRD needs code changes (N1–N3)",
+      "loading_posture": "Explicit-only",
+      "cost_hint": "balanced",
+      "key": "implement-change",
+      "runtime_notes": "General implementation route; the level decides ceremony and the input type decides evidence. Orchestrator for delegate-only implementation skills."
+    },
+    {
       "name": "implement-prd",
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
-      "trigger": "Approved PRD needs implementation",
+      "trigger": "Approved PRD needs implementation (\"implementa este PRD\")",
       "loading_posture": "Explicit-only",
       "cost_hint": "balanced",
       "key": "implement-prd",
-      "runtime_notes": "Orchestrator for delegate-only implementation skills."
+      "runtime_notes": "Permanent alias of `implement-change`; its directory keeps the shared implementation references."
     },
     {
       "name": "prd-readiness-review",

@@ -21,7 +21,7 @@ This folder is reserved for documents that support the installed AI workflow.
 
 Optional `solution-sketch` sits beside ticket / PRD / epic / formation. It is offer-only. See [decisions/2026-08-24-solution-sketch-flow.md](decisions/2026-08-24-solution-sketch-flow.md).
 
-Visible UI also needs a **Contrato Visual (UI lock)** inside `create-prd` / `generate-pm-ticket` before `implement-prd` starts. See [decisions/2026-08-24-ui-visual-contract.md](decisions/2026-08-24-ui-visual-contract.md).
+Visible UI also needs a **Contrato Visual (UI lock)** inside `create-prd` / `generate-pm-ticket` before `implement-change` (alias `implement-prd`) starts. See [decisions/2026-08-24-ui-visual-contract.md](decisions/2026-08-24-ui-visual-contract.md).
 
 ```mermaid
 flowchart TD
@@ -56,9 +56,26 @@ flowchart TD
   artifact --> resume{"Que sigue?"}
   resume --> lock
   resume --> cut
-  lock --> impl["implement-prd"]
+  lock --> impl["implement-change<br/>(alias implement-prd)"]
   cut --> prd
 ```
+
+## Implementation route
+
+`implement-change` is the single implementation route. Two independent axes
+decide the work:
+
+| Axis | Values | Decides |
+| --- | --- | --- |
+| Level | N1 surgical, N2 standard, N3 high risk | ceremony: tracker, delegates, Discovery, QA, closure |
+| Input type | PRD, bug, ticket, iteration | evidence: AC coverage, failing-first test, ticket AC, delta plus regression |
+
+An **iteration** over an implemented PRD uses its `## 10. Evidencia de
+Implementacion` as the map, checks freshness with `git diff <ref>..HEAD` on the
+delivered files, runs the original feature's regression tests, and closes with
+an "Iteración N" subsection. **Autonomous** execution is offered for N2/N3 and
+chosen per run; supervised is the default. Former mode names map to levels:
+`small/local` → N1, `controlled-*` → N2, `standard` → N3.
 
 ## Recommended first documents
 
