@@ -1918,6 +1918,12 @@ Proceso (2026-11-10):
 - Por pedido del usuario se dejó un PR único (#61) con un commit por lote, en
   vez de un PR por lote. Se cerraron #57, #58 y #60, cuyo contenido quedó
   rebasado sobre `main` en #61.
+- A pedido del usuario se retiró la presentación Slidev del repositorio
+  (`slides.md`, sus scripts y su paso de CI) junto con sus dependencias de
+  desarrollo, los tres parches locales y los siete overrides que existían solo
+  para ese árbol. Los avisos de seguridad que rompieron la CI venían de ahí.
+  La presentación para equipos vive ahora fuera del repositorio. Versión
+  `0.16.2-remove-slidev`.
 
 Hallazgos del Lote 8:
 
