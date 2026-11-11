@@ -5,6 +5,17 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.16.1-roadmap-closure
+
+- A protected file whose content already equals the new version is reported as
+  `unchanged` and stops being protected, so taking the new version by hand
+  ends the `skip_modified` and `managed/content-drift` reports.
+- `doctor` reports `skills/local-catalog-missing-skill` when a repository's own
+  skill index or registry does not list an installed workflow-kit skill.
+- `create-prd` proposes interaction-order edge cases for visible UI (first
+  interaction after load, interaction while another is in progress, touch).
+- README section "Per-project setup after installing".
+
 ## 0.16.0-safe-update
 
 - `update` and `init` list the one-time migrations a plan carries, and

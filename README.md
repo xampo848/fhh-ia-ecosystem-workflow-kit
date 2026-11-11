@@ -111,6 +111,21 @@ If something looks wrong after dry-run/apply, jump directly to:
 
 - [Troubleshooting](docs/troubleshooting.md)
 
+### Per-project setup after installing
+
+The installer cannot know your project, so a few things are yours to complete, once per repository. The workflow runs without them, but it explores more, costs more, and applies fewer of your rules until they are done. `workflow-kit doctor` reminds you about the ones it can detect.
+
+| # | What to do | Why | Done when |
+| --- | --- | --- | --- |
+| 1 | Fill `.agents/project-context.md`. Ask your agent: "Genera la primera versión de `.agents/project-context.md` con un Discovery inicial del proyecto", review the result, and remove the template marker. | Discovery reads this file first and then explores only what is specific to a change. Record the validation commands with their cost and the known environment quirks (flaky tests, required environment variables). | `doctor` no longer reports `project-context/not-initialized` |
+| 2 | Review `.agents/project/quality-gate.md` and fill `.agents/project/backend.md` and `.agents/project/frontend.md` for the surfaces that exist. | These are your project rules for every runtime. Edit these files, never the generated copies in `.github/instructions/`. | The files no longer carry the template marker; `doctor` reports no `project-instructions/*` warning |
+| 3 | Check the model profile shown by `doctor`: `calidad` when the runtime is paid by subscription, `costo` when it is billed per token. Change it with `workflow-kit update --profile claude=costo`. | Delegate agents take their model from the profile. | `doctor` prints the profile you expect |
+| 4 | If your repository keeps its own `.agents/skills/index.md` or `.agents/skills/registry.md`, add the rows of new workflow-kit skills by hand after each update. | `update` preserves your catalogs, and the router discovers skills through the index. | `doctor` reports no `skills/local-catalog-missing-skill` |
+| 5 | Leave validation reuse in shadow mode for the first 2 or 3 implementations. If the shadow results never differed, add `validation_reuse: active` to `.agents/project-context.md`. | Reuse skips an expensive check only when the content is proven identical; shadow mode shows what it would have skipped before you trust it. | Section 10 of a PRD lists reused checks |
+| 6 | In the first implementation that has a QA re-entry, let it run both the focused and the full review and compare them (the workflow asks for this once). | Calibrates the focused QA re-entry for your project. | The comparison is recorded in that PRD |
+
+Updating an existing installation? Follow the same table after `workflow-kit update`; steps 1 and 4 are the ones older installations usually miss.
+
 ## Using the workflow after installation
 
 Once installed, the recommended way to use the ecosystem is to describe your intent in natural language. You do not need to remember skill names: the router selects the right workflow and skills based on your request.
