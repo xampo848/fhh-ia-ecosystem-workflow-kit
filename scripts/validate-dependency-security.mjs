@@ -9,10 +9,16 @@ const sha256 = (content) => createHash('sha256').update(content).digest('hex');
 
 export async function verifyDependencyPatches({ root = repositoryRoot, manifest } = {}) {
   const inventory = manifest ?? JSON.parse(await fs.readFile(path.join(root, 'docs/security/dependency-patches.json'), 'utf8'));
-  if (!Array.isArray(inventory.packages) || inventory.packages.length === 0) throw new Error('Missing patch inventory');
+  // An empty inventory is valid: it means no local correction exists, so the
+  // audit below accepts no advisory at all.
+  if (!Array.isArray(inventory.packages)) throw new Error('Missing patch inventory');
   const metadata = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
   const expected = new Map();
   const instances = new Map();
+  // Every patch registered in package.json must be documented in the inventory.
+  for (const [key, patch] of Object.entries(metadata.patchedDependencies ?? {})) {
+    if (!inventory.packages.some((entry) => `${entry?.name}@${entry?.version}` === key && entry.patch === patch)) throw new Error(`Unregistered local patch: ${key}`);
+  }
   for (const entry of inventory.packages) {
     if (typeof entry.name !== 'string' || typeof entry.version !== 'string' || expected.has(entry.name)
       || !entry.files || Object.keys(entry.files).length === 0) throw new Error('Invalid or duplicate patch entry');
@@ -109,7 +115,9 @@ if (invokedPath === fileURLToPath(import.meta.url)) {
   try {
     const result = await runDependencySecurity();
     console.log(JSON.stringify(result, null, 2));
-    console.log('[security] Known version-based advisories remain visible; only installed, hash-verified local corrections are accepted.');
+    console.log(result.corrected.length === 0
+      ? '[security] No advisory reported. No local correction is accepted unless it is registered and hash-verified.'
+      : '[security] Known version-based advisories remain visible; only installed, hash-verified local corrections are accepted.');
   } catch (error) {
     console.error(`[security] FAIL: ${error.message}`);
     process.exitCode = 1;

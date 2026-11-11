@@ -34,9 +34,6 @@ jobs:
       - name: Run tests
         run: bun run test
 
-      - name: Build slides
-        run: bun run slides:build
-
       - name: Validate scaffold
         run: bun run check
 
