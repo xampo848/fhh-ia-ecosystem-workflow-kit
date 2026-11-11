@@ -51,6 +51,47 @@ async function managedVersionDiagnostics(targetPath) {
   }];
 }
 
+// A project that keeps its own skill catalogs (update preserves them) does not
+// receive the rows of skills added by later versions. The skill is installed,
+// but the router discovers skills through the index, so it stays invisible.
+const localSkillCatalogs = ['.agents/skills/index.md', '.agents/skills/registry.md'];
+const skillPathPattern = /\.agents\/skills\/[A-Za-z0-9/_-]+\/SKILL\.md/g;
+
+async function localCatalogDiagnostics({ targetPath, files }) {
+  const diagnostics = [];
+  for (const relativePath of localSkillCatalogs) {
+    const template = files.find((file) => file.relativePath === relativePath);
+    if (!template) continue;
+    let local;
+    try {
+      local = await fs.readFile(path.join(targetPath, relativePath), 'utf8');
+    } catch {
+      continue; // Missing files are reported by the presence scan.
+    }
+    const listed = new Set(local.match(skillPathPattern) ?? []);
+    const shipped = new Set((await fs.readFile(template.sourcePath, 'utf8')).match(skillPathPattern) ?? []);
+    const absent = [];
+    for (const skillPath of shipped) {
+      if (listed.has(skillPath)) continue;
+      try {
+        await fs.access(path.join(targetPath, skillPath));
+        absent.push(skillPath);
+      } catch {
+        // Not installed here: nothing to list.
+      }
+    }
+    if (absent.length > 0) {
+      diagnostics.push({
+        code: 'skills/local-catalog-missing-skill',
+        path: relativePath,
+        message: `Installed but not listed here, so the router cannot discover ${absent.length === 1 ? 'it' : 'them'}: ${absent.sort().join(', ')}. This catalog is yours and update preserves it; copy the missing row${absent.length === 1 ? '' : 's'} from the workflow-kit version of this file.`,
+        severity: 'warning'
+      });
+    }
+  }
+  return diagnostics;
+}
+
 export async function runDoctor(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   const storedState = await readManagedInstallState(targetPath);
@@ -81,6 +122,7 @@ export async function runDoctor(options = {}) {
     ...await projectContextDiagnostics({ targetPath }),
     ...await projectInstructionDiagnostics({ targetPath, runtimes }),
     ...await stackPackDiagnostics({ targetPath, stackPack: storedState?.stackPack }),
+    ...await localCatalogDiagnostics({ targetPath, files }),
     ...await managedDriftDiagnostics(targetPath),
     ...await managedVersionDiagnostics(targetPath)
   ].sort((a, b) => a.severity.localeCompare(b.severity)

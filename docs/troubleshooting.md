@@ -158,6 +158,22 @@ lives in `.ai-work/<prd-slug>/`, ignored by Git. These warnings never fail
 
 If you want that file managed, align content intentionally and re-run with review.
 
+To take the new version of a protected file (since `0.16.1`): move any rule of
+your own to `.agents/project/` or `.agents/project-context.md`, copy the
+workflow-kit version of the file over yours, and run `update` again. A file
+whose content equals what this version would write is reported as `unchanged`
+and stops being protected. `update --diff` shows the difference beforehand.
+
+## Doctor reports `skills/local-catalog-missing-skill`
+
+Your repository keeps its own `.agents/skills/index.md` or
+`.agents/skills/registry.md` (for example, because it lists local skills), so
+`update` preserves them and does not add the rows of skills introduced by
+later versions. The skill is installed, but the router discovers skills through
+the index and cannot find it. Copy the rows named in the message from the
+workflow-kit version of the same file, next to the related skills. The warning
+disappears on the next `doctor` run.
+
 In TUI update mode, when managed local edits are detected, workflow-kit now asks what to do:
 
 - protect local edits (keep `skip_modified`)

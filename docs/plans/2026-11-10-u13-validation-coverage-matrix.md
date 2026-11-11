@@ -5,6 +5,10 @@ Fecha: 2026-11-10. Método: decisión D-19 del
 autoriza ningún recorte: cada hallazgo se presenta al usuario y se aprueba uno
 a uno antes de modificar un skill (D-19, punto 12).
 
+Estado: **el usuario aprobó las propuestas de H1 a H4 y de C1 a C2 el
+2026-11-10.** No se eliminó ningún check. El único cambio en un skill es el de
+C1 (ver la sección 5).
+
 ## 1. Matriz declarada (qué dice verificar cada etapa)
 
 Fuente: los `SKILL.md` de cada etapa en `.agents/skills/02-implement/`, al
@@ -100,8 +104,8 @@ Fallas detectadas:
 
 Solo son hallazgos los duplicados exactos o solapamientos de checks mecánicos
 que aparecen en al menos 2 de los 3 PRDs, que nunca detectaron una falla de
-producto y que D-11 no resuelve ya. **Todos están pendientes de aprobación del
-usuario; ningún skill se modificó por ellos.**
+producto y que D-11 no resuelve ya. **El usuario aprobó todas las propuestas el
+2026-11-10.**
 
 | # | Hallazgo | Evidencia | Propuesta |
 | --- | --- | --- | --- |
@@ -134,12 +138,20 @@ y arranca en modo sombra, así que no depende de los hallazgos:
 - **IA-10** · QA incremental (`qa-handoff-review`, "Incremental Re-entry").
 - **D-11** (Lote 3) · suite cara completa una sola vez y tope de rondas.
 
-## 5. Pendiente de aprobación del usuario
+## 5. Resultado de la aprobación (2026-11-10)
 
-- Aprobar o corregir los hallazgos H1 a H4 y C1 a C2 de la sección 3. La
-  propuesta para todos es no modificar skills.
+| Hallazgo | Decisión aprobada | Qué se hizo |
+| --- | --- | --- |
+| H1 | Lo cubre la reutilización por huella (IA-09) | Sin cambio de skills |
+| H2 | Dejar el lint como está | Sin cambio |
+| H3 | No alcanza la regla de 2 de 3; lo cubre IA-09 | Sin cambio |
+| H4 | No alcanza la regla; lo cubre IA-09 | Sin cambio |
+| C1 | Preguntar por escenarios de interacción en la ronda de casos borde | Paso 4 de "Edge-Case Confirmation Round" en `create-prd/reference/ambiguity-detection.md`: con UI visible, proponer filas de orden de interacción (primera interacción tras cargar, interacción mientras otra está en curso, entrada táctil) |
+| C2 | Registrar las fallas de entorno conocidas en `project-context.md` | Es una tarea de cada proyecto. Para ooh-backoffice está en la [guía del piloto](2026-11-10-piloto-ooh-backoffice.md), paso 6 |
+
+Sigue pendiente, en cada proyecto que use el kit (no bloquea el cierre del
+roadmap):
+
 - Modo sombra en las 2 o 3 primeras implementaciones reales antes de activar
   la reutilización (`validation_reuse: active` en `project-context.md`).
 - Calibración única de la QA enfocada contra la completa (D-20, ajuste 7).
-- Registrar en el `project-context.md` de ooh-backoffice las fallas de entorno
-  recurrentes que muestra la sección 2.

@@ -51,6 +51,7 @@ instead of filling the matrix alone during drafting:
    be deduced from the code). The user may answer "ok" for the whole block or
    correct single rows.
 3. In the compact path, cover only the categories the change touches.
+4. When the change has visible UI with forms, lists, or gestures, propose interaction-order rows under concurrencia/orden: the first interaction right after load, an interaction while another one is in progress (a scroll, an animation, a pending request), and touch input when the product runs on touch devices. No lint, unit, or contract check catches these unless a test names the scenario.
 
 Do not ask for facts that the repository already establishes.
 Do not reopen a resolved category or ask a serial follow-up unless an answer creates a materially different implementation.

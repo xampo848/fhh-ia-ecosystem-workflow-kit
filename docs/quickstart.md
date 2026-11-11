@@ -92,6 +92,10 @@ Supported first-class adapters are `codex`, `copilot`, `claude`, and
 
 If doctor reports issues, go directly to [Troubleshooting](troubleshooting.md).
 
+After the first install, complete the one-time steps that belong to your
+project, starting with `.agents/project-context.md`:
+[Per-project setup after installing](../README.md#per-project-setup-after-installing).
+
 ## 5. Upgrade the toolkit binary before updating repos
 
 Preview the global toolkit upgrade command:

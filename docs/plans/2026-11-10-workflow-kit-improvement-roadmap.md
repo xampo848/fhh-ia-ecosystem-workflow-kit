@@ -1,9 +1,12 @@
 # Roadmap: mejoras del workflow kit (backlog U/IA)
 
 Fecha de inicio: 2026-11-10.
-Estado: decisiones completas (D-00 a D-33, 2026-11-10); implementación
-pendiente. Este documento no autoriza implementación por sí solo: cada lote se
-implementa recién cuando el usuario lo autoriza explícitamente.
+Estado: **implementación cerrada el 2026-11-10.** Las decisiones D-00 a D-33
+están tomadas y los 8 lotes están en `main` (#61 y #62). Lo que queda después
+del cierre (piloto manual, verificaciones por runtime y tareas de cada
+proyecto) está en la [sección 8](#8-cierre-del-roadmap-y-pendientes-posteriores).
+Este documento no autoriza implementación por sí solo: cada lote se implementó
+cuando el usuario lo autorizó explícitamente.
 
 ## 1. Cómo usar este documento
 
@@ -15,7 +18,7 @@ implementa recién cuando el usuario lo autoriza explícitamente.
   [#61](https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/pull/61)
   (lotes 1, 1b y 2, mergeado) y
   [#62](https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/pull/62)
-  (lotes 3 a 8). El
+  (lotes 3 a 8, mergeado). El
   commit de cada lote actualiza este documento: estado de los ítems,
   decisiones aplicadas y una fila en la bitácora (sección 7). Los problemas
   que aparezcan (CI, revisión, smoke) se corrigen sobre la marcha en el mismo
@@ -48,48 +51,48 @@ conflictos en todos los demás lotes.
 | 1 | Carga proporcional y vía rápida | U-03, U-18, U-09 (parte router), IA-03, U-19a | — | Hecho (mergeado en #61) | #61 |
 | 1b | Política de modelos | D-05a, D-07, D-12, U-19b, U-04 (rehacer), U-02 (verificación, D-27) | — | Hecho (mergeado en #61) | #61 |
 | 2 | Ruta general de implementación | U-11, U-08, U-09 (parte ejecución), IA-02, D-26 | Lote 1 | Hecho (mergeado en #61) | #61 |
-| 3 | Frenos de costo en ejecución | U-17, U-16, IA-11, IA-08, IA-07 | Lote 2 | Implementado (rama `feat/roadmap-lotes-3-a-8`) | #62 |
-| 5 | Preparación más barata | U-12, IA-04, IA-05, IA-06, IA-01 | Lote 2 | Implementado (rama `feat/roadmap-lotes-3-a-8`) | #62 |
-| 4 | Validación sin duplicar | U-13, IA-09, IA-10 | Lote 3 | IA-09 e IA-10 implementados; U-13 investigado: la matriz observada no justifica eliminar checks, hallazgos por aprobar | #62 |
-| 6 | Calidad de PRD y PR | U-07, U-06, U-01, U-05, D-25 | — (paralelizable) | Implementado (rama `feat/roadmap-lotes-3-a-8`) | #62 |
-| 7 | Runtimes y estructura | U-15, U-02 (solo si D-27 encuentra fallas), U-20, U-14, U-10, IA-12, U-19c | Lotes 1–6 | Implementado (rama `feat/roadmap-lotes-3-a-8`); U-15 y U-02 esperan la verificación del usuario | #62 |
-| 8 | Cierre: documentación, actualización segura y release | D-33 | Lote 7 | Implementado (rama `feat/roadmap-lotes-3-a-8`); falta el piloto real en ooh-backoffice | #62 |
+| 3 | Frenos de costo en ejecución | U-17, U-16, IA-11, IA-08, IA-07 | Lote 2 | Hecho (mergeado en #62) | #62 |
+| 5 | Preparación más barata | U-12, IA-04, IA-05, IA-06, IA-01 | Lote 2 | Hecho (mergeado en #62) | #62 |
+| 4 | Validación sin duplicar | U-13, IA-09, IA-10 | Lote 3 | Hecho (mergeado en #62). U-13: hallazgos aprobados el 2026-11-10; no se elimina ningún check y C1 se aplicó en el PR de cierre | #62 |
+| 6 | Calidad de PRD y PR | U-07, U-06, U-01, U-05, D-25 | — (paralelizable) | Hecho (mergeado en #62) | #62 |
+| 7 | Runtimes y estructura | U-15, U-02 (solo si D-27 encuentra fallas), U-20, U-14, U-10, IA-12, U-19c | Lotes 1–6 | Hecho (mergeado en #62). U-15 y U-02 quedan en `Verificar`: la verificación en Codex y Copilot está diferida (sección 8) | #62 |
+| 8 | Cierre: documentación, actualización segura y release | D-33 | Lote 7 | Hecho (mergeado en #62). El piloto real en ooh-backoffice es manual y condiciona el release, no el cierre (sección 8) | #62 |
 
 ## 3. Inventario de ítems
 
 | ID | Prio | Mejora (resumen) | Lote | Estado | Notas |
 | --- | --- | --- | --- | --- | --- |
-| U-03 | P0 | Carga de instrucciones proporcional a la tarea | 1 | En implementación | D-01, D-02 |
-| U-18 | P0 | Vía rápida para consultas operativas | 1 | En implementación | Se vuelve el nivel N0 de D-01 |
-| U-09 | P0 | Cambios quirúrgicos como opción explícita | 1 / 2 | En implementación (router en Lote 1, ejecución en Lote 2) | Lote 1: el router lo ofrece. Lote 2: cómo se ejecuta |
-| IA-03 | P1 | Router liviano después de decidir | 1 | En implementación | D-06 |
-| U-19 | P0 | Optimizar para Claude Code | 1 / 1b / 7 | Implementado (U-19a y U-19b en #61; U-19c en el Lote 7) | Dividido en U-19a (Lote 1), U-19b (Lote 1b) y U-19c (Lote 7); ver D-03 |
-| U-11 | P0 | Ruta general de implementación (renombrar implement-prd) | 2 | En implementación | D-08 |
-| U-08 | P0 | Iteración económica sobre lo ya implementado (delta) | 2 | En implementación | D-09 |
-| IA-02 | P0 | Orquestador cargado por modo | 2 | En implementación | D-10 |
-| U-17 | P0 | Freno a implementaciones y tests excesivos | 3 | Implementado | |
-| U-16 | P0 | Tracking de tareas largas (archivos que no se cierran) | 3 | Implementado | P0 asignado en D-04. Diagnosticar antes con la tarea de OAuth GitHub (>7 días) |
-| IA-11 | P1 | Tracker compacto | 3 | Implementado | |
-| IA-08 | P0 | Logs de validación acotados | 3 | Implementado | |
-| IA-07 | P1 | Entregas de subagentes compactas | 3 | Implementado | |
-| U-13 | P1 | Investigar redundancia de pruebas por slice | 4 | Verificar (matriz en `docs/plans/2026-11-10-u13-validation-coverage-matrix.md`; hallazgos por aprobar) | D-19; la investigación (solo lectura) puede adelantarse |
-| IA-09 | P0 | Reutilizar checks vigentes | 4 | Implementado (arranca en modo sombra) | D-20 |
-| IA-10 | P1 | QA incremental | 4 | Implementado (falta la calibración única) | D-20 |
-| U-12 | P0 | Base de conocimiento fija para Discovery | 5 | Implementado | |
-| IA-04 | P0 | Lectura delegada del PRD | 5 | Implementado | |
-| IA-05 | P1 | Preparación combinada (fases 0–2) | 5 | Implementado | |
-| IA-06 | P1 | Matcher proporcional | 5 | Implementado | D-18 |
-| IA-01 | P0 | Arranque mínimo de delegados | 5 | Implementado | D-18; incluye contrato de delegado con garantía de cobertura |
-| U-07 | P0 | PRD con más y mejores preguntas (casos borde, APIs) | 6 | Implementado | D-21 |
-| U-06 | P0 | Detectar y retirar lo que queda obsoleto | 6 | Implementado | D-22; toca también discovery, slicing y QA |
-| U-01 | P1 | Sketch de UI con impeccable y crítica de vistas | 6 | Implementado | D-23 |
-| U-05 | P1 | PR comments siempre evaluados críticamente | 6 | Implementado | D-24; critical-stance hoy no lo cubre |
-| U-15 | P0 | Funcionamiento completo en Codex (y Claude) | 7 | Verificar (reglas y guía listas; falta el smoke y la ejecución real en Codex) | D-28 |
-| U-02 | P0 | Modelo correcto por subagente en Copilot | 1b (verificación) / 7 (corrección si hace falta) | Verificar (guía y tabla de cierre listas; falta que el usuario corra A y B) | D-27: smoke controlado + ejecución real con verificador; implementado en #55 solo para invocación explícita |
-| U-20 | P1 | Referencias neutrales a la plataforma (rutas por runtime) | 7 | Implementado | D-29; era el segundo U-13 de la tabla (ID duplicado) |
-| U-14 | P1 | Extraer reglas de frameworks y librerías | 7 | Implementado | D-30 |
-| U-10 | P1 | Skills de máximo 200 líneas por archivo | 7 | Implementado | D-31; último a propósito |
-| IA-12 | P2 | Notas docentes selectivas | 7 | Implementado | D-32 |
+| U-03 | P0 | Carga de instrucciones proporcional a la tarea | 1 | Hecho | D-01, D-02 |
+| U-18 | P0 | Vía rápida para consultas operativas | 1 | Hecho | Se vuelve el nivel N0 de D-01 |
+| U-09 | P0 | Cambios quirúrgicos como opción explícita | 1 / 2 | Hecho (router en Lote 1, ejecución en Lote 2) | Lote 1: el router lo ofrece. Lote 2: cómo se ejecuta |
+| IA-03 | P1 | Router liviano después de decidir | 1 | Hecho | D-06 |
+| U-19 | P0 | Optimizar para Claude Code | 1 / 1b / 7 | Hecho (U-19a y U-19b en #61; U-19c en #62) | Dividido en U-19a (Lote 1), U-19b (Lote 1b) y U-19c (Lote 7); ver D-03 |
+| U-11 | P0 | Ruta general de implementación (renombrar implement-prd) | 2 | Hecho | D-08 |
+| U-08 | P0 | Iteración económica sobre lo ya implementado (delta) | 2 | Hecho | D-09 |
+| IA-02 | P0 | Orquestador cargado por modo | 2 | Hecho | D-10 |
+| U-17 | P0 | Freno a implementaciones y tests excesivos | 3 | Hecho | |
+| U-16 | P0 | Tracking de tareas largas (archivos que no se cierran) | 3 | Hecho | P0 asignado en D-04. Diagnosticar antes con la tarea de OAuth GitHub (>7 días) |
+| IA-11 | P1 | Tracker compacto | 3 | Hecho | |
+| IA-08 | P0 | Logs de validación acotados | 3 | Hecho | |
+| IA-07 | P1 | Entregas de subagentes compactas | 3 | Hecho | |
+| U-13 | P1 | Investigar redundancia de pruebas por slice | 4 | Hecho (hallazgos aprobados el 2026-11-10: ningún check se elimina; C1 aplicado en `create-prd`) | D-19; la investigación (solo lectura) puede adelantarse |
+| IA-09 | P0 | Reutilizar checks vigentes | 4 | Hecho (arranca en modo sombra; cada proyecto la activa) | D-20 |
+| IA-10 | P1 | QA incremental | 4 | Hecho (la calibración única se hace en cada proyecto) | D-20 |
+| U-12 | P0 | Base de conocimiento fija para Discovery | 5 | Hecho | |
+| IA-04 | P0 | Lectura delegada del PRD | 5 | Hecho | |
+| IA-05 | P1 | Preparación combinada (fases 0–2) | 5 | Hecho | |
+| IA-06 | P1 | Matcher proporcional | 5 | Hecho | D-18 |
+| IA-01 | P0 | Arranque mínimo de delegados | 5 | Hecho | D-18; incluye contrato de delegado con garantía de cobertura |
+| U-07 | P0 | PRD con más y mejores preguntas (casos borde, APIs) | 6 | Hecho | D-21 |
+| U-06 | P0 | Detectar y retirar lo que queda obsoleto | 6 | Hecho | D-22; toca también discovery, slicing y QA |
+| U-01 | P1 | Sketch de UI con impeccable y crítica de vistas | 6 | Hecho | D-23 |
+| U-05 | P1 | PR comments siempre evaluados críticamente | 6 | Hecho | D-24; critical-stance hoy no lo cubre |
+| U-15 | P0 | Funcionamiento completo en Codex (y Claude) | 7 | Verificar (reglas y guía listas; el smoke y la ejecución real en Codex están diferidos, sección 8) | D-28 |
+| U-02 | P0 | Modelo correcto por subagente en Copilot | 1b (verificación) / 7 (corrección si hace falta) | Verificar (guía y tabla de cierre listas; las pruebas A y B en Copilot están diferidas, sección 8) | D-27: smoke controlado + ejecución real con verificador; implementado en #55 solo para invocación explícita |
+| U-20 | P1 | Referencias neutrales a la plataforma (rutas por runtime) | 7 | Hecho | D-29; era el segundo U-13 de la tabla (ID duplicado) |
+| U-14 | P1 | Extraer reglas de frameworks y librerías | 7 | Hecho | D-30 |
+| U-10 | P1 | Skills de máximo 200 líneas por archivo | 7 | Hecho | D-31; último a propósito |
+| IA-12 | P2 | Notas docentes selectivas | 7 | Hecho | D-32 |
 | U-04 | P0 | document-development con modelo pequeño | 1b | Reemplazado | D-05 prohíbe el tier Liviano. document-development pasa a Mediano; lo que se mantiene de #54 es la lectura acotada |
 
 ## 4. Correcciones a la tabla original
@@ -1905,6 +1908,7 @@ discuta.
 | 2026-11-10 | 6 | U-07, U-06, U-01, U-05, D-25 | #62 | `create-prd`: ronda de casos borde por confirmación, presupuesto de preguntas (~10 por ronda, máximo 3 rondas), inventario de incógnitas con prueba exploratoria aprobada por el usuario, secciones nuevas `2.8 Supuestos e integraciones` y `2.9 Que queda obsoleto`, causa de iteración en la sección 10 (D-21, D-22); señales de tamaño con `prd-size-signals.mjs` y propuesta de dividir con 2 o más (D-25); lo obsoleto y los supuestos se siguen en Discovery, slicing y QA con búsqueda de verificación; `solution-sketch` con caminos de UI opcionales ofrecidos al entrar (vista nueva, crítica, diseño del equipo, sin parte visual), mockups HTML en dos etapas y máximo 3 rondas visuales (D-23); `pr-comments-resolution` evalúa cada comentario antes de ofrecer opciones, con veredicto, respuestas con fundamento aprobadas por el usuario, triage y regla de simetría en critical-stance (D-24); versión `0.14.0-prd-pr-quality`. | `node --test` 239/239; todos los `check:*` OK. |
 | 2026-11-10 | 7 | U-20, U-14, U-10, IA-12, U-15, U-19c | #62 | Instrucciones del proyecto en `.agents/project/` (quality gate, backend, frontend, `paths.json`), con copia generada para Copilot que conserva `applyTo`, migración de instrucciones escritas a mano con respaldo, regla de no saltar el quality gate en silencio y `validate-neutral-paths.mjs` (D-29); reglas de Rails y React fuera de las skills núcleo y dentro del stack pack `rails-react`, que las instalaciones previas reciben por defecto, con inventario de 28 reglas y `validate-stack-neutrality.mjs` (D-30); ningún archivo propio de skill supera 200 líneas, con 3 excepciones justificadas y `validate-skill-size.mjs` (D-31); notas docentes selectivas con preferencia por proyecto (D-32); reglas de delegación por runtime, sin caída silenciosa a inline, y guía de verificación para Codex (D-28); skills nativas de Claude Code con `disable-model-invocation` (U-19c); runtime `opencode` vía `AGENTS.md`; versión `0.15.0-neutral-structure`. | `node --test` 256/256; todos los `check:*` OK. Smoke de update desde 0.7.40 con instrucciones propias en `.github/instructions/`. |
 | 2026-11-10 | 8 | D-33 | #62 | El plan de `init` y `update` lista las migraciones que lleva (idempotentes: desaparecen una vez aplicadas) y `--diff` muestra el diff de cada archivo que cambiaría, incluidos los editados localmente; el TUI pregunta el stack pack al instalar y corre `doctor` después de aplicar; tests de actualización de punta a punta desde la estructura antigua para Claude Code, Codex, Copilot, Antigravity y los tres juntos (contenido propio conservado, `doctor` sin errores, segundo update sin escrituras); pasada de documentación (README, guías, runbooks, plantilla de instrucciones, slides) con búsqueda de nombres y rutas obsoletas; `CHANGELOG.md`; versión `0.16.0-safe-update`. | `node --test` 264/264 en serie; todos los `check:*` OK. Vista previa en seco contra ooh-backoffice (sin escribir): 54 archivos nuevos, 73 actualizados con respaldo, 1 protegido. |
+| 2026-11-10 | Cierre | Pendientes posteriores (sección 8), U-13 (C1) | PR de cierre (rama `docs/roadmap-cierre`) | Hallazgos de U-13 aprobados y C1 aplicado en la ronda de casos borde de `create-prd`; guía del piloto manual en ooh-backoffice, escrita a partir de un ensayo sobre una copia; dos correcciones encontradas en ese ensayo (un archivo protegido que ya es igual a la versión nueva queda `unchanged`; `doctor` avisa `skills/local-catalog-missing-skill`); sección "Per-project setup after installing" en el README y punteros en las guías; verificaciones de Copilot y Codex diferidas; versión `0.16.1-roadmap-closure`. | `node --test` 266/266 en serie; todos los `check:*` OK. Ensayo sobre la copia: `doctor` sin errores, reglas de proyecto idénticas, segundo update sin escrituras. El piloto real sigue sin ejecutarse. |
 
 Proceso (2026-11-10):
 
@@ -1921,11 +1925,9 @@ Hallazgos del Lote 8:
   instrucciones de Copilot usan `applyTo` como lista YAML de varias líneas y
   la primera versión solo leía el formato de una línea, así que no regeneraba
   esos archivos. Ahora el frontmatter se conserva tal cual (test agregado).
-- **Piloto pendiente (D-33, punto 5):** falta aplicar el update en una rama de
-  ooh-backoffice y correr un flujo N2 completo. La vista previa muestra un
-  archivo protegido, `.agents/skills/02-implement/implement-prd/SKILL.md`, que
-  ese proyecto editó: `update` no lo reemplaza por el alias. Conviene revisar
-  `workflow-kit update --diff` y decidir si se toma la versión nueva.
+- **Piloto (D-33, punto 5):** es manual y lo ejecuta el usuario con la
+  [guía del piloto](2026-11-10-piloto-ooh-backoffice.md). Condiciona el
+  release, no el cierre de la implementación (sección 8).
 - **No se implementó** un asistente de fusión línea a línea en el TUI: para un
   archivo editado, el TUI ofrece proteger o sobrescribir con respaldo, y
   `--diff` muestra las diferencias para combinarlas a mano.
@@ -1959,8 +1961,9 @@ Hallazgos del Lote 7:
 - **Tests que llenaban el disco:** cada corrida de la suite dejaba más de cien
   repos temporales de ~2 MB en la carpeta temporal del sistema y nunca los
   borraba; tras muchas corridas el disco se llenó (4001 carpetas, 6,2 GB). Los
-  tests ahora borran sus temporales al terminar cada archivo. Las carpetas
-  viejas `workflow-kit-*` de la carpeta temporal las debe borrar el usuario.
+  tests ahora borran sus temporales al terminar cada archivo. Las 4001
+  carpetas viejas `workflow-kit-*` se borraron el 2026-11-10 a pedido del
+  usuario.
 - **U-15 (Codex):** la documentación oficial dice que Codex lanza subagentes
   tras un pedido directo o una instrucción aplicable de un skill, así que no
   hace falta un permiso aparte: `implement-change` es esa instrucción. Queda
@@ -2046,3 +2049,46 @@ Hallazgos del Lote 1:
   `docs/legal/overlay-authorship.json` se renovó (131 → 134 archivos, todos
   propios del kit), conservando la clasificación y la declaración del
   mantenedor.
+
+## 8. Cierre del roadmap y pendientes posteriores
+
+La implementación quedó cerrada el 2026-11-10: los 8 lotes están en `main`
+(#61 y #62). Nada de lo que sigue bloquea ese cierre. El usuario revisó cada
+pendiente el 2026-11-10 y decidió lo siguiente.
+
+| # | Pendiente | Decisión del usuario | Estado | Dónde seguir |
+| --- | --- | --- | --- | --- |
+| 1 | Piloto real en ooh-backoffice (D-33, punto 5) | Se hace a mano; basta con dejar una guía | Guía escrita; piloto sin ejecutar. Es la condición para publicar un release (`RELEASE.md`) | [Guía del piloto](2026-11-10-piloto-ooh-backoffice.md) |
+| 2 | Hallazgos de U-13 (H1 a H4, C1 a C2) | Aprobadas las recomendaciones | Hecho: ningún check se elimina; C1 aplicado en `create-prd`; C2 pasa a la guía del piloto | [Matriz de validación, sección 5](2026-11-10-u13-validation-coverage-matrix.md) |
+| 3 | Verificar el modelo por subagente en Copilot (U-02) y la ejecución real en Codex (U-15) | No puede hacerlo ahora; se espera | Diferido. U-02 y U-15 siguen en `Verificar` | `docs/workflow/copilot-subagent-model-routing.md` (sección 7) y `docs/workflow/codex-subagent-verification.md` |
+| 4 | Prompts de nivel L01 a L14 en cada runtime | Se prueban en el uso real | Sin corrida dedicada. Evidencia observada: solo L01 en Claude Code. `check:workflow` valida la tabla y que el pre-filtro sea igual en todos los adapters, no el comportamiento del modelo | `.agents/skills/00-router/workflow-router/reference/router-evals.md`; paso 7 de la guía del piloto |
+| 5 | Tareas de cada proyecto: llenar `.agents/project-context.md`, modo sombra antes de activar la reutilización de checks y calibración única de QA | Son por proyecto y no afectan el cierre; deben quedar a la vista de cualquier usuario | Documentado. `doctor` lo recuerda con `project-context/not-initialized` | README, sección "Per-project setup after installing" |
+
+Si en el uso real un prompt se clasifica en un nivel equivocado (pendiente 4),
+se anota el prompt, el runtime y la respuesta, y se corrige el pre-filtro en
+`.agents/instructions.md`, que es la fuente única; `scripts/sync-level-prefilter.mjs`
+regenera las copias de los adapters.
+
+### Hallazgos del ensayo del piloto (2026-11-10)
+
+Para escribir la guía se aplicó el update sobre una copia de los archivos de
+workflow de ooh-backoffice (el repositorio real no se tocó). El resultado fue
+sano: `doctor` sin errores, reglas de proyecto migradas sin cambios de texto,
+`applyTo` conservado y segundo update sin escrituras. Aparecieron dos
+problemas, corregidos en el PR de cierre:
+
+- **Un archivo protegido no se podía dar por resuelto.** Si el proyecto
+  copiaba a mano la versión nueva de un archivo que había editado, `update`
+  lo seguía marcando `skip_modified` y `doctor` seguía avisando
+  `managed/content-drift`, porque se comparaba contra el hash guardado y no
+  contra el contenido nuevo. Ahora un archivo igual a lo que el kit escribiría
+  queda `unchanged` y su hash se registra (test agregado).
+- **Los catálogos de skills propios quedaban desactualizados sin aviso.** Un
+  proyecto que mantiene su `.agents/skills/index.md` y `registry.md` (como
+  ooh-backoffice, que lista una skill local) no recibe la fila de una skill
+  nueva, y el router descubre skills por el índice. Sumado al
+  `implement-prd/SKILL.md` protegido, "implementa este PRD" habría seguido
+  cargando el orquestador antiguo. `doctor` ahora avisa con
+  `skills/local-catalog-missing-skill` y nombra las skills que faltan (test
+  agregado). Agregar la fila sigue siendo manual, porque el catálogo es del
+  proyecto.
