@@ -27,7 +27,8 @@ This file is the decision core. Load a reference only when its condition holds:
 
 Cost posture, model tiers, and delegation states are owned by
 `.agents/model-routing/README.md`; the selected skill reads it, not the router.
-Mentoring (teach, challenge, improve) is the `engineering-mentor` overlay.
+Mentoring is the `engineering-mentor` overlay: challenge and improve whenever
+quality is at stake; teach only for relevant decisions at N2/N3, never at N0/N1.
 
 ## Source of truth
 

@@ -127,6 +127,21 @@ Required behavior:
 - If both a pattern skill and a fallback doc exist, prefer the pattern skill
   unless the slice is safer with the doc or the skill is not mature enough.
 
+## Proportional Entry
+
+Do not launch the matcher as a delegate when there is nothing to match. Before
+delegating, the orchestrator runs a deterministic lookup in
+`.agents/skills/06-patterns/index.md` by the slice's surface and hazards:
+
+- **0 candidates:** record `matching: sin candidatos para <surface>` in the
+  slice lock and continue; no delegate is launched.
+- **1 or more candidates, or any ambiguity:** run the full matching procedure,
+  inline or delegated according to the level.
+
+No mandatory pattern is ever skipped: when a hazard requires a pattern, the
+Matcher Eligibility Rule below applies unchanged, and a missing index is still
+a stop, not "0 candidates".
+
 ## Controlled-lite Behavior
 
 For `controlled-lite`:

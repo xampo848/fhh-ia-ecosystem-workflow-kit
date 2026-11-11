@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { validateDocs } from '../scripts/validate-docs.mjs';
+import { makeTempRepo } from './helpers.mjs';
 
 test('validateDocs passes for bundled documentation', async () => {
   const result = await validateDocs();
@@ -90,7 +91,7 @@ test('cross-runtime benchmark contract forbids unearned savings claims and unsou
 
 async function copyDocsFixture() {
   const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-  const targetRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-docs-'));
+  const targetRoot = await makeTempRepo('workflow-kit-docs-');
   for (const entry of ['README.md', 'RELEASE.md', 'NOTICE', 'THIRD_PARTY_NOTICES.md', 'docs', 'examples']) {
     await fs.cp(path.join(sourceRoot, entry), path.join(targetRoot, entry), { recursive: true });
   }

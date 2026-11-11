@@ -1,5 +1,7 @@
 # Methodology Foundations
 
+Read it when a formation stage needs the rationale behind its method; skip it for routine stage execution.
+
 This workflow integrates clean-room interpretations from publicly available sources.
 
 ## Core Methods

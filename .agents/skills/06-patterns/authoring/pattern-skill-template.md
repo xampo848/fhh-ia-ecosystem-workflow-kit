@@ -24,7 +24,7 @@ Examples:
 
 ## Must Read
 
-- `.github/copilot-instructions.md`
+- `.agents/instructions.md`
 - `<project-specific-instructions-or-docs>`
 - `docs/patterns/<domain>/` (or equivalent fallback docs)
 

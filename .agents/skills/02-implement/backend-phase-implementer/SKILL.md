@@ -1,13 +1,13 @@
 ---
 name: backend-phase-implementer
-description: "Delegate-only skill for implement-prd. Alias: Turbo Backend. Implements backend slices in FHH IA Ecosystem Rails API, including models, migrations, services, controllers, serializers, background jobs, i18n, and Minitest. Use only with explicit file ownership from the orchestrator."
+description: "Delegate-only skill for implement-prd. Alias: Turbo Backend. Implements backend slices in any stack, including models, migrations, services, controllers, serializers, background jobs, i18n, and tests, following the project's own backend and stack rules. Use only with explicit file ownership from the orchestrator."
 ---
 
 # Backend Phase Implementer
 
 Alias: Turbo Backend.
 
-Use for backend implementation slices delegated by `implement-prd`. In Codex, invoke through `.codex/agents/turbo-backend.toml` with strict file ownership. In GitHub Copilot, run as a `runSubagent` task with strict file ownership. In other agents, run inline when subagents are unavailable.
+Use for backend implementation slices delegated by `implement-prd`. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`) with strict file ownership; run it inline when subagents are unavailable.
 
 ## Mission
 
@@ -20,17 +20,17 @@ Implement the assigned backend slice completely: code, tests, i18n, focused vali
 - Files owned and files forbidden.
 - Discovery notes and required docs.
 - Matcher output: `required_pattern_skills`, `optional_capabilities`, `fallback_docs`, `validation_hooks`, `handoff_required_fields`, `match_confidence`, `blocked_reason`.
-- Quality gate loaded from `.github/instructions/quality-gate.instructions.md`.
+- Quality gate loaded from `.agents/project/quality-gate.md`.
 - Validation command target.
 
 ## Must Read
 
 Use exists-or-skip for product docs. A missing optional path is not a failed search.
 
-- `.github/copilot-instructions.md` or `.agents/instructions.md`
-- `.github/instructions/backend.instructions.md` when it exists
+- `.agents/delegation/delegate-contract.md` (not `.agents/instructions.md` or the router)
+- `.agents/project/backend.md` when it exists, and `.agents/project/stack.md` when it exists
 - `docs/foundations/ARCHITECTURE.md` only when it exists and the slice is cross-layer, architectural, migration-heavy, authorization-sensitive, or tenancy-sensitive
-- `.github/instructions/quality-gate.instructions.md` when it exists; if the PRD requires this path and it is missing, return `blocked`
+- `.agents/project/quality-gate.md`. If it is missing, never skip it silently: report `quality gate: no configurado`; if the PRD requires it or the level is N3, return `blocked`
 - Exact matcher-selected `required_pattern_skills` paths when present.
 - Matcher-selected `fallback_docs` when required pattern skills are absent.
 - Relevant backend docs from `docs/patterns/backend/`
@@ -38,15 +38,17 @@ Use exists-or-skip for product docs. A missing optional path is not a failed sea
 
 ## Backend Rules
 
-- Controllers delegate business logic to services.
-- Services inherit from `BaseService` or the namespace base and expose `success?`, `result`, and `errors`.
-- Models only include validations, relationships, and simple scopes.
-- Use CanCanCan. Do not introduce Pundit.
-- Respect `acts_as_tenant` and explicit organization scoping.
+Framework, library, and command rules are the project's, not this skill's:
+follow `.agents/project/backend.md` and `.agents/project/stack.md`. If neither
+exists, reuse the conventions of the analogous files you read and say so in
+the handoff. Stack-neutral rules that always apply:
+
+- Entry points (controllers, handlers) delegate business logic to the project's service layer.
+- Use the project's authorization mechanism; do not introduce a second one.
+- Respect tenant and organization scoping.
 - Never add cross-tenant queries without explicit inline justification and regression tests.
-- Put user-facing text in `backend/config/locales/es.yml` and `backend/config/locales/en.yml`.
-- Use Minitest, not RSpec.
-- Prefer `make` targets from inside `backend/` for validation.
+- Put user-facing text in the project's locale files, never inline.
+- Use the project's test framework and the validation commands declared in `.agents/project-context.md`.
 
 ## Code Quality Gate
 
@@ -73,11 +75,7 @@ Reject the implementation or return `blocked` if satisfying the slice requires q
 8. Keep business rules in services or domain collaborators, not controllers, serializers, jobs, or callbacks.
 9. Add or update tests with positive, empty/error, auth, tenancy, and contract cases as relevant.
 10. Add i18n keys for any user-facing backend text.
-11. Run the narrowest validation that can falsify the slice, preserving matcher validation hooks when present. Prefer:
-   - `make test-fast`
-   - `make tests_run`
-   - targeted `bundle exec rails test path/to/test.rb` only when already established for the slice
-   - targeted RuboCop only for touched backend files when lint is needed
+11. Run the narrowest validation that can falsify the slice, preserving matcher validation hooks when present. Use the backend commands declared in `.agents/project-context.md` (or `.agents/project/stack.md`): the fast focused test target first, a single test file only when it is the narrowest reliable check, and lint only for touched backend files.
 12. Fix root causes. Do not silence tests, weaken assertions, bypass tenant checks, or lower standards.
 13. Complete the quality gate result and matcher-consumption evidence in the handoff.
 

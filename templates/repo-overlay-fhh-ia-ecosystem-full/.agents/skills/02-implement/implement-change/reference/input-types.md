@@ -67,7 +67,12 @@ The ceremony drops; the quality does not.
    touches a `criticalConcern`; at N2, QA focused on the delta.
 7. **Dropped**: Discovery of unchanged code, re-validating untouched
    acceptance criteria one by one, full-feature QA, and the tracker at N1.
-8. **Proportional closure**: add an "Iteración N" subsection to the PRD's
-   section 10 with the delta, the acceptance criteria added or changed, the
+8. **Obsolescence applies to small changes too.** If the delta makes
+   something obsolete (a fixed parameter that becomes dynamic), list it with
+   its verification search, remove or adapt it in the same change, and confirm
+   zero remaining usages.
+9. **Proportional closure**: add an "Iteración N" subsection to the PRD's
+   section 10 with the cause of the iteration (`hueco del PRD`, `error de
+   implementación`, `entorno`, or `cambio de requisito`), the delta, the acceptance criteria added or changed, the
    tests executed (new and regression), and the change reference, so the map
    stays current for the next iteration.

@@ -8,7 +8,7 @@ context: fork
 
 Alias: Sherlock Estructura.
 
-Use after PRD readiness passes when the orchestrator cannot name the likely touched files, analogous patterns, tests, and validation commands with high confidence. In Codex, invoke through `.codex/agents/sherlock-estructura.toml`. In GitHub Copilot, invoke through `runSubagent`. In other agents, run inline when delegation is unavailable.
+Use after PRD readiness passes when the orchestrator cannot name the likely touched files, analogous patterns, tests, and validation commands with high confidence. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`); run it inline when delegation is unavailable.
 
 ## Mission
 
@@ -16,7 +16,7 @@ Build the smallest useful map of the existing implementation. Do not write code.
 
 Discovery exists to reduce implementation risk. It is not a codebase tour.
 
-The orchestrator decides, before invoking this skill, whether a persisted brief at `<prd-directory>/_meta/discovery.md` can be reused or the PRD already states its touched files/patterns/validation commands explicitly (see `orchestration-flow.md` Phase 1). Only run this skill when neither shortcut applies.
+The orchestrator decides, before invoking this skill, whether a persisted brief at `.ai-work/<prd-slug>/discovery.md` can be reused or the PRD already states its touched files/patterns/validation commands explicitly (see `orchestration-flow.md` Phase 1). Only run this skill when neither shortcut applies.
 
 ## Inputs From Orchestrator
 
@@ -30,15 +30,18 @@ The orchestrator decides, before invoking this skill, whether a persisted brief 
 
 Use exists-or-skip. A missing optional path is not a failed search.
 
-- `.github/copilot-instructions.md` or `.agents/instructions.md`.
+- `.agents/delegation/delegate-contract.md` (not `.agents/instructions.md` or the router).
+- `.agents/project-context.md` **first**: structure map, validation commands and their cost, test conventions, known environment quirks, and pointers to architecture docs. Explore only what is specific to the change; the brief is a **delta** over this file, not a full map. If the area is not covered or the file contradicts the code, record it under `project_context_gaps` so closure can propose the correction; never edit the file yourself.
+- The PRD's `Que queda obsoleto` table when it exists: verify each row against the current code, which may have changed since the PRD was written. A new obsolete item in the slice's own files that is trivial is added; anything else is reported in `obsolete_items_found` for the orchestrator to ask about or record. Never widen scope silently.
+- At N3, the PRD index (`.ai-work/<prd-slug>/prd-index.toon`) and only the PRD sections it points to for the areas under discovery.
 - The PRD sections and readiness brief relevant to discovery.
-- `<prd-directory>/_meta/orchestration.md` `## Calibration` and `## Pattern Lock` when they exist.
+- `.ai-work/<prd-slug>/orchestration.md` `## Calibration` and `## Pattern Lock` when they exist.
 - `docs/foundations/ARCHITECTURE.md` only when it exists and the work is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths.
-- Backend instructions when they exist and confirmed backend files will be read or touched: `.github/instructions/backend.instructions.md`.
-- Frontend instructions when they exist and confirmed frontend files will be read or touched: `.github/instructions/frontend.instructions.md`.
+- Backend instructions when they exist and confirmed backend files will be read or touched: `.agents/project/backend.md`.
+- Frontend instructions when they exist and confirmed frontend files will be read or touched: `.agents/project/frontend.md`.
 - `docs/patterns/README.md` only as an index when it exists; load only pattern docs that match the discovered implementation surface.
 
-Do not load `CODE_QUALITY.md` or `.github/instructions/quality-gate.instructions.md` during discovery. Code-writing and code-review delegates load the quality gate on demand.
+Do not load `CODE_QUALITY.md` or `.agents/project/quality-gate.md` during discovery. Code-writing and code-review delegates load the quality gate on demand.
 
 ## Context Budget
 
@@ -93,7 +96,7 @@ Frontend docs, load only when directly relevant:
 
 Return exactly the TOON schema defined in `.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md` for `sherlock-estructura`.
 
-Ensure you populate the `required_instructions[N]` field with `.github/instructions/backend.instructions.md` and/or `.github/instructions/frontend.instructions.md` if those surfaces are touched.
+Ensure you populate the `required_instructions[N]` field with `.agents/project/backend.md` and/or `.agents/project/frontend.md` if those surfaces are touched.
 
 For `controlled-lite`, keep findings compact and prioritize:
 

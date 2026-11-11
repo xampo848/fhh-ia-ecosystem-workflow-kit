@@ -13,43 +13,11 @@
 
 > **Alcance estricto**: [Clear statement of what IS and is NOT in scope for this PRD]
 
-### Contexto de Epica Padre _(si aplica)_
-
-**parent_epic**: `[path/to/epic.md]`
-
-| Invariante heredada | AC hijo | Estado | Change request aprobado |
-| ------------------- | -------- | ------ | ----------------------- |
-| INV-[AREA]-01 | AC-[N] | Mapeada | No aplica |
-
-Una contradiccion exige un change request aprobado por el usuario con ID de invariante, motivo y aprobador antes de continuar.
-
-**Path vivo heredado**: [Debe seguir en el sistema nuevo | Se puede cortar | No aplica]
-**Secuencia de corte heredada**: [fase 1 -> ... | No aplica]
-**Este PRD respeta el corte**: Si | Change request `INV-CUT-NN`
 **Sketch heredado**: `docs/design/<slug>-sketch.md` | No aplica | `sketch: skipped`
 **UI lock**: locked | not-applicable | missing
 **Visible UI**: Si | No
 
-### Contrato entre Fases _(si aplica)_
-
-**Ledger leido**: `docs/epics/<feature-or-project>/<slug>-ledger.md`
-**PRD anterior en la cola**: `[path/to/previous-prd.md]` (`No aplica` si es el primer PRD de la epica)
-
-**Precondiciones (que asume que ya existe de fases previas)**:
-
-| ID | Precondicion | Origen (PRD/ledger) | Verificado en discovery |
-| -- | ------------- | -------------------- | ------------------------ |
-| PRE-[N] | [Lo que este PRD asume que ya esta implementado o decidido] | [PRD/ledger row] | Si/No |
-
-Si una precondicion no se verifica contra el codigo real durante el calibration, este PRD no puede continuar sin resolver la discrepancia con el usuario.
-
-**Postcondiciones (que garantiza para fases siguientes)**:
-
-| ID | Postcondicion | Como se prueba |
-| -- | -------------- | --------------- |
-| POST-[N] | [Lo que este PRD deja garantizado para que el proximo PRD lo pueda asumir] | [Test/evidencia] |
-
-`document-development` copia estas postcondiciones al ledger de la epica al cerrar este PRD.
+_Si el PRD pertenece a una epica, insertar aqui las secciones "Contexto de Epica Padre" y "Contrato entre Fases" desde `template-sections/epic-context.md`. Si no, omitirlas._
 
 ### Estado Actual
 
@@ -116,29 +84,29 @@ Una categoria sin caso aplicable se marca `No aplica` con una justificacion de u
 
 ### 2.7 Contrato Visual (UI lock)
 
-Completar cuando hay UI visible. Si no hay pantalla de usuario, dejar `UI lock: not-applicable` y una razon de una linea.
-
 **UI lock**: locked | not-applicable
-**Superficie**: Nueva | Evolucion de [ruta o componente existente]
-**Densidad / composicion**: Tabla | Formulario | Wizard | Detalle | Dashboard | Otro: [nombre]
-**Accion primaria**: [La unica accion que debe ganar jerarquia]
-**Estados requeridos**: loading | vacio | error | permisos | 1 item | N items
-**Tesis visual**: [Una frase: jerarquia, ritmo y el movimiento que evita un look generico]
-**Reutilizar**: [Primitiva del Design System o pantalla hermana]
-**Evidencia opcional**: [path de screen actual / Figma / foto / mockup | ninguna]
-**No lockear aqui**: hex, tipografias nuevas, animacion, salvo decision de producto ya existente
 
-```text
-[Wireframe ASCII de la pantalla principal]
-+--------------------------------------+
-| Titulo                    [Accion]   |
-|--------------------------------------|
-| [contenido primario]                 |
-| [estado vacio / error / lista]       |
-+--------------------------------------+
-```
+Si hay UI visible, reemplazar este bloque por la seccion completa de `template-sections/visual-contract.md` y dejar `UI lock: locked`. Si no hay pantalla de usuario, dejar `UI lock: not-applicable` y una razon de una linea.
 
-`implement-prd` no puede inventar esta pantalla. Un mockup o foto ancla; no sustituye los campos de arriba.
+---
+
+### 2.8 Supuestos e integraciones
+
+Toda dependencia externa o poco conocida (API de terceros, forma y volumen de datos reales, limites, calidad de datos legados). Si no hay ninguna, escribir `Ninguno` con una razon de una linea.
+
+| Supuesto | Fuente | Estado | Evidencia | Que pasa si es falso |
+| --- | --- | --- | --- | --- |
+| [Comportamiento que se da por cierto] | [Codigo / contrato / documentacion / usuario / prueba exploratoria] | verificado \| asumido \| bloqueante | [Ruta, enlace o resultado de la prueba] | [Criterios o slices afectados y plan] |
+
+Un supuesto `asumido` que afecta un criterio de aceptacion necesita verificacion antes de cerrar el PRD o un primer slice que lo verifique, con condicion de parada si resulta falso.
+
+### 2.9 Que queda obsoleto
+
+Lo que este desarrollo deja obsoleto forma parte del alcance. Si no hay nada, escribir `Ninguno` con una razon de una linea. Solo cuenta lo que **este** cambio vuelve obsoleto; el codigo muerto no relacionado se anota como sugerencia, fuera del alcance.
+
+| Elemento | Tipo | Ubicacion | Reemplazado por | Accion | Consumidores | Slice | Busqueda de verificacion |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| [Constante, parametro, endpoint, test, doc...] | codigo \| constante o parametro \| configuracion \| flag \| endpoint o campo \| test \| fixture o seed \| traduccion \| documentacion \| datos | [Ruta] | [Nuevo elemento] | eliminar \| adaptar \| deprecar en etapas | [En el repo / externos: cuales] | [P1-S2] | `[comando de busqueda que debe dar cero usos]` |
 
 ---
 
@@ -257,8 +225,8 @@ _(Vacio = PRD listo para implementar)_
 ## 8. Definition of Done Global
 
 - [ ] Todas las fases completadas
-- [ ] `bundle exec rails test` en verde
-- [ ] `bundle exec rubocop` sin offenses
+- [ ] `[comando de tests del proyecto, segun .agents/project-context.md]` en verde
+- [ ] `[comando de lint del proyecto]` sin hallazgos
 - [ ] Retrocompatibilidad: archivos sin columnas nuevas siguen importando
 - [ ] Columnas BD en ingles
 - [ ] Sin queries N+1
@@ -279,7 +247,7 @@ _(Vacio = PRD listo para implementar)_
 
 ## 10. Evidencia de Implementacion
 
-Esta seccion es el registro durable de cierre. `implement-prd` la completa antes de eliminar los artefactos temporales de `_meta/`; no registrar prompts, trackers, handoffs ni estado interno de agentes.
+Esta seccion es el registro durable de cierre: un resumen, no una bitacora. `implement-change` (alias `implement-prd`) la completa antes de eliminar los artefactos temporales de `.ai-work/<prd-slug>/`; no registrar prompts, trackers, handoffs ni estado interno de agentes. Tamano orientativo: unas 60 lineas en N3 y 15 en N1/N2; cada "Iteracion N" posterior, unas 15. Los hallazgos `critical` y `high` se listan uno por uno; el resto se resume en conteos por estado.
 
 **Estado**: No iniciada | En progreso | Cerrada | Bloqueada
 
@@ -291,4 +259,7 @@ Esta seccion es el registro durable de cierre. `implement-prd` la completa antes
 | Calidad y QA | [Quality gate y `ready_to_close` con evidencia] |
 | Referencia de cambio | [Commit, PR o diff identificable] |
 | Riesgos o waivers | [Ninguno o riesgo, aprobador y motivo] |
+| Checks reutilizados | [Ninguno, o `comando`: reutilizado de <etapa>, huella <x>] |
+| Iteraciones y causa | [Ninguna, o por cada reentrada, ronda de reparacion o iteracion: `hueco del PRD` \| `error de implementacion` \| `entorno` \| `cambio de requisito`] |
+| Modo de ejecucion | [supervisado \| autonomo] |
 | Fecha de cierre | [YYYY-MM-DD] |

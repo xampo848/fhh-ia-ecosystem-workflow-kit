@@ -25,6 +25,9 @@
         ".agents/instructions.md",
         ".agents/skills/registry.md",
         ".agents/skills/02-implement/implement-change/SKILL.md",
+        ".agents/delegation/delegate-contract.md",
+        ".agents/project/quality-gate.md",
+        ".agents/project-context.md",
         ".agents/skills/02-implement/implement-prd/SKILL.md",
         ".agents/skills/06-patterns/README.md",
         ".agents/capabilities/registry.md",
@@ -73,7 +76,8 @@
       "requires_reference": ".agents/instructions.md",
       "required_files": [
         "CLAUDE.md",
-        ".claude/agents/capitana-alcance.md"
+        ".claude/agents/capitana-alcance.md",
+        ".claude/skills/implement-change/SKILL.md"
       ]
     },
     {

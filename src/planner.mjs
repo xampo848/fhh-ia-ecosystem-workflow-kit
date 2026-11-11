@@ -4,13 +4,21 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isSupportedRuntime, runtimeTemplatePaths } from './runtime-matrix.mjs';
 import { loadDelegateCatalog, parseProfileOption, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
+import { inspectProjectInstructions, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
+import { describeMigrations } from './plan-insight.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
 export const installStateRelativePath = '.agents/workflow-kit/install-state.json';
 const installStateSchemaVersion = '1.0.0';
 const skillRegistryJsonPath = '.agents/skills/registry.json';
+// Project-owned once created: the installer writes them only when missing.
 const skillCatalogPreservePaths = new Set([
+  '.agents/project-context.md',
+  '.agents/project/quality-gate.md',
+  '.agents/project/backend.md',
+  '.agents/project/frontend.md',
+  '.agents/project/paths.json',
   '.agents/skills/index.md',
   '.agents/skills/06-patterns/index.md',
   '.agents/skills/registry.md',
@@ -124,6 +132,9 @@ export async function buildInstallPlan(options = {}) {
   const discoveredSkillEntries = await collectDiscoveredLocalSkillEntries(targetPath);
   const catalog = await loadDelegateCatalog();
   const modelProfiles = resolveModelProfiles({ catalog, runtimes, requested: parseProfileOption(options.profile) });
+  const instructionInspection = await inspectProjectInstructions({ targetPath });
+  const migratedInstructions = migratedInstructionContents(instructionInspection);
+  const stackPack = normalizeStackPack(options.stack);
   const operations = [];
 
   for (const file of files) {
@@ -151,7 +162,8 @@ export async function buildInstallPlan(options = {}) {
       existingContent,
       discoveredSkillEntries,
       catalog,
-      modelProfiles
+      modelProfiles,
+      migratedInstructions
     });
 
     if (existingContent !== null) {
@@ -176,6 +188,11 @@ export async function buildInstallPlan(options = {}) {
   }
 
   operations.push(...await buildOneTimeDocsMigrationOperations({ targetPath }));
+  if (options.ensureWorkspaceIgnore !== false) {
+    operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode }));
+  }
+  operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode }));
+  operations.push(...await buildStackPackOperations({ targetPath, stackPack }));
 
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 
@@ -185,11 +202,13 @@ export async function buildInstallPlan(options = {}) {
     runtimes,
     overlay,
     modelProfiles,
+    stackPack,
     toolkitVersion: options.toolkitVersion
   });
 
   return {
     mode: 'init',
+    migrations: describeMigrations({ operations, existingState: null, migratedInstructions }),
     targetPath,
     stateFilePath: path.join(targetPath, installStateRelativePath),
     nextInstallState,
@@ -198,6 +217,7 @@ export async function buildInstallPlan(options = {}) {
     runtimes,
     overlay,
     modelProfiles,
+    stackPack,
     discoveredSkillEntries,
     operations,
     summary: summarizeOperations(operations),
@@ -222,6 +242,11 @@ export async function buildUpdatePlan(options = {}) {
     requested: parseProfileOption(options.profile),
     stored: existingState?.modelProfiles
   });
+  const instructionInspection = await inspectProjectInstructions({ targetPath });
+  const migratedInstructions = migratedInstructionContents(instructionInspection);
+  // Installs from before stack packs carried the Rails + React rules inside the
+  // skills. Without a recorded choice, keep those rules by installing the pack.
+  const stackPack = normalizeStackPack(options.stack ?? existingState?.stackPack ?? 'rails-react');
   const previousHashes = new Map(Object.entries(existingState?.files ?? {}));
   const operations = [];
 
@@ -254,7 +279,8 @@ export async function buildUpdatePlan(options = {}) {
       existingContent,
       discoveredSkillEntries,
       catalog,
-      modelProfiles
+      modelProfiles,
+      migratedInstructions
     });
 
     if (existingContent === null) {
@@ -367,6 +393,10 @@ export async function buildUpdatePlan(options = {}) {
     }
   }
 
+  operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode }));
+  operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode }));
+  operations.push(...await buildStackPackOperations({ targetPath, stackPack }));
+
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 
   const nextInstallState = buildNextInstallState({
@@ -375,6 +405,7 @@ export async function buildUpdatePlan(options = {}) {
     runtimes,
     overlay,
     modelProfiles,
+    stackPack,
     toolkitVersion: options.toolkitVersion
   });
 
@@ -383,12 +414,22 @@ export async function buildUpdatePlan(options = {}) {
     targetPath,
     stateFilePath,
     hadExistingState: Boolean(existingState),
+    migrations: describeMigrations({
+      operations,
+      existingState,
+      modelProfiles,
+      requestedProfiles: parseProfileOption(options.profile),
+      stackPack,
+      stackRequested: options.stack !== undefined,
+      migratedInstructions
+    }),
     nextInstallState,
     toolkitVersion: options.toolkitVersion ?? null,
     previousToolkitVersion: existingState?.toolkitVersion ?? null,
     runtimes,
     overlay,
     modelProfiles,
+    stackPack,
     discoveredSkillEntries,
     operations,
     summary: summarizeOperations(operations),
@@ -407,6 +448,7 @@ export function selectPlanOperations(plan, selectedRelativePaths = []) {
     runtimes: plan.runtimes,
     overlay: plan.overlay,
     modelProfiles: plan.modelProfiles,
+    stackPack: plan.stackPack,
     toolkitVersion: plan.toolkitVersion
   });
 
@@ -451,8 +493,14 @@ export function formatPlan(plan) {
     `Runtimes: ${plan.runtimes.join(',')}`,
     `Overlay: ${plan.overlay}`,
     `Model profiles: ${formatModelProfiles(plan.modelProfiles)}`,
-    'Operations:'
+    `Stack pack: ${plan.stackPack ?? 'none'}`
   ];
+
+  if ((plan.migrations ?? []).length > 0) {
+    lines.push('Migrations (applied once, idempotent):');
+    for (const migration of plan.migrations) lines.push(`- ${migration.id}: ${migration.summary}`);
+  }
+  lines.push('Operations:');
 
   for (const item of plan.operations) {
     lines.push(`- ${item.operation}: ${item.relativePath}`);
@@ -482,6 +530,7 @@ async function readInstallState(stateFilePath) {
       runtimes: Array.isArray(parsed.runtimes) ? parseRuntimeList(parsed.runtimes.join(',')) : ['neutral'],
       overlay: normalizeOverlay(parsed.overlay ?? 'fhh-ia-ecosystem-full'),
       modelProfiles: parsed.modelProfiles && typeof parsed.modelProfiles === 'object' ? parsed.modelProfiles : {},
+      stackPack: typeof parsed.stackPack === 'string' ? parsed.stackPack : undefined,
       files: parsed.files
     };
   } catch (error) {
@@ -496,7 +545,7 @@ function formatModelProfiles(modelProfiles = {}) {
   return entries.length > 0 ? entries.map(([runtime, profile]) => `${runtime}=${profile}`).join(',') : 'none (no runtime with delegate agents)';
 }
 
-function buildNextInstallState({ previousState, operations, runtimes, overlay, modelProfiles, toolkitVersion }) {
+function buildNextInstallState({ previousState, operations, runtimes, overlay, modelProfiles, stackPack, toolkitVersion }) {
   const files = { ...(previousState?.files ?? {}) };
 
   for (const item of operations) {
@@ -533,11 +582,18 @@ function buildNextInstallState({ previousState, operations, runtimes, overlay, m
     runtimes,
     overlay,
     modelProfiles: { ...(previousState?.modelProfiles ?? {}), ...(modelProfiles ?? {}) },
+    stackPack: stackPack ?? previousState?.stackPack ?? 'none',
     files
   };
 }
 
-function resolvePlannedContent({ relativePath, templateContent, existingContent, discoveredSkillEntries = [], catalog, modelProfiles = {} }) {
+function resolvePlannedContent({ relativePath, templateContent, existingContent, discoveredSkillEntries = [], catalog, modelProfiles = {}, migratedInstructions = {} }) {
+  // First install of the neutral layout over hand-written Copilot instructions:
+  // the project's own rules become the neutral file instead of the template.
+  if (existingContent === null && typeof migratedInstructions[relativePath] === 'string') {
+    return { strategy: 'template', content: migratedInstructions[relativePath] };
+  }
+
   if (catalog) {
     const delegateAdapter = renderDelegateAdapterForPath(relativePath, catalog, modelProfiles);
     if (delegateAdapter) return { strategy: 'template', content: delegateAdapter.content };
@@ -771,6 +827,95 @@ function extractDocsWorkflowBlock(content) {
   const end = content.indexOf(docsWorkflowMarkerEnd);
   if (start < 0 || end < start) return null;
   return content.slice(start, end + docsWorkflowMarkerEnd.length);
+}
+
+// Stack packs hold the framework rules that are no longer part of the neutral
+// skills (roadmap D-30). The pack is copied once to .agents/project/stack.md;
+// after that the project owns the file and the installer never touches it.
+export const stackPackNames = Object.freeze(['rails-react']);
+export const stackRulesPath = '.agents/project/stack.md';
+
+export function normalizeStackPack(value) {
+  if (value === undefined || value === null || value === '' || value === 'none') return 'none';
+  if (!stackPackNames.includes(value)) {
+    throw new Error(`Unsupported --stack value "${value}". Use one of: none, ${stackPackNames.join(', ')}.`);
+  }
+  return value;
+}
+
+async function buildStackPackOperations({ targetPath, stackPack }) {
+  if (stackPack === 'none') return [];
+  const targetFile = path.join(targetPath, stackRulesPath);
+  try {
+    await fs.access(targetFile);
+    return [];
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  const content = await fs.readFile(path.join(templatesRoot, 'stack-packs', stackPack, 'stack.md'), 'utf8');
+  return [{ operation: 'create', relativePath: stackRulesPath, targetFile, sourcePath: null, content }];
+}
+
+function migratedInstructionContents(inspection) {
+  const migrated = {};
+  for (const name of projectInstructionNames) {
+    if (inspection[name].migratedContent !== null) migrated[neutralInstructionPath(name)] = inspection[name].migratedContent;
+  }
+  return migrated;
+}
+
+// Copilot loads instructions from .github/instructions/. Generate those files
+// from the neutral ones as they will be after this plan is applied.
+function projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode }) {
+  if (!runtimes.includes('copilot')) return [];
+  const neutralContents = {};
+  for (const name of projectInstructionNames) {
+    const planned = operations.find((item) => item.relativePath === neutralInstructionPath(name));
+    const willWrite = planned && !['skip_unmanaged', 'skip_modified', 'unchanged', 'adopt_existing'].includes(planned.operation);
+    neutralContents[name] = willWrite ? planned.content : instructionInspection[name].neutral;
+  }
+  // Record the generated content so install-state tracks these files and
+  // doctor flags a hand edit instead of an old template checksum.
+  return planCopilotWrappers({ targetPath, inspection: instructionInspection, neutralContents, backupMode })
+    .map((operation) => ({ ...operation, plannedChecksum: computeChecksum(operation.content) }));
+}
+
+// The AI workspace (.ai-work/) must be ignored by Git in the target repository.
+// The entry is appended once; .gitignore stays user-owned, so the operation
+// carries no checksum and never enters install-state.
+export const workspaceDirectory = '.ai-work';
+const workspaceIgnoreEntry = `${workspaceDirectory}/`;
+
+export function gitignoreHasWorkspaceEntry(content) {
+  return String(content).split(/\r?\n/).some((line) => {
+    const entry = line.trim().replace(/^\//, '');
+    return entry === workspaceIgnoreEntry || entry === workspaceDirectory;
+  });
+}
+
+async function buildWorkspaceIgnoreOperations({ targetPath, backupMode }) {
+  const targetFile = path.join(targetPath, '.gitignore');
+  const block = `# AI workflow workspace (temporary coordination state)\n${workspaceIgnoreEntry}\n`;
+  let existing = null;
+  try {
+    existing = await fs.readFile(targetFile, 'utf8');
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+
+  if (existing === null) {
+    return [{ operation: 'create', relativePath: '.gitignore', targetFile, sourcePath: null, content: block }];
+  }
+  if (gitignoreHasWorkspaceEntry(existing)) return [];
+
+  const separator = existing.length === 0 || existing.endsWith('\n') ? '' : '\n';
+  return [{
+    operation: backupMode === 'none' ? 'merge_no_backup' : 'merge_with_backup',
+    relativePath: '.gitignore',
+    targetFile,
+    sourcePath: null,
+    content: `${existing}${separator}\n${block}`
+  }];
 }
 
 async function buildOneTimeDocsMigrationOperations({ targetPath }) {

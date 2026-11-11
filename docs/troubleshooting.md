@@ -112,6 +112,45 @@ workflow-kit update --target /path/to/repo --profile claude=calidad --apply --ye
 Use the profile you actually want (`calidad` for subscriptions, `costo` for
 Copilot or per-token APIs).
 
+## Doctor reports `project-instructions/*` or `stack-pack/missing`
+
+Project rules live in `.agents/project/`; runtime folders only hold generated
+copies.
+
+| Code | Meaning | Action |
+| --- | --- | --- |
+| `project-instructions/not-migrated` | rules exist only in `.github/instructions/`, so other runtimes skip them | run `workflow-kit update`; it copies them to `.agents/project/` and regenerates the Copilot file with a backup |
+| `project-instructions/wrapper-stale` | the generated Copilot file differs from the neutral one | run `workflow-kit update`; edit `.agents/project/<name>.md`, never the generated copy |
+| `project-instructions/quality-gate-missing` | no quality gate is configured | run `workflow-kit update` to restore the default; until then code-writing work reports `quality gate: no configurado` and N3 work stops |
+| `stack-pack/missing` | a stack pack is recorded but `.agents/project/stack.md` is gone | run `workflow-kit update --stack <pack> --apply --yes` |
+
+## Doctor reports `project-context/*` warnings
+
+`.agents/project-context.md` is the project's fixed knowledge base: structure
+map, validation commands with their cost, test conventions, environment
+quirks, and pointers to architecture docs. Discovery reads it first.
+
+| Code | Meaning | Action |
+| --- | --- | --- |
+| `project-context/not-initialized` | the file is still the installed template | run an initial Discovery of the project (an N2 task), review the result, and remove the template marker |
+| `project-context/too-long` | more than 200 lines | point to other documents instead of copying them |
+| `project-context/missing-path` | it names a path that no longer exists | fix it at the next closure; only the orchestrator edits this file |
+
+## Doctor reports `workspace/*` or `prd/section-10-oversized` warnings
+
+Temporary AI state (tracker, `events.log`, locks, handoffs, validation logs)
+lives in `.ai-work/<prd-slug>/`, ignored by Git. These warnings never fail
+`doctor`; they make leftovers visible:
+
+| Code | Meaning | Action |
+| --- | --- | --- |
+| `workspace/not-ignored` | `.ai-work/` exists but is not in `.gitignore` | run `workflow-kit update`, or add `.ai-work/` |
+| `workspace/closed-prd-leftover` | the PRD is closed but its workspace remains | delete that `.ai-work/<prd-slug>/` directory |
+| `workspace/stale` | no activity for more than 14 days | close, split, or archive the change; an open or blocked change may keep it |
+| `workspace/tracker-is-a-log` | the tracker grew past ~150 lines or repeats history blocks | keep the tracker as a snapshot; history goes to `events.log` |
+| `workspace/legacy-meta` | a `docs/prd/**/_meta/` directory from the old layout | delete it once its PRD is closed |
+| `prd/section-10-oversized` | `## 10. Evidencia de Implementacion` passes ~60 lines | keep a durable summary; repair history stays in the PR |
+
 ## Update shows `skip_modified` or `skip_unmanaged`
 
 - `skip_modified`: the file is managed but was changed locally after last apply, so update protects it.

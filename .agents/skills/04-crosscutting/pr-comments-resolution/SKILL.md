@@ -17,6 +17,7 @@ Guided, one-comment-at-a-time workflow to resolve Pull Request feedback safely.
 
 1. Start by loading PR context with `github-pull-request_activePullRequest`.
 2. Never implement before user choice. Present options and stop.
+2a. Never accept a comment by default, whether it comes from a human, Copilot, Sentry, or a linter. Evaluate it first (Phase 2.0) with `.agents/skills/01-product/shared/critical-stance.md` ("Evaluating external claims").
 3. Resolve one unresolved comment at a time.
 4. After each implemented fix, run relevant validation (tests/lint/check command).
 5. After each validated fix, close the related PR review thread with `github-pull-request_resolveReviewThread`.
@@ -75,14 +76,32 @@ Provide a compact list of unresolved comments ordered by priority and ask to sta
 
 Apply this loop for each unresolved comment.
 
+### 2.0 Evaluate Before Explaining (mandatory)
+
+For each comment, before presenting options:
+
+1. Interpret the concrete technical claim.
+2. Check it against the **current** code (the comment may refer to an old
+   diff), the full thread, the PRD or contract, and the tests.
+3. Classify it:
+   - **valid**: the claim holds and should be fixed;
+   - **partially valid**: part holds, part does not;
+   - **obsolete**: already resolved, or the line changed;
+   - **not applicable**: out of scope, or it contradicts a PRD decision;
+   - **incorrect**: the claim is wrong.
+4. Assign a severity and cite the evidence (file and line, test, document).
+
+Symmetry rule: "incorrect" needs evidence as solid as a fix would need. Do not
+reject a comment to save work, and do not accept one to avoid friction.
+
 ### 2.1 Explain the Comment
 
 For each comment, present:
 
 - File and location
-- What is wrong
-- Why it matters
-- Risk if unchanged
+- What the comment claims
+- Verdict (valid, partially valid, obsolete, not applicable, incorrect) and its evidence
+- Why it matters, and the risk if unchanged, when the verdict is valid or partially valid
 
 ### 2.2 Propose Options and Stop
 
@@ -94,12 +113,24 @@ Option count policy:
 - 3 options for standard implementation decisions
 - 4 options for high-impact decisions (security, migrations, data integrity)
 
+Options depend on the verdict:
+
+- **valid**: fix it (and optionally reply);
+- **partially valid**: fix the valid part and reply to the rest;
+- **obsolete**: reply citing the commit or change that resolved it;
+- **not applicable**: reply with the grounds (for example, the PRD decision)
+  and, when worthwhile, propose it as future scope;
+- **incorrect**: reply with evidence; do not change code.
+
 Always include:
 
 - One conservative option
 - One recommended option with rationale
 
 Then stop and wait for user selection.
+
+Replies are outward actions: show the exact reply text and wait for the user's
+approval before posting it (templates in `reference/comment-response-templates.md`).
 
 ### 2.3 Implement User-Selected Option
 
@@ -124,6 +155,10 @@ After code + validation success:
 github-pull-request_resolveReviewThread
 ```
 
+For a verdict that changes no code, post the approved reply first. A bot thread
+may then be closed. When you disagree with a **human** reviewer, reply but do
+not close their thread: the reviewer resolves it.
+
 If closure fails:
 
 - Report exact reason (missing thread id, no permission, already resolved, tool error)
@@ -138,40 +173,18 @@ Proceed until all unresolved comments are handled.
 
 After all unresolved comments:
 
-- List each resolved comment and what changed
+- List each comment with its verdict (valid, partially valid, obsolete, not applicable, incorrect), and what changed or what was replied
 - List files modified
 - List validation results (pass/fail/not-run + reason)
 - List thread closure status (closed/failed reason)
 - Ask whether to run a full-suite check
 
-## Special Rules
+## References
 
-### Sentry Comments
+Load a reference only when its condition holds:
 
-- Prioritize first
-- Include severity (HIGH/MEDIUM/LOW)
-- Use suggested fix as input, never as auto-apply
-
-### Linter/Style Comments
-
-- Confirm suggestion fits local conventions
-- Keep as minor unless behavior is affected
-
-### Human Reviewer Threads
-
-- Read full thread context before proposing options
-- Respect prior decisions in-thread
-
-## Definition of Done
-
-- [ ] PR comments fetched and classified
-- [ ] Initial summary shown to user
-- [ ] One-by-one resolution followed
-- [ ] Explicit user confirmation before each implementation
-- [ ] Validation executed for logic changes
-- [ ] Review thread closure attempted for each fixed comment
-- [ ] Failures in closure/validation reported with reason
-- [ ] Final summary delivered
+- [reference/triage-and-special-rules.md](reference/triage-and-special-rules.md) — read it when the PR has many comments, or a comment comes from Sentry, a linter, or a human thread with prior decisions
+- [reference/triage-and-special-rules.md](reference/triage-and-special-rules.md) — read it x
 
 ## Templates
 
@@ -180,8 +193,3 @@ Reusable response templates are moved to:
 - `reference/comment-response-templates.md`
 
 Load templates only when drafting the actual user-facing message for a comment.
-
-## Integrations
-
-- `react-doctor` for meaningful React correctness/quality concerns
-- Pattern docs only when the comment requires those domain specifics

@@ -47,6 +47,15 @@ This skill starts only after explicit authorization (`usa solution-sketch`, `hac
 5. Do not write acceptance criteria, edge-case matrices, or implementation slices. If those appear, stop — this is becoming a second PRD.
 6. Do not edit product code.
 
+## UI sketches (optional, offered on entry)
+
+When the sketch involves a user-facing screen, offer the UI paths before turn
+1 and wait for the user's choice: design a new view with `impeccable`, critique
+an existing view, use the team's own design, or skip the visual part. Nothing
+visual starts on its own. Load [references/ui-sketch.md](references/ui-sketch.md)
+only when the user picks a UI path; it covers the paths, comparable proposals,
+HTML mockups and prototypes, and the bridge to the PRD's Contrato Visual.
+
 ## Artifact
 
 Write `docs/design/<slug>-sketch.md` using [references/sketch-template.md](references/sketch-template.md).
@@ -59,6 +68,8 @@ Required sections:
 4. Names that exist: classes, owners, relationships
 5. What is not created now
 6. Questions that still block the PRD
+
+When a UI path was chosen, add `ui-path` to the header and the optional visual section from `references/ui-sketch.md` after section 6.
 
 If that path already exists, ask whether to reuse, version, or overwrite. Default is reuse.
 

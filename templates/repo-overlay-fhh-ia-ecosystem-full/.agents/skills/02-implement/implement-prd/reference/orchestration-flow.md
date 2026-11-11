@@ -1,23 +1,23 @@
 # Orchestration Flow
 
-Use this reference after `implement-prd/SKILL.md` is loaded.
+Use this reference after `implement-change/SKILL.md` (alias `implement-prd`) and its level reference are loaded.
 
-Load this file only when the selected mode is above `controlled-lite`, when a compact flow escalates, or when a stop condition/risk trigger requires the detailed phase flow.
+Load this file only for N3, for N2 work with selective delegation, when a compact flow escalates, or when a stop condition/risk trigger requires the detailed phase flow. "Compact N2" means N2 work on one primary surface that runs the stages inline or with one lightweight delegate.
 
-## Mode Selection Contract
+## Level Selection Contract
 
-Before Phase 0, confirm the operating mode selected by the router or by `implement-prd` startup:
+Before Phase 0, confirm the level selected by the router or by `implement-change` startup:
 
-| Mode | Execution contract |
+| Level | Execution contract |
 | --- | --- |
-| `small/local` | Inline only. No subagents. Validate the narrow local change and close. Task tracker may be skipped. |
-| `controlled-lite` | Compact inline or lightweight-delegate versions of Capitana, Sherlock, Arquitecta, matcher, writer, validation, and QA. One owner per slice. Do not omit a named stage. Skip only ceremonial extra subagents, never the QA checklist or closure evidence. |
-| `controlled-implementation` | Targeted delegation. Delegate phases or slices when independent context, file ownership, validation, or review bias reduction materially lowers risk. Do not delegate merely because the task is non-trivial. |
-| `standard` | Risk-complete flow with compact delegation. Use explicit ownership, contract verification, validation runner, and one QA handoff as closure gates; do not create one delegate per file or named stage by default. |
-| `autonomous-safe` | Standard flow without routine phase approvals. Stop only on stop conditions. |
-| `resume` | Reconstruct progress from PRD, diff, tests, and first incomplete acceptance criterion. Do not re-implement validated work. |
+| N1 | Inline only. No subagents. Validate the narrow local change and close. Task tracker may be skipped. |
+| compact N2 | Compact inline or lightweight-delegate versions of Capitana, Sherlock, Arquitecta, matcher, writer, validation, and QA. One owner per slice. Do not omit a named stage. Skip only ceremonial extra subagents, never the QA checklist or closure evidence. |
+| N2 | Targeted delegation. Delegate phases or slices when independent context, file ownership, validation, or review bias reduction materially lowers risk. Do not delegate merely because the task is non-trivial. |
+| N3 | Risk-complete flow with compact delegation. Use explicit ownership, contract verification, validation runner, and one QA handoff as closure gates; do not create one delegate per file or named stage by default. |
+| autonomous (modifier) | Same level flow without routine phase approvals. Stops on stop conditions, repair-round limits, and environment failures. |
+| resume (modifier) | Reconstruct progress from PRD, diff, tests, and first incomplete acceptance criterion. Do not re-implement validated work. |
 
-Escalate from `controlled-lite` to `controlled-implementation` when discovery shows any of these:
+Escalate from compact N2 to N2 when discovery shows any of these:
 
 - 4+ production files or more than 5 exploratory file reads before a safe plan.
 - Multiple non-trivial surfaces in one PRD.
@@ -25,7 +25,7 @@ Escalate from `controlled-lite` to `controlled-implementation` when discovery sh
 - Backend/frontend contract producer and consumer changes in the same PRD.
 - Authorization, tenancy, or security-sensitive ambiguity.
 
-Escalate from `controlled-implementation` to `standard` when discovery shows any of these:
+Escalate from N2 to N3 when discovery shows any of these:
 
 - 6+ files or multiple non-trivial surfaces.
 - Backend/frontend contract ambiguity or impact to existing consumers.
@@ -42,7 +42,7 @@ For every delegated phase or slice:
 2. Wait until the delegate returns a terminal handoff. In Codex, call `wait_agent` for the delegated agent id when the next critical-path step depends on it. Partial progress, terminal logs, a changed diff, or silence are not enough.
 3. Parse the handoff and confirm it includes status, files changed/read, evidence, validation result, risks, and stop conditions as required by the delegate skill.
 4. Inspect any changed files or diff before assigning overlapping ownership to another writer.
-5. Update `<prd-directory>/_meta/task_tracker.toon` only after the handoff has been reviewed.
+5. Update `.ai-work/<prd-slug>/task_tracker.toon` only after the handoff has been reviewed.
 6. Start the next dependent delegate only after the current slice is `VERIFIED` or explicitly marked blocked with user-visible reason.
 
 ### Delegated Context Preflight
@@ -79,9 +79,9 @@ If the runtime cannot wait for a pending Codex subagent, stop the workflow and r
 
 ## Phase 0: Readiness
 
-If `<prd-directory>/_meta/orchestration.md` exists, reuse `## Calibration` and `## Self-Audit` as the starting readiness brief. Still produce a Capitana verdict; do not skip the stage.
+If `.ai-work/<prd-slug>/orchestration.md` exists, reuse `## Calibration` and `## Self-Audit` as the starting readiness brief. Still produce a Capitana verdict; do not skip the stage.
 
-Delegate to `prd-readiness-review` (Capitana Alcance), or run the same procedure inline for `small/local` and `controlled-lite` mode.
+Delegate to `prd-readiness-review` (Capitana Alcance), or run the same procedure inline for N1 and compact N2 mode.
 
 Required output:
 
@@ -91,25 +91,25 @@ Required output:
 - Touched surfaces.
 - Blocking questions.
 - Risks.
-- Recommended operating mode: `small/local | controlled-lite | controlled-implementation | standard | autonomous-safe | resume`.
+- Recommended operating mode: `N1 | N2 | N3`, plus modifiers `autonomous | resume`.
 - `Decision: GO | STOP`.
 
 If it returns `Decision: STOP`, ask the user the blocking questions and do not implement. If the user answers, update the PRD or preserve the decision in the work log before continuing.
 
-For `controlled-lite`, compact readiness is enough when the PRD is approved, single-surface, and behavioral rules are explicit. Do not spend a separate subagent run restating the full PRD.
+For compact N2, compact readiness is enough when the PRD is approved, single-surface, and behavioral rules are explicit. Do not spend a separate subagent run restating the full PRD.
 
-For `autonomous-safe` mode, stop only on real stop conditions. Do not pause just because a phase boundary was reached.
+For the autonomous modifier mode, stop only on real stop conditions. Do not pause just because a phase boundary was reached.
 
 ## Phase 1: Discovery
 
 Before delegating, decide whether discovery can be skipped or reused:
 
-1. **Check for a persisted brief.** If `<prd-directory>/_meta/discovery.md` exists, verify freshness before reusing it:
+1. **Check for a persisted brief.** If `.ai-work/<prd-slug>/discovery.md` exists, verify freshness before reusing it:
    - If `codebase-memory-mcp` tools are exposed and index status is `ready`, run its change-detection capability scoped to the persisted brief's `files_likely_touched` and `patterns`. If it reports no relevant changes, reuse the persisted brief and skip delegation entirely.
    - If MCP is unavailable, unready, or has no change-detection capability, do not guess freshness: treat the persisted brief as stale if any commit or slice has landed since it was written, and re-run discovery.
 2. **Check for an explicit PRD.** If no persisted brief applies and the PRD already states complete `touched files`, `patterns to reuse`, and `validation commands`, do not delegate a full discovery subagent. Verify inline (`rg`/`ls`) that the listed paths and patterns still exist, and build the discovery brief directly from the PRD with `source: prd-explicit`. Escalate to a full delegated discovery if verification fails or the PRD's claims do not hold.
-3. Otherwise, delegate to `codebase-discovery` (Sherlock Estructura), or run inline for `small/local` and `controlled-lite` mode.
-4. **Persist the result.** Whichever path was taken (reused, inline-explicit, inline, or delegated), write or refresh `<prd-directory>/_meta/discovery.md` with the discovery brief fields below plus `source: reused-persisted | prd-explicit | inline | subagent` and the date. Later slices and resumes in the same PRD read this file first instead of re-discovering.
+3. Otherwise, delegate to `codebase-discovery` (Sherlock Estructura), or run inline for N1 and compact N2 mode.
+4. **Persist the result.** Whichever path was taken (reused, inline-explicit, inline, or delegated), write or refresh `.ai-work/<prd-slug>/discovery.md` with the discovery brief fields below plus `source: reused-persisted | prd-explicit | inline | subagent` and the date. Later slices and resumes in the same PRD read this file first instead of re-discovering.
 
 The discovery brief must identify:
 
@@ -129,19 +129,21 @@ The orchestrator MUST read the paths listed in `required_instructions` and pass 
 
 Do not propose a new abstraction until the existing pattern has been named.
 
-In `controlled-lite`, discovery should normally be limited to exact path/symbol/test lookup. If discovery requires broad exploration, escalate.
+In compact N2, discovery should normally be limited to exact path/symbol/test lookup. If discovery requires broad exploration, escalate.
 
-## Phase 2: SlicingOutside `small/local`, Arquitecta still runs: compact/inline for `controlled-lite`, delegated when ownership or risk requires it. `small/local` may keep a single implicit slice.
+## Phase 2: Slicing
+
+Outside N1, Arquitecta still runs: compact/inline for compact N2, delegated when ownership or risk requires it. N1 may keep a single implicit slice.
 
 If `## Calibration` records `touched_surfaces`, treat any newly introduced surface as scope expansion and stop or re-slice before coding
 
-Delegate to `implementation-slicing` (Arquitecta Fases) for `standard`, cross-layer, ownership-sensitive work, and higher-risk `controlled-implementation`. Slicing is skipped or done inline for `small/local` and may be done inline for `controlled-lite`.
+Delegate to `implementation-slicing` (Arquitecta Fases) for N3, cross-layer, ownership-sensitive work, and higher-risk N2. Slicing is skipped or done inline for N1 and may be done inline for compact N2.
 
 The resulting plan must define:
 
 - Slice order.
 - Slice granularity intent (what was split and why).
-- Owner skill and alias, or `orchestrator-inline` for controlled-lite inline slices.
+- Owner skill and alias, or `orchestrator-inline` for compact N2 inline slices.
 - Files owned.
 - Files forbidden.
 - Acceptance criteria covered.
@@ -152,16 +154,16 @@ The resulting plan must define:
 - One observable outcome per slice and an atomicity rationale for any non-trivial single-slice phase.
 - Status progression and evidence bundle: `NOT_STARTED → IMPLEMENTED → TESTED → VALIDATED → VERIFIED`.
 
-Slicing quality bar (outside `small/local`):
+Slicing quality bar (outside N1):
 
 - Prefer one primary acceptance objective per slice.
 - Prefer one cohesive implementation group per PRD phase, usually 2-6 related production files. Split only for disjoint ownership, a contract boundary, or a materially independent acceptance stream; file count alone is not a split trigger.
 - Prefer one specialized writer owner per implementation group; split backend/frontend producer-consumer changes unless the PRD requires atomic cutover.
 - Split before coding whenever matcher confidence drops because a slice maps to multiple unrelated pattern families.
 
-Present the implementation plan before coding when the user is interacting phase by phase, the scope is non-routine, the operating mode is `controlled-implementation` with material risks, or a stop condition applies. If the user has asked for autonomous execution or the plan is routine, proceed unless a stop condition applies.
+Present the implementation plan before coding when the user is interacting phase by phase, the scope is non-routine, the operating mode is N2 with material risks, or a stop condition applies. If the user has asked for autonomous execution or the plan is routine, proceed unless a stop condition applies.
 
-Maintain a physical phase/task tracker mapped 1:1 to PRD phases and tasks. Create and update `<prd-directory>/_meta/task_tracker.toon` using the TOON template in `reference/task-tracker-template.md` to record progress and handoffs, keeping the main conversation context clean. It is ignored temporary state and is cleaned at closure. Skip only in `small/local`.
+Maintain a physical phase/task tracker mapped 1:1 to PRD phases and tasks. Create and update `.ai-work/<prd-slug>/task_tracker.toon` using the TOON template in `reference/task-tracker-template.md` to record progress and handoffs, keeping the main conversation context clean. It is ignored temporary state and is cleaned at closure. Skip only in N1.
 
 ## Phase 2.5: Skill Matching
 
@@ -169,7 +171,7 @@ Run `implementation-skill-matcher` after slicing and before any coding starts.
 
 Mandatory rule:
 
-- Outside `small/local`, matcher is required and cannot be skipped.
+- Outside N1, matcher is required and cannot be skipped.
 - A coding slice may start only after matcher output exists for that slice.
 
 Accepted matcher outcomes:
@@ -184,89 +186,8 @@ Minimum evidence to record per slice:
 - validation hooks and handoff required fields.
 - match confidence and any blocked reason.
 
-## Phase 3: Implementation Slices
+## References
 
-For each slice:
+Load a reference only when its condition holds:
 
-1. Delegate code-writing to the owner skill by default. Inline writing is allowed only in `small/local`, and in narrowly scoped `controlled-lite` slices where one-writer ownership is preserved and matcher evidence is already recorded. In `controlled-implementation`, `standard`, and `autonomous-safe`, treat specialized implementers as the default writers for production code. If the owner skill needs a tiny 1-2 file helper edit inside its owned scope, it should prefer `cavecrew-builder` over expanding context in the parent thread.
-2. Review the handoff output when delegated, or review the local diff when inline.
-3. Inspect the diff for ownership leaks, architecture violations, i18n gaps, duplicated logic, over-abstraction, and missing tests.
-4. Run or delegate focused validation through `validation-runner` when validation is non-trivial, flaky, or needs separate stabilization. Otherwise run the exact focused command inline.
-5. Fix failures before moving to the next dependent slice.
-6. Validate the phase Definition of Done line by line.
-7. Record acceptance criteria covered with evidence.
-8. Report progress and current phase status.
-9. Add a compact learning note when the phase involved a meaningful engineering decision.
-10. If the slice contains visible frontend UI, confirm the PRD Contrato Visual is `locked` before coding, implement that lock rather than inventing layout, and verify that the result clears the premium visual bar from `.github/instructions/frontend.instructions.md`; do not close on “functional but generic”.
-11. Mark it `VERIFIED` only after implementation, focused tests, relevant validation, quality checks, acceptance evidence, and a present, non-`none`, matching, complete immutable slice lock for the same `run_id` and `slice_id` all exist.
-
-Use backend and frontend implementers only with explicit file ownership. Use `acceptance-test-engineer` whenever acceptance criteria are not clearly proven by existing tests.
-For visible frontend surfaces, treat `frontend-design` as a pre-code translator of the locked Contrato Visual, not as a substitute for it. Use `impeccable` for craft, polish, or visual QA after the lock exists. If the screen is still unlocked, stop; do not invent it in JSX.
-
-Do not start the next dependent slice until its predecessor is `VERIFIED`. Do not start the next dependent PRD phase until every phase slice is verified and the phase Definition of Done is checked line by line.
-
-In interactive workflows, ask before moving to the next PRD phase only when the next phase changes scope, there is more than one valid technical option, validation exposes ambiguity, a stop condition applies, or the user explicitly asked to review each phase.
-
-## Phase 4: Contract Verification
-
-Delegate to `contract-verifier` whenever backend API responses feed frontend hooks or components.
-
-Require at least:
-
-- Backend serializer/controller or contract test for changed fields.
-- Frontend hook/component test with realistic payload.
-- Positive-data scenario and empty/error scenario when relevant.
-- Evidence that changed contracts do not silently break existing consumers.
-
-Skip contract verification only when the PRD is backend-only and does not activate or alter a public response consumed by frontend/API clients. Record the reason.
-
-## Phase 5: Validation
-
-Delegate to `validation-runner` for `standard`, cross-layer, flaky, broad, or non-obvious validation. Run inline for `small/local` and `controlled-lite` when the exact focused command is known.
-
-Choose the smallest validation command that can falsify the change. Expand only when risk or failures justify it.
-
-For frontend React changes, run `react-doctor` after meaningful implementation or final frontend review. For most navigable user-facing UI changes, run `playwright-testing` by default when tooling is available; skip only with an explicit documented exception or user waiver.
-
-Validation output must be captured as evidence. Do not mark an acceptance criterion complete from confidence alone.
-
-Validation must prove both the changed behavior and the most plausible adjacent regression paths. If the focused command only proves the happy path, add the narrowest extra check that could falsify regressions, missing standards enforcement, or relevant edge conditions.
-
-## Phase 6: Final QA
-
-Run one full QA checklist for every PRD implementation before closure. This stage is mandatory outside `small/local`; compact/inline QA is allowed, omitting QA is not. Delegate to `qa-handoff-review` for standard PRDs, cross-layer work, security/tenancy-sensitive work, contract changes, user-visible changes, rollout-sensitive work, or any diff that would benefit from fresh-context review. Re-entry QA is targeted to repaired findings, changed files, and affected acceptance criteria; repeat a full QA only when the repair changes the risk boundary or prior evidence is stale. Inside review-only sweeps, prefer `cavecrew-reviewer` when terse line-anchored findings are enough.
-
-If `## Self-Audit` exists, reconcile its residual risks before allowing `ready_to_close: yes`.
-
-If findings are returned, fix them through the relevant owner skill or inline with explicit ownership, then re-run the affected validation. Before requesting any re-entry QA pass, append every finding from the previous handoff to `findings_ledger` in the task tracker with a stable id; never overwrite a row. The next `qa-handoff-review` pass must read `findings_ledger` and confirm each prior finding is `repaired` or explicitly `waived_by_user` before it can return `ready_to_close: yes` — a finding missing from the ledger on re-entry is treated as still open, not as resolved.
-
-The QA checklist must explicitly answer all of these before closure:
-
-- Acceptance criteria: complete or blocked with evidence.
-- Regressions: checked on adjacent flows and existing consumers.
-- Standards: project rules and quality gate pass without unresolved violations.
-- Tests: required coverage exists; missing coverage is justified or blocked.
-- Coverage for new scope: each newly created production file and newly added method/function has executed-test evidence plus at least one relevant edge-case assertion, or an explicit blocker/waiver.
-- Edge cases: relevant empty/error/boundary/rollout states are verified or blocked.
-- Blocking findings: `blocking_findings_open: no` — no `critical`/`high` finding remains `open` in `findings_ledger` without being `repaired` or validly `waived_by_user` (see Waiver Floor in `qa-handoff-review/SKILL.md`).
-
-QA review should report findings and also explain the pattern being protected, so it reinforces learning instead of only listing defects.
-
-Do not advance to closure while QA reports `ready_to_close: no`, `blocking_findings_open: yes`, `validation_status: FAIL | PARTIAL`, incomplete acceptance evidence, unresolved regressions, unresolved standards gaps, missing required tests, missing coverage evidence for newly created files or newly added methods/functions, or unreviewed edge cases.
-
-## Phase 7: Closure
-
-Close only after acceptance criteria, relevant validations, and residual risks are explicitly accounted for.
-
-Global closure checklist:
-
-- Run all relevant tests for touched domains.
-- Run lint checks for touched files when available and relevant.
-- Validate the global Definition of Done from the PRD.
-- If frontend UI changed, perform smoke verification and, in most navigable user-facing flows, require `playwright-testing` when tooling is available unless an explicit documented exception or user waiver applies.
-- Confirm the QA checklist status for acceptance criteria, regressions, standards, tests, and edge cases is fully resolved.
-- If any closure item fails, return to the owning slice, fix the root cause, rerun the affected validation, and rerun QA before attempting closure again.
-- Complete `## 10. Evidencia de Implementacion` in the PRD: delivered changes, AC status and evidence, validation commands and results, quality/QA result, commit/PR/diff reference, residual risks or waivers, and closure date. Include a "Resumen del Ledger de Hallazgos" subsection listing every row from `findings_ledger` (id, severity, final status, and resolution: repaired in which slice, or the exact quoted risk if `waived_by_user`). If `findings_ledger` is empty, state that explicitly rather than omitting the subsection. Do not copy temporary AI coordination content into this section.
-- After the PRD evidence section is complete — including the Resumen del Ledger de Hallazgos — remove `<prd-directory>/_meta/`, including the tracker, `locks/`, and PRD-creation orchestration notes.
-- Summarize PRD phases completed, files changed, tests/lint results, acceptance criteria coverage, key trade-offs, learning notes, and open risks.
-- Recommend `document-development` only when implementation knowledge should be captured; do not force documentation handoff for small/local, controlled-lite, or controlled closures with no durable knowledge value.
+- [orchestration-flow-execution.md](orchestration-flow-execution.md) — read it when the first implementation slice starts, and through contract verification, validation, QA, and closure

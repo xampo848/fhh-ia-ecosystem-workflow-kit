@@ -1,17 +1,25 @@
 # Task Tracker Template
 
-Use this template when the orchestrator initializes `<prd-directory>/_meta/task_tracker.toon` at Phase 2 (Slicing).
+Use this template when the orchestrator initializes `.ai-work/<prd-slug>/task_tracker.toon` at Phase 2 (Slicing).
 Copy and fill all fields. Use TOON format. Do not leave placeholder text — remove any field that does not apply.
+
+The tracker is a **snapshot of the current state**: it is overwritten in
+place, never appended to. History goes to `.ai-work/<prd-slug>/events.log`, one
+line per event, which is read only on resume or audit. Target size: about 100
+lines even at N3. If the tracker grows blocks such as `previous_writer`, it is
+being used as a log; replace them.
 
 ---
 
 ```
 # task_tracker
 prd: <path-to-prd-file>
-mode: small/local | controlled-lite | controlled-implementation | standard | autonomous-safe | resume
+level: N2 | N3
+modifiers[N]: autonomous | resume
+active_writer: <agent alias | orchestrator-inline | none>
 started: <ISO-date>
 execution_locks[N]{slice_id,path,run_id,lock_id,evidence_state}:
-  <slice-id>,<ignored-path-to-prd-directory/_meta/locks/<slice-id>.toon>,<run-id>,<lock-id>,<fresh|stale|missing>
+  <slice-id>,<.ai-work/<prd-slug>/locks/<slice-id>.toon>,<run-id>,<lock-id>,<fresh|stale|missing>
 quality_gate: <verified path | none, with reason>
 delegation_posture: avoided | recommended | required
 delegation_reason: <one-line concrete reason, see SKILL.md Design Principle 2>
@@ -41,8 +49,8 @@ phases[N]{name,status,evidence}:
   Phase 8 - Closure,NOT_STARTED,none
 
 # slices
-slices[N]{name,owner,files_owned,status,ac_covered}:
-  <slice-name>,<agent-alias>,<file-path>,NOT_STARTED,<ac-ids>
+slices[N]{name,owner,files_owned,status,ac_covered,round,last_check,blocker}:
+  <slice-name>,<agent-alias>,<file-path>,NOT_STARTED,<ac-ids>,<0/2>,<last command and result | none>,<blocker | none>
 
 # open_risks
 open_risks[N]: <description>
@@ -74,10 +82,18 @@ closure_gate[N]{item,status,evidence}:
   edge-cases,NOT_STARTED,none
   qa-readiness,NOT_STARTED,none
 
-# handoff_log
-handoff_log[N]{phase,agent,timestamp,status,notes}:
-  <phase>,<agent>,<ISO-datetime>,<VERIFIED|IMPLEMENTED|BLOCKED>,<brief>
 ```
+
+## Events Log
+
+History lives outside the tracker, in `.ai-work/<prd-slug>/events.log`, one
+line per event, append-only:
+
+```
+<ISO-datetime> | <phase> | <agent> | <slice-id> | <event: launched|handoff|repair-round n|blocked|verified|waiver> | <brief>
+```
+
+Read it only on resume or audit; it is removed with `.ai-work/<prd-slug>/` at closure.
 
 ## Status Values
 
@@ -93,9 +109,10 @@ handoff_log[N]{phase,agent,timestamp,status,notes}:
 
 - Set the slice to `PENDING_SUBAGENT` when a delegate is launched, then update again after the terminal handoff.
 - Change slice `status` in place — do not append duplicates.
-- Add a row to `handoff_log` for every delegation event.
+- Append one line to `events.log` for every delegation event; do not keep event history in the tracker.
+- Update `round` when a repair round starts (limit 2 per slice, see `validation-and-stop-conditions.md`) and overwrite `last_check` with the latest command and result.
 - Record matcher evidence before the implementation owner starts on the same slice.
-- Distinguish slicing, matcher, and implementation handoffs in `handoff_log`.
+- Distinguish slicing, matcher, and implementation handoffs in `events.log`.
 - Add to `open_risks` whenever a subagent returns a risk.
 - Record an ignored immutable PRD-local execution lock per slice; it is coordination state, as is this tracker. Persist closure evidence in the final response and durable PRD documentation before cleanup.
 - Record only a quality-gate path confirmed to exist; a missing configured path is a stop condition, not `none`.

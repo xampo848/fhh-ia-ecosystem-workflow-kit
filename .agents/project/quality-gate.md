@@ -1,7 +1,3 @@
----
-applyTo: "**"
----
-
 # Quality Gate
 
 Apply this gate before closing any code-writing or code-review slice.

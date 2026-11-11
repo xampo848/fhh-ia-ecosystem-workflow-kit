@@ -4,6 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import {
+  extractDelegateContractSummary,
   generatedMarker,
   renderClaudeAgent,
   renderCodexAgent,
@@ -48,6 +49,11 @@ export async function writeDelegateRuntimeAdapters({ root = packageRoot } = {}) 
 
 async function expectedDelegateRuntimeAdapters({ root }) {
   const catalog = JSON.parse(await fs.readFile(path.join(root, 'scripts/delegate-agent-catalog.json'), 'utf8'));
+  // Read the installable overlay copy (the one that ships); the drift validator
+  // keeps it identical to the canonical .agents/delegation/delegate-contract.md.
+  catalog.delegateContractSummary = extractDelegateContractSummary(
+    await fs.readFile(path.join(root, overlayRoot, '.agents/delegation/delegate-contract.md'), 'utf8')
+  );
   const outputs = new Map();
   const matrix = renderMatrix(catalog.agents, catalog.runtimeCapabilities);
 
@@ -105,6 +111,8 @@ function renderMatrix(agents, runtimeCapabilities) {
   return `# Delegate Skill Matrix
 
 <!-- ${generatedMarker} -->
+
+Read it when a delegation needs the exact adapter path, write boundary, or parallelization rule for a role.
 
 Use the shared skill path as the execution contract. Native adapters are generated from the same catalog and only specialize runtime discovery and tool configuration.
 

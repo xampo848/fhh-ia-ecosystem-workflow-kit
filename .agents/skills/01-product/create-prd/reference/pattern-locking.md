@@ -1,8 +1,10 @@
 # Pattern Locking
 
+Read it in Phase 3, before drafting, when locking the implementation pattern.
+
 ## Purpose
 
-Before drafting, lock the implementation approach to one comparable local pattern or explicitly record its absence. Persist the result in `<prd-directory>/_meta/orchestration.md` under `## Pattern Lock`.
+Before drafting, lock the implementation approach to one comparable local pattern or explicitly record its absence. Persist the result in `.ai-work/<prd-slug>/orchestration.md` under `## Pattern Lock`.
 
 ## Procedure
 

@@ -6,6 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { validateLegalReadiness } from '../scripts/validate-legal-readiness.mjs';
+import { makeTempRepo } from './helpers.mjs';
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -65,7 +66,7 @@ test('validateLegalReadiness rejects a same-count overlay path replacement', asy
 });
 
 async function copyLegalFixture() {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-legal-'));
+  const root = await makeTempRepo('workflow-kit-legal-');
   for (const entry of [
     'NOTICE',
     'THIRD_PARTY_NOTICES.md',

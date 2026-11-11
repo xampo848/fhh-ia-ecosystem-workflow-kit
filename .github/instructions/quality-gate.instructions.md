@@ -2,6 +2,8 @@
 applyTo: "**"
 ---
 
+<!-- Generated from .agents/project/quality-gate.md by workflow-kit. Edit that file, not this one. -->
+
 # Quality Gate
 
 Apply this gate before closing any code-writing or code-review slice.

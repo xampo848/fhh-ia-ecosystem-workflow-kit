@@ -77,6 +77,22 @@ an "Iteración N" subsection. **Autonomous** execution is offered for N2/N3 and
 chosen per run; supervised is the default. Former mode names map to levels:
 `small/local` → N1, `controlled-*` → N2, `standard` → N3.
 
+Execution brakes apply at every level and survive autonomous mode: at most 2
+repair rounds per slice, one recovery attempt for an environment failure, one
+rerun for a flaky test, and the full expensive suite once at closure. Temporary
+AI state lives in `.ai-work/<prd-slug>/` (Git-ignored) and is removed at
+closure; the PRD keeps only a compact section 10.
+
+Expensive deterministic checks (typecheck, unit suites, build) may reuse a
+previous result when a script-computed fingerprint proves nothing changed. It
+starts in shadow mode, never applies to integration, E2E, critical slices, or
+the closure suite, and QA re-entries are focused on the repair.
+
+Project rules are runtime-neutral: the quality gate and the backend and
+frontend instructions live in `.agents/project/`, stack-specific rules in
+`.agents/project/stack.md`, and the fixed knowledge base in
+`.agents/project-context.md`. Runtime folders only hold generated copies.
+
 ## Recommended first documents
 
 - `decisions/2026-01-01-workflow-adoption-baseline.md`

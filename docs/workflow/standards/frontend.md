@@ -35,7 +35,7 @@ If your project already had frontend guidance in scattered docs:
 
 When your repository has frontend code, provide:
 
-- `.github/instructions/frontend.instructions.md`
+- `.agents/project/frontend.md`
 
 Use `docs/workflow/standards/project-instructions-template.md` as a starter and adapt it to your stack.
 

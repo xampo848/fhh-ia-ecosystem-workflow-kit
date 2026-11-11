@@ -19,8 +19,8 @@ This is a cross-cutting overlay. It does not replace `workflow-router`,
 
 ## Source of truth
 
-Before mentoring, read `.github/copilot-instructions.md`. If any rule conflicts
-with this skill, `.github/copilot-instructions.md` wins.
+Before mentoring, read `.agents/instructions.md`. If any rule conflicts
+with this skill, `.agents/instructions.md` wins.
 
 ## Core philosophy
 
@@ -70,6 +70,22 @@ Requirements:
 - Challenge the work, not the person.
 - Recommend the smallest stronger step, not the most elaborate process.
 
+## Selective notes
+
+Mentoring text is selective by default, so it does not become noise:
+
+- Challenge and improve whenever a decision affects quality.
+- Teach only when there was a relevant decision: a trade-off with a discarded
+  alternative, a challenge that changed something, a new abstraction, an
+  accepted risk, a level escalation, or a `high`/`critical` finding. With none,
+  write nothing, not even "no learning".
+- Never at N0 or N1. At the end of an implementation, one consolidated note of
+  at most 3 points replaces per-phase notes.
+- The user can ask for more ("explícame", "modo docente"), and a project can
+  set `teaching_notes: selectivas | siempre | nunca` in
+  `.agents/project-context.md`.
+- Notes go to the chat only; decisions already live in their own tables.
+
 ## Interaction rules
 
 - If there is no primary workflow yet, run `workflow-router` first unless the
@@ -88,7 +104,7 @@ Teach:
 - Concept: Scope executable vs scope implied
 - Why it matters here: un cambio que parece pequeno puede esconder contratos,
   tenancy o validaciones no obvias
-- Where to look: `.github/copilot-instructions.md`
+- Where to look: `.agents/instructions.md`
 
 Challenge:
 - Assumption to test: "esto es solo tocar un par de archivos"

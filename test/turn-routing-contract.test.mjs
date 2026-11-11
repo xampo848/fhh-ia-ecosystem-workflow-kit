@@ -44,15 +44,18 @@ test('delegated context policy requires role reads, observable reuse, and direct
   const [instructions, router, flow, validation] = await Promise.all([
     read('.agents/instructions.md'),
     read('.agents/skills/00-router/workflow-router/SKILL.md'),
-    read('.agents/skills/02-implement/implement-prd/reference/orchestration-flow.md'),
+    Promise.all(['orchestration-flow.md', 'orchestration-flow-execution.md'].map((file) => read(`.agents/skills/02-implement/implement-prd/reference/${file}`))).then((parts) => parts.join('\n')),
     read('.agents/skills/02-implement/implement-prd/reference/validation-and-stop-conditions.md')
   ]);
 
-  assert.match(instructions, /A new delegate reads its complete required skill, applicable instructions,/);
-  assert.match(instructions, /complete content,\s+its provenance, and its current freshness observable/);
-  assert.match(instructions, /revalidates the relevant delta and affected dependencies/);
-  assert.match(instructions, /must not\s+restart those parent stages or recursively reroute/s);
-  assert.match(instructions, /`unknown` is a record of unavailable evidence, not permission/);
+  const contract = await read('.agents/delegation/delegate-contract.md');
+  assert.match(instructions, /`\.agents\/delegation\/delegate-contract\.md`, the single source of delegate rules/);
+  assert.match(instructions, /Delegates do not load this file or\s+`workflow-router`/);
+  assert.match(contract, /A new delegate reads its complete required skill, applicable instructions,/);
+  assert.match(contract, /complete content,\s+its provenance, and its current freshness observable/);
+  assert.match(contract, /revalidates the relevant delta and affected dependencies/);
+  assert.match(contract, /must not restart those parent stages or recursively\s+reroute/s);
+  assert.match(contract, /`unknown` is a record of unavailable evidence, not permission/);
   assert.match(router, /do not rerun\s+router intake, readiness, discovery, or route selection/s);
   assert.match(flow, /## Delegated Context Preflight/);
   assert.match(flow, /Do not paste the\s+full PRD, tracker, or unrelated agent matrix/s);

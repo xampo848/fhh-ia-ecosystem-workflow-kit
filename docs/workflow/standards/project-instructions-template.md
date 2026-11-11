@@ -6,22 +6,20 @@ Goal: make backend/frontend implementation skills load project-specific rules in
 
 ## Required files in the target repository
 
-Create these files when those surfaces exist:
+The installer creates `.agents/project/quality-gate.md` and templates for the two files below. They are runtime-neutral: every runtime reads them. For GitHub Copilot, `workflow-kit update` generates `.github/instructions/<name>.instructions.md` from each neutral file once it is filled in; to control which files load it, add the Copilot file once with your `applyTo` frontmatter and the installer will keep that frontmatter. Stack-specific rules can come from a stack pack (`--stack rails-react`) in `.agents/project/stack.md`.
 
-- `.github/instructions/backend.instructions.md`
-- `.github/instructions/frontend.instructions.md`
+Fill these in when those surfaces exist:
+
+- `.agents/project/backend.md`
+- `.agents/project/frontend.md`
 
 If your project has only one surface (for example backend-only), create only the relevant file and document the missing surface as N/A in your standards docs.
 
 ## Backend template
 
-Create `.github/instructions/backend.instructions.md`:
+Create `.agents/project/backend.md`:
 
 ```md
----
-applyTo: "<backend path glob, for example: api/**/*.ts or backend/**/*.rb>"
----
-
 # Backend Instructions
 
 ## Stack and architecture
@@ -52,13 +50,9 @@ applyTo: "<backend path glob, for example: api/**/*.ts or backend/**/*.rb>"
 
 ## Frontend template
 
-Create `.github/instructions/frontend.instructions.md`:
+Create `.agents/project/frontend.md`:
 
 ```md
----
-applyTo: "<frontend path glob, for example: web/src/**/*.tsx or frontend/**/*.{js,ts,tsx}>"
----
-
 # Frontend Instructions
 
 ## Stack and architecture

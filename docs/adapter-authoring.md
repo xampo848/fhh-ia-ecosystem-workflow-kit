@@ -36,7 +36,13 @@ Runtime adapters should be boring:
    `.agents/instructions.md` and run `node scripts/sync-level-prefilter.mjs --write`.
 6. Avoid copying any other workflow algorithm into the adapter; the pre-filter
    is the only exception.
-7. Keep runtime-specific details small and explicit.
+7. Delegate agent adapters (`.claude/agents`, `.codex/agents`, `.github/agents`)
+   are generated: they point to the role `SKILL.md` and to
+   `.agents/delegation/delegate-contract.md`, and embed that contract's summary.
+   Change delegate rules in the contract (and in
+   `scripts/delegate-rule-inventory.json`), then run
+   `node scripts/sync-delegate-runtime-adapters.mjs --write`.
+8. Keep runtime-specific details small and explicit.
 
 `AGENTS.md` is a shared adapter pack used by Codex and Copilot-compatible
 surfaces. Claude Code and Antigravity keep thin syntax-specific entrypoints.
@@ -49,6 +55,14 @@ Runtime selection remains an explicit mapping in `src/runtime-matrix.mjs`.
 3. Add the explicit runtime-to-pack mapping and entrypoints in `src/runtime-matrix.mjs`.
 4. Add routing-contract and planner coverage.
 5. Add the runtime to `.agents/memory/parity-checklist.md`.
+
+A runtime that already reads `AGENTS.md` needs no pack of its own: map it to
+`runtime-adapters/agents-md` (this is how `opencode` is supported). Add native
+agent files and a model mapping only after checking the runtime's official
+documentation, as `docs/workflow/codex-subagent-verification.md` does for
+Codex. Claude Code also gets generated `.claude/skills/` wrappers
+(`scripts/sync-claude-skills.mjs`) with `disable-model-invocation: true`, so a
+slash command is an explicit invocation and nothing bypasses the router.
 
 Do not create a second workflow contract in the adapter. Unsupported runtime
 features must use a documented safe fallback instead.

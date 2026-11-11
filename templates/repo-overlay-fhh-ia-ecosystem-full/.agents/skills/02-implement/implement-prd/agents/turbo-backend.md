@@ -2,7 +2,7 @@
 
 Skill: `.agents/skills/02-implement/backend-phase-implementer/SKILL.md`
 
-Use for owned Rails backend implementation slices.
+Use for owned backend implementation slices.
 
 ```text
 Actua como Turbo Backend.
