@@ -2,7 +2,7 @@
 
 Skill: `.agents/skills/02-implement/frontend-phase-implementer/SKILL.md`
 
-Use for owned React frontend implementation slices.
+Use for owned frontend implementation slices.
 
 ```text
 Actua como Pixel Ninja.

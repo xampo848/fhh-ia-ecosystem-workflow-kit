@@ -62,8 +62,8 @@ bun run check:workflow
 
 For repositories with backend/frontend code, create project runtime instruction hooks:
 
-- `.github/instructions/backend.instructions.md`
-- `.github/instructions/frontend.instructions.md`
+- `.agents/project/backend.md`
+- `.agents/project/frontend.md`
 
 Use this starter:
 

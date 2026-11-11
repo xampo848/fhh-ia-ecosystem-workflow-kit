@@ -7,7 +7,7 @@ description: "Delegate-only skill for implement-prd. Alias: Lint Ranger. Runs an
 
 Alias: Lint Ranger.
 
-Use after a slice changes files or before final QA. In Codex, invoke through `.codex/agents/lint-ranger.toml`. In GitHub Copilot, invoke through `runSubagent`. In other agents, run inline when delegation is unavailable. This skill may edit only files explicitly assigned for validation fixes.
+Use after a slice changes files or before final QA. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`); run it inline when delegation is unavailable. This skill may edit only files explicitly assigned for validation fixes.
 
 ## Mission
 
@@ -28,13 +28,14 @@ Prefer the deterministic wrapper script for slices only when the target reposito
 
 If `bin/validate-slice` does not exist in the target repository, its absence is not a failure — fall back directly to the commands below without reporting a blocker for the missing script.
 
-If the wrapper is too broad for an isolated quick check, fallback to:
-Backend: `bundle exec rubocop` or `make test-fast`
-Frontend: `bun run lint` or `bun run test --run`
+If the wrapper is too broad for an isolated quick check, fall back to the
+narrowest lint or fast test command declared for the touched layer in
+`.agents/project-context.md` (or `.agents/project/stack.md`). If no command is
+declared for that layer, report it instead of guessing one.
 
 ## Procedure
 
-1. Read `.github/copilot-instructions.md`.
+1. Read `.agents/delegation/delegate-contract.md`.
 2. Read matcher-selected required pattern skill paths or fallback docs when validation behavior depends on them. If a required path is missing, return `blocked`.
 3. Record whether any matcher-suggested optional capability was actually used and whether it was active.
 4. Choose the narrowest validation command based on touched files, matcher `validation_hooks`, and risk.
@@ -46,7 +47,10 @@ Frontend: `bun run lint` or `bun run test --run`
    - Pre-existing unrelated failure
 7. Fix only failures tied to the assigned slice unless the orchestrator grants more ownership.
 8. When a failure is classified as "Pre-existing unrelated failure", do not decide its resolution unilaterally. Record it in `unrelated_failures[N]` and trigger the mandatory stop below instead of silently skipping or silently registering it as a follow-up.
-9. Re-run the failed command after a fix.
+9. Re-run the failed command after a fix. Each fix-and-rerun cycle is one repair round; the limit is 2 per slice, and the third stops with options for the user (see `../implement-prd/reference/validation-and-stop-conditions.md`).
+10. Classify every failure as product or environment before fixing. Environment failures (database, ports, seeding or purging, infrastructure timeouts, a model that cannot be launched) get one recovery attempt and are then reported, not repaired inside the slice. A flaky test with no code change is rerun once and recorded as flaky.
+11. Before running an expensive deterministic check (package typecheck, unit suite, build), apply Evidence Reuse in `../implement-prd/reference/validation-and-stop-conditions.md`: compute the fingerprint with `scripts/validation-fingerprint.mjs`, ask `decide`, and `record` every result. In shadow mode always run and report whether the result matched what would have been reused.
+12. Report evidence compactly: command, exit code, duration, passed/failed counts, and the path of the full log under `.ai-work/<prd-slug>/logs/`. Include at most ~30 relevant lines per failure (first error and its stack); never paste a full log.
 10. Escalate to broader validation only when narrow validation passes and risk warrants it.
 
 ## Stop And Ask When

@@ -35,10 +35,10 @@ Use this skill when:
 2.5. **Challenge before locking** — load [../shared/critical-stance.md](../shared/critical-stance.md). Every scope, business-rule, pattern, or invariant decision must survive one direct challenge before Phase 3 records it as final, whether the user or the AI proposed it.
 3. **Scope is sacred** — every PRD must have a hard line between what IS and what IS NOT in scope.
 4. **Iterate until complete** — after each round of answers, update the PRD immediately. The document should converge to zero open questions.
-5. **English in code** — DB column names and Ruby variables must always use English identifiers, even if domain language is Spanish.
+5. **English in code** — code identifiers (columns, variables, classes) use English, even if the domain language is Spanish, unless the project's rules say otherwise.
 6. **Milestones contain executable slices** — phases express product milestones; they are not permission to group large implementation tasks. Every non-trivial phase must decompose into small, ordered slices with one observable outcome and a verification gate.
 7. **DDD before implementation** — PRDs must define bounded context placement, ownership, namespace, table strategy, and dependency direction before implementation starts.
-8. **Standards-aware PRDs** — PRDs must follow `BACKEND_STANDARDS.md`, including Minitest and `enumerate_it` conventions.
+8. **Standards-aware PRDs** — PRDs follow the project's standards documents and stack rules (`.agents/project/backend.md`, `.agents/project/frontend.md`, `.agents/project/stack.md`), including its test framework and enumeration conventions.
 9. **Evidence before completion** — every deliverable must name how it will be tested, validated, and verified. “Tests later” and phase-end-only validation are not acceptable.
 10. **Activation is part of scope** — when a PRD replaces a read path, materialization model, cache, projection, or persisted contract, it must define how existing data becomes visible after cutover (bootstrap, backfill, repair, smoke verification, and rollback if activation fails).
 11. **No phase skipping** — the default workflow is five sequential phases. Compact mode may fold drafting into a shorter path, but it may not skip calibration, ambiguity resolution, pattern lock, or self-audit.
@@ -69,7 +69,7 @@ Use compact mode only when all of these are true:
 
 In compact mode:
 
-- keep the four `_meta/orchestration.md` sections;
+- keep the four `.ai-work/<prd-slug>/orchestration.md` sections;
 - fold Phase 2 and Phase 3 into one short pass when there are no blocking questions;
 - draft and self-audit in one pass only after calibration and pattern lock exist;
 - do not omit use cases, test strategy, edge-case matrix, class diagram, or slice ownership;
@@ -139,16 +139,16 @@ Template source (mandatory): `.agents/skills/01-product/create-prd/PRD_TEMPLATE.
 
 **File location:** `docs/prd/<feature-or-project>/<YYYY-MM-DD>-<feature-name>/<feature-name>.md`
 
-For every PRD created with this workflow, create `_meta/orchestration.md` in the same PRD directory. Persist the phase artifact as each applicable phase completes. The file must contain these four sections:
+For every PRD created with this workflow, create `.ai-work/<prd-slug>/orchestration.md` at the repository root, where `<prd-slug>` is the PRD directory name (`<YYYY-MM-DD>-<feature-name>`). Persist the phase artifact as each applicable phase completes. The file must contain these four sections:
 
 - `## Calibration`
 - `## Ambiguity Log`
 - `## Pattern Lock`
 - `## Self-Audit`
 
-`_meta/` is temporary AI coordination state, ignored by Git. It does not replace the final PRD and is removed by `implement-prd` at closure. `execution-lock.toon` and the implementation tracker also live in this directory and remain owned by `implement-prd`.
+`.ai-work/<prd-slug>/` is the single workspace for temporary AI coordination state, ignored by Git. Nothing temporary is written under `docs/` or enters a PR. It does not replace the final PRD and is removed by `implement-change` (alias `implement-prd`) at closure. Execution locks, the implementation tracker, handoffs, and validation logs also live in this directory and remain owned by `implement-change`. A PRD created before this layout may still have `<prd-directory>/_meta/`; read it when the `.ai-work/` copy is missing, and do not write new files there.
 
-This requirement applies only to PRDs created after this workflow change. Historical PRDs remain valid and do not require a retrofit of `_meta/orchestration.md` or the five-phase model.
+This requirement applies only to PRDs created after this workflow change. Historical PRDs remain valid and do not require a retrofit of `.ai-work/<prd-slug>/orchestration.md` or the five-phase model.
 
 Additional required sections:
 
@@ -164,132 +164,18 @@ Additional required sections:
 - Casos de Uso table (mandatory, see below)
 - Estrategia de Tests table (mandatory, see below)
 - Matriz de Edge Cases table (mandatory, see below)
+- Supuestos e integraciones table, from the Unknowns Inventory in `reference/calibration.md` (`Ninguno` with a one-line reason when there is no external or poorly known dependency)
+- Que queda obsoleto table, from the Obsolescence Scan in `reference/calibration.md` (`Ninguno` with a one-line reason when nothing becomes obsolete)
 - Evidencia de Implementacion section (initialized in the PRD template and completed only at `implement-prd` closure)
 
-### Casos de Uso (mandatory)
+## References
 
-Every PRD must declare a canonical, verifiable use-case ledger before it can be considered ready to implement.
+Load a reference only when its condition holds:
 
-- Format: `ID | Actor | Precondiciones | Flujo principal | Resultado observable (falsable) | AC vinculado`.
-- Every use case states at least one falsifiable observable result — not a vague intention.
-- Every use case links to one or more acceptance criteria; every acceptance criterion for a core behavior links to at least one use case.
-- Cover every actor/flow the PRD scope introduces or changes, including secondary actors (admin, background job, external system) when they participate in the flow.
-
-### Estrategia de Tests (mandatory)
-
-Tests are part of the design, not a follow-up activity.
-
-- Format: `Nivel (unidad/integración/contrato/smoke/e2e) | Objetivo | Caso de uso vinculado | Cobertura esperada | Comando o mecanismo de validación`.
-- Every use case links to at least one row in this table.
-- Each slice in the implementation plan must inherit its relevant rows from this table (see Section 4 slice fields).
-
-### Matriz de Edge Cases (mandatory)
-
-Edge cases must be classified and traceable, not merely narrated in prose.
-
-- Mandatory categories: **datos vacíos**, **límites**, **errores**, **permisos/tenancy**, **concurrencia/orden**, **rollout/rollback**.
-- Format: `Categoría | Descripción | Caso de uso vinculado | Validación (test/contrato/smoke/evidencia manual justificada) | Estado`.
-- Every row maps to at least one validation mechanism. A category with no applicable case must say `No aplica` plus a one-line reason grounded in the actual scope — never a silent omission.
-
-### Required architectural rules
-
-When the PRD has a parent epic:
-
-- declare the exact `parent_epic` path;
-- map every inherited invariant ID to one or more child acceptance criteria;
-- stop before drafting if requested scope contradicts an inherited invariant;
-- continue only after an explicit user-approved change request records the invariant ID, reason, and approver.
-- read the companion ledger (`<slug>-ledger.md`) and, when this is not the first PRD in the queue, the immediately preceding sibling PRD's `Contrato entre Fases` postcondiciones, before drafting scope;
-- declare a `Contrato entre Fases` section listing this PRD's preconditions (what it assumes from prior phases, verified against real code during calibration, not assumed from the epic's original plan) and postconditions (what it guarantees for later phases);
-- treat an unverifiable precondition as a blocking ambiguity, not a silent assumption;
-- inherit the parent epic's locked live path and phase-cut sequence when present (`INV-CUT-*` or the epic's "Path vivo y corte de fases" block);
-- stop before drafting if this PRD would invert that cut — for example by leaving the live path on the old system when the epic locked the live path onto the new system, or by reordering the chosen sequence;
-- continue only after an explicit user-approved change request records the cut invariant ID, reason, and approver.
-
-PRDs that introduce backend entities must explicitly define:
-
-- bounded context;
-- namespace strategy;
-- table naming strategy;
-- append-only vs mutable lifecycle;
-- multi-tenancy rules;
-- Minitest strategy;
-- `enumerate_it` enumerations.
-
-### Enumeration rules
-
-Do not leave constrained values as anonymous string arrays only.
-
-PRDs must define explicit enumeration classes when applicable, for example:
-
-```ruby
-Analytics::SeverityEnumeration
-Analytics::DetectionStatusEnumeration
-```
-
-### Testing rules
-
-PRDs must align to the repository backend testing standard:
-
-- backend tests use Minitest;
-- tenant boundaries must be tested;
-- append-only models must test immutability;
-- lifecycle consistency rules must be tested.
-
----
-
-## Execution Granularity Contract
-
-The PRD must be detailed enough that `implementation-slicing` does not need to invent behavior. Do not inflate the number of phases arbitrarily: use phases for meaningful milestones and **execution slices** for small, verifiable work.
-
-### Required decomposition
-
-- Split by failure, rollback, ownership, contract, or validation boundary — not by a slice-count quota. A single-slice phase is allowed when the work is genuinely atomic; record that atomicity reason.
-- A slice delivers one observable outcome, stays within one contract boundary, and has one clear owner.
-- A slice normally changes one primary production responsibility and 1–3 production files. Inseparable support files such as tests, styles, locales, factories, or fixtures may accompany it.
-- Backend and frontend implementation belong in separate slices. A changed API contract requires its own contract-verification gate between them.
-- Migrations, backfills, behavior activation, and cleanup must be separate slices when each can fail or be rolled back independently.
-- A slice that combines more than one of these risks must be split: data migration, public contract, authorization/tenancy, background execution, external integration, or visible UI behavior.
-- Existing-data activation, bootstrap, backfill, rollout command, and legacy cleanup must be separate slices when each can fail or be verified independently.
-- No dependent slice starts until its predecessor is `VERIFIED`, unless the plan explicitly proves that the write sets and contracts are independent.
-
-### Required task fields
-
-Each execution slice must state:
-
-| Field | Requirement |
-| --- | --- |
-| ID | Stable identifier such as `P2-S3` |
-| Outcome | One externally observable or technically falsifiable result |
-| Depends on | Prior slice IDs or `none` |
-| Scope | Exact responsibility and likely files/components |
-| Out of scope | Adjacent work this slice must not absorb |
-| Acceptance criteria | PRD criterion IDs covered |
-| Use cases | PRD use-case IDs (`UC-N`) this slice implements or verifies |
-| Tests | Focused automated tests to add or update, inherited from the PRD Estrategia de Tests rows for the linked use cases |
-| Validation | Exact narrow command or check |
-| Quality checks | Relevant tenancy, auth, i18n, contract, performance, SOLID/DRY/KISS checks |
-| Edge cases | PRD edge-case matrix rows this slice must satisfy, if any |
-| Evidence | Artifact/output needed to mark the slice verified |
-| Stop conditions | Ambiguities or failures that prohibit continuing |
-| Activation | Existing-data bootstrap/backfill/repair step, deploy command, smoke target, rollback note |
-
-Every acceptance criterion, use case, test-strategy row, and edge-case row declared in the PRD must appear in at least one slice's fields above. A row with no owning slice is a traceability gap and must be resolved before the plan is considered complete.
-
-### Slice completion state
-
-A slice advances only through this sequence:
-
-`NOT_STARTED → IMPLEMENTED → TESTED → VALIDATED → VERIFIED`
-
-- `IMPLEMENTED`: scoped code exists and ownership was respected.
-- `TESTED`: focused automated coverage passes, or a justified non-automated check is recorded.
-- `VALIDATED`: lint/static/contract/smoke checks relevant to the slice pass.
-- `VERIFIED`: acceptance criteria and quality checks are linked to concrete evidence.
-
-“Code complete” is not equivalent to complete.
-
----
+- [reference/execution-granularity.md](reference/execution-granularity.md) — read it in Phase 4, when writing phases and execution slices
+- [reference/architecture-rules.md](reference/architecture-rules.md) — read it in Phase 4, when the PRD touches the data model, domain placement, enumerations, or tests
+- [reference/traceability-tables.md](reference/traceability-tables.md) — read it in Phase 4, when filling the three mandatory traceability tables
+- [reference/quality-bar.md](reference/quality-bar.md) — read it after each round of answers and before delivering the PRD
 
 ## 📄 PRD Structure Template
 
@@ -297,77 +183,7 @@ Use the canonical template at:
 
 `.agents/skills/01-product/create-prd/PRD_TEMPLATE.md`
 
-## 🎯 Output Quality Bar
-
-The final PRD must read like a repository-native planning artifact, not a generic requirements dump.
-
-- The opening context should explain the real problem, why it matters now, and the strict scope boundary in concrete terms.
-- Current-state tables should name actual repo artifacts, not placeholders, whenever the exploration phase found them.
-- Requirement sections should state confirmed behavior, not hedged guesses.
-- Phase plans should feel implementable by `implement-prd` without inventing missing behavior, validation, or ownership boundaries.
-- Risks, future scope, and open questions should be specific enough that a reviewer can challenge them.
-- The document should be as short as the scope allows, but never so compressed that acceptance, sequencing, or evidence become ambiguous.
-
----
-
-## 🔄 Iteration Rules
-
-After the user answers any round of questions:
-
-1. **Immediately update** the PRD sections affected by the answer.
-2. **Mark answered questions** as resolved in the "Decisiones Tomadas" table.
-3. **Remove** any content in "Preguntas Abiertas" that is now resolved.
-4. **Check** if the answer revealed new ambiguities — if so, ask a second round.
-5. **Confirm** when the document reaches zero open questions.
-
----
-
-### Phase 5: Self-Audit and Hardening
-
-Load and execute [reference/self-audit.md](reference/self-audit.md). This is a hard gate; persist its required artifact and final readiness declaration before delivering the PRD.
-
-
----
-
-## Future Scope
-
-Product future scope remains out of the current PRD. Workflow reuse of `_meta/orchestration.md` is now in scope:
-
-- `implement-prd` must read `## Calibration`, `## Pattern Lock`, and `## Self-Audit` when those sections exist.
-- `implementation-slicing` must use `touched_surfaces` from `## Calibration` to detect scope expansion.
-- `qa-handoff-review` must reconcile `## Self-Audit` residual risks before allowing `ready_to_close: yes`.
-- Missing `_meta/orchestration.md` is allowed only for historical PRDs created before this model.
-
----
-
-## ⚠️ Anti-Patterns
-
-- Writing the full PRD before asking questions — **always explore + ask first**
-- Mixing implementation phases with future scope in the same section
-- Leaving "TBD" or "to confirm" inline in requirement tables
-- Silently redefining a non-negotiable invariant inherited from a parent epic
-- Inverting a parent epic's locked live path or phase-cut sequence without an approved change request
-- Delivering a visible-UI PRD whose screen `implement-prd` would still have to invent
-- Treating a mockup or photo as the visual contract instead of locking density, hierarchy, primary action, and UI states
-- Using Spanish names for DB columns or Ruby variables
-- Describing UI changes in an importer-only PRD (they belong in a separate PRD)
-- Assuming a feature flag is not needed — **always ask**
-- Vague business rules like "divide as needed" — rules must be deterministic and complete
-- Forgetting backward compatibility requirements (files without new columns must still import)
-- Ignoring bounded contexts or DDD ownership.
-- Creating root-level models for bounded-context concepts.
-- Omitting multi-tenancy rules.
-- Omitting lifecycle rules for stateful entities.
-- Recreating deleted legacy models accidentally.
-- Using RSpec instructions in new PRDs.
-- Using ad-hoc enums instead of `enumerate_it`.
-- Using inconsistent table naming strategies.
-- Treating “phase” and “execution slice” as synonyms.
-- Delivering a PRD with acceptance criteria but no explicit Casos de Uso, Estrategia de Tests, or Matriz de Edge Cases tables.
-- Leaving an acceptance criterion, use case, or mandatory edge-case category unmapped without an explicit justification.
-- Creating only two or three large phases whose tasks still span multiple contracts or risks.
-- Adding arbitrary phases instead of splitting work at failure, ownership, contract, or validation boundaries.
-- Deferring tests, lint, contract checks, or quality review until the end of the PRD.
-- Writing vague tasks such as “implement backend”, “add UI”, or “test everything”.
-- Omitting the Mermaid class diagram or replacing it with a flowchart.
-```
+The template holds the sections every PRD needs. Conditional sections live in
+`template-sections/` and are inserted only when they apply:
+`epic-context.md` (the PRD has a parent epic) and `visual-contract.md` (the
+PRD changes visible UI).

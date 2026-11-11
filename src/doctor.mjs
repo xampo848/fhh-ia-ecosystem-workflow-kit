@@ -4,6 +4,9 @@ import path from 'node:path';
 import packageJson from '../package.json' with { type: 'json' };
 import { selectedTemplateFiles, parseRuntimeList, normalizeOverlay, readManagedInstallState } from './planner.mjs';
 import { validateWorkflowContract } from './workflow-contract/index.mjs';
+import { loadDelegateCatalog, modelSettingLine, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
+import { projectContextDiagnostics, workspaceDiagnostics } from './workspace-diagnostics.mjs';
+import { projectInstructionDiagnostics } from './project-instructions.mjs';
 
 function checksum(content) {
   return crypto.createHash('sha256').update(content, 'utf8').digest('hex');
@@ -50,7 +53,8 @@ async function managedVersionDiagnostics(targetPath) {
 
 export async function runDoctor(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
-  const runtimes = parseRuntimeList(options.runtime ?? 'neutral');
+  const storedState = await readManagedInstallState(targetPath);
+  const runtimes = parseRuntimeList(options.runtime ?? storedState?.runtimes?.join(',') ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const files = await selectedTemplateFiles({ runtimes, overlay });
   const missing = [];
@@ -68,8 +72,15 @@ export async function runDoctor(options = {}) {
   }
 
   const contract = await validateWorkflowContract({ root: targetPath, runtimes });
+  const catalog = await loadDelegateCatalog();
+  const modelProfiles = resolveModelProfiles({ catalog, runtimes, stored: storedState?.modelProfiles });
   const diagnostics = [
     ...contract.diagnostics,
+    ...await modelProfileDiagnostics({ targetPath, present, catalog, modelProfiles }),
+    ...await workspaceDiagnostics({ targetPath }),
+    ...await projectContextDiagnostics({ targetPath }),
+    ...await projectInstructionDiagnostics({ targetPath, runtimes }),
+    ...await stackPackDiagnostics({ targetPath, stackPack: storedState?.stackPack }),
     ...await managedDriftDiagnostics(targetPath),
     ...await managedVersionDiagnostics(targetPath)
   ].sort((a, b) => a.severity.localeCompare(b.severity)
@@ -81,10 +92,50 @@ export async function runDoctor(options = {}) {
     targetPath,
     runtimes,
     overlay,
+    modelProfiles,
+    stackPack: storedState?.stackPack ?? 'none',
     present,
     missing,
     diagnostics
   };
+}
+
+async function stackPackDiagnostics({ targetPath, stackPack }) {
+  if (!stackPack || stackPack === 'none') return [];
+  try {
+    await fs.access(path.join(targetPath, '.agents/project/stack.md'));
+    return [];
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  return [{
+    code: 'stack-pack/missing',
+    path: '.agents/project/stack.md',
+    message: `The ${stackPack} stack pack is recorded but its rules file is missing, so stack-specific rules are not applied. Run workflow-kit update --stack ${stackPack} --apply --yes to restore it.`,
+    severity: 'warning'
+  }];
+}
+
+// Fails when a delegate agent's model setting does not match the project's
+// profile (for example a calidad project with costo agents after a manual copy).
+async function modelProfileDiagnostics({ targetPath, present, catalog, modelProfiles }) {
+  const diagnostics = [];
+  for (const relativePath of present) {
+    const expected = renderDelegateAdapterForPath(relativePath, catalog, modelProfiles);
+    if (!expected) continue;
+    const content = await fs.readFile(path.join(targetPath, relativePath), 'utf8');
+    const actualLine = modelSettingLine(expected.runtime, content);
+    const expectedLine = modelSettingLine(expected.runtime, expected.content);
+    if (actualLine !== expectedLine) {
+      diagnostics.push({
+        code: 'model-profile/agent-mismatch',
+        path: relativePath,
+        message: `Expected \`${expectedLine}\` for the ${modelProfiles[expected.runtime]} profile but found \`${actualLine ?? 'no model setting'}\`. Run workflow-kit update --profile ${expected.runtime}=${modelProfiles[expected.runtime]} --apply --yes to regenerate it.`,
+        severity: 'error'
+      });
+    }
+  }
+  return diagnostics;
 }
 
 export function formatDoctorResult(result) {
@@ -93,6 +144,8 @@ export function formatDoctorResult(result) {
     `Toolkit version: ${packageJson.version}`,
     `Runtimes: ${result.runtimes.join(',')}`,
     `Overlay: ${result.overlay}`,
+    `Model profiles: ${Object.entries(result.modelProfiles ?? {}).map(([runtime, profile]) => `${runtime}=${profile}`).join(',') || 'none'}`,
+    `Stack pack: ${result.stackPack ?? 'none'}`,
     result.ok ? 'Doctor: ok' : 'Doctor: failed'
   ];
 

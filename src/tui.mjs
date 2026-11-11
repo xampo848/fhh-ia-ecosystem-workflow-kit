@@ -6,11 +6,28 @@ import {
   createCapabilityGuide,
   defaultIntentFor,
   installPackageDetails,
+  modelProfileQuestions,
+  stackPackQuestion,
   runtimeSet,
   selectedCapabilityList,
   selectedRuntimeList
 } from './tui/model.mjs';
 import { createInteractivePrompter, createScriptedPrompter } from './tui/session.mjs';
+
+async function askModelProfiles({ prompter, runtime, env, write, paint }) {
+  const answers = [];
+  for (const question of modelProfileQuestions(runtime, env)) {
+    if (question.hint) write(`${paint.dim(question.hint)}\n`);
+    const value = await prompter.chooseOption({
+      title: question.title,
+      options: question.options,
+      defaultIndex: question.defaultIndex,
+      defaultValue: question.options[question.defaultIndex].value
+    });
+    answers.push(`${question.runtime}=${value}`);
+  }
+  return answers.length > 0 ? answers.join(',') : undefined;
+}
 import {
   animateIntro,
   colorizeFullPlanPreview,
@@ -739,6 +756,25 @@ export async function runTui(options = {}) {
 
     }
 
+    // D-07: ask the billing model once per subscription-capable runtime on
+    // install/export; update keeps the profile stored in install-state.
+    const profile = mode === 'update'
+      ? undefined
+      : await askModelProfiles({ prompter, runtime, env: options.env ?? process.env, write, paint });
+
+    // Asked only in an interactive install. Scripted runs and updates keep the
+    // recorded or requested value, so automation never changes meaning.
+    let stack = options.stack;
+    if (mode === 'full' && !scriptedMode && stack === undefined) {
+      const question = stackPackQuestion();
+      stack = await prompter.chooseOption({
+        title: question.title,
+        options: question.options,
+        defaultIndex: question.defaultIndex,
+        defaultValue: question.options[question.defaultIndex].value
+      });
+    }
+
     let overwriteModified = false;
     let backupMode = 'required';
 
@@ -779,6 +815,9 @@ export async function runTui(options = {}) {
         targetPath,
         runtime,
         overlay,
+        profile,
+        stack,
+        ensureWorkspaceIgnore: mode !== 'export',
         backupMode: backupModeValue,
         toolkitVersion: currentToolkitMetadata().version
       });
@@ -931,6 +970,20 @@ export async function runTui(options = {}) {
       write(`Protected local edits (skipped): ${paint.copperInk(String(modifiedSkips))}\n`);
       write(`Unmanaged files (skipped): ${paint.copperInk(String(unmanagedSkips))}\n`);
       write(`Adopted baseline files: ${paint.indigo(String(adopted))}\n`);
+    }
+
+    // Verify the result right away so a broken install or update is visible
+    // here and not in the next AI session.
+    if (mode !== 'export') {
+      const doctorResult = await runDoctor({ targetPath, runtime, overlay });
+      const errors = doctorResult.diagnostics.filter((item) => item.severity === 'error');
+      const warnings = doctorResult.diagnostics.filter((item) => item.severity !== 'error');
+      const healthy = doctorResult.ok;
+      write(`Doctor: ${healthy ? paint.copper('ok') : paint.copperInk('failed')} (${errors.length} errors, ${warnings.length} warnings, ${doctorResult.missing.length} missing files)\n`);
+      for (const item of [...errors, ...warnings].slice(0, 8)) {
+        write(`  - [${item.code}] ${item.path}\n`);
+      }
+      if (!healthy || warnings.length > 0) write(`${paint.dim('Run workflow-kit doctor --target <repo> for the full messages.')}\n`);
     }
 
     let capabilityInstallResult = null;

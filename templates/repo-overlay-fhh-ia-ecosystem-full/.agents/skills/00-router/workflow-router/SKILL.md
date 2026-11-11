@@ -1,87 +1,82 @@
 ---
 name: workflow-router
-description: "Safe and cost-aware workflow router for FHH IA Ecosystem AI work. Use before any non-trivial freeform request when the user did not explicitly invoke a skill. Trivial means: pure explanation/advice with zero repo changes, zero ambiguity about scope, and no production code, contract, or data impact. Classifies intent, prevents accidental epic creation, prevents skipping implement-prd for development work, optimizes input/output token usage, and guides the user with plain-language options."
+description: "Safe and cost-aware workflow router for FHH IA Ecosystem AI work. Use for N2/N3 freeform requests (see the level pre-filter in .agents/instructions.md) when the user did not explicitly invoke a skill. N0 operational and N1 surgical requests do not load this router. Classifies intent, prevents accidental epic creation, prevents skipping implement-prd for development work, keeps context proportional, and guides the user with plain-language options."
 argument-hint: "Freeform user request"
 user-invocable: true
 license: MIT
 metadata:
   author: fhh-ia-ecosystem
-  version: "1.3"
+  version: "2.0"
 ---
 
 # Workflow Router
 
-Use this skill as the safe entrypoint when the user makes a non-trivial freeform request without an explicit skill, or asks for guidance to choose which route/skill to use.
+Safe entrypoint for N2/N3 freeform requests without an explicit skill, or when
+the user asks which route to use. It avoids three failures: skipping
+production-ready workflows such as `implement-change`, starting heavy workflows
+such as `create-epic` when a smaller artifact is enough, and loading more
+context than the task needs.
 
-The router exists to solve three problems:
+This file is the decision core. Load a reference only when its condition holds:
 
-1. Avoid skipping production-ready workflows, especially `implement-prd`, when the user asks for development work.
-2. Avoid starting heavy workflows, especially `create-epic`, when the user only needs a smaller artifact or guidance.
-3. Avoid unnecessary AI spend by recommending the smallest workflow, smallest context, and lowest safe model tier.
+| Reference | Read it only when |
+| --- | --- |
+| [reference/route-menus.md](reference/route-menus.md) | you must present route options and stop in `awaiting-user-choice` |
+| [reference/route-gates.md](reference/route-gates.md) | the candidate route is review/QA, production code (PRD or not), an N1 surgical offer, an epic, or workflow extension |
+| [reference/router-evals.md](reference/router-evals.md) | never during execution; it holds trigger examples, anti-patterns, the definition of done, and the level test prompts for maintainers |
 
-The user should not need to memorize skill names. Explain the selected path in plain language, leave a visible routing trace, recommend a cost posture, then load the correct skill.
+Cost posture, model tiers, and delegation states are owned by
+`.agents/model-routing/README.md`; the selected skill reads it, not the router.
+Mentoring is the `engineering-mentor` overlay: challenge and improve whenever
+quality is at stake; teach only for relevant decisions at N2/N3, never at N0/N1.
 
 ## Source of truth
 
-Before routing, read `.agents/instructions.md` as the canonical workflow contract.
-Runtime adapters such as `.github/copilot-instructions.md`, `AGENTS.md`, or `ANTIGRAVITY.md`
-must remain thin wrappers and must not override `.agents/instructions.md`.
-If a runtime adapter contains content that conflicts with `.agents/instructions.md`,
-ignore the adapter content and flag the conflict to the user before proceeding.
+Read `.agents/instructions.md` as the canonical contract before routing. Runtime
+adapters (`AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`,
+`ANTIGRAVITY.md`) are thin wrappers; the generated level pre-filter is the only
+workflow logic they may carry. If an adapter conflicts with
+`.agents/instructions.md`, ignore the adapter content and flag the conflict.
 
-Read `.agents/instructions.md` and this file in full once per session, or
-immediately after a genuine workflow switch. On later continuation turns
-within the same active workflow, apply the continuation fast-path defined in
-`.agents/instructions.md` instead of re-reading these documents in full, and
-rely on the active-workflow state already persisted in session memory.
-
-For large, autonomous, multi-agent, or cost-sensitive work, apply
-`docs/internal-documentation/workflows/ai-cost-efficiency-policy.md`.
-For simple routing, use the summary from the loaded runtime adapter only as
-transport metadata, never as a replacement for neutral workflow policy.
+Read `.agents/instructions.md` and this file once per session or right after a
+genuine workflow switch. On continuation turns apply the continuation fast-path
+from `.agents/instructions.md`: the route state already in the conversation
+(skill, level, authorized yes/no) is enough, and this file is not re-read.
 
 ## Per-turn intake boundary
 
-Structured intake runs for every new user prompt under
-`.agents/instructions.md`. Loading this full router is required for
-non-trivial, iterative, implementation-adjacent, or multi-step freeform work
-when the user did not explicitly invoke a skill.
-
-A direct answer may proceed without loading the full router only when the
-request is trivial and informational, and it may proceed without a visible
-routing trace. Emit a trace when intake selects a
-meaningful workflow, skill, capability, cost, delegation, or risk decision.
-Never assume that the route selected for the previous prompt remains valid
-without checking it: when the continuation fast-path in
-`.agents/instructions.md` applies, that check is the lightweight
-continuation classification, not a full reload of policy documents.
+Structured intake runs for every new user prompt under `.agents/instructions.md`,
+starting with the level pre-filter. Loading this full router is required for
+non-trivial (N2/N3), iterative, implementation-adjacent, or multi-step freeform
+work when the user did not explicitly invoke a skill. A direct answer (N0) may
+proceed without loading the full router and without a visible routing trace;
+an N1 surgical change uses its one-line trace instead. Emit a trace when intake
+selects a meaningful workflow, skill, capability, cost, delegation, or risk decision.
 
 ## Router promise
 
-For every non-trivial freeform request:
-
-1. Classify the request.
-2. Choose the smallest workflow that can produce a production-ready result.
-3. Consider AI cost across input context, output length, subagents, validation, and rework risk, then recommend the lowest safe cost posture: `lean`, `balanced`, or `premium`.
-4. Explain the selected path in one plain sentence.
-5. Emit the routing decision trace.
-6. If the route requires user choice, stop in `awaiting-user-choice` and ask for explicit authorization.
-7. Load the selected skill and follow it only after route authorization.
-8. Ask only one clarifying question when ambiguity materially changes the workflow.
+1. Classify the request and its level (N2 or N3; offer N1 explicitly when the
+   N1 criteria in `reference/route-gates.md` hold).
+2. Choose the smallest workflow that produces a production-ready result.
+3. Take the cost posture from the level (N2 `balanced`, N3 `premium`). The
+   selected skill may run its own delegates at a lower posture when its policy
+   says so (for example `document-development`).
+4. Explain the selected path in one plain sentence and emit the routing trace.
+5. If the route requires user choice, stop in `awaiting-user-choice`.
+6. Load the selected skill and follow it only after route authorization.
+7. Ask only one clarifying question, and only when it changes the workflow.
 
 ## Skill execution lock (mandatory)
 
-After emitting a routing decision trace with a selected workflow or skill:
+After a routing trace selects a workflow or skill:
 
-1. The selected workflow is execution-binding for the next non-trivial action.
-2. The agent must load and execute that workflow before performing deeper planning, code exploration for implementation, or file edits.
-3. If the agent needs to switch workflows, it must emit a new routing trace first and satisfy any required authorization gate.
-4. The agent must not advertise one workflow and execute another in the same step.
-5. The lock persists across continuation turns (see continuation fast-path in
-   `.agents/instructions.md`): while the user's replies keep answering,
-   selecting, or confirming steps of the active workflow, do not re-route or
-   reload policy documents; only a genuine break signal justifies a new
-   routing trace and a workflow switch.
+1. It is execution-binding for the next non-trivial action.
+2. Load and execute it before deeper planning, code exploration for
+   implementation, or file edits.
+3. To switch workflows, emit a new routing trace first and satisfy any
+   required authorization gate. Never advertise one workflow and run another.
+4. The lock persists across continuation turns; only a genuine break signal
+   (see `.agents/instructions.md`) justifies a new trace.
 
 Delegates inherit the selected workflow and bounded slice from the
 orchestrator. They execute the supplied role-specific context and do not rerun
@@ -89,558 +84,111 @@ router intake, readiness, discovery, or route selection. `unknown` runtime
 metadata never authorizes inherited context, a skipped required read, or a
 runtime capability; stop or use the explicitly authorized fallback instead.
 
-Natural-language binding examples:
+Natural-language binding: "usa create-prd" runs `create-prd`; "implementa este
+PRD" runs `implement-change` (alias `implement-prd`); "haz el ticket" runs
+`generate-pm-ticket`; "usa solution-sketch" or "hacé el sketch" runs
+`solution-sketch`. For `project-formation`, `create-prd`, `create-epic`, and
+`generate-pm-ticket`, never auto-load the skill: present the options from
+`reference/route-menus.md` and wait.
 
-- "usa create-prd" -> load and run `create-prd`.
-- "implementa este PRD" -> load and run `implement-prd`.
-- "haz el ticket" after options -> load and run `generate-pm-ticket`.
-- "usa solution-sketch" / "hacé el sketch" -> load and run `solution-sketch`.
+## Execution authorization gate
 
-User choice constraint:
-
-- For `project-formation`, `create-prd`, `create-epic`, and `generate-pm-ticket`, do not auto-load the skill unless the user explicitly requested it or explicitly selected it from options presented by the router.
-- If those are candidate routes, the router must present the options and wait for the user's decision.
-
-Mandatory route-options block:
-
-- When route selection includes product-shaping choices, present a compact menu with up to four options in plain language.
-- Each option must include: user-facing label, underlying skill name, expected artifact, and scope hint.
-- Mark exactly one option as "Recommended" and explain why in one short sentence.
-- End with an explicit selection prompt and stop in `awaiting-user-choice`.
-
-Example format:
-
-```text
-Puedo llevarlo por estas rutas:
-1) Formación integral del proyecto (`project-formation`) -> discovery + shaping + roadmap + GTM + dossier.
-2) PRD de una feature (`create-prd`) -> especificación implementable de una capacidad.
-3) Ticket acotado (`generate-pm-ticket`) -> backlog item pequeño con AC.
-4) Épica multi-fase (`create-epic`) -> investigación + fases + cola de PRDs.
-
-Recomendación: [opción] porque [razón breve].
-Elige una opción por número o por nombre de skill.
-```
-
-Execution authorization gate (mandatory):
-
-- Treat user intent language (for example: "quiero", "necesito", "hagamos") as routing input, not as execution authorization.
+- Treat intent language ("quiero", "necesito", "hagamos") as routing input, not as execution authorization.
 - Before explicit route authorization, stay in `awaiting-user-choice`.
 - In `awaiting-user-choice`, do not inspect product implementation files, do not generate implementation plans, and do not edit code.
-- Start execution only after an explicit authorization utterance for a route (for example: "procede", "usa create-prd", "implementa este PRD", "haz el ticket").
-- If the user's reply is affirmative but does not name a route or match an authorization example, ask them to confirm the specific route by name before proceeding.
-
-Do not stay generic. The output of this skill is a routing decision, cost posture, plus the next action.
+- Start execution only after an explicit authorization utterance for a route ("procede", "usa create-prd", "implementa este PRD", "haz el ticket").
+- If the reply is affirmative but names no route, ask the user to confirm the route by name.
+- N1 surgical offers are authorized by a short "yes" to the one-line proposal.
 
 ## Routing decision trace
 
-For every non-trivial routing decision, emit a trace before loading the selected skill.
-If confidence is `High`, use the COMPACT format. Otherwise, use the FULL format.
-If the continuation fast-path applies, use the CONTINUATION format instead of
-re-running full classification.
+Emit a trace before loading the selected skill. Use COMPACT when confidence is
+High, CONTINUATION when the fast-path applies, FULL otherwise.
 
-**COMPACT format (High confidence only):**
-`[skill or direct-answer] · [lean | balanced | premium] · [short reason in ≤8 words]`
+- COMPACT: `[skill or direct-answer] · [lean | balanced | premium] · [reason in ≤8 words]`
+- CONTINUATION: `[skill] · continuing · no reroute`
+- N1 offer: `N1 · surgical · [files and check]`
 
-**CONTINUATION format (active workflow, no reroute):**
-`[skill] · continuing · no reroute`
+FULL format:
 
-Use CONTINUATION only when a prior turn in this session already produced a
-full or compact trace for `[skill]`, session memory still shows it active,
-and the new prompt carries no break signal (see continuation fast-path in
-`.agents/instructions.md`). Do not re-read `.agents/instructions.md` or this
-file's full body to emit this trace.
-
-**FULL format:**
 ```markdown
 Routing decision:
 - Selected workflow: `[skill or direct-answer]`
+- Level: N2 | N3
 - Confidence: Medium | Low
-- Reason: [razon concreta]
-- Cost posture: `lean | balanced | premium`
-- Delegation: `avoided | recommended | required`
-- Optional (when applicable) - Alternative considered: [skill alternativa o `none`]
-- Optional (when applicable) - Why not: [por que no se eligio]
-- Optional (when applicable) - Cost reason: [por que ese tier es suficiente o por que se justifica subir]
-- Optional (when applicable) - Delegation reason: [por qué inline es mejor o qué beneficio concreto aporta delegar]
-- Optional (when applicable) - Context loaded: [archivos/docs minimos planificados]
+- Reason: [concrete signal]
+- Cost posture: `balanced | premium`
+- Delegation: `avoided | recommended | required` + one concrete reason
+- Optional - Alternative considered / Why not / Context loaded
 ```
 
-Requirements for FULL trace:
-- Keep these fields mandatory: Selected workflow, Confidence, Reason, Cost posture, Delegation.
-- Be specific about the signal that triggered the route.
-- If confidence is Medium or Low, include one real alternative and why it was not selected.
-- If the route is `implement-prd`, make clear why direct coding is not acceptable.
-- If the route is `create-epic`, make clear why a smaller flow is insufficient.
-- If the cost posture is `premium`, explain the concrete risk that justifies it.
-- If delegation is `recommended` or `required`, include the concrete trigger (phase fan-out, context-window pressure, or file-ownership split).
-- Do not invent exact token counts unless the tool provides actual telemetry.
+Name the triggering signal and the precedence rule applied. For `implement-change`,
+say why direct coding is not acceptable; for `create-epic`, why a smaller flow
+is insufficient; for `premium`, the concrete risk. Never invent token counts.
 
 ## Classification table
 
-| Request class | Signals | Primary action | Confirmation required? | Default cost posture |
-| --- | --- | --- | --- | --- |
-| Direct answer | Explanation, advice, comparison, small command, no repo changes | Answer directly | No | `lean` |
-| Project formation | User asks to shape a project end-to-end, from discovery to roadmap/GTM/handoff; mentions initiative framing, stakeholder discovery, phased launch, or dossier-level planning | propose `project-formation` as preferred option and include `create-prd`, `generate-pm-ticket`, `create-epic` alternatives when relevant | Yes (always) | `balanced` |
-| Product ambiguity | Problem, user need, strategy, priority, roadmap, JTBD, unclear direction | propose `create-epic` or `create-prd` and wait for user choice | Yes (always) | `balanced` |
-| Broad initiative | Multi-phase work, major capability, research, roadmap, appetite, multiple PRDs | `create-epic` | Yes unless user explicitly asked for epic/initiative/research | `balanced`; `premium` only for major architecture or commercial risk |
-| Feature specification | Clear feature, business rules, UX states, API/data impact, acceptance criteria needed | propose `create-prd` and wait for user choice | Yes (always) | `balanced` |
-| Tiny backlog item | Small task, no full PRD needed, clear AC expected | propose `generate-pm-ticket` and wait for user choice | Yes (always) | `lean` |
-| Workflow extension maintenance | User asks how to add/edit router rules, skill registry entries, or custom `.agents/skills/**` skills; or asks the AI to perform those edits | Direct workflow-maintenance edits with validation (or explanation-only if requested) | No | `lean` |
-| Production code change | Build, implement, develop, fix behavior, add UI, change backend/frontend, modify tests | `implement-prd` if PRD exists; otherwise propose `create-prd` or `generate-pm-ticket` and wait for user choice | Yes (always when no PRD) | `balanced`; `premium` for high-risk architecture or debugging |
-| PRD implementation | User references PRD path or says implement this PRD | `implement-prd` | No | `balanced` |
-| Review / QA | Review PR, review diff, validate quality, inspect frontend, audit UI, or sharpen visual direction | stack-gated review skill (`frontend-design`, `react-doctor`, `impeccable`, `pr-comments-resolution`, `playwright-testing`, `contract-verifier`, or inline review) | No | `lean` for pure visual direction, otherwise `balanced`; `premium` for large or release-critical diffs |
-| Documentation | Explain delivered feature, write guide, preserve knowledge | `document-development` | No | `lean` (tier Liviano; escalate to Mediano only on PRD/evidence contradiction or real complexity) |
+| Request class | Signals | Primary action | Confirmation? |
+| --- | --- | --- | --- |
+| Project formation | end-to-end shaping: discovery, roadmap, GTM, dossier | propose `project-formation` plus alternatives | Yes |
+| Product ambiguity | problem, need, strategy, priority, unclear direction | propose `create-epic` or `create-prd` | Yes |
+| Broad initiative | multi-phase work, research, appetite, several PRDs | `create-epic` | Yes unless the user asked for an epic |
+| Feature specification | clear feature with rules, UX states, API/data impact, AC | propose `create-prd` | Yes |
+| Tiny backlog item | small task with clear AC, no full PRD | propose `generate-pm-ticket` | Yes |
+| Workflow extension maintenance | add/edit router rules, registry entries, `.agents/skills/**` | direct workflow-maintenance edits with validation | No |
+| Production code change | build, implement, fix behavior, backend/frontend, tests | `implement-change` when a PRD, a reproducible bug, a ticket with criteria, or an iteration over an implemented PRD exists; else offer N1 when it fits, or propose `create-prd` / `generate-pm-ticket` | Yes when no input exists |
+| PRD implementation | PRD path or "implement this PRD" | `implement-change` (alias `implement-prd`) | No |
+| Review / QA | review PR or diff, validate quality, audit UI | stack-gated review skill (see `reference/route-gates.md`) | No |
+| Documentation | explain delivered feature, guide, preserve knowledge | `document-development` | No |
 
 ## Deterministic intent resolution (required in every route)
 
-Apply this single ordered checklist for every non-trivial freeform request before selecting a workflow.
-
-1. Check explicit skill invocation first (if present, it wins).
-2. Check hard triggers next and apply route precedence when more than one trigger matches.
-3. If no hard trigger applies, classify using the table.
-4. Resolve confidence (High/Medium/Low) and pick the smallest safe workflow; if tied, choose the smaller safe option and state the tie-break in the trace.
-5. Set cost posture (`lean | balanced | premium`) from risk and ambiguity.
+1. Explicit skill invocation wins.
+2. Check hard triggers and apply route precedence when several match.
+3. Otherwise classify with the table above.
+4. Resolve confidence (High/Medium/Low) and pick the smallest safe workflow; on a tie, choose the smaller safe option and say so in the trace. Smallest-first order: direct answer, N1 surgical, `generate-pm-ticket`, `create-prd`, `create-epic`; but prefer `implement-prd` over direct coding whenever production quality, contracts, tests, tenancy, or cross-layer impact matter.
+5. Set level and cost posture (N2 `balanced`, N3 `premium`).
 6. Set delegation state (`avoided | recommended | required`) with one concrete reason.
-7. Set authorization state: if explicit route authorization is missing, stop in `awaiting-user-choice`; do not start implementation actions.
+7. If explicit route authorization is missing, stop in `awaiting-user-choice`.
 
 ### Hard triggers
 
-#### Project formation hard trigger
-
-Route to `project-formation` as the recommended option (not auto-execution) when the user asks for end-to-end project shaping or formation, including discovery, scope shaping, phased roadmap, GTM planning, or dossier handoff.
-
-Intent examples:
-
-- "necesito formar el proyecto completo"
-- "quiero pasar de discovery a roadmap y go-to-market"
-- "armemos la formación del proyecto con handoff"
-- "project formation para esta iniciativa"
-
-Do not collapse this into `create-prd` unless the user explicitly narrows scope to one feature spec.
-
 #### PR comments hard trigger
 
-Route to `pr-comments-resolution` when the user intent is to resolve, process, close, or work through PR/review comments, including mixed Spanish/English phrasing.
+Route to `pr-comments-resolution` when the user intent is to resolve, process, close, or work through PR/review comments, including mixed Spanish/English phrasing ("resuelve comentarios del PR", "vamos cerrando comentarios de la PR", "fix Copilot/Sentry comments"). Do not downgrade it to inline review. A purely explanatory question about the skill gets a direct answer.
 
-Intent examples:
+#### Project formation hard trigger
 
-- "resuelve comentarios del PR"
-- "ayudame con review comments"
-- "vamos cerrando comentarios de la PR"
-- "fix Copilot/Sentry comments in this PR"
-
-Do not downgrade this to inline review when the action requested is comment resolution.
-If the request is only explanatory (for example, "que hace esa skill"), answer directly and do not load the workflow.
+Route to `project-formation` as the recommended option (not auto-execution) when the user asks for end-to-end project shaping: discovery, scope shaping, phased roadmap, GTM planning, or dossier handoff ("necesito formar el proyecto completo", "quiero pasar de discovery a roadmap y go-to-market"). Do not collapse it into `create-prd` unless the user narrows scope to one feature.
 
 #### Solution sketch hard trigger
 
-Offer `solution-sketch` as the recommended next step and never auto-start it when the user asks to sketch classes, compare architectures, or brainstorm the solution *before* a spec.
-
-Intent examples:
-
-- "dibujemos las clases"
-- "brainstorm de la solucion"
-- "comparemos arquitecturas antes del PRD"
-
-Do not add `solution-sketch` as a fifth standing option in the product-shaping menu.
-Do not auto-load `create-prd` from this trigger.
-If the user declines, continue routing the parent product path.
+Offer `solution-sketch` as the recommended next step and never auto-start it when the user asks to sketch classes, compare architectures, or brainstorm the solution before a spec ("dibujemos las clases", "brainstorm de la solucion", "comparemos arquitecturas antes del PRD"). Do not add `solution-sketch` as a fifth standing option in the product-shaping menu. If the user declines, continue routing the parent product path.
 
 ### Route precedence for ambiguous prompts
 
-When a prompt mentions more than one intent, resolve with this precedence:
-
 1. explicit skill invocation
 2. `pr-comments-resolution` hard trigger
-3. `implement-prd` / production implementation gates
+3. `implement-change` / production implementation gates
 4. `project-formation` hard trigger
 5. `solution-sketch` hard trigger (offer only; never auto-start)
 6. `create-prd` / `generate-pm-ticket` / `create-epic`
 7. review or documentation routes
 8. direct answer
 
-Always include in the routing trace which precedence rule was applied.
-
-Conflict example:
-
-- User asks to "resolve PR comments and implement the PRD changes".
-- Apply precedence rule 2 first: route to `pr-comments-resolution`.
-- After comment resolution, if remaining requested work is implementation, emit a new trace and continue with `implement-prd`.
-
-## Review/QA applicability gate (required)
-
-Before loading any review/QA skill, run this gate in order:
-
-1. Detect changed surface from user request and current diff: backend-only, frontend non-React, React frontend, contract-only, or mixed.
-2. Select only applicable quality skills:
-  - Backend-only: prefer inline review and/or `contract-verifier`; do not load `react-doctor` or `playwright-testing` by default.
-  - Frontend non-React: do not load `react-doctor`; load `playwright-testing` by default when there is a navigable user-facing UI flow and tooling is available. Skip only with an explicit documented exception or user waiver.
-  - React frontend: load `react-doctor` for meaningful React changes.
-  - Formal E2E ask, release-critical flow validation, or default-required navigable UI validation: load `playwright-testing` when a navigable UI flow exists and tooling is available.
-3. If no specialized quality skill applies, continue with inline review and explain why specialized skills were skipped.
-
-Do not invoke `react-doctor` or `playwright-testing` unless this gate says they apply.
-
-## Workflow extension handling
-
-When the request is about extending the workflow itself (router, registry, custom skills):
-
-1. Decide mode first:
-  - explanation-only (user asks "how"),
-  - execution (user asks to apply changes).
-2. Keep edits scoped to workflow contract files unless user asks broader changes.
-3. Preserve boundaries:
-  - routing policy in `workflow-router/SKILL.md`,
-  - startup contract in `.agents/instructions.md`,
-  - startup discovery metadata in `.agents/skills/index.md`,
-  - full skill metadata in `.agents/skills/registry.md`,
-  - algorithm details in each skill `SKILL.md`.
-4. After execution-mode edits, run relevant repository checks and report outcomes.
-
-## Cost posture rules
-
-### `lean`
-
-Use when the task is low-risk, repetitive, mostly summarization, routing, ticketing, documentation, or validation interpretation.
-
-Typical examples:
-
-- `workflow-router`
-- direct explanations
-- `generate-pm-ticket`
-- `document-development` (tier Liviano by default; delegate `escriba-doc` when the runtime can pin a subagent model)
-- `validation-runner` on clear failures
-- simple `contract-verifier` checks
-
-Default direct-answer guardrail:
-
-- direct informational requests should start in `lean` and remain inline whenever safe;
-- avoid broad context gathering unless the first answer would be materially unreliable without it;
-- keep tool usage intentionally small and targeted for these requests.
-
-Tool-budget defaults for direct-answer mode:
-
-- prefer `0` tool calls when the answer is already reliable;
-- allow up to `2` focused read-only tool calls before responding;
-- if more calls are needed, explain why and switch to explicit non-trivial routing.
-
-### `balanced`
-
-Use when the task needs reliable reasoning but is not high-risk enough for a premium model.
-
-Typical examples:
-
-- `create-prd`
-- normal `create-epic`
-- normal `implement-prd`
-- backend/frontend implementation
-- `react-doctor`
-- `qa-handoff-review` on normal diffs
-
-### `premium`
-
-Use only when the cost is justified by risk or ambiguity.
-
-Escalate to `premium` when the task involves:
-
-- architecture decisions with long-term impact,
-- deep debugging across layers,
-- major refactors,
-- multi-tenancy risk,
-- migrations or data loss risk,
-- release-critical QA,
-- product/commercial decisions that affect roadmap or pricing.
-
-Do not use `premium` for routine docs, small tickets, boilerplate, simple validation fixes, or mechanical refactors.
-
-## Model selection limitation
-
-Skills can recommend a cost posture and model tier, but they cannot guarantee an automatic model switch unless the runtime tool supports model routing.
-
-Behavior:
-
-- If the tool supports model selection per request or subagent, select the recommended tier before loading the skill.
-- If the tool does not support model selection, still emit the cost posture so the human, IDE, CLI, or orchestration layer can choose the right model.
-- Never claim a model was switched automatically unless the runtime confirms it.
-
-## Production-ready implementation gate
-
-If the user asks for any development work, assume production readiness is required.
-
-Development work includes:
-
-- Build this
-- Implement this
-- Create this screen
-- Add this endpoint
-- Fix this behavior
-- Modify backend or frontend
-- Change API contracts or serializers
-- Change data models, migrations, jobs, analytics, permissions, tenancy, or tests
-- Make the code do X
-
-Default rule:
-
-```text
-Development request -> do not code directly -> route through implement-prd or its safe predecessor.
-```
-
-If the user asks for "just do it" but the work is still non-trivial, keep the rule. Speed does not override production safety.
-
-### When a PRD exists
-
-Use `implement-prd` immediately when:
-
-- The user provides a PRD path.
-- The user says the PRD is approved.
-- The request says "implement this PRD", "build this feature from the PRD", or equivalent.
-
-Say:
-
-```text
-Voy a usar implement-prd porque esto ya es trabajo de desarrollo y necesitamos mantener discovery, slicing, tests, contratos y QA antes de tocar código.
-```
-
-Then load `.agents/skills/02-implement/implement-prd/SKILL.md`.
-
-### When no PRD exists
-
-Do not silently code. Suggest the smallest predecessor, but do not choose it for the user:
-
-- Use `generate-pm-ticket` for tiny backlog-sized changes.
-- Use `create-prd` for feature work with business rules, UX, API, data, tests, acceptance criteria, tenancy, or cross-layer impact.
-- Use `create-epic` only for a broad initiative that needs research, phases, appetite, and multiple PRDs.
-- Use `project-formation` when the user needs end-to-end project shaping from discovery through GTM and dossier handoff.
-
-Mandatory user decision rule:
-
-- Present the alternatives in plain language and wait for explicit user selection.
-- Do not auto-run `create-prd`, `create-epic`, or `generate-pm-ticket`.
-- If the user says they do not want PRD/epic/ticket, ask for explicit authorization of an alternative route and do not move into implementation by default.
-
-Say:
-
-```text
-Antes de implementar necesito tu decisión de formato. Puedo seguir como [project-formation], [create-prd], [generate-pm-ticket] o [create-epic] según alcance. Elige una opción y la ejecuto.
-```
-
-## Surgical edit exception
-
-A direct edit may skip `implement-prd` only if all conditions are true:
-
-1. The change touches at most one or two files.
-2. The target files and exact change are already clear.
-3. There is no database, API contract, authorization, tenancy, background job, analytics, cross-layer, or migration impact.
-4. The validation command is obvious and can be named before editing.
-5. The final response explicitly says why `implement-prd` was not required.
-
-If any condition is false, use `implement-prd` or create the missing PRD/ticket first.
-
-## Epic safety gate
-
-Do not start `create-epic` just because the request sounds important.
-
-Use `create-epic` only when one of these is true:
-
-- The user explicitly asks for an epic, iniciativa, roadmap, fases, MVP, research document, or multi-PRD plan.
-- The work clearly spans multiple phases, product areas, integrations, or capabilities.
-- The result needs research, appetite shaping, evidence, risks, and a PRD queue.
-
-If unclear, ask:
-
-```text
-Puedo tomar esto como PRD acotado o como épica completa. ¿Prefieres una especificación pequeña para implementar o una investigación con fases?
-```
-
-When autonomy is preferred and the request can still fit safely in one feature spec, propose `create-prd` as recommendation, but wait for explicit user choice.
-
-## Plain-language guidance
-
-When the user is unsure, do not dump the full skill catalog. Offer at most four options:
-
-```text
-Puedo tomar esto de 4 formas:
-1. Respuesta rápida / análisis sin crear archivos.
-2. Formación integral de proyecto (discovery -> roadmap -> GTM -> dossier).
-3. Ticket o PRD acotado para implementar.
-4. Épica completa con investigación y fases.
-
-Mi recomendación: [opción], porque [razón breve].
-```
-
-If the user says "no sé" or gives no preference, offer one recommended option and ask for explicit confirmation before loading that workflow.
-
-## Teach, challenge, improve
-
-Routing is not only classification. It must also mentor.
-
-For substantial requests, add a lightweight coaching layer:
-
-1. Teach one concrete concept the user is implicitly touching.
-2. Challenge one assumption, shortcut, or hidden risk if it affects quality.
-3. Improve the path by recommending the smallest stronger workflow when the user is under-scoping the work.
-
-Use `engineering-mentor` as a cross-cutting overlay when:
-
-- the user explicitly wants coaching or explanation,
-- the tradeoff is subtle enough that a bare routing choice would hide important reasoning,
-- or the developer would likely repeat the same workflow mistake later.
-
-Do not let mentoring replace the selected workflow. The mentor layer exists to sharpen understanding, not to block progress.
-
-## AI cost efficiency routing
-
-Route for quality per unit of AI effort, not for minimum tokens alone.
-
-Before selecting a workflow, consider:
-
-- **Input cost:** how much context, how many docs, how many skills, and how many files must be loaded.
-- **Output cost:** how much explanation is useful versus repetitive.
-- **Delegation cost:** whether a subagent reduces risk/rework or just adds ceremony.
-- **Validation cost:** whether targeted validation can falsify the change before broad suites.
-- **Rework cost:** whether skipping a heavier workflow would likely create bugs, ambiguity, or future cleanup.
-
-Rules:
-
-- Prefer direct answer for simple explanations with no repo change.
-- Prefer `generate-pm-ticket` over `create-prd` when a backlog item is enough.
-- Prefer `create-prd` over `create-epic` when one feature spec is enough.
-- Prefer surgical edit over `implement-prd` only when all surgical exception conditions are true.
-- Prefer `implement-prd` over direct coding when production quality, contracts, tests, tenancy, or cross-layer impact matter.
-- For non-trivial routed work, decide delegation state explicitly: `avoided` when inline execution is cheaper and safer, `recommended` when a focused helper lowers context or review risk, `required` when ownership/contract boundaries demand it.
-- When delegation is avoided, name the concrete reason, for example single-writer continuity, tiny scope, focused validation, or docs-only work.
-- Prefer concise routing notes; do not output long policy explanations unless the user asks about efficiency.
-
-### Token-spike prevention defaults
-
-For direct-answer and lightweight routing turns, apply these defaults unless accuracy would suffer:
-
-- avoid wide-result tools first (broad repo/web searches, full inventories, raw dumps);
-- prefer narrow queries and bounded outputs (top-N, scoped include pattern, precise symbol/file filters);
-- avoid reading large policy files repeatedly in one turn when loaded context is still valid;
-- summarize tool findings instead of echoing large raw payloads.
-
-### Delegation heuristics for routed implementation work
-
-When the selected route is `implement-prd`, do not leave delegation as a vague preference. Use these heuristics before loading the skill:
-
-- Mark delegation as `required` when the work already implies multiple implementation phases/skills, cross-layer contracts, separate file owners, or enough moving parts that one agent would need to keep too many open threads in one context window.
-- Mark delegation as `recommended` when a focused delegate would clearly reduce exploration noise, isolate one slice, or preserve review independence, even if one agent could still finish the work inline.
-- Mark delegation as `avoided` only when the likely execution fits a compact preflight plus one writer path, with obvious validation and no meaningful benefit from phase separation.
-
-When delegation is `recommended` for narrow locate/edit/review tasks, prefer cavecrew-style compressed helpers before verbose delegates.
-
-Good signals that delegation should move upward:
-
-- more than one implementation surface or acceptance stream,
-- discovery/slicing/matching are materially different cognitive tasks from coding,
-- backend responses feed frontend behavior,
-- the PRD already names multiple phases or deliverables,
-- context would likely exceed a small working set without separate owners.
-
-Do not treat “subagents exist” as sufficient reason by itself. The point is smarter context partitioning, not ceremony.
-
-Report AI efficiency only when it adds value: large/autonomous/multi-agent work, explicit user interest in cost, meaningful trade-offs, avoided heavy workflow, retries/failures, or expensive validation choices.
+Example: "resolve PR comments and implement the PRD changes" applies rule 2
+first; after comment resolution, emit a new trace for `implement-change`.
 
 ## Confidence levels
 
-### High confidence
+- High: one workflow clearly fits. Emit the COMPACT trace, load the skill, proceed.
+- Medium: two workflows are plausible. Recommend one, include the cheaper safe alternative in the trace, ask at most one short question.
+- Low: outcome, scope, or artifact is missing. Show the options menu from `reference/route-menus.md`, recommend the smallest safe workflow, and wait for explicit authorization.
 
-The request clearly maps to one workflow.
+## Router output
 
-Behavior:
-
-- State the selected workflow in one sentence.
-- Emit the COMPACT routing trace with cost posture (e.g. `[skill] · balanced · [reason]`).
-- Load the skill.
-- Proceed.
-
-### Medium confidence
-
-Two workflows are plausible and the choice affects scope or artifacts.
-
-Behavior:
-
-- Recommend one.
-- Include the lower-cost safe alternative in the trace.
-- Ask one short question only if needed.
-- Do not ask multiple discovery questions.
-
-### Low confidence
-
-The request lacks outcome, scope, or artifact type.
-
-Behavior:
-
-- Show the three-option menu.
-- Recommend a default.
-- Prefer the smallest safe workflow.
-- Wait for explicit route authorization; do not auto-proceed on speed/autonomy wording alone.
-
-## Trigger examples
-
-| User says | Route | Cost posture |
-| --- | --- | --- |
-| "Explícame si esta idea tiene sentido" | Direct answer or `create-prd` if the user wants a spec-ready decision | `lean` or `balanced` |
-| "Quiero agregar un dashboard de métricas DORA" | Propose `create-prd` (or `generate-pm-ticket` if tiny) and wait for explicit authorization | `balanced` |
-| "Implementa este PRD" | `implement-prd` | `balanced` |
-| "Crea la épica para GitHub Intelligence" | `create-epic` | `balanced`; `premium` if architecture impact is high |
-| "Arregla este bug en frontend" | `implement-prd` if non-trivial; surgical exception only if very small and clear | `lean` for surgical, otherwise `balanced` |
-| "Haz un ticket para esto" | `generate-pm-ticket` | `lean` |
-| "Agrega un workflow nuevo al router" | Workflow extension maintenance path (explain or edit, based on user intent) | `lean` |
-| "Crea una skill propia y dejala registrada" | Workflow extension maintenance path (create `SKILL.md` + update registry, and router only if needed) | `lean` |
-| "Quiero agregar un pattern para mi proyecto" | Workflow extension maintenance path using `add-project-pattern` + registry sync | `lean` |
-| "Revisa si esta pantalla está bien" | `frontend-design` si el problema es visual/dirección, `impeccable` si requiere craft/polish/audit amplio, o `react-doctor` si es revisión técnica React | `lean` o `balanced` según profundidad |
-| "Documenta lo que se hizo" | `document-development` | `lean` |
-
-## Final router output format
-
-Before loading the selected skill, produce a short routing note:
-
-```markdown
-Ruta recomendada: `[skill]`
-Por qué: [una frase simple]
-Cost posture: `lean | balanced | premium`
-Estado: `routing | awaiting-user-choice | executing:<skill>`
-Siguiente acción: [leer skill / pedir una aclaración / responder directo]
-```
-
-Then emit the routing trace. For direct answers, keep it brief, but still leave the trace when the request required actual routing judgment.
-
-## Anti-patterns
-
-Do not:
-
-- Code directly for non-trivial development work.
-- Start `create-epic` because the idea sounds big but could fit in one PRD.
-- Ask the user to choose from a long skill list.
-- Load every skill or every pattern doc.
-- Treat `create-epic` as mandatory when one focused `create-prd` is sufficient.
-- Treat `implement-prd` as optional when production code changes are non-trivial.
-- Route workflow-extension maintenance to product workflows when no product artifact is needed.
-- Hide the fact that a skill was skipped.
-- Route to `create-epic` when `create-prd` would be enough.
-- Give a routing answer with no teach/challenge/improve value when the user is making a meaningful engineering decision.
-- Use `premium` cost posture without a concrete risk.
-- Claim automatic model switching happened when the runtime does not support it.
-- Produce long routing explanations when a short route plus trace is enough.
-- Invoke subagents for ceremony when inline work is safer and cheaper.
-- Skip the delegation decision entirely and later justify it only after the fact.
-- Start code exploration, implementation planning, or edits before explicit route authorization.
-- Reinterpret intent language as automatic permission to execute.
-
-## Definition of done
-
-Routing is complete when:
-
-- The selected workflow is the smallest safe path.
-- Heavy workflows are protected by confirmation when needed.
-- Development work cannot bypass `implement-prd` unless the surgical exception is explicitly justified.
-- The cost posture is explicit for non-trivial routed work.
-- The user receives a clear, understandable explanation of what happens next.
-- The routing trace records the selected workflow, confidence, reason, discarded alternative, cost posture, and minimal context.
-- The routing trace also records whether delegation was avoided, recommended, or required, with one concrete reason.
-- For `implement-prd`, the routing trace also makes explicit whether the decision was driven by phase count, ownership boundaries, or context-window protection.
-- AI cost efficiency was considered without sacrificing quality, safety, or maintainability.
-- The interaction leaves the user a little sharper than before, not just unblocked.
-- The route authorization state is explicit, and execution does not start before authorization.
+Before loading the selected skill, give a short note (route, why, cost posture,
+state `routing | awaiting-user-choice | executing:<skill>`, next action) and
+then the trace. Keep it short: a route plus a trace is usually enough. Report
+AI efficiency only when it adds value: large, autonomous, or multi-agent work,
+explicit user interest in cost, an avoided heavy workflow, or retries.

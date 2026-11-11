@@ -8,7 +8,7 @@ context: fork
 
 Alias: Arquitecta Fases.
 
-Use after `prd-readiness-review` and `codebase-discovery` when the selected mode requires delegated planning. In Codex, invoke through `.codex/agents/arquitecta-fases.toml`. In GitHub Copilot, invoke through `runSubagent`. In other agents, run inline when delegation is unavailable or when `implement-prd` selected `controlled-lite`. This skill plans execution; it does not edit product code.
+Use after `prd-readiness-review` and `codebase-discovery` when the selected mode requires delegated planning. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`); run it inline when delegation is unavailable or at compact N2. This skill plans execution; it does not edit product code.
 
 ## Mission
 
@@ -18,9 +18,12 @@ For compact PRDs, the goal is not to create more slices. The goal is to find the
 
 ## Inputs From Orchestrator
 
-- PRD readiness brief.
+- `.agents/delegation/delegate-contract.md` (read first; not `.agents/instructions.md` or the router).
+- PRD readiness brief and, at N3, the PRD index (`.ai-work/<prd-slug>/prd-index.toon`) plus only the PRD sections the slices need; ask for a section by its reference instead of rereading the whole PRD.
 - Codebase discovery brief, targeted lookup notes, or explicit reason discovery was skipped.
-- Candidate operating mode.
+- Candidate level (N2 or N3).
+- The PRD's `Que queda obsoleto` table: every row belongs to a slice, with the same traceability rule as acceptance criteria. The removal goes in its own slice when it can fail on its own, and a test or check proves the old path is gone or adapted.
+- The PRD's `Supuestos e integraciones` table: an `asumido` row that affects an acceptance criterion and was not verified becomes the first slice, with a stop condition if the assumption is false.
 - User constraints, branch status, and resume state.
 
 ## Procedure

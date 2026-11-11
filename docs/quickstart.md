@@ -53,6 +53,28 @@ For existing repositories, this apply step also enables:
 - docs hub non-destructive insertion,
 - one-time legacy docs migration map generation when legacy docs are detected.
 
+### Model profile per runtime (`calidad` / `costo`)
+
+Delegate agents get their model from the project's **model profile**, chosen
+by how each runtime is billed:
+
+- `calidad` (default for Claude Code and Codex): subscription. Sonnet or GPT
+  Sol by default, Opus or GPT Sol extra-high for implementers, QA, and
+  slicing; never small models.
+- `costo` (default for Copilot, and any per-token API): small models for
+  reading, validation, and docs; Grande only for critical concerns.
+
+`init` asks once per Claude Code or Codex runtime (an `ANTHROPIC_API_KEY` or
+`OPENAI_API_KEY` only preselects `costo`). Non-interactive runs use the
+default. Set or change it any time:
+
+```bash
+workflow-kit update --target /path/to/repo --profile claude=costo,codex=calidad --apply --yes
+```
+
+`update` keeps the stored profile; `doctor` prints it and fails if an agent's
+model does not match. Details: `.agents/model-routing/README.md`.
+
 ## 4. Validate installed files
 
 ```bash

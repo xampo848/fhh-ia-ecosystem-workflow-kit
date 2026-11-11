@@ -35,7 +35,7 @@ If your project already had backend standards in other docs paths:
 
 When your repository has backend code, provide:
 
-- `.github/instructions/backend.instructions.md`
+- `.agents/project/backend.md`
 
 Use `docs/workflow/standards/project-instructions-template.md` as a starter and adapt it to your stack.
 

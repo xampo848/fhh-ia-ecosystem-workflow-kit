@@ -8,7 +8,7 @@ context: fork
 
 Alias: QA Relampago.
 
-Use after all implementation and validation slices finish. In Codex, invoke through `.codex/agents/qa-relampago.toml` as a fresh review. In GitHub Copilot, run this as a fresh `runSubagent` review when available. In other agents, run inline when delegation is unavailable.
+Use after all implementation and validation slices finish. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`); run it inline when delegation is unavailable. In other agents, run inline when delegation is unavailable.
 
 ## Mission
 
@@ -23,7 +23,10 @@ Act as an adversarial final reviewer. Find issues that would block merge, violat
 - Validation command results.
 - Matcher outputs and delegate usage-evidence handoffs.
 - Closure gate status from the task tracker when available.
-- `## Self-Audit` residual risks from `<prd-directory>/_meta/orchestration.md` when that file exists.
+- `## Self-Audit` residual risks from `.ai-work/<prd-slug>/orchestration.md` when that file exists.
+- The PRD's `Que queda obsoleto` table when it exists: run the verification search of every row. The result must be zero remaining usages, or each remaining usage must be justified; an unjustified leftover is a finding (two sources of truth).
+- The PRD's `Supuestos e integraciones` table when it exists: an `asumido` row that affects an acceptance criterion needs evidence of verification.
+- The PRD index (`.ai-work/<prd-slug>/prd-index.toon`) when it exists: compare it against the original PRD. An acceptance criterion, edge case, decision, or constraint in the PRD that is missing from the index is a `high` finding, because earlier stages worked without it.
 
 ## Mandatory Preconditions
 
@@ -33,7 +36,7 @@ Act as an adversarial final reviewer. Find issues that would block merge, violat
 
 ## Must Read
 
-- `.github/copilot-instructions.md`
+- `.agents/delegation/delegate-contract.md`
 - Relevant backend/frontend instructions for touched files.
 - PRD acceptance criteria.
 - Matcher-required pattern skills / fallback docs when relevant to the review.
@@ -65,6 +68,35 @@ When the PRD defines a Matriz de Edge Cases, report coverage explicitly by categ
 
 The reviewer does not retry automatically. A re-entry is valid only after the named repair or validation step supplies new evidence; otherwise return `blocked` rather than creating another review loop.
 
+### Incremental Re-entry
+
+1. **The first QA is complete**: every gate and the six mandatory edge-case
+   categories.
+2. **A re-entry after a repair is focused.** Review the repaired findings, the
+   repair diff, and its impact radius. Gates that were not touched keep their
+   previous verdict, citing the review they come from
+   (`origin_review: <review id>`).
+3. **Deterministic impact radius.** The orchestrator computes it by searching
+   the usages of the symbols the repair changed and passes the list in
+   `impact_radius[N]`. Start from that list, not from judgment; add to it when
+   you find a consumer it missed.
+4. **Escalate to a full review** when the repair touches a `criticalConcern`,
+   a contract or public API, or a migration; touches files outside the repaired
+   slice; or the focused review finds a new `high` or `critical` finding.
+5. **Cumulative coverage before closing.** Every file in the final diff must
+   have been reviewed by some QA at its current version (same fingerprint).
+   Review any file that was not before returning `ready_to_close: yes`, so no
+   regression goes unreviewed.
+6. **Calibration (once per project).** In the first real implementation with
+   a QA re-entry, run both the focused and the full review and compare their
+   findings. If the full review finds something the focused one missed, report
+   it so the triggers above are adjusted before the scheme is trusted.
+
+The independent fresh-context reviewer, the findings ledger (a finding missing
+from the ledger is still open), and the round limit below all remain.
+
+Repair rounds are capped at 2 per slice (`../implement-prd/reference/validation-and-stop-conditions.md`). When a finding would open a third round on the same slice, return `blocked` with what fails, the hypothesis, and the options for the user (continue, accept the risk, reduce scope, or split) instead of `partial`. Report an environment failure as such; it is not a product finding and does not consume repair rounds.
+
 ### Severity-Blocking Gate
 
 Compute `blocking_findings_open` from the orchestrator's `findings_ledger` (task tracker) plus this run's own `findings[]`: it is `yes` when any finding has `severity: critical` or `severity: high` and `status` is not `repaired` or `waived_by_user`. `ready_to_close: yes` is never allowed while `blocking_findings_open: yes`, even if every other gate reports `PASS`/`COMPLETE`. On a re-entry review, treat any prior finding missing from the ledger as still `open` rather than assuming it was fixed — do not infer resolution from silence.
@@ -87,7 +119,7 @@ Use this checklist as coverage for the mandatory procedure; it does not replace 
 - PRD scope: no missing acceptance criteria and no unrequested expansion.
 - Use cases: every PRD use case links to an implemented/verified slice and at least one executed test; report orphans by ID.
 - Edge cases: every mandatory category (datos vacíos, límites, errores, permisos/tenancy, concurrencia/orden, rollout/rollback) is reported `PASS` or `gap` by name; empty/error/boundary/permission/rollout states are verified or explicitly blocked.
-- Backend: service boundaries, CanCanCan, tenancy, i18n, Minitest.
+- Backend: service boundaries, authorization, tenancy, i18n, and tests, against the project's rules in `.agents/project/backend.md` and `.agents/project/stack.md`.
 - Frontend: hooks/API modules, design system, i18n, tokens, tests.
 - Visual contract: when the PRD changes visible UI, the Contrato Visual is `locked` and the shipped screen matches its density, primary action, required states, and thesis; a mockup cited in the PRD is evidence, not a substitute. Missing lock on a new visible surface blocks `ready_to_close: yes`.
 - Contract: backend response shape matches frontend consumer.

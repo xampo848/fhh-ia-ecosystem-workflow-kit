@@ -21,11 +21,14 @@ This folder is reserved for documents that support the installed AI workflow.
 
 Optional `solution-sketch` sits beside ticket / PRD / epic / formation. It is offer-only. See [decisions/2026-08-24-solution-sketch-flow.md](decisions/2026-08-24-solution-sketch-flow.md).
 
-Visible UI also needs a **Contrato Visual (UI lock)** inside `create-prd` / `generate-pm-ticket` before `implement-prd` starts. See [decisions/2026-08-24-ui-visual-contract.md](decisions/2026-08-24-ui-visual-contract.md).
+Visible UI also needs a **Contrato Visual (UI lock)** inside `create-prd` / `generate-pm-ticket` before `implement-change` (alias `implement-prd`) starts. See [decisions/2026-08-24-ui-visual-contract.md](decisions/2026-08-24-ui-visual-contract.md).
 
 ```mermaid
 flowchart TD
-  pedido["Pedido del usuario"] --> router["workflow-router"]
+  pedido["Pedido del usuario"] --> nivel{"Pre-filtro de nivel<br/>N0 / N1 / N2-N3"}
+  nivel -->|N0| directo["Respuesta o cambio no semántico<br/>sin cargar el workflow"]
+  nivel -->|N1| quirurgico["Cambio quirúrgico<br/>una línea + sí corto"]
+  nivel -->|N2 / N3| router["workflow-router"]
 
   router --> ticket["Ticket chico<br/>generate-pm-ticket"]
   router --> prd["Feature clara<br/>create-prd"]
@@ -53,9 +56,42 @@ flowchart TD
   artifact --> resume{"Que sigue?"}
   resume --> lock
   resume --> cut
-  lock --> impl["implement-prd"]
+  lock --> impl["implement-change<br/>(alias implement-prd)"]
   cut --> prd
 ```
+
+## Implementation route
+
+`implement-change` is the single implementation route. Two independent axes
+decide the work:
+
+| Axis | Values | Decides |
+| --- | --- | --- |
+| Level | N1 surgical, N2 standard, N3 high risk | ceremony: tracker, delegates, Discovery, QA, closure |
+| Input type | PRD, bug, ticket, iteration | evidence: AC coverage, failing-first test, ticket AC, delta plus regression |
+
+An **iteration** over an implemented PRD uses its `## 10. Evidencia de
+Implementacion` as the map, checks freshness with `git diff <ref>..HEAD` on the
+delivered files, runs the original feature's regression tests, and closes with
+an "Iteración N" subsection. **Autonomous** execution is offered for N2/N3 and
+chosen per run; supervised is the default. Former mode names map to levels:
+`small/local` → N1, `controlled-*` → N2, `standard` → N3.
+
+Execution brakes apply at every level and survive autonomous mode: at most 2
+repair rounds per slice, one recovery attempt for an environment failure, one
+rerun for a flaky test, and the full expensive suite once at closure. Temporary
+AI state lives in `.ai-work/<prd-slug>/` (Git-ignored) and is removed at
+closure; the PRD keeps only a compact section 10.
+
+Expensive deterministic checks (typecheck, unit suites, build) may reuse a
+previous result when a script-computed fingerprint proves nothing changed. It
+starts in shadow mode, never applies to integration, E2E, critical slices, or
+the closure suite, and QA re-entries are focused on the repair.
+
+Project rules are runtime-neutral: the quality gate and the backend and
+frontend instructions live in `.agents/project/`, stack-specific rules in
+`.agents/project/stack.md`, and the fixed knowledge base in
+`.agents/project-context.md`. Runtime folders only hold generated copies.
 
 ## Recommended first documents
 

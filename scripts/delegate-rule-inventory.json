@@ -1,0 +1,26 @@
+{
+  "description": "Inventory of workflow rules by audience (roadmap D-18). Every rule with scope delegate or both must be present in .agents/delegation/delegate-contract.md; scripts/validate-delegate-contract.mjs enforces it. Add a row here when a new rule must reach delegates.",
+  "rules": [
+    { "id": "no-routing", "scope": "both", "rule": "Delegates never restart intake, readiness, discovery, slicing, matching, or routing.", "contractPattern": "must not restart those parent stages or recursively\\s+reroute" },
+    { "id": "required-reads", "scope": "delegate", "rule": "A new delegate reads its complete skill, applicable instructions, and controlling source.", "contractPattern": "reads its complete required skill, applicable instructions" },
+    { "id": "observable-reuse", "scope": "delegate", "rule": "Pre-injected content is reused only with observable provenance and freshness.", "contractPattern": "provenance, and its current freshness observable" },
+    { "id": "resume-revalidation", "scope": "delegate", "rule": "A resumed delegate revalidates the relevant delta and dependencies.", "contractPattern": "revalidates the relevant delta and affected dependencies" },
+    { "id": "bounded-input", "scope": "both", "rule": "Input is the role-relevant subset; nobody re-pastes the full PRD or tracker.", "contractPattern": "role-relevant subset" },
+    { "id": "unknown-not-permission", "scope": "both", "rule": "unknown is a record of unavailable evidence, not permission.", "contractPattern": "`unknown` is a record of unavailable evidence, not permission" },
+    { "id": "bounded-output", "scope": "both", "rule": "No raw dumps, full logs, or broad searches as a first step.", "contractPattern": "No raw dumps, no full logs, no broad" },
+    { "id": "no-silent-install", "scope": "both", "rule": "Capabilities are never installed or attached without confirmation.", "contractPattern": "Never install or attach a capability without" },
+    { "id": "no-model-claims", "scope": "both", "rule": "Never claim a model switch the runtime did not confirm.", "contractPattern": "Never claim a model switch the runtime did not confirm" },
+    { "id": "plain-prose-for-risk", "scope": "both", "rule": "No compressed output for security warnings, irreversible actions, or risks.", "contractPattern": "Do not use compressed output for security" },
+    { "id": "neutral-wins", "scope": "both", "rule": "The neutral contract wins over a runtime adapter.", "contractPattern": "the neutral files win" },
+    { "id": "file-boundaries", "scope": "delegate", "rule": "Edit only owned files; one writer per file.", "contractPattern": "Edit only explicitly owned files; one writer per file" },
+    { "id": "brakes", "scope": "both", "rule": "At most 2 repair rounds per slice; one recovery attempt for environment failures; one rerun for flaky tests.", "contractPattern": "At most 2 repair rounds per slice" },
+    { "id": "compact-handoff", "scope": "delegate", "rule": "Handoffs return only new information.", "contractPattern": "Compact Handoff Rules" },
+    { "id": "escape-rule", "scope": "delegate", "rule": "Anything not covered stops and returns blocked to the orchestrator.", "contractPattern": "stop and return `blocked` to the orchestrator" },
+    { "id": "level-prefilter", "scope": "orchestrator", "rule": "Every prompt is classified N0-N3 before loading workflow files." },
+    { "id": "route-authorization", "scope": "orchestrator", "rule": "Intent language is not execution authorization for N2/N3." },
+    { "id": "routing-trace", "scope": "orchestrator", "rule": "A routing trace is emitted before loading the selected skill." },
+    { "id": "user-owned-prd-decision", "scope": "orchestrator", "rule": "The AI never decides alone to create a PRD, epic, or ticket." },
+    { "id": "continuation-fast-path", "scope": "orchestrator", "rule": "Continuation turns do not reload policy files." },
+    { "id": "project-context-ownership", "scope": "orchestrator", "rule": "Only the orchestrator edits .agents/project-context.md, and only at closure." }
+  ]
+}

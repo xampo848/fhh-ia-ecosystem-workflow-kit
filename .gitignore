@@ -3,6 +3,7 @@ dist/
 *.tgz
 .DS_Store
 npm-debug.log*
+.ai-work/
 docs/prd/**/_meta/
 docs/plans/**/_meta/
 .agents/workflow-kit/diagnostics/

@@ -76,7 +76,8 @@ When installing into an already existing project, the installer now applies safe
 - `docs/README.md` gets a non-destructive workflow section (idempotent marker block) so docs are ready to receive workflow documents.
 - `docs/workflow/README.md` is created as an initial docs map when missing.
 - `docs/workflow/standards/` includes setup guides for backend/frontend standards and adoption.
-- Projects are expected to define their own runtime instruction files for implementation skills: `.github/instructions/backend.instructions.md` and `.github/instructions/frontend.instructions.md` (when those surfaces exist).
+- Project rules are runtime-neutral: the installer creates `.agents/project/quality-gate.md`, templates for `.agents/project/backend.md` and `.agents/project/frontend.md` (fill them in when those surfaces exist), and `.agents/project-context.md` (structure, validation commands, environment quirks). Existing hand-written `.github/instructions/*.instructions.md` files are migrated with a backup, and Copilot gets generated copies.
+- `.ai-work/` (temporary AI state) is added to `.gitignore`.
 - A one-time `docs/workflow/migration/legacy-docs-map.md` is generated when legacy docs are detected, with coherent destination suggestions and `git mv` commands.
 
 Legacy docs are not moved automatically. Review `docs/workflow/migration/legacy-docs-map.md` and relocate them manually with `git mv` if you want to preserve history cleanly.
@@ -98,7 +99,7 @@ Use this quick checklist right after first install:
   - `.agents/instructions.md`
   - `.agents/skills/00-router/workflow-router/SKILL.md`
   - `.agents/skills/registry.json`
-  - `.github/instructions/backend.instructions.md` and `.github/instructions/frontend.instructions.md` (or an explicit N/A decision for missing surfaces)
+  - `.agents/project/backend.md` and `.agents/project/frontend.md` (or an explicit N/A decision for missing surfaces)
 5. Send one natural-language prompt in your agent runtime (for example, “Implementa una mejora pequeña con tests”) and confirm routing starts from the installed workflow.
 
 For existing repositories with prior docs, also review:
@@ -113,6 +114,17 @@ If something looks wrong after dry-run/apply, jump directly to:
 ## Using the workflow after installation
 
 Once installed, the recommended way to use the ecosystem is to describe your intent in natural language. You do not need to remember skill names: the router selects the right workflow and skills based on your request.
+
+The workflow is proportional to the task. Every prompt gets a level before any workflow file is loaded:
+
+| Level | Example | What happens |
+| --- | --- | --- |
+| N0 operational | a question, a typo, formatting | answered or applied directly, no workflow files read |
+| N1 surgical | a behavior change in 1–2 clear files | one line (`N1 · surgical · <files>`), a short "yes", one focused check |
+| N2 standard | a bounded feature, bug, or ticket | routed through `workflow-router` and `implement-change` |
+| N3 high risk | contracts, migrations, auth or tenancy, anything irreversible | full gates, delegates, and independent QA |
+
+`implement-change` (alias `implement-prd`) implements PRDs, bugs, tickets, and iterations over an implemented PRD. For N2 and N3 it offers supervised (default) or autonomous execution; brakes such as the 2-round repair limit apply in both.
 
 Recommended operating flow:
 
@@ -229,6 +241,13 @@ Apply after review:
 workflow-kit update --target /path/to/repo --apply --yes
 ```
 
+The plan lists the one-time **migrations** it carries (for example, moving hand-written Copilot instructions to `.agents/project/`). Add `--diff` to see the line diff of every file that would change, including managed files you edited locally, which `update` protects and never overwrites silently. `update` and `doctor` reuse the runtimes recorded at install time, and the update never deletes or moves your files.
+
+Delegate agents follow the repository's model profile (`calidad` for
+subscriptions, the default for Claude Code and Codex; `costo` for Copilot and
+per-token APIs). `update` keeps the stored profile; change it with
+`--profile claude=costo` (see `docs/quickstart.md`).
+
 Update behavior:
 
 - Only files tracked in `.agents/workflow-kit/install-state.json` are eligible for overwrite.
@@ -286,8 +305,11 @@ See the concrete prompts and guardrails in [docs/quickstart.md](docs/quickstart.
 - `neutral` — full `.agents` workflow package without runtime adapters.
 - `codex` — adds `AGENTS.md` and Codex adapter notes.
 - `copilot` — adds GitHub Copilot instruction adapters.
-- `claude` — adds `CLAUDE.md`.
+- `claude` — adds `CLAUDE.md`, delegate agents, and `.claude/skills/` slash-command wrappers.
 - `antigravity` — adds `ANTIGRAVITY.md` and Antigravity adapter notes.
+- `opencode` — uses the shared `AGENTS.md` bootstrap.
+
+Delegate agents follow a model profile chosen by billing: `calidad` (subscription; the default for Claude Code and Codex) or `costo` (Copilot and per-token APIs). Set it with `--profile claude=costo,codex=calidad`. Add `--stack rails-react` to install the Rails + React stack rules as `.agents/project/stack.md`.
 
 Combine runtimes with commas:
 
@@ -327,8 +349,8 @@ Ask the agent to do it:
 ```text
 Implement a new workflow route named "<workflow-name>".
 Requirements:
-1) Update .agents/skills/00-router/workflow-router/SKILL.md with trigger signals and disambiguation rules.
-2) Update .agents/instructions.md if startup/routing contract changes.
+1) Update .agents/skills/00-router/workflow-router/SKILL.md with trigger signals and disambiguation rules; keep it at or under 200 lines and move menus, gates, or examples to its reference/ files.
+2) Update .agents/instructions.md if startup/routing contract or task levels change, then run node scripts/sync-level-prefilter.mjs --write.
 3) Keep routing trace format consistent.
 4) Do not change unrelated routes.
 5) Run relevant validation checks and summarize results.
@@ -350,8 +372,8 @@ Requirements:
 
 When editing by hand, keep this order:
 
-1. Update routing behavior in `.agents/skills/00-router/workflow-router/SKILL.md`.
-2. Update startup contract in `.agents/instructions.md` if routing/entry behavior changes.
+1. Update routing behavior in `.agents/skills/00-router/workflow-router/SKILL.md` (core, at most 200 lines) or in its `reference/` files (`route-menus.md`, `route-gates.md`, `router-evals.md`).
+2. Update startup contract in `.agents/instructions.md` if routing/entry behavior or the task levels (N0–N3) change. The level pre-filter is copied to the runtime adapters by `node scripts/sync-level-prefilter.mjs --write`; `bun run check:workflow` fails if a copy drifts.
 3. Add or update skills under `.agents/skills/06-patterns/<domain>/<skill-name>/SKILL.md`.
 4. Register every new skill in `.agents/skills/registry.md`.
 
@@ -377,7 +399,9 @@ bun run check:templates
 workflow-kit update --target /path/to/repo
 ```
 
-3. Test routing behavior with three prompts:
+3. Test routing behavior with three prompts, plus the level test prompts in
+   `.agents/skills/00-router/workflow-router/reference/router-evals.md` when
+   the pre-filter or router changed:
 
 - one prompt that should trigger `workflow-router` only,
 - one prompt that should trigger your new workflow/skill,
@@ -412,13 +436,18 @@ fhh-ia-ecosystem-workflow-kit/
 ## Validation for maintainers
 
 ```bash
+bun run check:security
 bun run test
 bun run check
+bun run check:workflow
 bun run check:templates
 bun run check:release
 bun run check:docs
+bun run check:legal
 bun pm pack --dry-run
 ```
+
+`check:workflow` also verifies the generated artifacts and the structural rules: skill registry, delegate adapters, the level pre-filter copies, Claude skill wrappers, the delegate contract, neutral paths, stack neutrality, and the 200-line skill limit. Regenerate with the matching `node scripts/sync-*.mjs --write` script.
 
 ## Documentation
 

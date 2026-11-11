@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { validateReleaseReadiness } from '../scripts/validate-release-readiness.mjs';
+import { makeTempRepo } from './helpers.mjs';
 
 test('validateReleaseReadiness passes for bundled release prep', async () => {
   const result = await validateReleaseReadiness();
@@ -74,7 +75,7 @@ test('validateReleaseReadiness enforces version bump for distributable changes',
 
 async function copyReleaseFixture() {
   const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-  const targetRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-release-'));
+  const targetRoot = await makeTempRepo('workflow-kit-release-');
   for (const entry of ['package.json', 'NOTICE', 'THIRD_PARTY_NOTICES.md', 'RELEASE.md', 'docs', '.github', 'templates', 'src', 'bin']) {
     await fs.cp(path.join(sourceRoot, entry), path.join(targetRoot, entry), { recursive: true });
   }

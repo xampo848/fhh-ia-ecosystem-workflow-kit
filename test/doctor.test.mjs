@@ -96,3 +96,23 @@ test('doctor fails with actionable Antigravity routing diagnostics', async () =>
   assert.match(doctorIo.output.stdout, /\[antigravity\/missing-execution-gate\]/);
   assert.match(doctorIo.output.stdout, /ANTIGRAVITY\.md/);
 });
+
+test('doctor warns when an always-loaded adapter lost the level pre-filter', async () => {
+  const { runDoctor } = await import('../src/doctor.mjs');
+  const { applyInstallPlan } = await import('../src/apply.mjs');
+  const { buildInstallPlan } = await import('../src/planner.mjs');
+  const { makeTempRepo } = await import('./helpers.mjs');
+  const fsPromises = await import('node:fs/promises');
+  const pathModule = await import('node:path');
+
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+  const claudePath = pathModule.join(target, 'CLAUDE.md');
+  const original = await fsPromises.readFile(claudePath, 'utf8');
+  const withoutBlock = original.replace(/<!-- workflow-kit:level-prefilter:start -->[\s\S]*<!-- workflow-kit:level-prefilter:end -->\n/, '');
+  assert.notEqual(withoutBlock, original);
+  await fsPromises.writeFile(claudePath, withoutBlock, 'utf8');
+
+  const result = await runDoctor({ targetPath: target, runtime: 'claude' });
+  assert.ok(result.diagnostics.some((item) => item.code === 'adapter/missing-level-prefilter' && item.path === 'CLAUDE.md' && item.severity === 'warning'));
+});

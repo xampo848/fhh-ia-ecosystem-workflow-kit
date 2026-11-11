@@ -8,11 +8,11 @@
       "name": "workflow-router",
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
-      "trigger": "Per-turn intake selects non-trivial, iterative, implementation-adjacent, or multi-step freeform work without an explicit skill, and provides explicit route options when user choice is required",
+      "trigger": "Per-turn intake classifies N2/N3 freeform work (after the level pre-filter) without an explicit skill, and provides explicit route options when user choice is required",
       "loading_posture": "Startup-minimal",
       "cost_hint": "lean",
       "key": "workflow-router",
-      "runtime_notes": "Intake runs every prompt; load the full skill for non-trivial, iterative, implementation-adjacent, or multi-step routing, including user-choice menus (for example `project-formation` vs `create-prd`)."
+      "runtime_notes": "The level pre-filter runs every prompt; N0/N1 never load the router. For N2/N3, load the core `SKILL.md` and only the reference whose condition holds (`route-menus.md` for user-choice menus such as `project-formation` vs `create-prd`, `route-gates.md` for gate-specific routes)."
     },
     {
       "name": "create-epic",
@@ -125,14 +125,24 @@
       "runtime_notes": "Owned by `project-formation`."
     },
     {
+      "name": "implement-change",
+      "class": "Workflow",
+      "path": ".agents/skills/02-implement/implement-change/SKILL.md",
+      "trigger": "An approved PRD, a bug, a ticket, or an iteration over an implemented PRD needs code changes (N1–N3)",
+      "loading_posture": "Explicit-only",
+      "cost_hint": "balanced",
+      "key": "implement-change",
+      "runtime_notes": "General implementation route; the level decides ceremony and the input type decides evidence. Orchestrator for delegate-only implementation skills."
+    },
+    {
       "name": "implement-prd",
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
-      "trigger": "Approved PRD needs implementation",
+      "trigger": "Approved PRD needs implementation (\"implementa este PRD\")",
       "loading_posture": "Explicit-only",
       "cost_hint": "balanced",
       "key": "implement-prd",
-      "runtime_notes": "Orchestrator for delegate-only implementation skills."
+      "runtime_notes": "Permanent alias of `implement-change`; its directory keeps the shared implementation references."
     },
     {
       "name": "prd-readiness-review",

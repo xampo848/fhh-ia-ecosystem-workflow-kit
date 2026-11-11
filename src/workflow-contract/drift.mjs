@@ -4,6 +4,7 @@ import { diagnostic } from './diagnostics.mjs';
 
 const mirroredFiles = [
   '.agents/instructions.md',
+  '.agents/project-context.md',
   '.agents/skills/index.md',
   '.agents/skills/06-patterns/index.md',
   '.agents/skills/00-router/workflow-router/SKILL.md',
@@ -15,6 +16,10 @@ const mirroredFiles = [
 ];
 
 const mirroredDirectories = [
+  '.agents/delegation',
+  '.agents/project',
+  '.agents/skills/00-router/workflow-router',
+  '.agents/skills/02-implement/implement-change',
   '.agents/skills/04-crosscutting/frontend-design',
   '.agents/skills/04-crosscutting/impeccable',
   '.agents/skills/05-caveman'
