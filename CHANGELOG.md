@@ -5,6 +5,17 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.16.2-remove-slidev
+
+- Removed the Slidev presentation (`slides.md`), its `slides:*` scripts and its
+  CI build step. Nothing installed in target repositories changes.
+- Removed the Slidev development dependencies, the three local dependency
+  patches and the seven version overrides that existed only for that tree. The
+  package now has one runtime and one development dependency.
+- `check:security` accepts an empty patch inventory (then any advisory fails)
+  and rejects a patch registered in `package.json` that the inventory does not
+  document.
+
 ## 0.16.1-roadmap-closure
 
 - A protected file whose content already equals the new version is reported as

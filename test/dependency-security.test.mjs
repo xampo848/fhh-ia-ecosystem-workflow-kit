@@ -1,15 +1,11 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { createRequire } from 'node:module';
-import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { evaluateDependencyAudit, verifyDependencyPatches } from '../scripts/validate-dependency-security.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
-const require = createRequire(import.meta.url);
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 const fixture = async (context) => {
   const root = await makeTempRepo('verified-security-');
@@ -53,7 +49,9 @@ test('parents without metadata cannot hide nested vulnerable packages', async (c
 
 test('missing, unregistered, altered or duplicate patches fail closed', async (context) => {
   const input = await fixture(context);
-  await assert.rejects(verifyDependencyPatches({ ...input, manifest: { packages: [] } }), /Missing patch inventory/);
+  await assert.rejects(verifyDependencyPatches({ ...input, manifest: {} }), /Missing patch inventory/);
+  // A patch registered in package.json but absent from the inventory is not accepted.
+  await assert.rejects(verifyDependencyPatches({ ...input, manifest: { packages: [] } }), /Unregistered local patch: braces@3\.0\.3/);
   await assert.rejects(verifyDependencyPatches({ ...input, manifest: { packages: [...input.manifest.packages, ...input.manifest.packages] } }), /duplicate/);
   await fs.writeFile(path.join(input.root, 'package.json'), '{}');
   await assert.rejects(verifyDependencyPatches(input), /Missing registered patch/);
@@ -79,29 +77,25 @@ test('audit accepts only exact corrected advisories and rejects malformed report
   assert.throws(() => evaluate({ verification: { ...verification, instanceCounts: {} } }));
 });
 
-test('real installed corrections reject deep recursion and preserve numeric and glob compatibility', async () => {
-  const braces = require('braces');
-  const { sprintf, vsprintf } = require('sprintf-js');
-  const deep = '{'.repeat(4000) + 'a,b' + '}'.repeat(4000);
-  for (const pattern of [deep, '('.repeat(4000) + 'a' + ')'.repeat(4000)]) {
-    assert.equal(braces.compile(pattern), pattern);
-    assert.deepEqual(braces.expand(pattern), [pattern]);
-    assert.equal(braces.stringify(braces.parse(pattern)), pattern);
-  }
-  assert.deepEqual(braces.expand('src/{a,b}.js'), ['src/a.js', 'src/b.js']);
-  assert.deepEqual(braces.expand('item-{1..3}'), ['item-1', 'item-2', 'item-3']);
-  assert.equal(sprintf('%s:%04d', 'x', 7), 'x:0007');
-  assert.equal(vsprintf('%.2f %s', [1.234, 'ok']), '1.23 ok');
-  assert.equal(sprintf('%.0f', 1.234), '1');
-  assert.equal(sprintf('%.0g', 1), '1');
-  for (const suffix of ['f', 'e', 'g']) {
-    assert.equal(typeof sprintf('%.1000000000' + suffix, 1), 'string');
-    assert.equal(typeof sprintf('%.' + '9'.repeat(400) + suffix, 1), 'string');
-  }
-  const probe = spawnSync(process.execPath, ['-e', 'const b=require("braces");b.compile("{".repeat(4000)+"a,b"+"}".repeat(4000));require("sprintf-js").sprintf("%.1000000000f",1)'], { timeout: 2000, maxBuffer: 4096 });
-  assert.equal(probe.error, undefined);
-  assert.equal(probe.status, 0, probe.stderr?.toString());
+test('without local corrections the gate accepts a clean audit and rejects any advisory', async (context) => {
+  const root = await makeTempRepo('verified-security-empty-');
+  context.after(() => fs.rm(root, { recursive: true, force: true }));
+  await fs.writeFile(path.join(root, 'package.json'), JSON.stringify({ devDependencies: { yaml: '^2.9.1' } }));
+  await fs.mkdir(path.join(root, 'node_modules/yaml'), { recursive: true });
+  await fs.writeFile(path.join(root, 'node_modules/yaml/package.json'), JSON.stringify({ name: 'yaml', version: '2.9.1' }));
+  const verification = await verifyDependencyPatches({ root, manifest: { packages: [] } });
+  assert.deepEqual(verification, { packages: [], instanceCounts: {} });
+  assert.deepEqual(evaluateDependencyAudit({ status: 0, report: {}, verification }), { status: 'PASS', corrected: [] });
+  const advisory = { id: 1, url: 'https://github.com/advisories/GHSA-new', severity: 'low' };
+  assert.throws(() => evaluateDependencyAudit({ status: 1, report: { yaml: [advisory] }, verification }), /Uncorrected or unexpected advisory: yaml/);
+});
+
+test('this repository registers no local patch, override or patched dependency', async () => {
   const verification = await verifyDependencyPatches();
-  assert.ok(verification.instanceCounts.braces >= 1);
-  assert.ok(verification.instanceCounts['sprintf-js'] >= 1);
+  assert.deepEqual(verification, { packages: [], instanceCounts: {} });
+  const metadata = JSON.parse(await fs.readFile(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(metadata.patchedDependencies, undefined);
+  assert.equal(metadata.overrides, undefined);
+  assert.deepEqual(Object.keys(metadata.dependencies), ['@inquirer/prompts']);
+  assert.deepEqual(Object.keys(metadata.devDependencies), ['yaml']);
 });
