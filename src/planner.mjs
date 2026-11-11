@@ -326,7 +326,21 @@ export async function buildUpdatePlan(options = {}) {
 
     if (recordedChecksum) {
       const existingChecksum = computeChecksum(existingContent);
-      if (existingChecksum !== recordedChecksum) {
+      // Content that already equals what this version would write is not a
+      // local edit, whatever the state recorded: someone took the new version
+      // by hand. Recording it ends the protection instead of keeping the file
+      // marked as modified forever.
+      if (existingContent === resolution.content) {
+        operations.push({
+          operation: 'unchanged',
+          relativePath: file.relativePath,
+          targetFile,
+          sourcePath: file.sourcePath,
+          content: resolution.content,
+          sourceChecksum,
+          plannedChecksum: computeChecksum(resolution.content)
+        });
+      } else if (existingChecksum !== recordedChecksum) {
         const overwriteOperation = writeOperationForResolution(resolution.strategy, backupMode);
         const shouldAutoMerge = resolution.strategy === 'merged';
         const isProtectedCustomization = isProtectedCustomizationPath(file.relativePath);
@@ -344,16 +358,6 @@ export async function buildUpdatePlan(options = {}) {
           recordedChecksum,
           plannedChecksum: computeChecksum(resolution.content),
           reason: isProtectedCustomization ? 'protected_customization' : undefined
-        });
-      } else if (existingContent === resolution.content) {
-        operations.push({
-          operation: 'unchanged',
-          relativePath: file.relativePath,
-          targetFile,
-          sourcePath: file.sourcePath,
-          content: resolution.content,
-          sourceChecksum,
-          plannedChecksum: computeChecksum(resolution.content)
         });
       } else {
         operations.push({

@@ -137,6 +137,57 @@ test('update --diff shows what would change, including a protected local edit', 
   assert.match(await renderPlanDiffs(plan, { maxLines: 5 }), /more diff lines\)/);
 });
 
+// Found rehearsing the update on a real repository: its implement-prd/SKILL.md
+// was edited locally, so update protects it. Taking the new version by hand
+// must end the protection instead of reporting the file as modified forever.
+test('a protected file that already matches the new version is no longer reported as modified', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+  const relativePath = '.agents/skills/02-implement/implement-prd/SKILL.md';
+  const shipped = await read(target, relativePath);
+  const statePath = path.join(target, installStateRelativePath);
+  const state = JSON.parse(await fs.readFile(statePath, 'utf8'));
+  // The state remembers an older shipped version; the file holds the new one.
+  state.files[relativePath] = createHash('sha256').update('older shipped version\n').digest('hex');
+  await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+
+  const plan = await buildUpdatePlan({ targetPath: target });
+  assert.equal(plan.operations.find((item) => item.relativePath === relativePath).operation, 'unchanged');
+  await applyInstallPlan(plan);
+
+  const updated = JSON.parse(await fs.readFile(statePath, 'utf8'));
+  assert.equal(updated.files[relativePath], createHash('sha256').update(shipped).digest('hex'));
+  const doctor = await runDoctor({ targetPath: target });
+  assert.equal(doctor.diagnostics.some((item) => item.code === 'managed/content-drift' && item.path === relativePath), false);
+
+  // A real local edit is still protected.
+  await write(target, relativePath, `${shipped}\nedicion local\n`);
+  const protectedPlan = await buildUpdatePlan({ targetPath: target });
+  assert.equal(protectedPlan.operations.find((item) => item.relativePath === relativePath).operation, 'skip_modified');
+});
+
+// Projects that keep their own skill catalogs do not receive new rows, so a
+// newly installed skill stays invisible to the router until someone adds it.
+test('doctor reports installed skills that a preserved local catalog does not list', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+  const code = 'skills/local-catalog-missing-skill';
+  assert.equal((await runDoctor({ targetPath: target })).diagnostics.some((item) => item.code === code), false);
+
+  const indexPath = '.agents/skills/index.md';
+  const index = await read(target, indexPath);
+  const withoutRow = index.split('\n').filter((line) => !line.includes('implement-change/SKILL.md')).join('\n');
+  assert.notEqual(withoutRow, index);
+  await write(target, indexPath, withoutRow);
+
+  const doctor = await runDoctor({ targetPath: target });
+  const finding = doctor.diagnostics.find((item) => item.code === code && item.path === indexPath);
+  assert.ok(finding, 'the stale catalog is reported');
+  assert.equal(finding.severity, 'warning');
+  assert.match(finding.message, /\.agents\/skills\/02-implement\/implement-change\/SKILL\.md/);
+  assert.equal(doctor.ok, true, 'a stale catalog is a warning, not a failure');
+});
+
 test('lineDiff reports additions, removals and context; the stack question defaults to none', () => {
   const diff = lineDiff('a\nb\nc\nd\ne\nf', 'a\nb\nX\nd\ne\nf\ng', { context: 1 });
   assert.equal(diff.added, 2);

@@ -60,6 +60,13 @@ line diff of every file that would change, including managed files you edited
 files; a second update right after is a no-op. The full version history is in
 `CHANGELOG.md`.
 
+After an update (since `0.16.1`): if you copy the new version of a protected
+file over your edited one, the next `update` reports it as `unchanged` and
+stops protecting it. If your repository keeps its own skill catalogs,
+`doctor` reports `skills/local-catalog-missing-skill` for skills that later
+versions added; add those rows by hand. The steps that belong to each project
+are listed in the README, section "Per-project setup after installing".
+
 Neutral structure (since `0.15.0`):
 
 - **Project instructions moved to a neutral place.** The quality gate and the

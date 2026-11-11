@@ -45,6 +45,9 @@ test('create-prd asks better questions, tracks assumptions and lists what become
   assert.match(template, /Busqueda de verificacion/);
   assert.match(template, /\| Iteraciones y causa \|/);
   assert.match(ambiguity, /## Edge-Case Confirmation Round/);
+  // U-13 finding C1: an interaction scenario without a test escaped every stage.
+  assert.match(ambiguity, /propose interaction-order rows under concurrencia\/orden/);
+  assert.match(ambiguity, /an interaction while another one is in progress/);
   assert.match(ambiguity, /At most 3 rounds/);
   assert.match(ambiguity, /about 10 questions per round/);
   assert.match(calibration, /## Unknowns Inventory/);

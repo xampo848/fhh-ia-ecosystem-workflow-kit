@@ -57,6 +57,10 @@ workflow-kit doctor --target /path/to/repo --runtime codex,copilot
 
 If diagnostics appear, jump to [Troubleshooting](troubleshooting.md).
 
+Then complete the one-time steps that belong to your project (project context,
+project rules, model profile, local skill catalogs, validation reuse): see
+[Per-project setup after installing](../README.md#per-project-setup-after-installing).
+
 ## 3.1) Manual routing smoke check
 
 Before rolling the workflow to a team, run one manual interaction check in the target runtime:

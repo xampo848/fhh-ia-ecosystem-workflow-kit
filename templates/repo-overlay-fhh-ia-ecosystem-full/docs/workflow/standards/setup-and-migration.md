@@ -35,6 +35,9 @@ Note: workflow-kit does not auto-generate project-specific runtime instructions.
 - Backend standards consolidated in `docs/workflow/standards/backend.md` or linked canonical docs.
 - Frontend standards consolidated in `docs/workflow/standards/frontend.md` or linked canonical docs.
 - Backend/frontend runtime instruction files are present at `.agents/project/backend.md` and `.agents/project/frontend.md` (or explicitly marked as N/A when the surface does not exist).
+- `.agents/project-context.md` filled in with an initial Discovery (structure map, validation commands with their cost, environment quirks) and its template marker removed; `workflow-kit doctor` stops reporting `project-context/not-initialized`.
+- If this repository keeps its own `.agents/skills/index.md` or `.agents/skills/registry.md`, the rows of new workflow-kit skills are added by hand after each update; `workflow-kit doctor` reports `skills/local-catalog-missing-skill` until then.
+- Validation reuse stays in shadow mode until 2 or 3 implementations show identical results; only then add `validation_reuse: active` to `.agents/project-context.md`.
 - Legacy docs either migrated or explicitly marked as archived.
 - `docs/workflow/migration/legacy-docs-map.md` reviewed and updated.
 
