@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { applyInstallPlan } from '../src/apply.mjs';
-import { buildInstallPlan } from '../src/planner.mjs';
+import { buildInstallPlan, installStateRelativePath } from '../src/planner.mjs';
 import { runTui } from '../src/tui.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
@@ -185,6 +185,30 @@ test('tui update mode applies managed workflow updates without reinstall flow se
   assert.equal(result.plan.previousToolkitVersion, null);
   assert.match(output, /Protected local edits \(skipped\):/);
   assert.match(output, /Managed target/);
+});
+
+test('tui update shows the stack pack and the one-time migrations before applying', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'codex' }));
+  // An install from before stack packs, in a repository that is not Rails + React.
+  const statePath = path.join(target, installStateRelativePath);
+  const state = JSON.parse(await fs.readFile(statePath, 'utf8'));
+  delete state.stackPack;
+  await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+  let output = '';
+
+  const result = await runTui({
+    ask: scriptedAsk(['2', target, '1', '', '', 'yes']),
+    color: false,
+    write: (message) => { output += message; }
+  });
+
+  assert.equal(result.mode, 'update');
+  assert.equal(result.plan.stackPack, 'none');
+  assert.match(output, /Stack pack {5}: none/);
+  assert.match(output, /Migrations \(applied once\)/);
+  assert.match(output, /No stack pack: the repository does not look like Rails \+ React/);
+  await assert.rejects(fs.access(path.join(target, '.agents/project/stack.md')), { code: 'ENOENT' });
 });
 
 test('tui update lets users choose overwrite for managed local edits', async () => {

@@ -5,7 +5,7 @@ import test from 'node:test';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { parseArgs } from '../src/cli/args.mjs';
 import { runDoctor } from '../src/doctor.mjs';
-import { buildInstallPlan, buildUpdatePlan, installStateRelativePath, normalizeStackPack } from '../src/planner.mjs';
+import { buildInstallPlan, buildUpdatePlan, detectStackPack, installStateRelativePath, normalizeStackPack } from '../src/planner.mjs';
 import { validateStackNeutrality } from '../scripts/validate-stack-neutrality.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
@@ -58,28 +58,62 @@ test('a new install has no stack pack unless asked; --stack installs it once and
   assert.equal(update.operations.some((item) => item.relativePath === stackPath), false, 'the project owns the file');
 });
 
-test('an install from before stack packs keeps its rules: update installs rails-react by default', async () => {
+// An install-state written before stack packs existed has no stackPack.
+async function makeLegacyInstall() {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
-  // Simulate an install-state written before stack packs existed.
-  const statePath = path.join(target, installStateRelativePath);
   const state = await readState(target);
   delete state.stackPack;
-  await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+  await fs.writeFile(path.join(target, installStateRelativePath), `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+  return target;
+}
+const writeFile = async (target, relativePath, content) => {
+  await fs.mkdir(path.dirname(path.join(target, relativePath)), { recursive: true });
+  await fs.writeFile(path.join(target, relativePath), content, 'utf8');
+};
+
+test('update does not install the rails-react pack in a legacy repository that is not Rails + React', async () => {
+  const target = await makeLegacyInstall();
+  await writeFile(target, 'package.json', JSON.stringify({ dependencies: { vue: '^3.0.0' } }));
+
+  const plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral' });
+  assert.equal(plan.stackPack, 'none');
+  assert.equal(plan.operations.some((item) => item.relativePath === stackPath), false);
+  const notice = plan.migrations.find((item) => item.id === '0.15.0-stack-pack');
+  assert.match(notice.summary, /No stack pack/);
+  assert.match(notice.summary, /--stack rails-react/);
+  await applyInstallPlan(plan);
+  assert.equal((await readState(target)).stackPack, 'none', 'the decision is recorded');
+});
+
+test('update installs rails-react in a legacy repository detected as Rails + React', async () => {
+  const target = await makeLegacyInstall();
+  await writeFile(target, 'Gemfile', "gem 'rails'\n");
+  await writeFile(target, 'frontend/package.json', JSON.stringify({ devDependencies: { react: '^19.0.0' } }));
 
   const plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral' });
   assert.equal(plan.stackPack, 'rails-react');
   assert.equal(plan.operations.find((item) => item.relativePath === stackPath).operation, 'create');
+  assert.match(plan.migrations.find((item) => item.id === '0.15.0-stack-pack').summary, /detected/);
   await applyInstallPlan(plan);
   assert.match(await fs.readFile(path.join(target, stackPath), 'utf8'), /`Bullet` must be active in tests/);
 
-  const optOut = await makeTempRepo();
-  await applyInstallPlan(await buildInstallPlan({ targetPath: optOut, runtime: 'neutral' }));
-  const optState = await readState(optOut);
-  delete optState.stackPack;
-  await fs.writeFile(path.join(optOut, installStateRelativePath), `${JSON.stringify(optState, null, 2)}\n`, 'utf8');
-  const none = await buildUpdatePlan({ targetPath: optOut, runtime: 'neutral', stack: 'none' });
-  assert.equal(none.operations.some((item) => item.relativePath === stackPath), false);
+  // An explicit --stack wins over detection.
+  const optOut = await buildUpdatePlan({ targetPath: await makeLegacyInstall(), runtime: 'neutral', stack: 'none' });
+  assert.equal(optOut.operations.some((item) => item.relativePath === stackPath), false);
+});
+
+test('detectStackPack needs both a Gemfile and react in a root or first-level package.json', async () => {
+  const repo = await makeTempRepo();
+  assert.equal(await detectStackPack(repo), 'none', 'empty repository');
+  await writeFile(repo, 'Gemfile', "gem 'rails'\n");
+  assert.equal(await detectStackPack(repo), 'none', 'Gemfile alone');
+  await writeFile(repo, 'node_modules/x/package.json', JSON.stringify({ dependencies: { react: '1' } }));
+  await writeFile(repo, 'a/b/package.json', JSON.stringify({ dependencies: { react: '1' } }));
+  await writeFile(repo, 'broken/package.json', '{ not json');
+  assert.equal(await detectStackPack(repo), 'none', 'node_modules, deeper folders and invalid JSON do not count');
+  await writeFile(repo, 'package.json', JSON.stringify({ dependencies: { react: '^19.0.0' } }));
+  assert.equal(await detectStackPack(repo), 'rails-react');
 });
 
 test('doctor warns when the recorded stack pack file is missing', async () => {

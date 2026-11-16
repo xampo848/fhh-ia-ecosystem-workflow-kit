@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { applyInstallPlan } from './apply.mjs';
 import { formatDoctorResult, runDoctor } from './doctor.mjs';
-import { buildInstallPlan, buildUpdatePlan, formatPlan, readManagedInstallState, selectPlanOperations } from './planner.mjs';
+import { buildInstallPlan, buildUpdatePlan, detectStackPack, formatPlan, readManagedInstallState, selectPlanOperations } from './planner.mjs';
 import {
   createCapabilityGuide,
   defaultIntentFor,
@@ -784,11 +784,15 @@ export async function runTui(options = {}) {
       ? undefined
       : await askModelProfiles({ prompter, runtime, env: options.env ?? process.env, write, paint });
 
-    // Asked only in an interactive install. Scripted runs and updates keep the
-    // recorded or requested value, so automation never changes meaning.
+    // Asked in an interactive install, and in an interactive update whose
+    // install-state has no recorded stack (installs from before stack packs).
+    // The detected stack is preselected; scripted runs and adopt-existing keep
+    // the requested, recorded or detected value and show it in the summary.
     let stack = options.stack;
-    if (mode === 'install' && !scriptedMode && stack === undefined) {
-      const question = stackPackQuestion();
+    const recordedState = mode === 'update' ? await readManagedInstallState(targetPath) : null;
+    const stackUndecided = mode === 'install' || (recordedState !== null && recordedState.stackPack === undefined);
+    if (stackUndecided && !scriptedMode && stack === undefined) {
+      const question = stackPackQuestion({ detected: await detectStackPack(targetPath) });
       stack = await prompter.chooseOption({
         title: question.title,
         options: question.options,
@@ -808,6 +812,7 @@ export async function runTui(options = {}) {
             targetPath,
             runtime,
             overlay,
+            stack,
             overwriteModified: overwriteModifiedValue,
             backupMode: backupModeValue,
             toolkitVersion: currentToolkitMetadata().version
@@ -829,6 +834,7 @@ export async function runTui(options = {}) {
             targetPath,
             runtime,
             overlay,
+            stack,
             adoptExisting: true,
             overwriteModified: overwriteModifiedValue,
             backupMode: backupModeValue,

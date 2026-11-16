@@ -30,6 +30,9 @@ async function downgradeToLegacyLayout(target, runtimes) {
   for (const relativePath of ['.agents/project', '.agents/delegation', '.agents/project-context.md', '.agents/skills/02-implement/implement-change', '.claude/skills', '.gitignore']) {
     await fs.rm(path.join(target, relativePath), { recursive: true, force: true });
   }
+  // The legacy repository is Rails + React, so update detects the stack pack.
+  await write(target, 'Gemfile', "gem 'rails'\n");
+  await write(target, 'frontend/package.json', JSON.stringify({ dependencies: { react: '^19.0.0' } }));
   await write(target, '.github/instructions/backend.instructions.md', `---\napplyTo: "backend/**/*.rb"\n---\n\n${ownBackendRules}`);
   await write(target, 'docs/prd/area/2026-10-01-old/_meta/orchestration.md', '# notas\n');
   await write(target, 'docs/prd/area/2026-10-01-old/old.md', '# PRD\n\n| AC-1 | x |\n');
@@ -198,4 +201,6 @@ test('lineDiff reports additions, removals and context; the stack question defau
   const question = stackPackQuestion();
   assert.equal(question.options[question.defaultIndex].value, 'none');
   assert.ok(question.options.some((option) => option.value === 'rails-react'));
+  const detected = stackPackQuestion({ detected: 'rails-react' });
+  assert.equal(detected.options[detected.defaultIndex].value, 'rails-react', 'the detected stack is preselected');
 });

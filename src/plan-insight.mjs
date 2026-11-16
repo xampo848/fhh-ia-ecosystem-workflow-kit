@@ -30,10 +30,17 @@ export function describeMigrations({ operations, existingState, modelProfiles = 
       summary: `Copy hand-written Copilot instructions (${migratedNames.join(', ')}) to .agents/project/ and regenerate the Copilot files from them; backups are kept.`
     });
   }
-  if (stackPack && stackPack !== 'none' && !stackRequested && existingState && existingState.stackPack === undefined && has('.agents/project/stack.md', ['create'])) {
+  // A legacy install with no recorded stack: the pack follows detection.
+  const stackUndecided = stackPack && !stackRequested && existingState && existingState.stackPack === undefined;
+  if (stackUndecided && stackPack !== 'none' && has('.agents/project/stack.md', ['create'])) {
     migrations.push({
       id: '0.15.0-stack-pack',
-      summary: `Install the ${stackPack} stack pack as .agents/project/stack.md so the stack rules that left the skills are kept. Use --stack none to skip.`
+      summary: `Install the ${stackPack} stack pack as .agents/project/stack.md: Rails + React was detected (Gemfile and react in a package.json). Use --stack none to skip.`
+    });
+  } else if (stackUndecided && stackPack === 'none') {
+    migrations.push({
+      id: '0.15.0-stack-pack',
+      summary: 'No stack pack: the repository does not look like Rails + React (Gemfile and react in a package.json). Use --stack rails-react to install it.'
     });
   }
   return migrations;
