@@ -6,6 +6,7 @@ import { isSupportedRuntime, runtimeTemplatePaths } from './runtime-matrix.mjs';
 import { loadDelegateCatalog, parseProfileOption, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
 import { inspectProjectInstructions, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
+import { assertNoSymlinkWrites } from './fs-safety.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
@@ -90,9 +91,11 @@ async function collectTemplateFiles(templateRelativePath) {
       if (entry.isDirectory()) {
         await walk(absolutePath);
       } else if (entry.isFile()) {
-        const relativePath = path.relative(root, absolutePath);
+        // Plan paths always use "/": the protected-path sets, the registry
+        // and install-state keys are written that way on every platform.
+        const relativePath = path.relative(root, absolutePath).split(path.sep).join('/');
         if (relativePath === 'README.md') continue;
-        if (relativePath.startsWith(`${path.join('.agents', 'workflow-kit')}${path.sep}`)) continue;
+        if (relativePath.startsWith('.agents/workflow-kit/')) continue;
         files.push({
           sourcePath: absolutePath,
           relativePath
@@ -195,6 +198,7 @@ export async function buildInstallPlan(options = {}) {
   operations.push(...await buildStackPackOperations({ targetPath, stackPack }));
 
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+  await assertNoSymlinkWrites(targetPath, operations);
 
   const nextInstallState = buildNextInstallState({
     previousState: null,
@@ -208,6 +212,7 @@ export async function buildInstallPlan(options = {}) {
 
   return {
     mode: 'init',
+    recordJournal: options.recordJournal !== false,
     migrations: describeMigrations({ operations, existingState: null, migratedInstructions }),
     targetPath,
     stateFilePath: path.join(targetPath, installStateRelativePath),
@@ -318,7 +323,12 @@ export async function buildUpdatePlan(options = {}) {
         sourcePath: file.sourcePath,
         content: resolution.content,
         sourceChecksum,
-        existingChecksum: computeChecksum(existingContent),
+        // A hand-written instruction file that differs from the toolkit
+        // version is a customization, not a baseline: record the toolkit
+        // checksum so later updates see it as modified and keep skipping it.
+        existingChecksum: isProtectedCustomizationPath(file.relativePath) && existingContent !== resolution.content
+          ? computeChecksum(resolution.content)
+          : computeChecksum(existingContent),
         plannedChecksum: computeChecksum(resolution.content)
       });
       continue;
@@ -402,6 +412,7 @@ export async function buildUpdatePlan(options = {}) {
   operations.push(...await buildStackPackOperations({ targetPath, stackPack }));
 
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+  await assertNoSymlinkWrites(targetPath, operations);
 
   const nextInstallState = buildNextInstallState({
     previousState: existingState,
@@ -519,13 +530,31 @@ function computeChecksum(content) {
 }
 
 async function readInstallState(stateFilePath) {
+  let raw;
   try {
-    const raw = await fs.readFile(stateFilePath, 'utf8');
-    const parsed = JSON.parse(raw);
-    if (parsed?.schemaVersion !== installStateSchemaVersion || typeof parsed.files !== 'object' || parsed.files === null) {
-      return null;
-    }
+    raw = await fs.readFile(stateFilePath, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
 
+  // A state file that exists but cannot be used is not "no install": treating
+  // it as missing would send the user to --adopt-existing over a real install.
+  const unusable = (reason) => new Error(`${installStateRelativePath} ${reason}. Restore it from Git, or upgrade the CLI with \`workflow-kit upgrade --apply --yes\` if a newer version wrote it.`);
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw unusable('is not valid JSON');
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed) || typeof parsed.files !== 'object' || parsed.files === null) {
+    throw unusable('does not have the expected structure');
+  }
+  if (parsed.schemaVersion !== installStateSchemaVersion) {
+    throw unusable(`uses schema ${parsed.schemaVersion ?? 'unknown'}, and this CLI reads ${installStateSchemaVersion}`);
+  }
+
+  try {
     return {
       schemaVersion: parsed.schemaVersion,
       managedBy: parsed.managedBy,
@@ -538,9 +567,7 @@ async function readInstallState(stateFilePath) {
       files: parsed.files
     };
   } catch (error) {
-    if (error.code === 'ENOENT') return null;
-    if (error instanceof SyntaxError) return null;
-    throw error;
+    throw unusable(`names something this CLI version does not support (${error.message})`);
   }
 }
 
@@ -644,15 +671,26 @@ function mergeSkillRegistryJson({ existingContent, templateContent, discoveredSk
     } catch {
       existing = {};
     }
+    if (existing === null || typeof existing !== 'object' || Array.isArray(existing)) existing = {};
   }
+
+  // An auto-registered local skill whose SKILL.md was deleted would stay in
+  // the registry forever and doctor would report a missing file on every run.
+  const onDisk = new Set(discoveredSkillEntries.map((entry) => entry.path));
+  const stillPresent = (entries) => normalizeRegistryEntries(entries).filter((entry) => !(
+    typeof entry.runtime_notes === 'string'
+    && entry.runtime_notes.startsWith('Auto-discovered')
+    && typeof entry.path === 'string'
+    && !onDisk.has(entry.path)
+  ));
 
   const merged = {
     ...incoming,
     ...existing,
     schema_version: existing.schema_version ?? incoming.schema_version ?? '1.0.0',
     canonical_source: existing.canonical_source ?? incoming.canonical_source ?? '.agents/skills/registry.md',
-    skills: mergeRegistryEntries(existing.skills, [...normalizeRegistryEntries(incoming.skills), ...discoveredSkillEntries.filter((entry) => entry.class !== 'Standards/pattern')]),
-    pattern_skills: mergeRegistryEntries(existing.pattern_skills, [...normalizeRegistryEntries(incoming.pattern_skills), ...discoveredSkillEntries.filter((entry) => entry.class === 'Standards/pattern')])
+    skills: mergeRegistryEntries(stillPresent(existing.skills), [...normalizeRegistryEntries(incoming.skills), ...discoveredSkillEntries.filter((entry) => entry.class !== 'Standards/pattern')]),
+    pattern_skills: mergeRegistryEntries(stillPresent(existing.pattern_skills), [...normalizeRegistryEntries(incoming.pattern_skills), ...discoveredSkillEntries.filter((entry) => entry.class === 'Standards/pattern')])
   };
 
   return `${JSON.stringify(merged, null, 2)}\n`;
@@ -757,7 +795,7 @@ function buildDiscoveredSkillEntry({ relativePath, content }) {
 }
 
 function parseSkillFrontmatter(content) {
-  const match = String(content).match(/^---\n([\s\S]*?)\n---\n/);
+  const match = String(content).replace(/\r\n/g, '\n').match(/^---\n([\s\S]*?)\n---\n/);
   if (!match) return {};
 
   const frontmatter = {};
@@ -823,7 +861,12 @@ function mergeDocsReadme({ existingContent, templateContent }) {
     return `${pieces.filter(Boolean).join('\n\n').trimEnd()}\n`;
   }
 
-  return `${existingContent.trimEnd()}\n\n${block.trim()}\n`;
+  // A marker without its pair (hand edit) is dropped before appending, so the
+  // next merge cannot pair it with the new block and swallow the text between.
+  const withoutOrphans = existingContent
+    .split(docsWorkflowMarkerStart).join('')
+    .split(docsWorkflowMarkerEnd).join('');
+  return `${withoutOrphans.trimEnd()}\n\n${block.trim()}\n`;
 }
 
 function extractDocsWorkflowBlock(content) {

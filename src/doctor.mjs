@@ -7,13 +7,13 @@ import { validateWorkflowContract } from './workflow-contract/index.mjs';
 import { loadDelegateCatalog, modelSettingLine, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
 import { projectContextDiagnostics, workspaceDiagnostics } from './workspace-diagnostics.mjs';
 import { projectInstructionDiagnostics } from './project-instructions.mjs';
+import { findSymlinkInPath, resolveInsideTarget } from './fs-safety.mjs';
 
 function checksum(content) {
   return crypto.createHash('sha256').update(content, 'utf8').digest('hex');
 }
 
-async function managedDriftDiagnostics(targetPath) {
-  const state = await readManagedInstallState(targetPath);
+async function managedDriftDiagnostics(targetPath, state) {
   if (!state) {
     return [];
   }
@@ -21,7 +21,8 @@ async function managedDriftDiagnostics(targetPath) {
   const diagnostics = [];
   for (const [relativePath, expected] of Object.entries(state.files ?? {})) {
     try {
-      const content = await fs.readFile(path.join(targetPath, relativePath), 'utf8');
+      // State keys come from the repository: never read outside the target.
+      const content = await fs.readFile(resolveInsideTarget(targetPath, relativePath), 'utf8');
       if (checksum(content) !== expected) {
         diagnostics.push({
           code: 'managed/content-drift',
@@ -37,8 +38,24 @@ async function managedDriftDiagnostics(targetPath) {
   return diagnostics;
 }
 
-async function managedVersionDiagnostics(targetPath) {
-  const state = await readManagedInstallState(targetPath);
+// A managed path behind a symbolic link is written into another file (or
+// outside the repository); init and update refuse to do it.
+async function symlinkDiagnostics(targetPath, files) {
+  const cache = new Map();
+  const links = new Set();
+  for (const file of files) {
+    const link = await findSymlinkInPath(targetPath, file.relativePath, cache);
+    if (link) links.add(link);
+  }
+  return [...links].sort().map((link) => ({
+    code: 'managed/symlink',
+    path: link,
+    message: 'Managed path is a symbolic link. workflow-kit will not write through it; replace it with a real file or directory.',
+    severity: 'warning'
+  }));
+}
+
+function managedVersionDiagnostics(state) {
   if (!state?.toolkitVersion || !packageJson.version || state.toolkitVersion === packageJson.version) {
     return [];
   }
@@ -94,7 +111,20 @@ async function localCatalogDiagnostics({ targetPath, files }) {
 
 export async function runDoctor(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
-  const storedState = await readManagedInstallState(targetPath);
+  // An unreadable install-state is a finding, not a crash: doctor is the
+  // command people run to learn what is wrong.
+  let storedState = null;
+  const stateDiagnostics = [];
+  try {
+    storedState = await readManagedInstallState(targetPath);
+  } catch (error) {
+    stateDiagnostics.push({
+      code: 'managed/install-state-unusable',
+      path: '.agents/workflow-kit/install-state.json',
+      message: error.message,
+      severity: 'error'
+    });
+  }
   const runtimes = parseRuntimeList(options.runtime ?? storedState?.runtimes?.join(',') ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const files = await selectedTemplateFiles({ runtimes, overlay });
@@ -123,8 +153,10 @@ export async function runDoctor(options = {}) {
     ...await projectInstructionDiagnostics({ targetPath, runtimes }),
     ...await stackPackDiagnostics({ targetPath, stackPack: storedState?.stackPack }),
     ...await localCatalogDiagnostics({ targetPath, files }),
-    ...await managedDriftDiagnostics(targetPath),
-    ...await managedVersionDiagnostics(targetPath)
+    ...await managedDriftDiagnostics(targetPath, storedState),
+    ...managedVersionDiagnostics(storedState),
+    ...await symlinkDiagnostics(targetPath, files),
+    ...stateDiagnostics
   ].sort((a, b) => a.severity.localeCompare(b.severity)
     || a.code.localeCompare(b.code)
     || a.path.localeCompare(b.path));

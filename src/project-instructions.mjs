@@ -16,7 +16,7 @@ export const neutralInstructionPath = (name) => `.agents/project/${name}.md`;
 export const copilotWrapperPath = (name) => `.github/instructions/${name}.instructions.md`;
 
 const generatedNote = (name) => `<!-- Generated from ${neutralInstructionPath(name)} by workflow-kit. Edit that file, not this one. -->`;
-const frontmatterPattern = /^---\n([\s\S]*?)\n---\n/;
+const frontmatterPattern = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 
 // The frontmatter is kept verbatim: projects write applyTo as a string or as a
 // YAML list, and rewriting it could change which files load the instructions.
