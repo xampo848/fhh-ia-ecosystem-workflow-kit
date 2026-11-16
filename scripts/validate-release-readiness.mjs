@@ -10,8 +10,21 @@ import YAML from 'yaml';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-export async function validateReleaseReadiness({ root = packageRoot } = {}) {
+// Exact `run` values every CI test job must execute (not substrings: `bun run check`
+// must not be satisfied by `bun run check:workflow`).
+export const requiredCiCommands = [
+  'bun run test',
+  'bun run check',
+  'bun run check:workflow',
+  'bun run check:docs',
+  'bun run check:release',
+  'bun run check:legal',
+  'bun run check:security'
+];
+
+export async function validateReleaseReadiness({ root = packageRoot, env = process.env, checkVersionBump = true } = {}) {
   const failures = [];
+  const notices = [];
   const requiredFiles = [
     '.github/workflows/ci.yml',
     'RELEASE.md',
@@ -57,10 +70,18 @@ export async function validateReleaseReadiness({ root = packageRoot } = {}) {
       failures.push('CI workflow must define jobs.validate.steps.');
     } else {
       const runCommands = validateSteps.map((step) => `${step?.run ?? ''}`);
-      for (const expected of ['bun run test', 'bun run check', 'bun run check:workflow', 'bun run check:docs', 'bun run check:release', 'bun run check:legal']) {
-        if (!runCommands.some((command) => command.includes(expected))) {
+      const runLines = new Set(runCommands.flatMap((command) => command.split('\n').map((line) => line.trim()).filter(Boolean)));
+      for (const expected of requiredCiCommands) {
+        if (!runLines.has(expected)) {
           failures.push(`CI workflow must run ${expected}.`);
         }
+      }
+      const checkout = validateSteps.find((step) => /^actions\/checkout@/.test(`${step?.uses ?? ''}`));
+      if (`${checkout?.with?.['fetch-depth'] ?? ''}` !== '0') {
+        failures.push('CI checkout must use fetch-depth: 0 so the version-bump gate can resolve its base.');
+      }
+      if (!ciObject?.jobs?.validate?.env?.RELEASE_BASE_REF) {
+        failures.push('CI job validate must set env.RELEASE_BASE_REF for the version-bump gate.');
       }
       if (runCommands.some((command) => /npm publish|bun publish|gh release|gh repo create|git push/.test(command))) {
         failures.push('CI workflow must not publish, push, create repositories, or upload releases in this phase.');
@@ -68,9 +89,9 @@ export async function validateReleaseReadiness({ root = packageRoot } = {}) {
     }
   }
 
-  const packedFiles = listPackedFiles(root);
+  const packedFiles = listPackedFiles(root, failures);
   for (const requiredPackedFile of ['NOTICE', 'THIRD_PARTY_NOTICES.md', 'docs/legal/third-party/provenance.json', 'docs/legal/overlay-authorship.json']) {
-    if (!packedFiles.has(requiredPackedFile)) {
+    if (packedFiles && !packedFiles.has(requiredPackedFile)) {
       failures.push(`bun pm pack --dry-run must include ${requiredPackedFile}.`);
     }
   }
@@ -80,12 +101,16 @@ export async function validateReleaseReadiness({ root = packageRoot } = {}) {
     if (!releaseDoc.includes(expected)) failures.push(`RELEASE.md must mention ${expected}.`);
   }
 
-  enforceVersionBump({ root, packageJson, failures });
+  if (checkVersionBump) {
+    const gate = enforceVersionBump({ root, version: packageJson.version, env });
+    failures.push(...gate.failures);
+    notices.push(...gate.notices);
+  }
 
-  return { ok: failures.length === 0, failures };
+  return { ok: failures.length === 0, failures, notices };
 }
 
-function listPackedFiles(root) {
+function listPackedFiles(root, failures) {
   let tempDir = null;
   try {
     tempDir = fsSync.mkdtempSync(path.join(os.tmpdir(), 'workflow-kit-pack-'));
@@ -105,8 +130,9 @@ function listPackedFiles(root) {
       .filter(Boolean)
       .map((line) => line.replace(/^package\//, ''));
     return new Set(packed);
-  } catch {
-    return new Set();
+  } catch (error) {
+    failures.push(`Could not list the packed files with \`bun pm pack\` and \`tar\` (both must be on PATH): ${error.message.split('\n')[0]}`);
+    return null;
   } finally {
     if (tempDir) {
       try {
@@ -118,25 +144,38 @@ function listPackedFiles(root) {
   }
 }
 
-function enforceVersionBump({ root, packageJson, failures }) {
-  const releaseBaseRef = process.env.RELEASE_BASE_REF ?? 'main';
-  const gitRoot = runGit(root, ['rev-parse', '--show-toplevel']);
-  if (!gitRoot) return;
+// Distributable surfaces changed since the base ref need a higher version.
+// RELEASE_BASE_REF selects the base (default `main`). In CI (env.CI set) a base
+// that cannot be resolved fails the gate; locally it is skipped with a notice.
+export function enforceVersionBump({ root, version, env = process.env }) {
+  const failures = [];
+  const notices = [];
+  const releaseBaseRef = env.RELEASE_BASE_REF || 'main';
+  const strict = Boolean(env.CI);
+  const skip = (reason) => {
+    if (strict) {
+      failures.push(`Version-bump gate cannot run in CI: ${reason}. Check out full history (fetch-depth: 0) and set RELEASE_BASE_REF to a fetched ref.`);
+    } else {
+      notices.push(`Version-bump gate skipped: ${reason}.`);
+    }
+    return { failures, notices };
+  };
+
+  if (/^0+$/.test(releaseBaseRef)) {
+    notices.push('Version-bump gate skipped: the base ref is the null commit (first push of a branch).');
+    return { failures, notices };
+  }
+  if (!runGit(root, ['rev-parse', '--show-toplevel'])) return skip('not a git repository');
 
   const mergeBase = runGit(root, ['merge-base', 'HEAD', releaseBaseRef]);
-  if (!mergeBase) return;
+  if (!mergeBase) return skip(`cannot find a merge base between HEAD and ${releaseBaseRef}`);
 
-  const committedChanges = runGit(root, ['diff', '--name-only', `${mergeBase}..HEAD`])
-    ?.split('\n')
-    .filter(Boolean) ?? [];
-  const stagedChanges = runGit(root, ['diff', '--name-only', '--cached'])
-    ?.split('\n')
-    .filter(Boolean) ?? [];
-  const unstagedChanges = runGit(root, ['diff', '--name-only'])
-    ?.split('\n')
-    .filter(Boolean) ?? [];
-  const changedFiles = [...new Set([...committedChanges, ...stagedChanges, ...unstagedChanges])];
-  if (changedFiles.length === 0) return;
+  const listChanges = (args) => runGit(root, ['diff', '--name-only', ...args])?.split('\n').filter(Boolean) ?? [];
+  const changedFiles = [...new Set([
+    ...listChanges([`${mergeBase}..HEAD`]),
+    ...listChanges(['--cached']),
+    ...listChanges([])
+  ])];
 
   const requiresBump = changedFiles.some((file) => (
     file.startsWith('.agents/') ||
@@ -146,20 +185,41 @@ function enforceVersionBump({ root, packageJson, failures }) {
     file.startsWith('scripts/') ||
     file === '.github/workflows/ci.yml'
   ));
-  if (!requiresBump) return;
+  if (!requiresBump) return { failures, notices };
 
   const basePackageJsonText = runGit(root, ['show', `${mergeBase}:package.json`]);
-  if (!basePackageJsonText) return;
+  if (!basePackageJsonText) return skip(`package.json is not readable at ${releaseBaseRef}`);
 
   let baseVersion = null;
   try {
     baseVersion = JSON.parse(basePackageJsonText).version;
   } catch {
-    return;
+    return skip(`package.json at ${releaseBaseRef} is not valid JSON`);
   }
-  if (baseVersion === packageJson.version) {
+  if (baseVersion === version) {
     failures.push(`package.json version must be bumped when distributable surfaces change since ${releaseBaseRef}.`);
+    return { failures, notices };
   }
+  const current = parseVersionCore(version);
+  const base = parseVersionCore(baseVersion);
+  if (!current) {
+    failures.push(`package.json version "${version}" must start with a numeric X.Y.Z (see docs/versioning.md).`);
+  } else if (base && compareVersionCore(current, base) < 0) {
+    failures.push(`package.json version ${version} must not be lower than ${baseVersion} on ${releaseBaseRef}.`);
+  }
+  return { failures, notices };
+}
+
+function parseVersionCore(version) {
+  const match = /^(\d+)\.(\d+)\.(\d+)/.exec(String(version ?? ''));
+  return match ? match.slice(1, 4).map(Number) : null;
+}
+
+function compareVersionCore(left, right) {
+  for (let index = 0; index < 3; index += 1) {
+    if (left[index] !== right[index]) return left[index] - right[index];
+  }
+  return 0;
 }
 
 function runGit(root, args) {
@@ -183,6 +243,7 @@ async function readIfExists(file) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const result = await validateReleaseReadiness();
+  for (const notice of result.notices) console.warn(`Notice: ${notice}`);
   if (!result.ok) {
     console.error('Release readiness validation failed:');
     for (const failure of result.failures) console.error(`- ${failure}`);

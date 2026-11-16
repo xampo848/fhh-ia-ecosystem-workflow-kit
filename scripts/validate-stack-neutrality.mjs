@@ -16,6 +16,18 @@ const stackToolPrefixes = ['.agents/skills/03-quality/react-doctor/', '.agents/s
 const stackTerms = /\b(Rails|Ruby|Minitest|RSpec|RuboCop|rubocop|Bullet|CanCanCan|Pundit|acts_as_tenant|enumerate_it|TanStack|Zustand|Formik|Yup|Vitest|Jest|MSW|Sidekiq|Django|Laravel)\b|\bTesting Library\b|\bmake test|\bbun run |\bbundle exec\b/;
 const exampleMarker = /for example|e\.g\.|p\. ?ej\.|por ejemplo/i;
 
+// A line may name a stack only as an example: every stack term must come after
+// the example marker, so "Use RSpec for specs (e.g. unit)" is still a rule.
+function isMarkedExample(line) {
+  const marker = exampleMarker.exec(line);
+  if (!marker) return false;
+  const terms = new RegExp(stackTerms.source, 'g');
+  for (const match of line.matchAll(terms)) {
+    if (match.index < marker.index) return false;
+  }
+  return true;
+}
+
 async function markdownFiles(root, directory) {
   const files = [];
   let entries;
@@ -41,7 +53,7 @@ export async function validateStackNeutrality({ root = packageRoot } = {}) {
       const lines = (await fs.readFile(path.join(root, file), 'utf8')).split('\n');
       lines.forEach((line, index) => {
         const match = line.match(stackTerms);
-        if (match && !exampleMarker.test(line)) {
+        if (match && !isMarkedExample(line)) {
           failures.push(`${file}:${index + 1} states "${match[0].trim()}" as a rule — move it to a stack pack or mark the line as an example.`);
         }
       });

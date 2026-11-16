@@ -75,4 +75,4 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log('Scaffold validation passed. Required files exist and template-pack metadata is safe.');
+console.log('Scaffold validation passed. Required scaffold paths exist and package.json keeps the CLI bin, the private flag, and no publish/release scripts (template packs are checked by check:templates).');

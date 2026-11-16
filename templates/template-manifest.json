@@ -15,7 +15,7 @@
   "packs": [
     {
       "id": "repo-overlay-fhh-ia-ecosystem-full",
-      "role": "complete FHH IA Ecosystem overlay derived from .agents2",
+      "role": "complete FHH IA Ecosystem overlay mirrored from the canonical .agents/ tree of this repository",
       "source": "repo-overlay-fhh-ia-ecosystem-full",
       "documentation_only": [
         "README.md"
@@ -33,6 +33,15 @@
         ".agents/capabilities/registry.md",
         "docs/workflow/README.md",
         "docs/workflow/standards/setup-and-migration.md"
+      ]
+    },
+    {
+      "id": "stack-rails-react",
+      "role": "Stack pack installed with --stack rails-react; holds the stack rules moved out of the neutral core",
+      "source": "stack-packs/rails-react",
+      "documentation_only": [],
+      "required_files": [
+        "stack.md"
       ]
     },
     {

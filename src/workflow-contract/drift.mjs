@@ -2,89 +2,55 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { diagnostic } from './diagnostics.mjs';
 
-const mirroredFiles = [
-  '.agents/instructions.md',
-  '.agents/project-context.md',
-  '.agents/skills/index.md',
-  '.agents/skills/06-patterns/index.md',
-  '.agents/skills/00-router/workflow-router/SKILL.md',
-  '.agents/skills/registry.md',
-  '.agents/skills/registry.json',
-  '.agents/skills/registry.cache.json',
-  '.agents/capabilities/README.md',
-  '.agents/capabilities/registry.md'
+// The installable overlay ships the whole canonical .agents/ tree. Only files
+// that a checkout produces locally are excluded from the comparison.
+export const overlayDriftExclusions = [
+  '.agents/workflow-kit/install-state.json',
+  '.agents/workflow-kit/diagnostics/'
 ];
+const ignoredBasenames = new Set(['.DS_Store']);
 
-const mirroredDirectories = [
-  '.agents/delegation',
-  '.agents/project',
-  '.agents/skills/00-router/workflow-router',
-  '.agents/skills/02-implement/implement-change',
-  '.agents/skills/04-crosscutting/frontend-design',
-  '.agents/skills/04-crosscutting/impeccable',
-  '.agents/skills/05-caveman'
-];
+function isExcluded(relativePath) {
+  if (ignoredBasenames.has(path.posix.basename(relativePath))) return true;
+  return overlayDriftExclusions.some((excluded) => (
+    excluded.endsWith('/') ? relativePath.startsWith(excluded) : relativePath === excluded
+  ));
+}
 
 export async function validateOverlayDrift({ root }) {
   const diagnostics = [];
   const overlayRoot = path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full');
-  for (const relativePath of mirroredFiles) {
-    try {
-      const [canonical, overlay] = await Promise.all([
-        fs.readFile(path.join(root, relativePath), 'utf8'),
-        fs.readFile(path.join(overlayRoot, relativePath), 'utf8')
-      ]);
-      if (canonical !== overlay) {
-        diagnostics.push(diagnostic({
-          code: 'overlay/content-drift',
-          path: relativePath,
-          message: 'Canonical and installable overlay content differ.'
-        }));
-      }
-    } catch {
-      diagnostics.push(diagnostic({
-        code: 'overlay/content-drift',
-        path: relativePath,
-        message: 'Canonical or installable overlay file is missing.'
-      }));
-    }
+  const drift = (relativePath, message) => diagnostics.push(diagnostic({ code: 'overlay/content-drift', path: relativePath, message }));
+
+  let canonicalFiles;
+  let overlayFiles;
+  try {
+    [canonicalFiles, overlayFiles] = await Promise.all([
+      collectFiles(path.join(root, '.agents')),
+      collectFiles(path.join(overlayRoot, '.agents'))
+    ]);
+  } catch {
+    drift('.agents', 'Canonical or installable overlay .agents/ directory is missing.');
+    return diagnostics;
   }
-  for (const relativePath of mirroredDirectories) {
-    const canonicalRoot = path.join(root, relativePath);
-    const overlayRootPath = path.join(overlayRoot, relativePath);
-    try {
-      const [canonicalFiles, overlayFiles] = await Promise.all([
-        collectFiles(canonicalRoot),
-        collectFiles(overlayRootPath)
-      ]);
-      if (canonicalFiles.length !== overlayFiles.length || canonicalFiles.some((file, index) => file !== overlayFiles[index])) {
-        diagnostics.push(diagnostic({
-          code: 'overlay/content-drift',
-          path: relativePath,
-          message: 'Canonical and installable overlay directory inventories differ.'
-        }));
-        continue;
-      }
-      for (const file of canonicalFiles) {
-        const [canonical, overlay] = await Promise.all([
-          fs.readFile(path.join(canonicalRoot, file)),
-          fs.readFile(path.join(overlayRootPath, file))
-        ]);
-        if (!canonical.equals(overlay)) {
-          diagnostics.push(diagnostic({
-            code: 'overlay/content-drift',
-            path: path.join(relativePath, file),
-            message: 'Canonical and installable overlay content differ.'
-          }));
-          break;
-        }
-      }
-    } catch {
-      diagnostics.push(diagnostic({
-        code: 'overlay/content-drift',
-        path: relativePath,
-        message: 'Canonical or installable overlay directory is missing.'
-      }));
+
+  const canonical = new Set(canonicalFiles.map((file) => `.agents/${file}`).filter((file) => !isExcluded(file)));
+  const overlay = new Set(overlayFiles.map((file) => `.agents/${file}`).filter((file) => !isExcluded(file)));
+  for (const relativePath of [...new Set([...canonical, ...overlay])].sort()) {
+    if (!overlay.has(relativePath)) {
+      drift(relativePath, 'Canonical file is missing from the installable overlay.');
+      continue;
+    }
+    if (!canonical.has(relativePath)) {
+      drift(relativePath, 'Installable overlay file has no canonical counterpart in .agents/.');
+      continue;
+    }
+    const [canonicalContent, overlayContent] = await Promise.all([
+      fs.readFile(path.join(root, relativePath)),
+      fs.readFile(path.join(overlayRoot, relativePath))
+    ]);
+    if (!canonicalContent.equals(overlayContent)) {
+      drift(relativePath, 'Canonical and installable overlay content differ.');
     }
   }
   return diagnostics;
@@ -95,7 +61,7 @@ async function collectFiles(root) {
   async function walk(current, relativeRoot = '') {
     const entries = await fs.readdir(current, { withFileTypes: true });
     for (const entry of entries) {
-      const relativePath = path.join(relativeRoot, entry.name);
+      const relativePath = relativeRoot ? `${relativeRoot}/${entry.name}` : entry.name;
       if (entry.isDirectory()) await walk(path.join(current, entry.name), relativePath);
       else if (entry.isFile()) files.push(relativePath);
     }

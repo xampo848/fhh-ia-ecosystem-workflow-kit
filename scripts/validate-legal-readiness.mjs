@@ -12,6 +12,7 @@ const EXPECTED_COMPONENTS = new Map([
   ['frontend-design', { license: 'Apache-2.0', commit: 'd230a6dd6eb1a0dbee9fec55e2f00a96e28dff81', status: 'VERIFIED' }],
   ['product-manager-prompts', { license: 'MIT', commit: 'ddcd8b00deafe9f3a3f770df6b70a76692d8e0f1', status: 'VERIFIED' }]
 ]);
+const KNOWN_STATUSES = new Set(['VERIFIED', 'EXTERNAL_UNVERIFIED']);
 
 export function validateLegalReadiness({ root = process.cwd() } = {}) {
   const failures = [];
@@ -79,6 +80,8 @@ export function validateLegalReadiness({ root = process.cwd() } = {}) {
       if (manifest.schemaVersion !== 2 || !Array.isArray(manifest.components)) {
         fail('Third-party provenance manifest must use schemaVersion 2 with a components array.');
       } else {
+        // Pinned expectations for the components reviewed so far: a silent change
+        // of license, status, or commit needs a fresh review.
         for (const [name, expected] of EXPECTED_COMPONENTS) {
           const component = manifest.components.find((entry) => entry.name === name);
           if (!component) {
@@ -94,11 +97,38 @@ export function validateLegalReadiness({ root = process.cwd() } = {}) {
           if (expected.commit && component.upstream?.commit !== expected.commit) {
             fail(`Third-party provenance manifest has wrong pinned commit for ${name}.`);
           }
-          if (expected.status === 'VERIFIED' && (!component.licenseFile || !existsSync(resolve(component.licenseFile)))) {
+        }
+
+        // Every declared component gets the same structural checks, pinned or not.
+        const notices = existsSync(resolve('THIRD_PARTY_NOTICES.md')) ? readFileSync(resolve('THIRD_PARTY_NOTICES.md'), 'utf-8') : '';
+        const seenNames = new Set();
+        for (const component of manifest.components) {
+          const name = component?.name;
+          if (!name || seenNames.has(name)) {
+            fail(`Third-party provenance manifest has a missing or duplicate component name: ${name}`);
+            continue;
+          }
+          seenNames.add(name);
+          if (!component.license) fail(`Third-party provenance manifest has no license for ${name}.`);
+          if (!KNOWN_STATUSES.has(component.status)) {
+            fail(`Third-party provenance manifest has unknown status "${component.status}" for ${name}.`);
+          }
+          if (!component.upstream?.repository || !/^[a-f0-9]{40}$/.test(component.upstream?.commit ?? '')) {
+            fail(`Third-party provenance manifest must pin an upstream repository and full commit for ${name}.`);
+          }
+          const repositorySlug = `${component.upstream?.repository ?? ''}`.replace(/^https:\/\/github\.com\//, '');
+          if (repositorySlug && !notices.includes(repositorySlug)) {
+            fail(`THIRD_PARTY_NOTICES.md must attribute ${name} (${repositorySlug}).`);
+          }
+          if (component.status === 'VERIFIED' && (!component.licenseFile || !existsSync(resolve(component.licenseFile)))) {
             fail(`Third-party provenance manifest has no readable license file for ${name}.`);
           }
-          if (expected.status === 'EXTERNAL_UNVERIFIED' && component.publicReleaseBlocker !== true) {
+          if (component.status === 'EXTERNAL_UNVERIFIED' && component.publicReleaseBlocker !== true) {
             fail(`Unverified component must block public release: ${name}.`);
+          }
+          // A component with no shipped copy must say why (for example historical evidence only).
+          if (!Array.isArray(component.localPaths) || (component.localPaths.length === 0 && !component.distributionScope)) {
+            fail(`Third-party provenance manifest must list local paths, or a distributionScope when none ship, for ${name}.`);
           }
           for (const localPath of component.localPaths ?? []) {
             if (!existsSync(resolve(localPath))) {

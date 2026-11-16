@@ -10,43 +10,13 @@ const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const templatesRoot = path.join(packageRoot, 'templates');
 const manifestPath = path.join(templatesRoot, 'template-manifest.json');
 
-const runtimeAdapterMirrors = [
-  {
-    runtime: 'codex',
-    canonical: '.codex/README.md',
-    template: 'templates/runtime-adapters/codex/.codex/README.md'
-  },
-  {
-    runtime: 'copilot',
-    canonical: '.github/copilot-instructions.md',
-    template: 'templates/runtime-adapters/copilot/.github/copilot-instructions.md'
-  },
-  {
-    runtime: 'copilot',
-    canonical: '.github/instructions/ai-workflow.instructions.md',
-    template: 'templates/runtime-adapters/copilot/.github/instructions/ai-workflow.instructions.md'
-  },
-  {
-    runtime: 'claude',
-    canonical: 'CLAUDE.md',
-    template: 'templates/runtime-adapters/claude/CLAUDE.md'
-  },
-  {
-    runtime: 'agents-md',
-    canonical: 'AGENTS.md',
-    template: 'templates/runtime-adapters/agents-md/AGENTS.md'
-  },
-  {
-    runtime: 'antigravity',
-    canonical: 'ANTIGRAVITY.md',
-    template: 'templates/runtime-adapters/antigravity/ANTIGRAVITY.md'
-  },
-  {
-    runtime: 'antigravity',
-    canonical: '.antigravity/README.md',
-    template: 'templates/runtime-adapters/antigravity/.antigravity/README.md'
-  }
-];
+// Every file under templates/runtime-adapters/<runtime>/ is mirrored at the
+// repository root. Root folders owned by one runtime must not carry files that
+// the template would not install (local runtime settings excepted).
+const runtimeAdaptersRoot = 'templates/runtime-adapters';
+const runtimeOwnedRootDirectories = ['.codex', '.claude', '.antigravity', '.github/agents'];
+const runtimeLocalFiles = new Set(['.claude/settings.json', '.claude/settings.local.json']);
+const ignoredBasenames = new Set(['.DS_Store']);
 
 export async function validateTemplatePacks({ root = packageRoot } = {}) {
   const templateRoot = path.join(root, 'templates');
@@ -125,28 +95,50 @@ export async function validateTemplatePacks({ root = packageRoot } = {}) {
 
 async function validateRuntimeAdapterMirrors({ root }) {
   const failures = [];
-  for (const mirror of runtimeAdapterMirrors) {
-    const canonicalPath = path.join(root, mirror.canonical);
-    const templatePath = path.join(root, mirror.template);
+  const adaptersRoot = path.join(root, runtimeAdaptersRoot);
+  const templated = new Set();
+  let runtimes = [];
+  try {
+    runtimes = (await fs.readdir(adaptersRoot, { withFileTypes: true })).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+  } catch {
+    return [`Runtime adapter templates missing: ${runtimeAdaptersRoot}`];
+  }
 
-    let canonical;
-    let template;
-    try {
-      [canonical, template] = await Promise.all([
-        fs.readFile(canonicalPath, 'utf8'),
-        fs.readFile(templatePath, 'utf8')
-      ]);
-    } catch {
-      failures.push(
-        `Runtime adapter mirror missing for ${mirror.runtime}: ${mirror.canonical} <-> ${mirror.template}`
-      );
-      continue;
+  for (const runtime of runtimes) {
+    const runtimeRoot = path.join(adaptersRoot, runtime);
+    for (const file of (await collectFiles(runtimeRoot)).sort()) {
+      const relativePath = path.relative(runtimeRoot, file).split(path.sep).join('/');
+      if (ignoredBasenames.has(path.posix.basename(relativePath))) continue;
+      templated.add(relativePath);
+      const templatePath = `${runtimeAdaptersRoot}/${runtime}/${relativePath}`;
+      let canonical;
+      let template;
+      try {
+        [canonical, template] = await Promise.all([
+          fs.readFile(path.join(root, relativePath), 'utf8'),
+          fs.readFile(file, 'utf8')
+        ]);
+      } catch {
+        failures.push(`Runtime adapter mirror missing for ${runtime}: ${relativePath} <-> ${templatePath}`);
+        continue;
+      }
+      if (canonical !== template) {
+        failures.push(`Runtime adapter drift for ${runtime}: ${relativePath} does not match ${templatePath}`);
+      }
     }
+  }
 
-    if (canonical !== template) {
-      failures.push(
-        `Runtime adapter drift for ${mirror.runtime}: ${mirror.canonical} does not match ${mirror.template}`
-      );
+  for (const directory of runtimeOwnedRootDirectories) {
+    let files = [];
+    try {
+      files = await collectFiles(path.join(root, directory));
+    } catch {
+      continue; // Runtime folder not present in this checkout.
+    }
+    for (const file of files) {
+      const relativePath = path.relative(root, file).split(path.sep).join('/');
+      if (templated.has(relativePath) || runtimeLocalFiles.has(relativePath) || ignoredBasenames.has(path.posix.basename(relativePath))) continue;
+      failures.push(`Runtime adapter file has no template twin under ${runtimeAdaptersRoot}/: ${relativePath}`);
     }
   }
   return failures;
