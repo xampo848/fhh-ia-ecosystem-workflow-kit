@@ -1,7 +1,8 @@
 import { spawn } from 'node:child_process';
+import path from 'node:path';
 import { applyInstallPlan } from './apply.mjs';
 import { formatDoctorResult, runDoctor } from './doctor.mjs';
-import { buildInstallPlan, buildUpdatePlan, formatPlan, selectPlanOperations } from './planner.mjs';
+import { buildInstallPlan, buildUpdatePlan, formatPlan, readManagedInstallState, selectPlanOperations } from './planner.mjs';
 import {
   createCapabilityGuide,
   defaultIntentFor,
@@ -49,6 +50,24 @@ const RUNTIME_OPTIONS = [
   { value: 'all', label: 'Install all adapters', description: 'Codex, GitHub Copilot, Claude Code and Antigravity.' },
   { value: 'custom', label: 'Custom list', description: 'Type your own comma-separated runtime list.' }
 ];
+
+// Update and doctor work on an existing install: start from the runtimes it
+// recorded, so accepting the defaults never drops an installed adapter.
+async function storedRuntimeDefaults(mode, targetPath) {
+  const fallback = { values: ['neutral'], custom: 'neutral' };
+  if (mode !== 'update' && mode !== 'doctor') return fallback;
+  let stored;
+  try {
+    stored = (await readManagedInstallState(targetPath ?? '.'))?.runtimes;
+  } catch {
+    return fallback;
+  }
+  if (!Array.isArray(stored) || stored.length === 0) return fallback;
+  const known = new Set(RUNTIME_OPTIONS.map((option) => option.value));
+  return stored.every((runtime) => known.has(runtime))
+    ? { values: stored, custom: stored.join(',') }
+    : { values: ['custom'], custom: stored.join(',') };
+}
 
 const CAPABILITY_OPTIONS = [
   { value: 'context7', label: 'Context7', description: 'Up-to-date docs MCP.' },
@@ -135,12 +154,7 @@ function defaultRunCommand({ command, args, cwd, write, paint }) {
   });
 }
 
-async function preferredPackageManager(commandExists) {
-  if (await commandExists('bun')) return 'bun';
-  throw new Error('bun is required to install optional capabilities.');
-}
-
-function buildCapabilityInstallSteps({ capability, intent, runtimes, packageManager, cwd }) {
+function buildCapabilityInstallSteps({ capability, intent, runtimes, cwd }) {
   if (intent !== 'install+attach') {
     return {
       capability,
@@ -225,16 +239,26 @@ async function runCapabilityAutoInstall({ selections, runtimes, cwd, write, pain
     };
   }
 
-  const packageManager = await preferredPackageManager(commandExists);
   const runtimeList = Array.isArray(runtimes) ? runtimes : [...runtimes];
   const runtimeSetForInstall = runtimeSet(runtimeList.join(','));
-  const queue = selections.map((selection) => buildCapabilityInstallSteps({
-    capability: selection.capability,
-    intent: selection.intent,
-    runtimes: runtimeSetForInstall,
-    packageManager,
-    cwd
-  }));
+  const queue = [];
+  for (const selection of selections) {
+    const item = buildCapabilityInstallSteps({
+      capability: selection.capability,
+      intent: selection.intent,
+      runtimes: runtimeSetForInstall,
+      cwd
+    });
+    // Each capability needs only its own package installer (bun or brew). A
+    // missing one skips that capability instead of failing the whole run,
+    // which by now has already applied the workflow files.
+    const installer = item.steps[0]?.command;
+    if ((installer === 'bun' || installer === 'brew') && !(await commandExists(installer))) {
+      queue.push({ ...item, steps: [], skipped: `${installer} is required in PATH to install it.` });
+    } else {
+      queue.push(item);
+    }
+  }
 
   const skipped = queue
     .filter((item) => item.steps.length === 0)
@@ -248,12 +272,11 @@ async function runCapabilityAutoInstall({ selections, runtimes, cwd, write, pain
       succeeded: 0,
       failed: 0,
       skipped,
-      packageManager,
       notes
     };
   }
 
-  write(`\n${paint.bold('Automatic optional capability install')}${paint.dim(` (preferred package manager: ${packageManager})`)}\n`);
+  write(`\n${paint.bold('Automatic optional capability install')}\n`);
 
   let attempted = 0;
   let succeeded = 0;
@@ -288,7 +311,6 @@ async function runCapabilityAutoInstall({ selections, runtimes, cwd, write, pain
     succeeded,
     failed,
     skipped,
-    packageManager,
     notes
   };
 }
@@ -458,7 +480,7 @@ export async function runTui(options = {}) {
       : await prompter.chooseOption({
         title: 'Selecciona una opcion',
         options: TUI_MODE_OPTIONS,
-        defaultValue: 'full'
+        defaultValue: 'install'
       });
 
     let targetPath;
@@ -486,11 +508,11 @@ export async function runTui(options = {}) {
       const runtimeChoices = await prompter.chooseOptions({
         title: 'Select one or more runtimes',
         options: RUNTIME_OPTIONS,
-        defaultValues: ['neutral']
+        defaultValues: (await storedRuntimeDefaults(mode, targetPath)).values
       });
 
       const customRuntimes = runtimeChoices.includes('custom')
-        ? await prompter.promptText(scriptedMode ? 'Custom runtimes [neutral]: ' : 'Custom runtimes (comma-separated)', 'neutral')
+        ? await prompter.promptText(scriptedMode ? 'Custom runtimes [neutral]: ' : 'Custom runtimes (comma-separated)', (await storedRuntimeDefaults(mode, targetPath)).custom)
         : '';
       runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
 
@@ -595,11 +617,11 @@ export async function runTui(options = {}) {
       const runtimeChoices = await prompter.chooseOptions({
         title: 'Select one or more runtimes',
         options: RUNTIME_OPTIONS,
-        defaultValues: ['neutral']
+        defaultValues: (await storedRuntimeDefaults(mode, targetPath)).values
       });
 
       const customRuntimes = runtimeChoices.includes('custom')
-        ? await prompter.promptText(scriptedMode ? 'Custom runtimes [neutral]: ' : 'Custom runtimes (comma-separated)', 'neutral')
+        ? await prompter.promptText(scriptedMode ? 'Custom runtimes [neutral]: ' : 'Custom runtimes (comma-separated)', (await storedRuntimeDefaults(mode, targetPath)).custom)
         : '';
       runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
 
@@ -624,7 +646,7 @@ export async function runTui(options = {}) {
         capabilityInstallResult = await runCapabilityAutoInstall({
           selections: capabilitySelections.filter((item) => item.intent === 'install+attach'),
           runtimes: runtimeSet(runtime),
-          cwd: targetPath,
+          cwd: path.resolve(targetPath ?? '.'),
           write,
           paint,
           commandExists,
@@ -697,12 +719,12 @@ export async function runTui(options = {}) {
 
       const runtimeChoices = await prompter.chooseOptions({
         title: 'Select one or more runtimes',
-        defaultValues: ['neutral'],
+        defaultValues: (await storedRuntimeDefaults(mode, targetPath)).values,
         options: RUNTIME_OPTIONS
       });
 
       const customRuntimes = runtimeChoices.includes('custom')
-        ? await prompter.promptText('Custom runtimes [neutral]: ', 'neutral')
+        ? await prompter.promptText('Custom runtimes [neutral]: ', (await storedRuntimeDefaults(mode, targetPath)).custom)
         : '';
       runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
 
@@ -744,11 +766,11 @@ export async function runTui(options = {}) {
       const runtimeChoices = await prompter.chooseOptions({
         title: 'Select one or more runtimes',
         options: RUNTIME_OPTIONS,
-        defaultValues: ['neutral']
+        defaultValues: (await storedRuntimeDefaults(mode, targetPath)).values
       });
 
       const customRuntimes = runtimeChoices.includes('custom')
-        ? await prompter.promptText('Custom runtimes (comma-separated)', 'neutral')
+        ? await prompter.promptText('Custom runtimes (comma-separated)', (await storedRuntimeDefaults(mode, targetPath)).custom)
         : '';
       runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
 
@@ -765,7 +787,7 @@ export async function runTui(options = {}) {
     // Asked only in an interactive install. Scripted runs and updates keep the
     // recorded or requested value, so automation never changes meaning.
     let stack = options.stack;
-    if (mode === 'full' && !scriptedMode && stack === undefined) {
+    if (mode === 'install' && !scriptedMode && stack === undefined) {
       const question = stackPackQuestion();
       stack = await prompter.chooseOption({
         title: question.title,
@@ -777,6 +799,7 @@ export async function runTui(options = {}) {
 
     let overwriteModified = false;
     let backupMode = 'required';
+    let adoptExistingAnswer;
 
     const buildPlan = async ({ overwriteModified: overwriteModifiedValue = false, backupMode: backupModeValue = 'required' } = {}) => {
       if (mode === 'update') {
@@ -792,12 +815,15 @@ export async function runTui(options = {}) {
         } catch (error) {
           if (!/No install state found\./.test(String(error?.message ?? ''))) throw error;
 
-          write(`\n${paint.copperInk('No install state found for this repository.')}\n`);
-          const adoptExisting = scriptedMode
-            ? await prompter.confirm('Bootstrap a safe baseline with adopt-existing? Type yes to continue [no]: ')
-            : await prompter.confirm('Bootstrap a safe baseline with adopt-existing?', true);
+          // Asked once: the plan is rebuilt when the user changes options.
+          if (adoptExistingAnswer === undefined) {
+            write(`\n${paint.copperInk('No install state found for this repository.')}\n`);
+            adoptExistingAnswer = scriptedMode
+              ? await prompter.confirm('Bootstrap a safe baseline with adopt-existing? Type yes to continue [no]: ')
+              : await prompter.confirm('Bootstrap a safe baseline with adopt-existing?', true);
+          }
 
-          if (!adoptExisting) throw error;
+          if (!adoptExistingAnswer) throw error;
 
           return buildUpdatePlan({
             targetPath,
@@ -818,6 +844,7 @@ export async function runTui(options = {}) {
         profile,
         stack,
         ensureWorkspaceIgnore: mode !== 'export',
+        recordJournal: mode !== 'export',
         backupMode: backupModeValue,
         toolkitVersion: currentToolkitMetadata().version
       });
@@ -991,7 +1018,7 @@ export async function runTui(options = {}) {
       capabilityInstallResult = await runCapabilityAutoInstall({
         selections: capabilitySelections.filter((item) => item.intent === 'install+attach'),
         runtimes: plan.runtimes,
-        cwd: targetPath,
+        cwd: path.resolve(targetPath ?? '.'),
         write,
         paint,
         commandExists,
@@ -1035,6 +1062,5 @@ export async function runTui(options = {}) {
       return { code: 0, applied: false };
     }
     throw error;
-  } finally {
   }
 }

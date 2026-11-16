@@ -1,6 +1,9 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"
+  # The repo only has bun.lock; the npm ecosystem would not update it. Dependabot
+  # supports bun for version updates only (no security updates): vulnerable
+  # dependencies are caught by `bun run check:security` in CI.
+  - package-ecosystem: "bun"
     directory: "/"
     schedule:
       interval: "weekly"

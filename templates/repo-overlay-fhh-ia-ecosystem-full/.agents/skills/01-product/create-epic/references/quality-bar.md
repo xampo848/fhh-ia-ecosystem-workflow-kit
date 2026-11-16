@@ -16,7 +16,7 @@ The epic is not ready if it:
 - Mixes multiple unrelated products into one PRD queue
 - Fails to name the first PRD and its strict scope
 - Omits stable IDs for non-negotiable inherited requirements
-- Fails to define how each phase moves through `create-prd`, `implement-prd`, and `document-development`
+- Fails to define how each phase moves through `create-prd`, `implement-change`, and `document-development`
 - Fails to create the companion ledger file or leaves it without one row per invariant and per queued PRD
 - Fails to persist the reusable evidence pack for child PRDs
 - Writes a PRD queue before locking the live path and phase cut when the step 6 trigger applies

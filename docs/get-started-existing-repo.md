@@ -2,10 +2,6 @@
 
 This guide is the no-surprises adoption path when your project already exists and already has docs, skills, or runtime conventions.
 
-## Routing trace
-
-`workflow-router · lean · workflow-maintenance documentation path`
-
 This document focuses on practical execution and recovery for real repositories.
 
 ## What this guide solves
@@ -20,10 +16,11 @@ This document focuses on practical execution and recovery for real repositories.
 
 Before running `init`:
 
-1. Confirm toolkit is available: `workflow-kit --help`
+1. Confirm the toolkit is available: `workflow-kit --version` (and `workflow-kit --help` for usage).
 2. Confirm your repository path is correct.
 3. Optional but recommended: commit or stash current work.
-4. Decide runtime adapters (`neutral`, `codex`, `copilot`, `claude`, `antigravity`).
+4. Decide runtime adapters (`neutral`, `codex`, `copilot`, `claude`, `antigravity`, `opencode`).
+5. Make sure `.agents` and the adapter files you will install (`AGENTS.md`, `CLAUDE.md`, …) are not symlinks; the kit refuses to write through them.
 
 ## 1) Preview first (always)
 
@@ -77,7 +74,10 @@ During init on an existing repository:
 - `.agents/skills/**/SKILL.md` files already present in the target repo are auto-discovered and merged into `.agents/skills/registry.json`.
 - `.agents/skills/registry.json` is merged by union so local custom entries are preserved.
 - `.agents/skills/index.md`, `.agents/skills/06-patterns/index.md`, and `.agents/skills/registry.md` are preserved if they already exist.
-- `docs/README.md` gets a non-destructive workflow block.
+- `docs/README.md` gets a non-destructive workflow block (idempotent marker block).
+- `docs/workflow/README.md` is created as an initial docs map when missing, and `docs/workflow/standards/` adds setup guides for backend/frontend standards.
+- Project rules are runtime-neutral: the installer creates `.agents/project/quality-gate.md`, templates for `.agents/project/backend.md` and `.agents/project/frontend.md`, and `.agents/project-context.md`. Existing hand-written `.github/instructions/*.instructions.md` files are migrated with a backup, and Copilot gets generated copies.
+- `.ai-work/` (temporary AI state) is added to `.gitignore`.
 
 ## 5) Existing docs: one-time intelligent recovery
 
@@ -144,7 +144,7 @@ Skill registry JSON is merged; local catalogs in markdown are preserved if alrea
 
 ### "How do I know what was changed?"
 
-Use dry-run plan output before apply and review backups (`*.workflow-kit-backup-*`) after apply when overwrite/merge operations occur.
+Use dry-run plan output before apply (add `--diff` for line diffs) and review backups (`*.workflow-kit-backup-*`) after apply when overwrite/merge operations occur.
 
 ### "I do not want to install optional capabilities yet"
 
@@ -157,4 +157,4 @@ If something still looks wrong:
 1. Re-run dry-run and inspect operations.
 2. Run `workflow-kit doctor`.
 3. Open [troubleshooting.md](troubleshooting.md) and apply the matching section.
-4. If needed, restore from backup files and retry.
+4. If needed, undo the last apply with `workflow-kit rollback --target /path/to/repo --dry-run`, then `--apply --yes`, and retry. Manual restore from the backup files remains a fallback.

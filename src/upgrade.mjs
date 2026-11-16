@@ -21,7 +21,13 @@ export function normalizePackageManager(value) {
 
 export function normalizeUpgradeRef(value) {
   const trimmed = String(value ?? '').trim();
-  return trimmed.length > 0 ? trimmed : currentToolkitMetadata().defaultUpgradeRef;
+  if (trimmed.length === 0) return currentToolkitMetadata().defaultUpgradeRef;
+  // A Git branch, tag or commit. Anything else would end up inside the package
+  // spec handed to the package manager.
+  if (!/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(trimmed) || trimmed.includes('..')) {
+    throw new Error(`Invalid --ref "${trimmed}". Use a branch, tag or commit of the toolkit repository.`);
+  }
+  return trimmed;
 }
 
 export function buildToolkitPackageSpec({ repository, ref }) {
@@ -94,7 +100,7 @@ export function isNonBlockingBunRemoveFailure({ stdout = '', stderr = '' } = {})
   return output.includes('not found') || output.includes('no package') || output.includes('no such package');
 }
 
-export function runUpgradePlan(plan, { cwd = globalUpgradeWorkingDirectory(), stdout = process.stdout, stderr = process.stderr } = {}) {
+export function runUpgradePlan(plan, { cwd = globalUpgradeWorkingDirectory(), stdout = process.stdout, stderr = process.stderr, verifyRef } = {}) {
   return new Promise((resolve) => {
     const runCommand = (command, args) => new Promise((resolveCommand) => {
       const child = spawn(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -122,7 +128,29 @@ export function runUpgradePlan(plan, { cwd = globalUpgradeWorkingDirectory(), st
       });
     });
 
+    const runQuiet = (command, args) => new Promise((resolveCommand) => {
+      const child = spawn(command, args, { cwd, stdio: 'ignore' });
+      child.on('error', (error) => resolveCommand({ ok: false, code: null, missingCommand: error?.code === 'ENOENT' }));
+      child.on('exit', (code) => resolveCommand({ ok: code === 0, code }));
+    });
+
     const run = async () => {
+      // The upgrade removes the installed toolkit before adding the new one.
+      // Confirm the ref is reachable first, so a typo or a network failure
+      // cannot leave the machine without a working workflow-kit.
+      if (plan.packageManager === 'bun' && plan.repository && plan.ref) {
+        const isCommit = /^[0-9a-f]{7,40}$/i.test(plan.ref);
+        const probe = await (verifyRef ?? runQuiet)('git', ['ls-remote', '--exit-code', `https://github.com/${plan.repository}.git`, isCommit ? 'HEAD' : plan.ref]);
+        if (probe.missingCommand) {
+          stdout.write('git is not in PATH: skipping the check that the upgrade ref exists.\n');
+        } else if (!probe.ok) {
+          stderr.write(probe.code === 2
+            ? `Ref "${plan.ref}" was not found in ${plan.repository}. Nothing was changed.\n`
+            : `Could not reach ${plan.repository} to verify ref "${plan.ref}". Nothing was changed.\n`);
+          return { ok: false, code: probe.code, reason: 'ref-not-verified' };
+        }
+      }
+
       if (plan.packageManager === 'bun') {
         stdout.write(`Pre-cleaning previous global package: ${packageJson.name}\n`);
         const preclean = await runCommand('bun', ['remove', '-g', packageJson.name]);
@@ -135,7 +163,11 @@ export function runUpgradePlan(plan, { cwd = globalUpgradeWorkingDirectory(), st
         }
       }
 
-      return runCommand(plan.command, plan.args);
+      const result = await runCommand(plan.command, plan.args);
+      if (!result.ok && plan.packageManager === 'bun') {
+        stderr.write(`The previous toolkit was removed and the new one failed to install. Reinstall with: ${plan.command} ${plan.args.join(' ')}\n`);
+      }
+      return result;
     };
 
     run().then(resolve);

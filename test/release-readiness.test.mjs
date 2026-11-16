@@ -4,11 +4,14 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { validateReleaseReadiness } from '../scripts/validate-release-readiness.mjs';
+import { enforceVersionBump, validateReleaseReadiness } from '../scripts/validate-release-readiness.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
+// Needs `bun` and `tar` on PATH (the packed-file check runs `bun pm pack`). The
+// version-bump gate depends on the checked-out branch, so it is covered by the
+// throwaway-repository tests below instead.
 test('validateReleaseReadiness passes for bundled release prep', async () => {
-  const result = await validateReleaseReadiness();
+  const result = await validateReleaseReadiness({ checkVersionBump: false });
   assert.equal(result.ok, true, result.failures.join('\n'));
 });
 
@@ -53,25 +56,97 @@ test('validateReleaseReadiness rejects CI comment bypass', async () => {
   assert.ok(result.failures.some((failure) => failure.includes('CI workflow must run bun run check:legal')));
 });
 
-test('validateReleaseReadiness enforces version bump for distributable changes', async () => {
+test('validateReleaseReadiness requires exact CI commands, not prefixes', async () => {
   const root = await copyReleaseFixture();
-  execFileSync('git', ['-C', root, 'init', '--quiet']);
-  execFileSync('git', ['-C', root, 'config', 'user.email', 'test@example.com']);
-  execFileSync('git', ['-C', root, 'config', 'user.name', 'Test Runner']);
-  execFileSync('git', ['-C', root, 'add', '.']);
-  execFileSync('git', ['-C', root, 'commit', '-m', 'baseline'], { stdio: 'ignore' });
-  execFileSync('git', ['-C', root, 'branch', '-M', 'main']);
-  execFileSync('git', ['-C', root, 'checkout', '-b', 'feature'], { stdio: 'ignore' });
+  const ciPath = path.join(root, '.github/workflows/ci.yml');
+  const ci = await fs.readFile(ciPath, 'utf8');
+  const mutated = ci
+    .replace('        run: bun run check\n', '        run: echo skipped\n')
+    .replace('        run: bun run check:security\n', '        run: echo skipped\n');
+  assert.notEqual(mutated, ci);
+  await fs.writeFile(ciPath, mutated, 'utf8');
 
-  const touchedTemplate = path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents/README.md');
-  const current = await fs.readFile(touchedTemplate, 'utf8');
-  await fs.writeFile(touchedTemplate, `${current}\nChanged distributable surface.\n`, 'utf8');
+  const result = await validateReleaseReadiness({ root, checkVersionBump: false });
 
-  const result = await validateReleaseReadiness({ root });
-
-  assert.equal(result.ok, false);
-  assert.ok(result.failures.some((failure) => failure.includes('version must be bumped')));
+  assert.ok(result.failures.includes('CI workflow must run bun run check.'), result.failures.join('\n'));
+  assert.ok(result.failures.includes('CI workflow must run bun run check:security.'), result.failures.join('\n'));
 });
+
+test('validateReleaseReadiness requires full-history checkout and a release base ref in CI', async () => {
+  const root = await copyReleaseFixture();
+  const ciPath = path.join(root, '.github/workflows/ci.yml');
+  const ci = await fs.readFile(ciPath, 'utf8');
+  const mutated = ci.replace('          fetch-depth: 0\n', '          fetch-depth: 1\n').replace(/^      RELEASE_BASE_REF:.*\n/m, '');
+  assert.notEqual(mutated, ci);
+  await fs.writeFile(ciPath, mutated, 'utf8');
+
+  const result = await validateReleaseReadiness({ root, checkVersionBump: false });
+
+  assert.ok(result.failures.some((failure) => failure.includes('fetch-depth: 0')), result.failures.join('\n'));
+  assert.ok(result.failures.some((failure) => failure.includes('RELEASE_BASE_REF')), result.failures.join('\n'));
+});
+
+test('version-bump gate fails when distributable changes keep the base version', async () => {
+  const root = await makeVersionRepo('1.2.0-base');
+  await fs.appendFile(path.join(root, 'templates/pack.md'), 'Changed distributable surface.\n', 'utf8');
+
+  const result = enforceVersionBump({ root, version: '1.2.0-base', env: {} });
+
+  assert.ok(result.failures.some((failure) => failure.includes('version must be bumped')), result.failures.join('\n'));
+});
+
+test('version-bump gate rejects a version lower than the base', async () => {
+  const root = await makeVersionRepo('1.2.0-base');
+  await fs.appendFile(path.join(root, 'templates/pack.md'), 'Changed distributable surface.\n', 'utf8');
+
+  const result = enforceVersionBump({ root, version: '1.1.9-later-label', env: {} });
+
+  assert.ok(result.failures.some((failure) => failure.includes('must not be lower than 1.2.0-base')), result.failures.join('\n'));
+});
+
+test('version-bump gate accepts a higher version', async () => {
+  const root = await makeVersionRepo('1.2.0-base');
+  await fs.appendFile(path.join(root, 'templates/pack.md'), 'Changed distributable surface.\n', 'utf8');
+
+  const result = enforceVersionBump({ root, version: '1.3.0-next', env: {} });
+
+  assert.deepEqual(result, { failures: [], notices: [] });
+});
+
+test('version-bump gate fails in CI when the base ref cannot be resolved', async () => {
+  const root = await makeVersionRepo('1.2.0-base');
+
+  const result = enforceVersionBump({ root, version: '1.2.0-base', env: { CI: 'true', RELEASE_BASE_REF: 'origin/main' } });
+
+  assert.ok(result.failures.some((failure) => failure.includes('Version-bump gate cannot run in CI')), result.failures.join('\n'));
+});
+
+test('version-bump gate is skipped locally with a notice when the base ref cannot be resolved', async () => {
+  const root = await makeVersionRepo('1.2.0-base');
+
+  const result = enforceVersionBump({ root, version: '1.2.0-base', env: { RELEASE_BASE_REF: 'origin/main' } });
+
+  assert.deepEqual(result.failures, []);
+  assert.ok(result.notices.some((notice) => notice.includes('Version-bump gate skipped')), result.notices.join('\n'));
+});
+
+// Throwaway repository: `main` holds the base version; HEAD is a feature branch.
+async function makeVersionRepo(baseVersion) {
+  const root = await makeTempRepo('workflow-kit-version-gate-');
+  await fs.mkdir(path.join(root, 'templates'), { recursive: true });
+  await fs.writeFile(path.join(root, 'package.json'), JSON.stringify({ name: 'fixture', version: baseVersion }), 'utf8');
+  await fs.writeFile(path.join(root, 'templates/pack.md'), '# Pack\n', 'utf8');
+  const git = (...args) => execFileSync('git', ['-C', root, ...args], { stdio: 'ignore' });
+  git('init', '--quiet');
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'Test Runner');
+  git('config', 'commit.gpgsign', 'false');
+  git('add', '.');
+  git('commit', '-m', 'baseline');
+  git('branch', '-M', 'main');
+  git('checkout', '-b', 'feature');
+  return root;
+}
 
 async function copyReleaseFixture() {
   const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');

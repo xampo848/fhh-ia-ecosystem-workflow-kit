@@ -9,7 +9,7 @@ The final PRD must read like a repository-native planning artifact, not a generi
 - The opening context should explain the real problem, why it matters now, and the strict scope boundary in concrete terms.
 - Current-state tables should name actual repo artifacts, not placeholders, whenever the exploration phase found them.
 - Requirement sections should state confirmed behavior, not hedged guesses.
-- Phase plans should feel implementable by `implement-prd` without inventing missing behavior, validation, or ownership boundaries.
+- Phase plans should feel implementable by `implement-change` without inventing missing behavior, validation, or ownership boundaries.
 - Risks, future scope, and open questions should be specific enough that a reviewer can challenge them.
 - The document should be as short as the scope allows, but never so compressed that acceptance, sequencing, or evidence become ambiguous.
 
@@ -33,7 +33,7 @@ Load and execute [reference/self-audit.md](reference/self-audit.md). This is a h
 
 Product future scope remains out of the current PRD. Workflow reuse of `.ai-work/<prd-slug>/orchestration.md` is now in scope:
 
-- `implement-prd` must read `## Calibration`, `## Pattern Lock`, and `## Self-Audit` when those sections exist.
+- `implement-change` must read `## Calibration`, `## Pattern Lock`, and `## Self-Audit` when those sections exist.
 - `implementation-slicing` must use `touched_surfaces` from `## Calibration` to detect scope expansion.
 - `qa-handoff-review` must reconcile `## Self-Audit` residual risks before allowing `ready_to_close: yes`.
 - Missing `.ai-work/<prd-slug>/orchestration.md` is allowed only for historical PRDs created before this model.
@@ -45,7 +45,7 @@ Product future scope remains out of the current PRD. Workflow reuse of `.ai-work
 - Leaving "TBD" or "to confirm" inline in requirement tables
 - Silently redefining a non-negotiable invariant inherited from a parent epic
 - Inverting a parent epic's locked live path or phase-cut sequence without an approved change request
-- Delivering a visible-UI PRD whose screen `implement-prd` would still have to invent
+- Delivering a visible-UI PRD whose screen `implement-change` would still have to invent
 - Treating a mockup or photo as the visual contract instead of locking density, hierarchy, primary action, and UI states
 - Using Spanish names for code identifiers
 - Describing UI changes in an importer-only PRD (they belong in a separate PRD)

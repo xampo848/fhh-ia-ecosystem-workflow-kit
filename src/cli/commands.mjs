@@ -2,7 +2,7 @@ import { applyInstallPlan } from '../apply.mjs';
 import { formatDoctorResult, runDoctor } from '../doctor.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan } from '../planner.mjs';
 import { renderPlanDiffs } from '../plan-insight.mjs';
-import { applyRollbackPlan, buildRollbackPlan, formatRollbackPlan } from '../rollback.mjs';
+import { applyRollbackPlan, buildRollbackPlan, formatRollbackPlan, summarizeRollback } from '../rollback.mjs';
 import { runTui } from '../tui.mjs';
 import { buildUpgradePlan, commandExists, formatUpgradePlan, resolveUpgradePackageManager, runUpgradePlan } from '../upgrade.mjs';
 import packageJson from '../../package.json' with { type: 'json' };
@@ -82,7 +82,7 @@ export async function runExportCommand(options, { stdout, stderr }) {
     return 2;
   }
 
-  const plan = await buildInstallPlan({ ...options, ensureWorkspaceIgnore: false, toolkitVersion: packageJson.version });
+  const plan = await buildInstallPlan({ ...options, ensureWorkspaceIgnore: false, recordJournal: false, toolkitVersion: packageJson.version });
   stdout.write(`${options.apply ? 'Export apply plan' : 'Export dry-run plan'}\n${formatPlan(plan)}\n`);
 
   if (!options.apply) return 0;
@@ -110,8 +110,8 @@ export async function runRollbackCommand(options, { stdout, stderr }) {
 
   if (!options.apply || plan.operations.length === 0) return 0;
 
-  const restored = await applyRollbackPlan(plan);
-  stdout.write(`Restored files: ${restored.length}\n`);
+  const summary = summarizeRollback(await applyRollbackPlan(plan));
+  stdout.write(`Restored files: ${summary.restored}\nRemoved created files: ${summary.removed}\nKept (edited after the apply): ${summary.keptModified}\nNot restorable (no backup): ${summary.withoutBackup}\n`);
   return 0;
 }
 

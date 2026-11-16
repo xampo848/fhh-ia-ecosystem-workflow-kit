@@ -10,6 +10,15 @@ no safe published release. It is not acceptance of unpatched risk, a fake
 package version or a general audit ignore list. Each one needs the maintainer's
 explicit authorization and an entry in `dependency-patches.json`.
 
+## Second advisory source
+
+The `OSV-Scanner` workflow (`.github/workflows/osv-scanner.yml`) checks
+`bun.lock` against OSV.dev and fails on any known vulnerability: on every pull
+request, on `main` and every Monday. Outside pull requests it also uploads the
+findings to Security > Code scanning. The scanner binary is pinned by version
+and checksum. It complements the gate
+below and does not replace it.
+
 ## Fail-Closed Gate
 
 Run `bun run check:security`. It verifies:

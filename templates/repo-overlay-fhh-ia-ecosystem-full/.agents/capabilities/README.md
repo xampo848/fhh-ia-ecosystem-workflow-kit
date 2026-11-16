@@ -93,7 +93,7 @@ to normal concise prose whenever compression risks ambiguity, safety, or user
 understanding.
 
 This activation is external to workflow sequencing. It must not replace
-`workflow-router`, `create-prd`, `implement-prd`, validation gates, or runtime
+`workflow-router`, `create-prd`, `implement-change`, validation gates, or runtime
 adapter rules.
 
 ## Lifecycle states

@@ -40,8 +40,10 @@ async function markdownFiles(root, directory) {
 
 export async function validateNeutralPaths({ root = packageRoot } = {}) {
   const failures = [];
+  const scannedFiles = new Set();
   for (const scanned of scannedRoots) {
     for (const file of await markdownFiles(root, scanned)) {
+      scannedFiles.add(file);
       if (file in runtimePathAllowlist || thirdPartyPrefixes.some((prefix) => file.startsWith(prefix))) continue;
       const lines = (await fs.readFile(path.join(root, file), 'utf8')).split('\n');
       lines.forEach((line, index) => {
@@ -49,6 +51,9 @@ export async function validateNeutralPaths({ root = packageRoot } = {}) {
         if (match) failures.push(`${file}:${index + 1} names the runtime folder ${match[1]} — use the neutral path under .agents/ (or add the file to the allowlist with a reason).`);
       });
     }
+  }
+  for (const file of Object.keys(runtimePathAllowlist)) {
+    if (!scannedFiles.has(file)) failures.push(`Runtime path allowlist entry for a file that no longer exists: ${file}`);
   }
   return { ok: failures.length === 0, failures };
 }

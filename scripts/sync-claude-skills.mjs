@@ -72,7 +72,40 @@ export async function validateClaudeSkills({ root = packageRoot } = {}) {
       failures.push(`Generated Claude skill missing: ${relativePath}`);
     }
   }
+  failures.push(...await findOrphanedClaudeSkills({ root, expected }));
   return { ok: failures.length === 0, failures, count: expected.size };
+}
+
+// A generated wrapper whose skill left claudeSkillKeys would otherwise linger
+// and keep exposing a stale slash command. The template folder only holds
+// generated wrappers; at the root only files carrying the marker are ours.
+async function findOrphanedClaudeSkills({ root, expected }) {
+  const failures = [];
+  for (const [directory, generatedOnly] of [['.claude/skills', false], [`${templatePrefix}/.claude/skills`, true]]) {
+    for (const relativePath of await listFiles(root, directory)) {
+      if (expected.has(relativePath)) continue;
+      if (!generatedOnly && !(await fs.readFile(path.join(root, relativePath), 'utf8')).includes(generatedMarker)) continue;
+      failures.push(`Orphaned generated Claude skill: ${relativePath}`);
+    }
+  }
+  return failures;
+}
+
+async function listFiles(root, directory) {
+  let entries;
+  try {
+    entries = await fs.readdir(path.join(root, directory), { withFileTypes: true });
+  } catch (error) {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+  const files = [];
+  for (const entry of entries) {
+    const relative = `${directory}/${entry.name}`;
+    if (entry.isDirectory()) files.push(...await listFiles(root, relative));
+    else if (entry.isFile() && entry.name !== '.DS_Store') files.push(relative);
+  }
+  return files;
 }
 
 export async function writeClaudeSkills({ root = packageRoot } = {}) {

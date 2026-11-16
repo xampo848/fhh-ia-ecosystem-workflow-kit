@@ -26,4 +26,4 @@ Completar cuando hay UI visible. Si no hay pantalla de usuario, dejar `UI lock: 
 +--------------------------------------+
 ```
 
-`implement-prd` no puede inventar esta pantalla. Un mockup o foto ancla; no sustituye los campos de arriba.
+`implement-change` no puede inventar esta pantalla. Un mockup o foto ancla; no sustituye los campos de arriba.

@@ -15,12 +15,12 @@ Guided, one-comment-at-a-time workflow to resolve Pull Request feedback safely.
 
 ## Non-Negotiable Rules (Read First)
 
-1. Start by loading PR context with `github-pull-request_activePullRequest`.
+1. Start by reading the PR and its review threads (tool per runtime in `reference/pr-tooling.md`).
 2. Never implement before user choice. Present options and stop.
 2a. Never accept a comment by default, whether it comes from a human, Copilot, Sentry, or a linter. Evaluate it first (Phase 2.0) with `.agents/skills/01-product/shared/critical-stance.md` ("Evaluating external claims").
 3. Resolve one unresolved comment at a time.
 4. After each implemented fix, run relevant validation (tests/lint/check command).
-5. After each validated fix, close the related PR review thread with `github-pull-request_resolveReviewThread`.
+5. After each validated fix, resolve the related PR review thread (`reference/pr-tooling.md`).
 6. If thread closure fails (permission/thread id/already closed), report clearly and continue.
 7. Use simple language: explain what is wrong, why it matters, and what will change.
 
@@ -35,18 +35,16 @@ Guided, one-comment-at-a-time workflow to resolve Pull Request feedback safely.
 Before analysis, verify the PR context is available.
 
 - If no active PR is found: ask user to open/select PR, then stop.
-- If comments are inaccessible: explain permission/tooling blocker, then stop.
+- If comments are inaccessible, or neither the runtime's PR tools nor the `gh` CLI is available: explain the permission/tooling blocker, then stop.
 - If there are no unresolved comments: report clean status and offer final verification.
 
 ## Phase 1: Analyze and Prioritize
 
 ### 1.1 Fetch PR Comments
 
-Always run:
-
-```text
-github-pull-request_activePullRequest
-```
+Always read the active PR and its review threads, with the thread ids, using
+the runtime mapping in `reference/pr-tooling.md` (Copilot PR tools when
+present, otherwise `gh`).
 
 Collect:
 
@@ -149,11 +147,8 @@ If behavior/logic changed, run targeted validation.
 
 ### 2.5 Close PR Thread
 
-After code + validation success:
-
-```text
-github-pull-request_resolveReviewThread
-```
+After code + validation success, resolve the thread with the runtime mapping
+in `reference/pr-tooling.md`.
 
 For a verdict that changes no code, post the approved reply first. A bot thread
 may then be closed. When you disagree with a **human** reviewer, reply but do

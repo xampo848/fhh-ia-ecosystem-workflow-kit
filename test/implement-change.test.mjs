@@ -74,3 +74,19 @@ test('implement-prd stays as a permanent alias and the router binds to implement
   assert.match(router, /"implementa este\s+PRD" runs `implement-change` \(alias `implement-prd`\)/);
   assert.match(gates, /load `\.agents\/skills\/02-implement\/implement-change\/SKILL\.md`/);
 });
+
+test('one N1 procedure per entry path and a placeholder project context never blocks', async () => {
+  const [core, n1, n2] = await Promise.all([
+    read(`${changeDir}/SKILL.md`),
+    read(`${changeDir}/reference/level-n1.md`),
+    read(`${changeDir}/reference/level-n2.md`)
+  ]);
+  assert.match(core, /An N1 reached through the level pre-filter \(no workflow files loaded\) follows\s+only the pre-filter's N1 rule/);
+  assert.match(n1, /N1 reached through the level pre-filter, with no workflow files loaded, follows\s+only the pre-filter's N1 rule and never loads this file/);
+  assert.doesNotMatch(n1, /replaces the\s+N1 rules of the pre-filter/);
+  assert.match(core, /when it exists and is filled in; if it still\s+contains `\[TODO\]` placeholders, say `project context: no configurado` once and\s+continue/);
+  assert.doesNotMatch(core, /before exploring code at any level/);
+  assert.match(n2, /The N2 default is `avoided`/);
+  assert.match(n2, /Tracker and execution locks are N3 coordination\. At N2 use them only when the\s+change has more than one slice/);
+  assert.doesNotMatch(n2, /Code-writing defaults to the specialized implementers/);
+});

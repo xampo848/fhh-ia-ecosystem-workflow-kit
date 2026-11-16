@@ -59,7 +59,8 @@ export async function validateLevelPrefilter({ root = packageRoot } = {}) {
     try {
       content = await readText(root, target);
     } catch {
-      continue; // Adapter not present in this checkout; nothing to keep in sync.
+      failures.push(`Level pre-filter target missing: ${target}; restore it or remove it from prefilterTargets.`);
+      continue;
     }
     try {
       if (extractPrefilterBlock(content, target) !== block) {

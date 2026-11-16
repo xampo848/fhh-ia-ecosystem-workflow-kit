@@ -34,7 +34,45 @@ export async function validateDelegateRuntimeAdapters({ root = packageRoot } = {
     }
   }
 
+  failures.push(...await findOrphanedDelegateAdapters({ root, expected }));
   return { ok: failures.length === 0, failures, expected };
+}
+
+// Adapters of a delegate removed from the catalog would otherwise linger and
+// keep being installed. Template agent folders only hold generated adapters; at
+// the root only files carrying the generated marker are ours.
+const generatedAgentDirectories = ['.codex/agents', '.github/agents', '.claude/agents'];
+
+async function findOrphanedDelegateAdapters({ root, expected }) {
+  const failures = [];
+  for (const directory of generatedAgentDirectories) {
+    const templateDirectory = `templates/runtime-adapters/${runtimeForPath(`${directory}/`)}/${directory}`;
+    for (const [scanned, generatedOnly] of [[directory, false], [templateDirectory, true]]) {
+      for (const relativePath of await listFiles(root, scanned)) {
+        if (expected.has(relativePath)) continue;
+        if (!generatedOnly && !(await fs.readFile(path.join(root, relativePath), 'utf8')).includes(generatedMarker)) continue;
+        failures.push(`Orphaned generated delegate adapter: ${relativePath}`);
+      }
+    }
+  }
+  return failures;
+}
+
+async function listFiles(root, directory) {
+  let entries;
+  try {
+    entries = await fs.readdir(path.join(root, directory), { withFileTypes: true });
+  } catch (error) {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+  const files = [];
+  for (const entry of entries) {
+    const relative = `${directory}/${entry.name}`;
+    if (entry.isDirectory()) files.push(...await listFiles(root, relative));
+    else if (entry.isFile() && entry.name !== '.DS_Store') files.push(relative);
+  }
+  return files;
 }
 
 export async function writeDelegateRuntimeAdapters({ root = packageRoot } = {}) {

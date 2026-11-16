@@ -163,7 +163,7 @@ Slicing quality bar (outside N1):
 
 Present the implementation plan before coding when the user is interacting phase by phase, the scope is non-routine, the operating mode is N2 with material risks, or a stop condition applies. If the user has asked for autonomous execution or the plan is routine, proceed unless a stop condition applies.
 
-Maintain a physical phase/task tracker mapped 1:1 to PRD phases and tasks. Create and update `.ai-work/<prd-slug>/task_tracker.toon` using the TOON template in `reference/task-tracker-template.md` to record progress and handoffs, keeping the main conversation context clean. It is ignored temporary state and is cleaned at closure. Skip only in N1.
+Maintain a physical phase/task tracker mapped 1:1 to PRD phases and tasks. Create and update `.ai-work/<prd-slug>/task_tracker.toon` using the TOON template in `reference/task-tracker-template.md` to record progress and handoffs, keeping the main conversation context clean. It is ignored temporary state and is cleaned at closure. Required at N3, and at N2 only when the change has more than one slice; otherwise skip it.
 
 ## Phase 2.5: Skill Matching
 

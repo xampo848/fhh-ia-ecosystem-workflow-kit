@@ -14,11 +14,22 @@ Make the smallest safe change in at most 2 files, then re-read the edited lines 
 
 ## Procedure
 
-1. Read `.github/copilot-instructions.md` when the parent context did not already load it.
+1. Read `.agents/delegation/delegate-contract.md` (never `.agents/instructions.md`, the router, or a runtime adapter).
 2. Confirm the task is bounded to 1-2 files and does not require broad design work.
 3. Read the target files and adjacent pattern only as needed.
 4. Edit the smallest set of lines that satisfies the request.
 5. Re-read the changed lines before returning.
+
+## Return envelope
+
+Start every reply with the delegate contract's return envelope in compressed
+form (one line; `-` for a field the lock does not give you):
+
+```text
+status: success|partial|blocked · run=<run_id> · slice=<slice_id> · lock=<execution_lock_id> · model=<resolved_model|unknown>
+```
+
+A refusal token below is `status: blocked` followed by the token; `verified: mismatch` is `status: partial`.
 
 ## Refusal contract
 

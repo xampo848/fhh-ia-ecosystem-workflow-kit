@@ -10,9 +10,9 @@ Initial physical convention for new pattern skills:
 
 Examples:
 
-- `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md`
-- `.agents/skills/06-patterns/backend/project-specific-importer/SKILL.md`
-- `.agents/skills/06-patterns/frontend/project-specific-form-validation/SKILL.md`
+- `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md` (shipped)
+- `.agents/skills/06-patterns/authoring/init-legacy-attachments/SKILL.md` (shipped)
+- `06-patterns/backend/<your-importer>/SKILL.md` (a project creates its own)
 
 This overlay is intentionally project-extensible. It ships only a neutral
 authoring helper and does not ship domain-specific default patterns.

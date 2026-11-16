@@ -17,7 +17,7 @@ metadata:
 
 # Create PRD — Product Requirements Document
 
-Después de aprobar el PRD, el siguiente paso esperado es `implement-prd`.
+Después de aprobar el PRD, el siguiente paso esperado es `implement-change`.
 
 Use this skill when:
 
@@ -92,19 +92,19 @@ A PRD is never "ready to implement" on AC alone. Before delivering the final PRD
 - Every PRD must include a Mermaid `classDiagram` in `## 3. Modelo de Datos`.
 - The diagram must show the classes, entities, value objects, services, or interfaces that are introduced or changed, including named relationships and cardinalities where relevant.
 - A PRD with no persisted data change still diagrams the relevant runtime classes and dependencies. Do not substitute a flowchart for this requirement.
-- The diagram uses confirmed names and relationships from the pattern lock; placeholders are not acceptable in a PRD ready for `implement-prd`.
+- The diagram uses confirmed names and relationships from the pattern lock; placeholders are not acceptable in a PRD ready for `implement-change`.
 
 ### Hard Gate: Visible UI Requires A Visual Contract
 
 When calibration records `visible_ui: yes`, a PRD is never ready to implement on behavior alone.
 
-- Persist a **Contrato Visual (UI lock)** in the PRD before Phase 5 can declare `ready for implement-prd`.
+- Persist a **Contrato Visual (UI lock)** in the PRD before Phase 5 can declare `ready for implement-change`.
 - Required fields: surface (new vs existing), density/composition, primary action, required UI states, visual thesis in one sentence, Design System primitives or sibling screen to reuse, and `UI lock: locked`.
 - Optional evidence, in this preference order: existing sibling screen in the repo; Figma or digital mockup; photo of a paper/whiteboard sketch; competitor screenshot. Cite the path or attachment when present.
 - A mockup, screenshot, or photo is an input to the lock, not the lock. High-fidelity mockups are never a universal requirement.
 - Do not lock hex colors, new typefaces, or animation unless the user already has a product design system decision for them.
 - If `visible_ui: no`, record `UI lock: not-applicable` plus a one-line reason. Do not invent a visual section for importer-only or backend-only PRDs.
-- If `implement-prd` would still have to invent the screen, stop: the visual contract is blocking ambiguity, same bar as an unlocked API contract.
+- If `implement-change` would still have to invent the screen, stop: the visual contract is blocking ambiguity, same bar as an unlocked API contract.
 
 ### Phase 1: Repository and Ecosystem Calibration
 
@@ -146,7 +146,7 @@ For every PRD created with this workflow, create `.ai-work/<prd-slug>/orchestrat
 - `## Pattern Lock`
 - `## Self-Audit`
 
-`.ai-work/<prd-slug>/` is the single workspace for temporary AI coordination state, ignored by Git. Nothing temporary is written under `docs/` or enters a PR. It does not replace the final PRD and is removed by `implement-change` (alias `implement-prd`) at closure. Execution locks, the implementation tracker, handoffs, and validation logs also live in this directory and remain owned by `implement-change`. A PRD created before this layout may still have `<prd-directory>/_meta/`; read it when the `.ai-work/` copy is missing, and do not write new files there.
+`.ai-work/<prd-slug>/` is the single workspace for temporary AI coordination state, ignored by Git. Nothing temporary is written under `docs/` or enters a PR. It does not replace the final PRD and is removed by `implement-change` at closure. Execution locks, the implementation tracker, handoffs, and validation logs also live in this directory and remain owned by `implement-change`. A PRD created before this layout may still have `<prd-directory>/_meta/`; read it when the `.ai-work/` copy is missing, and do not write new files there.
 
 This requirement applies only to PRDs created after this workflow change. Historical PRDs remain valid and do not require a retrofit of `.ai-work/<prd-slug>/orchestration.md` or the five-phase model.
 
@@ -166,7 +166,7 @@ Additional required sections:
 - Matriz de Edge Cases table (mandatory, see below)
 - Supuestos e integraciones table, from the Unknowns Inventory in `reference/calibration.md` (`Ninguno` with a one-line reason when there is no external or poorly known dependency)
 - Que queda obsoleto table, from the Obsolescence Scan in `reference/calibration.md` (`Ninguno` with a one-line reason when nothing becomes obsolete)
-- Evidencia de Implementacion section (initialized in the PRD template and completed only at `implement-prd` closure)
+- Evidencia de Implementacion section (initialized in the PRD template and completed only at `implement-change` closure)
 
 ## References
 

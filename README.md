@@ -1,115 +1,74 @@
 # FHH IA Ecosystem Workflow Kit
 
-An installable workflow kit for AI-driven software development that brings the FHH IA Ecosystem operating model into other repositories.
+`workflow-kit` installs a workflow for developing software with AI agents
+correctly into any repository. It gives Claude Code, Codex, GitHub Copilot,
+Antigravity, and opencode the same contract, so every agent sizes the work
+before acting, picks the right workflow, and leaves evidence behind.
 
-The purpose of this project is to make a complete product-to-delivery workflow reusable for teams building with AI: not only writing code, but also shaping the right work before implementation and documenting it after delivery. It codifies a practical way of working that connects product discovery, planning, execution, and documentation in a single, repeatable system.
+What the installed workflow does:
 
-It is designed so people can focus on intent instead of memorizing command names or skill names. A router handles routing and skill selection based on the request, so the workflow remains discoverable and usable even as the ecosystem grows.
+- **Levels N0–N3.** Every prompt gets a level before any workflow file is
+  loaded, so a typo fix stays cheap and a migration gets full gates.
+- **Routing.** You describe intent in natural language; `workflow-router`
+  selects the skill. You do not need to remember skill names.
+- **PRD → implementation → QA → documentation.** Non-trivial work goes through
+  a PRD (`create-prd`), an implementation route with repair limits
+  (`implement-change`), independent QA, and durable documentation.
+- **Model profiles.** Delegate agents take their model from a profile chosen by
+  billing: `calidad` (subscription) or `costo` (per-token).
 
-At a methodology level, work moves through a full lifecycle:
+One neutral source of truth lives in `.agents/`; runtime files such as
+`CLAUDE.md` or `AGENTS.md` are thin adapters that point back to it.
 
-1. Product discovery
-2. Epic definition
-3. Ticket/PRD decomposition
-4. Implementation
-5. Documentation
+> Status: public GitHub install, version `0.17.0-audit-hardening`. The CLI and
+> TUI install, update, export, check, and roll back the workflow, with dry-run
+> by default and backups before every overwrite. The package is intentionally
+> **not published to npm**.
 
-At a tooling level, this repository combines proven practices with reusable components, including skills, MCP integrations, workflow contracts, and runtime adapters. The result is an opinionated but flexible ecosystem that helps teams execute with consistency while still adapting to their own context.
+## GitHub install
 
-## What this project is
-
-This is a curated ecosystem assembled from hands-on experience, validated workflows, and selected tools that have proven effective in real software delivery environments.
-
-It is not a single framework and not a rigid template. It is a practical alternative for teams and builders who want a clearer path from idea to shipped and documented software, with explicit structure for discovery, epic-level planning, implementation, and knowledge capture.
-
-It is designed to be adopted as-is or adapted to each team's own way of working.
-
-> Current status: **public GitHub install/export ready**. The package provides a dry-run-first CLI, guided TUI, template export, doctor validation, manifest-validated template packs, release guardrails, and adoption docs. It is intentionally **not published to npm**.
-
-## Install from the public GitHub repository
-
-Repository URL: `xampo848/fhh-ia-ecosystem-workflow-kit`.
-
-Using Bun with SSH:
-
-```bash
-bun add -g git+ssh://git@github.com/xampo848/fhh-ia-ecosystem-workflow-kit.git
-```
-
-Using Bun with GitHub shorthand and HTTPS auth already configured:
+Requirements: Node.js 20.17+ or 22.13+ (the `engines` field in `package.json`), [Bun](https://bun.sh), and network
+access to GitHub.
 
 ```bash
 bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit
 ```
 
-Then verify:
+Verify:
 
 ```bash
+workflow-kit --version
 workflow-kit --help
 ```
 
-## Quickstart: install into a repo safely
+`main` installs the latest merged version. To pin a release instead, append
+`#<tag>`, for example `#v0.17.0-audit-hardening`; every released version has a
+`v<version>` tag, listed on the repository's
+[Releases page](https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/releases).
+SSH install and access details:
+[docs/github-install.md](docs/github-install.md).
 
-If your target repository already exists and already has docs/skills/conventions, use this first:
+From a clone of this repository, run the same commands as
+`node bin/workflow-kit.mjs <command>`.
 
-- [Get Started for Existing Repositories](docs/get-started-existing-repo.md)
+## Quickstart
 
-Always preview first. Dry-run is the default and writes nothing:
-
-```bash
-workflow-kit init --target /path/to/repo --runtime codex,copilot
-```
-
-By default, the installer uses the complete FHH IA Ecosystem workflow overlay so the target repo gets the full ready-to-use flow.
-
-Apply only after reviewing the plan:
+Dry-run is the default and writes nothing. Preview, apply, then check:
 
 ```bash
-workflow-kit init --target /path/to/repo --runtime codex,copilot --apply --yes
+workflow-kit init --target /path/to/repo --runtime claude,codex
+workflow-kit init --target /path/to/repo --runtime claude,codex --apply --yes
+workflow-kit doctor --target /path/to/repo
 ```
 
-When installing into an already existing project, the installer now applies safe merge behavior for key workflow artifacts:
+The plan lists one operation per file (`create`, `unchanged`,
+`overwrite_with_backup`, `merge_with_backup`, …). Existing skill registries and
+docs hubs are merged, not replaced.
 
-- Local `.agents/skills/**/SKILL.md` files are auto-discovered and added into `.agents/skills/registry.json` so they do not stay invisible to validation and tooling.
-- `.agents/skills/registry.json` is merged (existing custom skills are preserved and missing workflow-kit skills are added).
-- Existing `.agents/skills/index.md`, `.agents/skills/06-patterns/index.md`, and `.agents/skills/registry.md` are preserved to avoid clobbering local catalogs.
-- `docs/README.md` gets a non-destructive workflow section (idempotent marker block) so docs are ready to receive workflow documents.
-- `docs/workflow/README.md` is created as an initial docs map when missing.
-- `docs/workflow/standards/` includes setup guides for backend/frontend standards and adoption.
-- Project rules are runtime-neutral: the installer creates `.agents/project/quality-gate.md`, templates for `.agents/project/backend.md` and `.agents/project/frontend.md` (fill them in when those surfaces exist), and `.agents/project-context.md` (structure, validation commands, environment quirks). Existing hand-written `.github/instructions/*.instructions.md` files are migrated with a backup, and Copilot gets generated copies.
-- `.ai-work/` (temporary AI state) is added to `.gitignore`.
-- A one-time `docs/workflow/migration/legacy-docs-map.md` is generated when legacy docs are detected, with coherent destination suggestions and `git mv` commands.
-
-Legacy docs are not moved automatically. Review `docs/workflow/migration/legacy-docs-map.md` and relocate them manually with `git mv` if you want to preserve history cleanly.
-
-Validate the installed files:
-
-```bash
-workflow-kit doctor --target /path/to/repo --runtime codex,copilot
-```
-
-### 5-minute operational checklist
-
-Use this quick checklist right after first install:
-
-1. Run dry-run once and confirm operation types are expected (`create`, `merge_with_backup`, `overwrite_with_backup`).
-2. Apply with `--apply --yes` and confirm backups exist for any overwritten/merged file.
-3. Run `workflow-kit doctor --target /path/to/repo --runtime <your-runtimes>` and confirm no blocking errors.
-4. In the target repo, verify these files exist:
-  - `.agents/instructions.md`
-  - `.agents/skills/00-router/workflow-router/SKILL.md`
-  - `.agents/skills/registry.json`
-  - `.agents/project/backend.md` and `.agents/project/frontend.md` (or an explicit N/A decision for missing surfaces)
-5. Send one natural-language prompt in your agent runtime (for example, “Implementa una mejora pequeña con tests”) and confirm routing starts from the installed workflow.
-
-For existing repositories with prior docs, also review:
-
-- `docs/workflow/migration/legacy-docs-map.md` (if generated)
-- `docs/workflow/standards/setup-and-migration.md`
-
-If something looks wrong after dry-run/apply, jump directly to:
-
-- [Troubleshooting](docs/troubleshooting.md)
+- New repository: [Quickstart](docs/quickstart.md).
+- Repository that already has docs, skills, or adapters:
+  [Get Started for Existing Repositories](docs/get-started-existing-repo.md).
+- Something looks wrong: [Troubleshooting](docs/troubleshooting.md).
 
 ### Per-project setup after installing
 
@@ -126,11 +85,10 @@ The installer cannot know your project, so a few things are yours to complete, o
 
 Updating an existing installation? Follow the same table after `workflow-kit update`; steps 1 and 4 are the ones older installations usually miss.
 
-## Using the workflow after installation
+## Using the workflow
 
-Once installed, the recommended way to use the ecosystem is to describe your intent in natural language. You do not need to remember skill names: the router selects the right workflow and skills based on your request.
-
-The workflow is proportional to the task. Every prompt gets a level before any workflow file is loaded:
+Describe what you want in your agent runtime. The level decides how much
+process the request gets:
 
 | Level | Example | What happens |
 | --- | --- | --- |
@@ -139,347 +97,148 @@ The workflow is proportional to the task. Every prompt gets a level before any w
 | N2 standard | a bounded feature, bug, or ticket | routed through `workflow-router` and `implement-change` |
 | N3 high risk | contracts, migrations, auth or tenancy, anything irreversible | full gates, delegates, and independent QA |
 
-`implement-change` (alias `implement-prd`) implements PRDs, bugs, tickets, and iterations over an implemented PRD. For N2 and N3 it offers supervised (default) or autonomous execution; brakes such as the 2-round repair limit apply in both.
+`implement-change` (alias `implement-prd`) implements PRDs, bugs, tickets, and
+iterations over an implemented PRD. For N2 and N3 it offers supervised
+(default) or autonomous execution; brakes such as the 2-round repair limit
+apply in both. Example prompts for each phase are in
+[docs/quickstart.md](docs/quickstart.md#example-prompts).
 
-Recommended operating flow:
+## Commands
 
-1. Start from product discovery and clarify the problem.
-2. Convert the discovery into epics with clear outcomes.
-3. Decompose each epic into tickets or PRDs.
-4. Implement the work item with the selected workflow.
-5. Document what was built, why, and any important decisions.
+| Command | What it does |
+| --- | --- |
+| `init` | Plans or applies a first install of the workflow into `--target`. |
+| `update` | Refreshes only the files workflow-kit manages; protects your local edits. |
+| `upgrade` | Upgrades the globally installed `workflow-kit` itself (it checks that the ref exists and is reachable before replacing the installed version). |
+| `export` | Writes the templates to `--output` without treating it as an install. |
+| `doctor` | Checks installed files and workflow semantics; prints stable diagnostic codes. |
+| `rollback` | Undoes the last applied `init`/`update`: restores changed files from their backups, removes files that run created, and restores the previous install state. |
+| `tui` | Guided menu for install, update, upgrade, and optional capabilities. |
 
-### Example prompts you can use
+`workflow-kit --help` prints the full usage. Main flags:
 
-Discovery and framing:
+| Flag | Meaning |
+| --- | --- |
+| `--dry-run` | Preview only (the default). |
+| `--apply --yes` | Write. Both are required; combining `--apply` with `--dry-run` is an error. |
+| `--target <path>` / `--output <path>` | Repository to install into / export folder. |
+| `--runtime <list>` | Comma-separated runtimes, see [Supported runtimes](#supported-runtimes). |
+| `--profile <runtime>=<calidad\|costo>` | Model profile per runtime, for example `claude=costo,codex=calidad`. |
+| `--stack none\|rails-react` | Install the Rails + React stack rules as `.agents/project/stack.md`. |
+| `--diff` | Show the line diff of every file that would change. |
+| `--adopt-existing` | `update` only: record an install made before state tracking. |
+| `--backup-mode required\|none` | `required` (default) backs up every file before overwrite or merge; `none` skips backups, and `rollback` cannot restore those files. |
+| `--ref <git-ref>` / `--package-manager bun` | `upgrade` only: version to install (default `main`) and the package manager to use. |
 
-```text
-Help me run product discovery for a feature that reduces onboarding drop-off. I need problem framing, assumptions, risks, and success metrics.
-```
+## Updating
 
-Epic creation:
-
-```text
-Create epics for this initiative and organize them by user value, technical dependencies, and delivery order.
-```
-
-PRD or ticket decomposition:
-
-```text
-Break Epic 2 into implementation-ready tickets with acceptance criteria, edge cases, and test expectations.
-```
-
-Implementation support:
-
-```text
-Implement ticket PAY-14 in this repository. Keep changes minimal, add tests, and summarize trade-offs.
-```
-
-Documentation pass:
-
-```text
-Document what was implemented for PAY-14, including scope, decisions, validation steps, and known limitations.
-```
-
-Capability guidance (optional tools):
-
-```text
-I want to use Context7 and memory tools in this repo. Guide me through install/attach with confirmation before any install step.
-```
-
-### Practical usage notes
-
-- Be explicit about the outcome you want; the router performs better with clear intent and context.
-- Reference artifact names when possible (epic IDs, ticket IDs, PRD names) to keep continuity across phases.
-- Ask for preview/check steps before apply when working on critical repositories.
-- Use the same conversation thread for a full slice (discovery to docs) to preserve context quality.
-
-## Safe updates for already-installed repositories
-
-Use `update` to refresh only workflow-kit managed files.
-
-### Real upgrade flow (update the toolkit binary first)
-
-When you release a new toolkit version, users should update their global install first, then run `workflow-kit update` inside each target repository.
-
-Preview the toolkit binary upgrade command:
-
-```bash
-workflow-kit upgrade
-```
-
-Apply the toolkit binary upgrade against the latest `main`:
+Upgrade the tool first, then update each repository:
 
 ```bash
 workflow-kit upgrade --apply --yes
-```
-
-Pin to a released tag for a controlled rollout:
-
-```bash
-workflow-kit upgrade --ref v0.7.0 --apply --yes
-```
-
-Install a specific released tag:
-
-```bash
-bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.7.0
-```
-
-Or track the latest default branch:
-
-```bash
-bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit
-```
-
-Verify installed version:
-
-```bash
-workflow-kit --help
-```
-
-Then run repository update:
-
-```bash
+workflow-kit update --target /path/to/repo          # preview
 workflow-kit update --target /path/to/repo --apply --yes
 ```
 
-Preview first:
+`update` only overwrites files recorded in
+`.agents/workflow-kit/install-state.json`. A managed file you edited is kept as
+`skip_modified`; a file workflow-kit never installed is kept as
+`skip_unmanaged`. The plan lists one-time migrations, `--diff` shows every
+change, and `update` never deletes or moves your files. It reuses the runtimes
+and model profile recorded at install time. Installs older than state tracking
+need one bootstrap with `--adopt-existing`; see
+[Migration](docs/migration.md).
+
+## Rollback
 
 ```bash
-workflow-kit update --target /path/to/repo
+workflow-kit rollback --target /path/to/repo --dry-run
+workflow-kit rollback --target /path/to/repo --apply --yes
 ```
 
-Apply after review:
-
-```bash
-workflow-kit update --target /path/to/repo --apply --yes
-```
-
-The plan lists the one-time **migrations** it carries (for example, moving hand-written Copilot instructions to `.agents/project/`). Add `--diff` to see the line diff of every file that would change, including managed files you edited locally, which `update` protects and never overwrites silently. `update` and `doctor` reuse the runtimes recorded at install time, and the update never deletes or moves your files.
-
-Delegate agents follow the repository's model profile (`calidad` for
-subscriptions, the default for Claude Code and Codex; `costo` for Copilot and
-per-token APIs). `update` keeps the stored profile; change it with
-`--profile claude=costo` (see `docs/quickstart.md`).
-
-Update behavior:
-
-- Only files tracked in `.agents/workflow-kit/install-state.json` are eligible for overwrite.
-- If a tracked file was edited locally, it is skipped as `skip_modified`.
-- If an untracked file exists at the same path, it is skipped as `skip_unmanaged`.
-- Missing tracked files are recreated.
-- Intelligent merges may appear as `merge_with_backup` for safe in-place composition (for example on skill registry or docs hub files).
-
-### One-time bootstrap for legacy installs
-
-Older installs may not have an install state file yet. Bootstrap safely without overwriting current files:
-
-```bash
-workflow-kit update --target /path/to/repo --runtime codex,copilot --adopt-existing --apply --yes
-```
-
-This records the current baseline in `.agents/workflow-kit/install-state.json` and preserves existing content.
-
-## Export templates without installing into a repo
-
-Preview export:
-
-```bash
-workflow-kit export --output /tmp/workflow-kit-export --runtime codex,copilot
-```
-
-Apply export:
-
-```bash
-workflow-kit export --output /tmp/workflow-kit-export --runtime codex,copilot --apply --yes
-```
-
-## Guided TUI
-
-```bash
-workflow-kit tui
-```
-
-The TUI asks for target path and runtimes, then shows a preview before asking whether to write. The default answer writes nothing.
-It now includes separate entrypoints for installing a repository, updating a managed repository, upgrading the globally installed toolkit binary, or handling optional capabilities only.
-
-## Optional alternative tools (post-install)
-
-After `init`/`tui`, you can guide users to add optional external capabilities such as Engram, Context7, or codebase-memory-mcp.
-
-- Follow `.agents/integrations/README` in the target repository.
-- Classify intent as `install + attach` or `attach-only`.
-- Show confirmation summary before any install command.
-- Use official/curated source by default.
-
-See the concrete prompts and guardrails in [docs/quickstart.md](docs/quickstart.md).
+`rollback` undoes only the last applied `init` or `update`. Files written with
+`--backup-mode none` have no backup to restore. Manual restore from
+`*.workflow-kit-backup-<timestamp>` files remains possible; see
+[Troubleshooting](docs/troubleshooting.md#i-accidentally-applied-over-a-file).
 
 ## Supported runtimes
 
 - `neutral` — full `.agents` workflow package without runtime adapters.
-- `codex` — adds `AGENTS.md` and Codex adapter notes.
-- `copilot` — adds GitHub Copilot instruction adapters.
+- `codex` — adds `AGENTS.md`, Codex adapter notes, and delegate agents.
+- `copilot` — adds GitHub Copilot instruction adapters and delegate agents.
 - `claude` — adds `CLAUDE.md`, delegate agents, and `.claude/skills/` slash-command wrappers.
 - `antigravity` — adds `ANTIGRAVITY.md` and Antigravity adapter notes.
 - `opencode` — uses the shared `AGENTS.md` bootstrap.
 
-Delegate agents follow a model profile chosen by billing: `calidad` (subscription; the default for Claude Code and Codex) or `costo` (Copilot and per-token APIs). Set it with `--profile claude=costo,codex=calidad`. Add `--stack rails-react` to install the Rails + React stack rules as `.agents/project/stack.md`.
-
-Combine runtimes with commas:
-
-```bash
-workflow-kit init --target /path/to/repo --runtime codex,copilot,claude,antigravity
-```
-
-## Installation Mode
-
-The normal install path always uses the complete FHH IA Ecosystem workflow surface, including the full `.agents` tree, skills, manifests, and workflow metadata.
-
-The CLI and TUI now treat that full install as the standard path so users do not have to choose between partial or placeholder setups.
-
-## Extending the workflow (AI-assisted or manual)
-
-The installer gives each target repository a full `.agents` tree. You can extend it in two ways:
-
-- AI-assisted: ask the agent to explain or perform the extension.
-- Manual: edit the files directly yourself.
-
-Both paths are valid and can be mixed.
-
-### AI-assisted extension flow
-
-Use these prompts when you want the workflow itself to perform the changes.
-
-Ask for guidance only:
-
-```text
-Explain how to add a new workflow route named "<workflow-name>" in this repository.
-Show exact files to edit and a minimal validation checklist.
-Do not edit files yet.
-```
-
-Ask the agent to do it:
-
-```text
-Implement a new workflow route named "<workflow-name>".
-Requirements:
-1) Update .agents/skills/00-router/workflow-router/SKILL.md with trigger signals and disambiguation rules; keep it at or under 200 lines and move menus, gates, or examples to its reference/ files.
-2) Update .agents/instructions.md if startup/routing contract or task levels change, then run node scripts/sync-level-prefilter.mjs --write.
-3) Keep routing trace format consistent.
-4) Do not change unrelated routes.
-5) Run relevant validation checks and summarize results.
-```
-
-Add a new project skill via AI:
-
-```text
-Create a new project skill at .agents/skills/06-patterns/<domain>/<skill-name>/SKILL.md and register it in .agents/skills/registry.md.
-Requirements:
-1) Include purpose, trigger, required inputs, and expected outputs.
-2) Add registry metadata: class, physical path, trigger, loading posture.
-3) Update router rules only if this skill should be auto-routed for freeform requests.
-4) Keep existing skills unchanged.
-5) Run relevant validation checks and summarize results.
-```
-
-### Manual extension flow
-
-When editing by hand, keep this order:
-
-1. Update routing behavior in `.agents/skills/00-router/workflow-router/SKILL.md` (core, at most 200 lines) or in its `reference/` files (`route-menus.md`, `route-gates.md`, `router-evals.md`).
-2. Update startup contract in `.agents/instructions.md` if routing/entry behavior or the task levels (N0–N3) change. The level pre-filter is copied to the runtime adapters by `node scripts/sync-level-prefilter.mjs --write`; `bun run check:workflow` fails if a copy drifts.
-3. Add or update skills under `.agents/skills/06-patterns/<domain>/<skill-name>/SKILL.md`.
-4. Register every new skill in `.agents/skills/registry.md`.
-
-For each registry entry, define at least:
-
-- `Skill name`
-- `Class`
-- `Physical path`
-- `Trigger`
-- `Loading posture` (`startup-minimal`, `explicit-only`, `just-in-time`, `delegated-only`, `overlay`, `helper/mode`)
-
-### Validation checklist (for both paths)
-
-1. Validate template packs in this toolkit repository:
-
-```bash
-bun run check:templates
-```
-
-2. In a target repository, preview managed updates before apply:
-
-```bash
-workflow-kit update --target /path/to/repo
-```
-
-3. Test routing behavior with three prompts, plus the level test prompts in
-   `.agents/skills/00-router/workflow-router/reference/router-evals.md` when
-   the pre-filter or router changed:
-
-- one prompt that should trigger `workflow-router` only,
-- one prompt that should trigger your new workflow/skill,
-- one nearby prompt that should not trigger it.
-
-4. If behavior is wrong, tighten `Trigger` text in `.agents/skills/registry.md` and route selection rules in `.agents/skills/00-router/workflow-router/SKILL.md`.
-
-This keeps discovery (`registry.md`) and execution policy (`workflow-router`) aligned so skills load just in time instead of always-on.
-
 ## Safety guarantees
 
-- Dry-run is the default.
-- Apply requires `--apply --yes`.
-- Existing changed files are backed up before overwrite.
+- Dry-run is the default; writing requires `--apply --yes`.
+- Existing files are backed up before overwrite or merge unless you pass `--backup-mode none`.
+- The last applied run can be undone with `rollback`.
+- The kit refuses to write through a symlinked `.agents` directory or adapter file.
 - Runtime adapters stay thin and point back to `.agents/instructions.md`.
-- Full workflow package is the default install surface.
-- The package remains `private: true` to prevent accidental npm registry publication.
+- The package stays `private: true` to prevent accidental npm publication.
+
+## Optional tools
+
+After installing, the agent can install or attach optional capabilities
+(Context7, Engram, codebase-memory-mcp) following
+`.agents/integrations/README.md` in the target repository, always with a
+confirmation before any install command. Prompts and guardrails:
+[docs/quickstart.md](docs/quickstart.md#9-optional-alternative-tools-engram-context7-codebase-memory-mcp).
+
+## Extending the workflow
+
+Add routes or project skills with the agent's help or by hand:
+[docs/extending-the-workflow.md](docs/extending-the-workflow.md). New runtime
+adapters: [docs/adapter-authoring.md](docs/adapter-authoring.md).
 
 ## Project structure
 
 ```text
 fhh-ia-ecosystem-workflow-kit/
-  bin/workflow-kit.mjs
-  src/                       # CLI, planner, apply, doctor, TUI
-  templates/                 # manifest-validated full workflow pack + runtime adapters
-  docs/                      # install, quickstart, migration, troubleshooting
+  bin/workflow-kit.mjs       # CLI entry point
+  src/                       # CLI, planner, apply, rollback, doctor, TUI
+  .agents/                   # canonical workflow contract (dogfooded here)
+  AGENTS.md, CLAUDE.md, ANTIGRAVITY.md
+  .github/, .claude/, .codex/, .antigravity/
+                             # this repo's own runtime adapters
+  templates/                 # full workflow overlay, runtime adapters, stack packs
+  docs/                      # user guides, PRDs, plans, legal records
   examples/                  # adoption scenarios
-  scripts/                   # validation guardrails
+  scripts/                   # validation guardrails and sync scripts
   test/                      # Node test suite
 ```
 
 ## Validation for maintainers
 
 ```bash
-bun run check:security
-bun run test
-bun run check
-bun run check:workflow
-bun run check:templates
-bun run check:release
-bun run check:docs
-bun run check:legal
-bun pm pack --dry-run
+bun run check:security && bun run test && bun run check && bun run check:workflow
+bun run check:templates && bun run check:docs && bun run check:legal && bun run check:release
 ```
 
-`check:workflow` also verifies the generated artifacts and the structural rules: skill registry, delegate adapters, the level pre-filter copies, Claude skill wrappers, the delegate contract, neutral paths, stack neutrality, and the 200-line skill limit. Regenerate with the matching `node scripts/sync-*.mjs --write` script.
+`check:workflow` also verifies generated artifacts (skill registry, delegate
+adapters, level pre-filter copies, Claude skill wrappers) and the structural
+rules; regenerate with the matching `node scripts/sync-*.mjs --write`. See
+[CONTRIBUTING.md](CONTRIBUTING.md) and the [Release Checklist](RELEASE.md).
 
 ## Documentation
 
 - [GitHub install](docs/github-install.md)
 - [Quickstart](docs/quickstart.md)
 - [Get Started for Existing Repositories](docs/get-started-existing-repo.md)
-- [Adapter authoring](docs/adapter-authoring.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Migration](docs/migration.md)
+- [Extending the workflow](docs/extending-the-workflow.md)
+- [Adapter authoring](docs/adapter-authoring.md)
 - [Versioning](docs/versioning.md)
 - [Release Checklist](RELEASE.md)
+- [Changelog](CHANGELOG.md)
+- [Security policy](SECURITY.md)
 
-## Examples
-
-- [Fresh Codex repository](examples/fresh-codex/README.md)
-- [Existing GitHub Copilot repository](examples/existing-copilot/README.md)
-- [Neutral core only](examples/neutral-core/README.md)
+Examples: [fresh Codex repository](examples/fresh-codex/README.md),
+[existing GitHub Copilot repository](examples/existing-copilot/README.md),
+[neutral core only](examples/neutral-core/README.md).
 
 ## Acknowledgments and tool references
 

@@ -2,31 +2,33 @@
 
 **Fecha:** 2026-07-15
 **Alcance de la revisión:** CLI (`src/cli.mjs`), planner (`src/planner.mjs`), aplicación de cambios (`src/apply.mjs`), doctor (`src/doctor.mjs`), TUI (`src/tui.mjs`), scripts de validación (`scripts/`), manifests de plantillas (`templates/`), configuración de CI (`.github/workflows/ci.yml`), empaquetado (`package.json`) y documentación (`README.md`, `docs/`).
+**Seguimiento (2026-11-14, versión `0.17.0-audit-hardening`):** la columna *Estado* del resumen y la línea *Estado* de cada propuesta indican qué se cerró y en qué versión. El resto del documento conserva el texto original de 2026-07-15.
 **Estado general:** El proyecto está bien estructurado, con una filosofía sólida de *dry-run por defecto*, backups antes de sobrescribir, seguimiento de estado de instalación por checksums y una buena batería de tests y guardas de release. Las propuestas siguientes buscan cerrar inconsistencias, reforzar la robustez y elevar la calidad de mantenimiento.
 
 ---
 
 ## Resumen de prioridades
 
-| Prioridad | Tema | Impacto | Esfuerzo |
-|-----------|------|---------|----------|
-| P0 | Inconsistencia de versión entre `package.json` y `README` | Alto | Bajo |
-| P0 | Comando `export` no aparece en la ayuda del CLI | Alto | Bajo |
-| P1 | Lógica redundante en `selectedTemplateFiles` | Medio | Bajo |
-| P1 | Inconsistencia de gestor de paquetes (npm vs bun) | Medio | Medio |
-| P1 | `check:docs` no se ejecuta en CI | Medio | Bajo |
-| P1 | Escritura no transaccional en `applyInstallPlan` | Alto | Medio |
-| P2 | Falta de matriz de versiones de Node en CI | Medio | Bajo |
-| P2 | Ausencia de linter/formatter | Medio | Medio |
-| P2 | Consolidar overlay único full en CLI/docs/tests | Bajo | Bajo |
-| P3 | Falta de `CHANGELOG.md`, `.editorconfig`, `.nvmrc` | Bajo | Bajo |
-| P3 | Animación de la TUI sin bandera de desactivación en CLI | Bajo | Bajo |
+| Prioridad | Tema | Impacto | Esfuerzo | Estado |
+|-----------|------|---------|----------|--------|
+| P0 | Inconsistencia de versión entre `package.json` y `README` | Alto | Bajo | Hecho (0.17.0) |
+| P0 | Comando `export` no aparece en la ayuda del CLI | Alto | Bajo | Hecho |
+| P1 | Lógica redundante en `selectedTemplateFiles` | Medio | Bajo | Hecho |
+| P1 | Inconsistencia de gestor de paquetes (npm vs bun) | Medio | Medio | Hecho |
+| P1 | `check:docs` no se ejecuta en CI | Medio | Bajo | Hecho |
+| P1 | Escritura no transaccional en `applyInstallPlan` | Alto | Medio | Hecho (0.17.0) |
+| P2 | Falta de matriz de versiones de Node en CI | Medio | Bajo | Hecho (0.17.0) |
+| P2 | Ausencia de linter/formatter | Medio | Medio | Pendiente |
+| P2 | Consolidar overlay único full en CLI/docs/tests | Bajo | Bajo | Hecho |
+| P3 | Falta de `CHANGELOG.md`, `.editorconfig`, `.nvmrc` | Bajo | Bajo | Parcial (`CHANGELOG.md` existe) |
+| P3 | Animación de la TUI sin bandera de desactivación en CLI | Bajo | Bajo | Pendiente |
 
 ---
 
 ## P0 — Crítico (corregir de inmediato)
 
 ### P0.1 — Inconsistencia de versión entre `package.json` y la documentación
+- **Estado:** hecho en 0.17.0. La documentación ya no cita el tag inexistente `v0.7.0`; cada versión publicada tiene su tag `v<versión>` (lista en `docs/versioning.md`) y `RELEASE.md` exige crear el tag en cada release.
 - **Observación:** `package.json` declara `"version": "0.6.0-public-install-export"`, mientras que el `README.md` instruye a instalar `#v0.7.0` (`bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.7.0`).
 - **Riesgo:** Los usuarios instalan un tag que no corresponde a la versión publicada del código; confusión en soporte y en el flujo de release.
 - **Propuesta:**
@@ -34,6 +36,7 @@
   2. Añadir una guarda en `scripts/validate-release-readiness.mjs` que verifique que el tag citado en el `README` coincide con `package.json.version` (o eliminar la referencia a versión concreta del README y remitir a un tag dinámico).
 
 ### P0.2 — El comando `export` no se documenta en la ayuda del CLI
+- **Estado:** hecho. La ayuda del CLI lista `export` junto a los demás comandos.
 - **Observación:** `src/cli.mjs` implementa por completo el comando `export`, pero `printHelp()` solo lista `init`, `update`, `doctor` y `tui`. El usuario no puede descubrir `export` desde `workflow-kit --help`.
 - **Riesgo:** Funcionalidad soportada pero invisible; percepción de característica incompleta.
 - **Propuesta:** Añadir la línea de uso de `export` a `printHelp()`:
@@ -48,12 +51,14 @@
 ## P1 — Alta prioridad
 
 ### P1.1 — Lógica redundante en `selectedTemplateFiles`
+- **Estado:** hecho. `selectedTemplateFiles` recorre el overlay full una sola vez y deduplica por ruta.
 - **Observación:** Históricamente, `selectedTemplateFiles` tenía ramas para `none`/`starter`/`fhh-ia-ecosystem-full` y una recolección duplicada del pack full.
 - **Propuesta:** Simplificar la selección a una sola pasada por overlay:
   - `fhh-ia-ecosystem-full` → `repo-overlay-fhh-ia-ecosystem-full` (una sola vez).
   Añadir un test que verifique que ninguna ruta se lee dos veces del disco.
 
 ### P1.2 — Inconsistencia de gestor de paquetes (npm vs bun)
+- **Estado:** hecho. El repositorio versiona `bun.lock` (sin `package-lock.json`), el CI usa `bun install --frozen-lockfile` y `bun run …`, y la documentación instala con `bun add -g`.
 - **Observación:** El `README` mezclaba `npm install -g …` y `bun add -g …`; los scripts de `package.json` y el CI usaban `npm`/`npm ci`; el repositorio versiona `package-lock.json`. La preferencia del equipo es **bun**.
 - **Riesgo:** Divergencia entre lockfiles, instrucciones contradictorias y builds no reproducibles.
 - **Propuesta:**
@@ -62,11 +67,13 @@
   3. Actualizar el job de CI para usar el mismo gestor (`bun install --frozen-lockfile`, `bun run …`) o, si se mantiene npm por compatibilidad de consumidores, documentar explícitamente la razón.
 
 ### P1.3 — `check:docs` no se ejecuta en CI
+- **Estado:** hecho. El CI ejecuta `bun run check:docs`.
 - **Observación:** Existe el script `check:docs` (`scripts/validate-docs.mjs`) pero el workflow `ci.yml` solo ejecuta `test`, `check`, `check:templates` y `check:release`.
 - **Riesgo:** Regresiones en documentación no detectadas en CI.
 - **Propuesta:** Añadir un paso `bun run check:docs` al workflow y, opcionalmente, exigirlo desde `validate-release-readiness.mjs` como los demás checks.
 
 ### P1.4 — Escritura no transaccional en `applyInstallPlan`
+- **Estado:** hecho en 0.17.0. Cada archivo y el `install-state.json` se escriben de forma atómica (`writeFileAtomic`), y `workflow-kit rollback` deshace la última ejecución aplicada a partir de sus backups.
 - **Observación:** `src/apply.mjs` itera y escribe archivos secuencialmente y solo al final persiste `install-state.json`. Si una escritura falla a mitad de camino, el repositorio destino queda con un estado parcial y **sin** archivo de estado actualizado, dejando el árbol en un punto intermedio difícil de auditar.
 - **Riesgo:** Instalaciones/actualizaciones corruptas ante errores de E/S, permisos o interrupción.
 - **Propuesta:**
@@ -79,6 +86,7 @@
 ## P2 — Prioridad media
 
 ### P2.1 — Matriz de versiones de Node en CI
+- **Estado:** hecho en 0.17.0. El CI corre una matriz con la versión mínima declarada en `engines` (`20.17.0`), `22.x` y `24.x`.
 - **Observación:** `package.json` declara `"engines": { "node": ">=20" }`, pero CI valida únicamente Node 20. El uso de *import attributes* (`with { type: 'json' }`) es sensible a la versión de Node.
 - **Propuesta:** Ejecutar la matriz `node-version: [20, 22]` (y la próxima LTS cuando aplique) para garantizar compatibilidad con el rango declarado.
 
@@ -88,6 +96,7 @@
 - **Propuesta:** Incorporar ESLint (config recomendada + reglas para módulos ES) y Prettier, añadir script `lint`/`format:check` e integrarlo en CI.
 
 ### P2.3 — Consolidar overlay único full
+- **Estado:** hecho. `fhh-ia-ecosystem-full` es el único overlay instalable.
 - **Observación:** Mantener múltiples overlays incrementa complejidad en código, docs y tests sin aportar valor al flujo actual.
 - **Propuesta:** Mantener únicamente `fhh-ia-ecosystem-full` en comportamiento soportado y alinear todo el repositorio a ese modo.
 
@@ -100,6 +109,7 @@
 ## P3 — Prioridad baja (pulido y mantenibilidad)
 
 ### P3.1 — Archivos de proyecto ausentes
+- **Estado:** parcial. `CHANGELOG.md` existe; `.editorconfig` y `.nvmrc` siguen pendientes.
 - **Propuesta:** Añadir:
   - `CHANGELOG.md` (formato *Keep a Changelog*) alineado con el flujo de versionado descrito en `docs/versioning.md`.
   - `.editorconfig` para consistencia de estilo entre editores.
@@ -120,7 +130,7 @@
 
 ## Plan de ejecución sugerido
 
-1. **Iteración 1 (rápida, alto valor):** P0.1, P0.2, P0.3, P1.1, P1.3.
+1. **Iteración 1 (rápida, alto valor):** P0.1, P0.2, P1.1, P1.3.
 2. **Iteración 2 (robustez):** P1.2, P1.4, P2.1.
 3. **Iteración 3 (calidad de mantenimiento):** P2.2, P2.3, P2.4.
 4. **Iteración 4 (pulido):** todos los puntos P3.

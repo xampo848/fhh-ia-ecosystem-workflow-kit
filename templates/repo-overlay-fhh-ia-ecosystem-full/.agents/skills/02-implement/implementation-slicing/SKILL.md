@@ -1,6 +1,6 @@
 ---
 name: implementation-slicing
-description: "Delegate-only skill for implement-prd. Alias: Arquitecta Fases. Converts an approved PRD and discovery brief into ordered implementation slices with file ownership, delegated skills, validation gates, and stop conditions. Use before any coding subagent starts. Supports compact slicing for controlled-lite PRDs."
+description: "Delegate-only skill for implement-change. Alias: Arquitecta Fases. Converts an approved PRD and discovery brief into ordered implementation slices with file ownership, delegated skills, validation gates, and stop conditions. Use before any coding subagent starts. Supports compact slicing for N2 PRDs."
 context: fork
 ---
 
@@ -39,7 +39,7 @@ For compact PRDs, the goal is not to create more slices. The goal is to find the
 9. Put tests and the smallest useful validation command in every slice. If a separate test owner is necessary, pair it as a blocking verification sub-slice; implementation cannot advance until the pair is verified.
 10. Add a contract verification slice whenever backend response data feeds frontend logic.
 11. Add a micro-gate after every slice and a phase gate after every PRD phase.
-12. Add a fresh-context `qa-handoff-review` delegate for `standard`, cross-layer, security/tenancy-sensitive, release-critical, or unusually large diffs. For `controlled-lite`, inline QA may replace that delegate when the risk is bounded, but the final QA checklist, closure gates, and TOON handoff remain mandatory.
+12. Add a fresh-context `qa-handoff-review` delegate for N3, cross-layer, security/tenancy-sensitive, release-critical, or unusually large diffs. For N2, inline QA may replace that delegate when the risk is bounded, but the final QA checklist, closure gates, and TOON handoff remain mandatory.
 13. Prepare each slice for `implementation-skill-matcher` by making the handoff deterministic: slice ID, outcome, owner skill, files owned, acceptance criteria, use cases, tests, edge cases, validation, quality checks, and stop conditions must be explicit.
 
 ## Controlled-lite Slicing
@@ -52,9 +52,9 @@ Use compact slicing when all are true:
 - A single implementation owner can safely make the first slice.
 - Validation can start with focused tests instead of broad suites.
 
-A controlled-lite plan may have 1-3 slices if each slice is independently reversible and testable. Do not create ceremonial read-only sub-slices just to satisfy the full standard flow.
+An N2 plan may have 1-3 slices if each slice is independently reversible and testable. Do not create ceremonial read-only sub-slices just to satisfy the full N3 flow.
 
-Escalate out of controlled-lite when slicing reveals:
+Escalate from N2 to N3 when slicing reveals:
 
 - two active writers need overlapping files;
 - a public API producer and consumer change together;
@@ -123,7 +123,7 @@ next phase is `implementation-skill-matcher`, which consumes the slice handoff
 and returns `required_pattern_skills`, `optional_capabilities`, `fallback_docs`,
 and matcher-specific validation/handoff metadata.
 
-For `controlled-lite`, the orchestrator may run the implementation inline instead of delegating when one writer owns the slice and the context budget remains under control. If delegation is used, pass exact owned files and expected evidence.
+For N2, the orchestrator may run the implementation inline instead of delegating when one writer owns the slice and the context budget remains under control. If delegation is used, pass exact owned files and expected evidence.
 
 ## Stop And Ask When
 
@@ -170,6 +170,6 @@ Stop conditions:
 Next: implementation-skill-matcher | orchestrator-inline
 ```
 
-For `controlled-lite`, keep the output compact and use `Next: orchestrator-inline`
+For N2, keep the output compact and use `Next: orchestrator-inline`
 only when the orchestrator can run matching inline without ambiguity. Otherwise
 handoff to `implementation-skill-matcher`.

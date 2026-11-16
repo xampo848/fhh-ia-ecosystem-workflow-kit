@@ -36,8 +36,12 @@ Common cases:
 
 - `copilot/missing-apply-to`: add YAML frontmatter with `applyTo: "**"` to the
   repository-wide Copilot instruction file.
-- `adapter/missing-turn-intake`: update the runtime wrapper so every prompt
-  applies the neutral intake contract.
+- `adapter/missing-turn-intake`, `*/missing-rerouting-guarantee`,
+  `*/missing-execution-gate`: the runtime adapter lacks the shared bootstrap
+  block. Run `workflow-kit update`; as a warning it means the adapter still has
+  the wording of an older version.
+- `managed/install-state-unusable`: `install-state.json` is corrupt or was
+  written by a newer CLI. Restore it from Git or upgrade the CLI.
 - `skills/unregistered-file`: register the skill in
   `.agents/skills/registry.md`, then regenerate structured artifacts.
 - `managed/content-drift`: a managed file changed locally; review it before
@@ -190,6 +194,7 @@ Supported runtimes are:
 - `copilot`
 - `claude`
 - `antigravity`
+- `opencode` (uses the shared `AGENTS.md`)
 
 Use `neutral` when your runtime is not listed, then create a local thin adapter that points to `.agents/instructions.md`.
 
@@ -198,11 +203,14 @@ Use `neutral` when your runtime is not listed, then create a local thin adapter 
 Run checks individually:
 
 ```bash
+bun run check:security
 bun run test
 bun run check
+bun run check:workflow
 bun run check:templates
-bun run check:release
 bun run check:docs
+bun run check:legal
+bun run check:release
 ```
 
 If `bun test` reports runner-specific limitations or nested-test false negatives,
@@ -245,11 +253,28 @@ Look for a backup next to the overwritten file:
 <file>.workflow-kit-backup-<timestamp>
 ```
 
-Review both versions, then restore the latest backup for every managed file with:
+To undo the whole last apply, preview and then run `rollback`:
 
 ```sh
 workflow-kit rollback --target /path/to/repo --dry-run
 workflow-kit rollback --target /path/to/repo --apply --yes
 ```
 
-`rollback` only restores files tracked in `.agents/workflow-kit/install-state.json` and only when a matching `.workflow-kit-backup-<timestamp>` file exists next to them; it never invents a backup or restores an unmanaged file.
+`rollback` undoes only the last applied `init` or `update`: it restores the
+files that run changed from their backups, removes the files that run created,
+and restores the previous `.agents/workflow-kit/install-state.json`. Files
+written with `--backup-mode none` have no backup and cannot be restored.
+
+Manual fallback: review both versions and copy the backup over the file
+yourself, then re-run dry-run before applying again.
+
+## Apply refuses to write through symbolic links
+
+The kit refuses the whole plan when a file it would write sits behind a
+symbolic link in the target repository, for example a symlinked `.agents`
+directory or an adapter such as `CLAUDE.md` linked to `AGENTS.md`. The content
+would land in another file, possibly outside the repository, and the backup
+would not protect it. The error lists each link.
+
+Recommended action: replace each link with a real file or directory, or leave
+that runtime out with `--runtime`, then run dry-run and apply again.

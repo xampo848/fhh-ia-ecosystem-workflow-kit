@@ -15,11 +15,22 @@ Find the smallest set of relevant paths, lines, symbols, and notes. Do not edit 
 
 ## Procedure
 
-1. Read `.github/copilot-instructions.md` when the parent context did not already load it.
+1. Read `.agents/delegation/delegate-contract.md` (never `.agents/instructions.md`, the router, or a runtime adapter).
 2. Use `rg` / `rg --files` first. Only open files after you have exact candidates.
 3. Prefer definitions, callers, tests, serializers, hooks, routes, and config files over broad file dumps.
 4. Keep output file-path-first and line-number-attached.
 5. If there is no confident match, return `No match.` instead of speculation.
+
+## Return envelope
+
+Start every reply with the delegate contract's return envelope in compressed
+form (one line; `-` for a field the lock does not give you):
+
+```text
+status: success|partial|blocked · run=<run_id> · slice=<slice_id> · lock=<execution_lock_id> · model=<resolved_model|unknown>
+```
+
+`No match.` is `status: success`; a search you could not run is `status: blocked`.
 
 ## Output contract
 

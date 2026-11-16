@@ -32,7 +32,7 @@ Human flow map: `docs/workflow/decisions/2026-08-24-solution-sketch-flow.md`.
 - Compact `create-prd`, `generate-pm-ticket`, or an obvious local pattern.
 - A `docs/design/<slug>-sketch.md` already exists for the same slug — reuse it.
 - The user is choosing *what* to build, not *how* to design it.
-- The user wants production code — route to `implement-prd` or its predecessor.
+- The user wants production code — route to `implement-change` or its predecessor.
 
 ## Never auto-start
 

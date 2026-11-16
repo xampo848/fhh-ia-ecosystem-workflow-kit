@@ -17,7 +17,17 @@ const execFileAsync = promisify(execFile);
 
 test('template manifest declares expected packs', () => {
   const ids = manifest.packs.map((pack) => pack.id).sort();
-  assert.deepEqual(ids, ['adapter-agents-md', 'adapter-antigravity', 'adapter-claude', 'adapter-codex', 'adapter-copilot', 'repo-overlay-fhh-ia-ecosystem-full']);
+  assert.deepEqual(ids, ['adapter-agents-md', 'adapter-antigravity', 'adapter-claude', 'adapter-codex', 'adapter-copilot', 'repo-overlay-fhh-ia-ecosystem-full', 'stack-rails-react']);
+});
+
+test('every installable stack pack is declared in the template manifest', async () => {
+  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const stackPacks = (await fs.readdir(path.join(sourceRoot, 'templates/stack-packs'), { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => `stack-packs/${entry.name}`);
+  const declared = new Set(manifest.packs.map((pack) => pack.source));
+  for (const source of stackPacks) assert.ok(declared.has(source), `undeclared stack pack: ${source}`);
+  assert.equal(JSON.stringify(manifest).includes('.agents2'), false);
 });
 
 test('shared AGENTS adapter owns the root bootstrap', () => {
@@ -64,6 +74,17 @@ test('validateTemplatePacks catches runtime wrapper drift against templates', as
 
   assert.equal(result.ok, false);
   assert.ok(result.failures.some((failure) => failure.includes('Runtime adapter drift for agents-md')));
+});
+
+test('validateTemplatePacks mirrors every runtime adapter template file, not a fixed list', async () => {
+  const root = await copyFixtureRepository();
+  await fs.writeFile(path.join(root, 'templates/runtime-adapters/antigravity/.antigravity/extra.md'), '# Extra\n', 'utf8');
+  await fs.writeFile(path.join(root, '.codex/extra.md'), '# Root only\n', 'utf8');
+
+  const result = await validateTemplatePacks({ root });
+
+  assert.ok(result.failures.includes('Runtime adapter mirror missing for antigravity: .antigravity/extra.md <-> templates/runtime-adapters/antigravity/.antigravity/extra.md'), result.failures.join('\n'));
+  assert.ok(result.failures.includes('Runtime adapter file has no template twin under templates/runtime-adapters/: .codex/extra.md'), result.failures.join('\n'));
 });
 
 test('validateDelegateRuntimeAdapters catches manual edits to generated adapters', async () => {

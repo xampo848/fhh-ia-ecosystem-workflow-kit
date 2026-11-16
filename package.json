@@ -1,6 +1,6 @@
 {
   "name": "fhh-ia-ecosystem-workflow-kit",
-  "version": "0.16.2-remove-slidev",
+  "version": "0.17.0-audit-hardening",
   "private": true,
   "description": "Public GitHub-installable CLI/TUI workflow kit with safe install/export commands.",
   "license": "MIT",
@@ -43,7 +43,7 @@
     "templates/"
   ],
   "engines": {
-    "node": ">=20"
+    "node": "^20.17.0 || ^22.13.0 || >=23.5.0"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.7.3"

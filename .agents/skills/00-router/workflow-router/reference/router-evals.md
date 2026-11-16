@@ -20,14 +20,14 @@ change to the pre-filter or the router, and recording the result in the PR.
 | L04 | "Corrige el typo en el título del README" | N0 | direct-answer |
 | L05 | "El botón Guardar no valida el email vacío; arréglalo en ese formulario" | N1 | n1-surgical |
 | L06 | "Cambia el timeout por defecto de 30 a 60 segundos en la config del cliente" | N1 | n1-surgical |
-| L07 | "Agrega filtros por fecha y estado al listado de campañas" | N2 | create-prd |
+| L07 | "Agrega filtros por fecha y estado al listado de pedidos" | N2 | create-prd |
 | L08 | "Implementa este PRD: docs/prd/x/x.md" | N2 | implement-change |
-| L09 | "Agrega una columna nueva a la tabla de cotizaciones con su migración" | N3 | create-prd |
-| L10 | "Cambia los permisos para que los agentes vean solo sus anunciantes" | N3 | create-prd |
+| L09 | "Agrega una columna nueva a la tabla de pedidos con su migración" | N3 | create-prd |
+| L10 | "Cambia los permisos para que cada vendedor vea solo sus clientes" | N3 | create-prd |
 | L11 | "Resuelve los comentarios del PR" | N2 | pr-comments-resolution |
-| L12 | "Haz push de la rama y despliega a staging" | N3 | direct-answer |
-| L13 | "En el listado de campañas que ya implementamos (PRD ds-14), agrega ordenar por fecha de término" | N1 | implement-change |
-| L14 | "Al guardar una cotización sin ítems, la API responde 500; debería responder 422" | N2 | implement-change |
+| L12 | "Haz push de la rama y despliega a staging" | N3 | direct-action |
+| L13 | "En el listado de pedidos que ya implementamos (PRD ds-14), agrega ordenar por fecha de entrega" | N1 | implement-change |
+| L14 | "Al guardar un pedido sin ítems, la API responde 500; debería responder 422" | N2 | implement-change |
 <!-- router-evals:level-prompts:end -->
 
 Notes:
@@ -35,11 +35,17 @@ Notes:
 - L09 and L10 hit N3 signals (migration, authorization or tenancy). Without a
   PRD the router proposes `create-prd` or a ticket and waits for the user's
   choice; the expected route names the recommended option.
-- L12 is irreversible: the action itself is not routed to a workflow, but it is
-  N3, so it always asks before acting.
-- L05 is a bug: the N1 test must fail before the fix.
-- L13 is an iteration: the PRD's section 10 is the map, the level is proposed
-  (usually N1) and the original feature's regression tests run.
+- L12 is an irreversible operational action: no workflow skill runs, but it is
+  N3, so it names the concrete risk, waits for an explicit yes, then acts.
+- L05 reaches N1 through the pre-filter, so the pre-filter's N1 rule is the
+  whole procedure: no workflow files, one-line proposal, and a test that fails
+  before the fix.
+- L13 is a PRD iteration, so it routes to `implement-change` and its
+  `reference/level-n1.md` applies: read `.agents/project-context.md` when it
+  exists and is filled in, the PRD's section 10 is the map, the level is
+  proposed (usually N1), and the original feature's regression tests run.
+- Cost posture: the level sets the default; only documentation and
+  workflow-maintenance routes may go one step lower.
 - L14 is a bug input touching an API response: reproduce, failing-first test,
   one-line root cause.
 
@@ -48,16 +54,16 @@ Notes:
 | User says | Route | Cost posture |
 | --- | --- | --- |
 | "Explícame si esta idea tiene sentido" | direct answer, or `create-prd` if the user wants a spec-ready decision | `lean` or `balanced` |
-| "Quiero agregar un dashboard de métricas DORA" | propose `create-prd` (or `generate-pm-ticket` if tiny) and wait | `balanced` |
+| "Quiero agregar un dashboard de métricas de uso" | propose `create-prd` (or `generate-pm-ticket` if tiny) and wait | `balanced` |
 | "Implementa este PRD" | `implement-change` (alias `implement-prd`) | `balanced` |
-| "Crea la épica para GitHub Intelligence" | `create-epic` | `balanced`; `premium` if architecture impact is high |
+| "Crea la épica para el módulo de facturación" | `create-epic` | `balanced`; `premium` if architecture impact is high |
 | "Arregla este bug en frontend" | N1 surgical offer if very small and clear; otherwise `implement-change` (bug input) or a predecessor | `lean` for N1, otherwise `balanced` |
-| "Haz un ticket para esto" | `generate-pm-ticket` | `lean` |
-| "Agrega un workflow nuevo al router" | workflow extension maintenance | `lean` |
+| "Haz un ticket para esto" | `generate-pm-ticket` | `balanced` |
+| "Agrega un workflow nuevo al router" | workflow extension maintenance (one step below N2) | `lean` |
 | "Crea una skill propia y déjala registrada" | workflow extension maintenance (`SKILL.md` + registry) | `lean` |
 | "Quiero agregar un pattern para mi proyecto" | workflow extension maintenance with `add-project-pattern` | `lean` |
-| "Revisa si esta pantalla está bien" | `frontend-design`, `impeccable`, or `react-doctor` by depth | `lean` or `balanced` |
-| "Documenta lo que se hizo" | `document-development` | `lean` |
+| "Revisa si esta pantalla está bien" | `frontend-design`, `impeccable`, or `react-doctor` by depth | `balanced` |
+| "Documenta lo que se hizo" | `document-development` (one step below N2) | `lean` |
 
 ## Anti-patterns
 

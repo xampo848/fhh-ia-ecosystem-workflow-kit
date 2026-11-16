@@ -1,6 +1,6 @@
 # Project Boundaries
 
-This scaffold exists to become a standalone distribution for a portable AI workflow kit.
+This repository is the standalone distribution of a portable AI workflow kit: a public, GitHub-installable CLI and TUI.
 
 ## Portable core
 
@@ -32,6 +32,10 @@ The installer may generate starter placeholders, but it must not pretend FHH IA 
 
 Runtime adapters are thin entrypoints for tools such as Codex, GitHub Copilot, Claude Code, or future runtimes. They should point back to neutral `.agents/**` files and avoid duplicating workflow logic.
 
-## Current phase limits
+## What the tool does today
 
-This scaffold does not install, merge, backup, publish, or create repositories. Those behaviors require later PRDs and explicit validation.
+The CLI and TUI install (`init`), update (`update`), export (`export`), check
+(`doctor`), and undo the last applied run (`rollback`) in a target repository,
+always dry-run first, with backups before every overwrite or merge and a
+recorded install state. They never publish packages or create repositories;
+releases stay approval-gated (see `RELEASE.md`).

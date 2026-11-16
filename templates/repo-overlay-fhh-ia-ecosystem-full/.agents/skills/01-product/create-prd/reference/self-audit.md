@@ -23,13 +23,13 @@ After drafting, perform the final hard gate before delivering the PRD. Persist t
 
 Challenge the draft:
 
-- Would `implement-prd` need to invent behavior, ownership, or validation?
+- Would `implement-change` need to invent behavior, ownership, or validation?
 - Is a phase a large bucket instead of a milestone with executable slices?
 - Does any acceptance criterion lack evidence, or any use case lack a linked test or expected edge case?
 - Does the edge-case matrix omit a mandatory category without justification?
 - Does the Mermaid class diagram represent the confirmed classes and relationships rather than placeholders or a flowchart?
 - Can a reviewer distinguish current scope, future scope, and blocked unknowns?
-- If `visible_ui: yes`, would `implement-prd` still have to invent density, hierarchy, primary action, or UI states?
+- If `visible_ui: yes`, would `implement-change` still have to invent density, hierarchy, primary action, or UI states?
 - Does the PRD match the repository's structure and rigor?
 - Would `implement-change` discover the behavior of an external dependency at execution time?
 - Does any assumed item in `Supuestos e integraciones` affect an acceptance criterion without verification or an early verification slice?
@@ -52,7 +52,7 @@ or count by hand:
 
 - **1 signal:** record a warning in the Self-Audit; it does not block.
 - **2 or more:** propose splitting before declaring `ready for
-  implement-prd`, normally along the PRD's own phase boundaries into an epic
+  implement-change`, normally along the PRD's own phase boundaries into an epic
   with child PRDs (`create-epic` and its `Contrato entre Fases`). The user
   decides.
 - **If the user decides not to split:** record the reason. Phase-by-phase
@@ -68,7 +68,7 @@ Write these fields under `## Self-Audit`:
 
 - hardening summary
 - residual risks
-- final declaration: `ready for implement-prd` or `not ready`, with a concrete reason
+- final declaration: `ready for implement-change` or `not ready`, with a concrete reason
 
 ## Summary Visibility
 

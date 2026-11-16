@@ -1,6 +1,6 @@
 ---
 name: qa-handoff-review
-description: "Delegate-only skill for implement-prd. Alias: QA Relampago. Performs final fresh-context QA for an FHH IA Ecosystem PRD implementation, reviewing diffs, acceptance coverage, tenancy, auth, i18n, contracts, UI states, validations, and delivery risks. Use before final response or PR handoff."
+description: "Delegate-only skill for implement-change. Alias: QA Relampago. Performs final fresh-context QA for an FHH IA Ecosystem PRD implementation, reviewing diffs, acceptance coverage, tenancy, auth, i18n, contracts, UI states, validations, and delivery risks. Use before final response or PR handoff."
 context: fork
 ---
 

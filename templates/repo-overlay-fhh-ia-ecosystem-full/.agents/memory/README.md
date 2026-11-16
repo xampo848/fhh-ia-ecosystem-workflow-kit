@@ -25,6 +25,12 @@ This policy answers:
 | `project-shared` | Repo-relevant memory that may be shared through versioned files or approved shared storage | Opt-in only |
 | `runtime-derived` | Reconstructible runtime metadata or transient tool state | Do not treat as durable memory of record |
 
+Session memory for routing (the active workflow, its level, and its cost
+posture used by the continuation fast-path in `.agents/instructions.md`) is
+`local-session` memory: the conversation itself, meaning the latest routing
+trace still visible in context. A memory tool or file is optional and used only
+if the runtime has one.
+
 Rules:
 
 - Not all memory is shareable.

@@ -9,21 +9,41 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
-    name: Validate workflow kit
+    name: Validate (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # Minimum supported Node (package.json engines) and the current LTS lines.
+        node-version:
+          - '20.17.0'
+          - '22.x'
+          - '24.x'
+    env:
+      # Version-bump gate base: the PR target branch, or the previous tip of main on push.
+      RELEASE_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: '20'
+          node-version: ${{ matrix.node-version }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: '1.4.2'
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -48,3 +68,20 @@ jobs:
 
       - name: Validate legal and provenance guardrails
         run: bun run check:legal
+
+  # Branch protection on main requires a check named exactly "Validate workflow
+  # kit". The matrix jobs report under their own names, so this job is the
+  # single required check: it passes only when every matrix job passed.
+  validate-all:
+    name: Validate workflow kit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: validate
+    if: ${{ always() }}
+    steps:
+      - name: Require every Node version to pass
+        env:
+          MATRIX_RESULT: ${{ needs.validate.result }}
+        run: |
+          echo "Matrix result: ${MATRIX_RESULT}"
+          test "${MATRIX_RESULT}" = "success"

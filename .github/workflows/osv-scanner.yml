@@ -1,0 +1,67 @@
+name: OSV-Scanner
+
+# Second source for dependency advisories, next to `bun audit` in CI
+# (check:security): OSV.dev aggregates more advisory databases, and the
+# scheduled run catches advisories published after a version was merged.
+#
+# The scanner binary is downloaded from its official release and verified by
+# checksum instead of using the google/osv-scanner-action workflows: this
+# repository only allows GitHub-owned and verified-creator actions.
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  schedule:
+    # Mondays 12:12 UTC.
+    - cron: '12 12 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: osv-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  OSV_SCANNER_VERSION: v2.7.1
+  OSV_SCANNER_SHA256: fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8
+
+jobs:
+  scan:
+    name: Scan bun.lock with OSV-Scanner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      # Upload findings to Security > Code scanning (not on pull requests).
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install OSV-Scanner (checksum verified)
+        run: |
+          curl -fsSL -o osv-scanner "https://github.com/google/osv-scanner/releases/download/${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SCANNER_SHA256}  osv-scanner" | sha256sum --check --strict
+          chmod +x osv-scanner
+          mv osv-scanner "${RUNNER_TEMP}/osv-scanner"
+
+      # Fails the job on any known vulnerability in the locked dependencies.
+      - name: Scan dependencies
+        run: |
+          "${RUNNER_TEMP}/osv-scanner" scan source --lockfile=bun.lock
+
+      - name: Write SARIF report
+        if: ${{ always() && github.event_name != 'pull_request' }}
+        run: |
+          "${RUNNER_TEMP}/osv-scanner" scan source --lockfile=bun.lock --format=sarif --output="${RUNNER_TEMP}/osv-results.sarif" || true
+
+      - name: Upload findings to code scanning
+        if: ${{ always() && github.event_name != 'pull_request' }}
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: ${{ runner.temp }}/osv-results.sarif
+          category: osv-scanner

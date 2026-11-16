@@ -4,25 +4,25 @@ This document records the intended release path. It is not a publishing script.
 
 ## Pre-release gates
 
-Before any public release:
+Before any release:
 
-1. Safe CLI planner exists with dry-run default.
-2. Apply mode requires explicit confirmation.
-3. Conflict preview and backup behavior are tested.
-4. Template boundaries are validated.
-5. Runtime adapters are generated as thin wrappers.
-6. README install commands match real commands.
-7. CI runs scaffold, CLI, template, and fixture checks.
+1. Dry-run stays the default and apply requires `--apply --yes`.
+2. Conflict preview, backups, and `rollback` are tested.
+3. Template boundaries and runtime adapters are validated as thin wrappers.
+4. README and docs install commands match the real CLI.
+5. CI passes `check:security`, `test`, `check`, `check:workflow`, `check:docs`,
+   `check:release`, and `check:legal` (template packs are validated inside
+   `check:workflow`).
+
+The step-by-step checklist is in [RELEASE.md](../RELEASE.md).
 
 ## Publishing approval
 
-Do not run GitHub repository creation, package publication, release uploads, or push automation without explicit maintainer approval.
+Do not run GitHub repository creation, package publication, release uploads, tag pushes, or push automation without explicit maintainer approval.
 
-## Versioning intent
+## Versioning
 
-Use semantic versioning after the first executable package exists.
-
-Current release candidate:
-
-- `0.7.23-create-prd-orchestrator`
-- Scope: `create-prd` now runs as an explicit 5-phase orchestrator with pattern locking, self-audit hardening, per-PRD orchestration metadata, and a manual smoke runbook.
+Versions follow [Versioning](versioning.md). The current version is the one in
+`package.json` (`0.17.0-audit-hardening` at the time of writing); its notes are
+in `CHANGELOG.md`. Each released version has a `v<version>` tag; the list is
+in [Versioning](versioning.md).

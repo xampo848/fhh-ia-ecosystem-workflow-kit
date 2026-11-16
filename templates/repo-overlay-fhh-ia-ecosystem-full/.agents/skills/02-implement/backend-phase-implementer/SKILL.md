@@ -1,13 +1,13 @@
 ---
 name: backend-phase-implementer
-description: "Delegate-only skill for implement-prd. Alias: Turbo Backend. Implements backend slices in any stack, including models, migrations, services, controllers, serializers, background jobs, i18n, and tests, following the project's own backend and stack rules. Use only with explicit file ownership from the orchestrator."
+description: "Delegate-only skill for implement-change. Alias: Turbo Backend. Implements backend slices in any stack, including models, migrations, services, controllers, serializers, background jobs, i18n, and tests, following the project's own backend and stack rules. Use only with explicit file ownership from the orchestrator."
 ---
 
 # Backend Phase Implementer
 
 Alias: Turbo Backend.
 
-Use for backend implementation slices delegated by `implement-prd`. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`) with strict file ownership; run it inline when subagents are unavailable.
+Use for backend implementation slices delegated by `implement-change`. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`) with strict file ownership; run it inline when subagents are unavailable.
 
 ## Mission
 
@@ -33,7 +33,7 @@ Use exists-or-skip for product docs. A missing optional path is not a failed sea
 - `.agents/project/quality-gate.md`. If it is missing, never skip it silently: report `quality gate: no configurado`; if the PRD requires it or the level is N3, return `blocked`
 - Exact matcher-selected `required_pattern_skills` paths when present.
 - Matcher-selected `fallback_docs` when required pattern skills are absent.
-- Relevant backend docs from `docs/patterns/backend/`
+- Relevant backend docs from `docs/patterns/backend/` when present
 - Existing analogous backend files and tests.
 
 ## Backend Rules

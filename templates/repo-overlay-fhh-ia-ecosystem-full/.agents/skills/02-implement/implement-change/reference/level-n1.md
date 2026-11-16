@@ -1,7 +1,9 @@
 # Level N1 · Surgical change
 
-Read only when the confirmed level is N1 (former `small/local`). It replaces the
-N1 rules of the pre-filter with the full inline procedure.
+Read only when the confirmed level is N1 (former `small/local`) and
+`implement-change` was invoked explicitly or the input is a PRD iteration. An
+N1 reached through the level pre-filter, with no workflow files loaded, follows
+only the pre-filter's N1 rule and never loads this file.
 
 ## Entry criteria
 

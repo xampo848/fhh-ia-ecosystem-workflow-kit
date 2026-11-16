@@ -28,6 +28,63 @@ const levelPrefilterEntrypoints = new Set([
 const levelPrefilterStart = '<!-- workflow-kit:level-prefilter:start -->';
 const levelPrefilterEnd = '<!-- workflow-kit:level-prefilter:end -->';
 
+// The runtime entrypoint that carries the shared bootstrap block for each runtime.
+const primaryEntrypoints = {
+  codex: '.codex/README.md',
+  copilot: '.github/copilot-instructions.md',
+  claude: 'CLAUDE.md',
+  antigravity: 'ANTIGRAVITY.md'
+};
+
+const continuationPattern = /continuation fast-path[\s\S]*re-route only on a break signal/i;
+const legacyReroutingPattern = /do not reuse or cache the previous workflow decision across turns/i;
+const gatePattern = /Intent-only phrasing[\s\S]*not implementation authorization/i;
+const gateExceptionsPattern = /N0 acts on intent, N1 needs a short "yes", and read-only routes\s+or an explicit imperative naming the work/i;
+const staleAdapterHint = 'Run workflow-kit update to accept the current adapter, or copy its "Shared bootstrap" block from the template.';
+
+function checkSharedBootstrap({ diagnostics, runtime, relativePath, content }) {
+  pushIfMissing({
+    diagnostics,
+    relativePath,
+    content,
+    pattern: /routing decision trace/i,
+    code: `${runtime}/missing-routing-trace`,
+    message: 'Expected explicit routing decision trace guidance for non-trivial work.'
+  });
+
+  if (!continuationPattern.test(content)) {
+    if (legacyReroutingPattern.test(content)) {
+      diagnostics.push(diagnostic({
+        code: `${runtime}/missing-rerouting-guarantee`,
+        path: relativePath,
+        severity: 'warning',
+        message: `Uses the previous "re-route every turn" wording, which contradicts the continuation fast-path in .agents/instructions.md. ${staleAdapterHint}`
+      }));
+    } else {
+      diagnostics.push(diagnostic({
+        code: `${runtime}/missing-rerouting-guarantee`,
+        path: relativePath,
+        message: 'Expected the continuation line: classify every new prompt, apply the continuation fast-path when it continues the active workflow, and re-route only on a break signal.'
+      }));
+    }
+  }
+
+  if (!gatePattern.test(content)) {
+    diagnostics.push(diagnostic({
+      code: `${runtime}/missing-execution-gate`,
+      path: relativePath,
+      message: 'Expected the execution authorization gate line.'
+    }));
+  } else if (!gateExceptionsPattern.test(content)) {
+    diagnostics.push(diagnostic({
+      code: `${runtime}/missing-execution-gate`,
+      path: relativePath,
+      severity: 'warning',
+      message: `The execution authorization gate lacks its N0/N1 and read-only exceptions. ${staleAdapterHint}`
+    }));
+  }
+}
+
 export async function validateAdapterContracts({ root, runtimes = [] }) {
   const diagnostics = [];
   const checkedPrefilter = new Set();
@@ -66,36 +123,17 @@ export async function validateAdapterContracts({ root, runtimes = [] }) {
     }
   }
 
-  if (runtimes.includes('copilot')) {
-    const wrapperPath = '.github/copilot-instructions.md';
-    const wrapper = await read(root, wrapperPath);
-    if (wrapper !== null) {
-      pushIfMissing({
-        diagnostics,
-        relativePath: wrapperPath,
-        content: wrapper,
-        pattern: /routing decision trace/i,
-        code: 'copilot/missing-routing-trace',
-        message: 'Expected explicit routing decision trace guidance.'
-      });
-      pushIfMissing({
-        diagnostics,
-        relativePath: wrapperPath,
-        content: wrapper,
-        pattern: /do not reuse or cache the previous workflow decision across turns/i,
-        code: 'copilot/missing-rerouting-guarantee',
-        message: 'Expected explicit follow-up re-routing guarantee.'
-      });
-      pushIfMissing({
-        diagnostics,
-        relativePath: wrapperPath,
-        content: wrapper,
-        pattern: /Intent-only phrasing[\s\S]*not implementation authorization/i,
-        code: 'copilot/missing-execution-gate',
-        message: 'Expected explicit execution authorization guarantee.'
-      });
-    }
+  // Shared-bootstrap checks on each runtime's primary entrypoint. Each rule
+  // accepts the previous adapter wording so installs that have not run
+  // `update` yet (or keep a customized protected adapter) only get a warning.
+  for (const [runtime, relativePath] of Object.entries(primaryEntrypoints)) {
+    if (!runtimes.includes(runtime)) continue;
+    const content = await read(root, relativePath);
+    if (content === null) continue;
+    checkSharedBootstrap({ diagnostics, runtime, relativePath, content });
+  }
 
+  if (runtimes.includes('copilot')) {
     const relativePath = '.github/instructions/ai-workflow.instructions.md';
     const content = await read(root, relativePath);
     if (content !== null && !/^---\napplyTo: "\*\*"\n---\n/.test(content)) {
@@ -104,115 +142,6 @@ export async function validateAdapterContracts({ root, runtimes = [] }) {
         path: relativePath,
         message: 'Expected applyTo: "**" front matter.'
       }));
-    }
-  }
-
-  if (runtimes.includes('claude')) {
-    const relativePath = 'CLAUDE.md';
-    const content = await read(root, relativePath);
-    if (content !== null) {
-      pushIfMissing({
-        diagnostics,
-        relativePath,
-        content,
-        pattern: /routing decision trace/i,
-        code: 'claude/missing-routing-trace',
-        message: 'Expected explicit routing decision trace guidance for non-trivial work.'
-      });
-      pushIfMissing({
-        diagnostics,
-        relativePath,
-        content,
-        pattern: /do not reuse or cache the previous workflow decision across turns/i,
-        code: 'claude/missing-rerouting-guarantee',
-        message: 'Expected explicit follow-up re-routing guarantee.'
-      });
-      pushIfMissing({
-        diagnostics,
-        relativePath,
-        content,
-        pattern: /Intent-only phrasing[\s\S]*not implementation authorization/i,
-        code: 'claude/missing-execution-gate',
-        message: 'Expected explicit execution authorization guarantee.'
-      });
-      pushIfMissing({
-        diagnostics,
-        relativePath,
-        content,
-        pattern: /resolve, review, process, or close PR\/review comments/i,
-        code: 'claude/missing-pr-comments-trigger',
-        message: 'Expected explicit PR comments hard trigger safeguard.'
-      });
-    }
-  }
-
-  if (runtimes.includes('antigravity')) {
-    const relativePath = 'ANTIGRAVITY.md';
-    const content = await read(root, relativePath);
-    if (content !== null) {
-      pushIfMissing({
-        diagnostics,
-        relativePath,
-        content,
-        pattern: /routing decision trace/i,
-        code: 'antigravity/missing-routing-trace',
-        message: 'Expected explicit routing decision trace guidance for non-trivial work.'
-      });
-      pushIfMissing({
-        diagnostics,
-        relativePath,
-        content,
-        pattern: /do not reuse or cache the previous workflow decision across turns/i,
-        code: 'antigravity/missing-rerouting-guarantee',
-        message: 'Expected explicit follow-up re-routing guarantee.'
-      });
-      pushIfMissing({
-        diagnostics,
-        relativePath,
-        content,
-        pattern: /Intent-only phrasing[\s\S]*not implementation authorization/i,
-        code: 'antigravity/missing-execution-gate',
-        message: 'Expected explicit execution authorization guarantee.'
-      });
-      pushIfMissing({
-        diagnostics,
-        relativePath,
-        content,
-        pattern: /Project formation continuity safeguard/i,
-        code: 'antigravity/missing-project-formation-continuity',
-        message: 'Expected explicit project-formation continuity safeguard.'
-      });
-    }
-  }
-
-  if (runtimes.includes('codex')) {
-    const relativePath = '.codex/README.md';
-    const content = await read(root, relativePath);
-    if (content !== null) {
-      pushIfMissing({
-        diagnostics,
-        relativePath,
-        content,
-        pattern: /routing decision trace/i,
-        code: 'codex/missing-routing-trace',
-        message: 'Expected explicit routing decision trace guidance for non-trivial work.'
-      });
-      pushIfMissing({
-        diagnostics,
-        relativePath,
-        content,
-        pattern: /do not reuse or cache the previous workflow decision across turns/i,
-        code: 'codex/missing-rerouting-guarantee',
-        message: 'Expected explicit follow-up re-routing guarantee.'
-      });
-      pushIfMissing({
-        diagnostics,
-        relativePath,
-        content,
-        pattern: /Intent-only phrasing[\s\S]*not implementation authorization/i,
-        code: 'codex/missing-execution-gate',
-        message: 'Expected explicit execution authorization guarantee.'
-      });
     }
   }
 

@@ -1,6 +1,6 @@
 ---
 name: validation-runner
-description: "Delegate-only skill for implement-prd. Alias: Lint Ranger. Runs and stabilizes focused validation for FHH IA Ecosystem backend and frontend slices, including make targets, bun tests, lint, style validation, and failure triage. Use after implementation or test slices."
+description: "Delegate-only skill for implement-change. Alias: Lint Ranger. Runs and stabilizes focused validation for FHH IA Ecosystem backend and frontend slices, including make targets, bun tests, lint, style validation, and failure triage. Use after implementation or test slices."
 ---
 
 # Validation Runner

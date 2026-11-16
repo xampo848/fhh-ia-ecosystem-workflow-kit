@@ -1,6 +1,6 @@
 ---
 name: workflow-router
-description: "Safe and cost-aware workflow router for FHH IA Ecosystem AI work. Use for N2/N3 freeform requests (see the level pre-filter in .agents/instructions.md) when the user did not explicitly invoke a skill. N0 operational and N1 surgical requests do not load this router. Classifies intent, prevents accidental epic creation, prevents skipping implement-prd for development work, keeps context proportional, and guides the user with plain-language options."
+description: "Safe and cost-aware workflow router for FHH IA Ecosystem AI work. Use for N2/N3 freeform requests (see the level pre-filter in .agents/instructions.md) when the user did not explicitly invoke a skill. N0 operational and N1 surgical requests do not load this router. Classifies intent, prevents accidental epic creation, prevents skipping implement-change for development work, keeps context proportional, and guides the user with plain-language options."
 argument-hint: "Freeform user request"
 user-invocable: true
 license: MIT
@@ -40,8 +40,8 @@ workflow logic they may carry. If an adapter conflicts with
 
 Read `.agents/instructions.md` and this file once per session or right after a
 genuine workflow switch. On continuation turns apply the continuation fast-path
-from `.agents/instructions.md`: the route state already in the conversation
-(skill, level, authorized yes/no) is enough, and this file is not re-read.
+from `.agents/instructions.md`: the latest routing trace visible in the
+conversation (session memory) is enough, and this file is not re-read.
 
 ## Per-turn intake boundary
 
@@ -58,12 +58,12 @@ selects a meaningful workflow, skill, capability, cost, delegation, or risk deci
 1. Classify the request and its level (N2 or N3; offer N1 explicitly when the
    N1 criteria in `reference/route-gates.md` hold).
 2. Choose the smallest workflow that produces a production-ready result.
-3. Take the cost posture from the level (N2 `balanced`, N3 `premium`). The
-   selected skill may run its own delegates at a lower posture when its policy
-   says so (for example `document-development`).
+3. Take the default cost posture from the level (N2 `balanced`, N3
+   `premium`); documentation and workflow-maintenance routes may go one step
+   lower (`.agents/instructions.md`); never raise it silently.
 4. Explain the selected path in one plain sentence and emit the routing trace.
-5. If the route requires user choice, stop in `awaiting-user-choice`.
-6. Load the selected skill and follow it only after route authorization.
+5. If the route writes and requires user choice, stop in `awaiting-user-choice`.
+6. Load the selected skill and follow it once the gate below is satisfied.
 7. Ask only one clarifying question, and only when it changes the workflow.
 
 ## Skill execution lock (mandatory)
@@ -93,12 +93,13 @@ PRD" runs `implement-change` (alias `implement-prd`); "haz el ticket" runs
 
 ## Execution authorization gate
 
+- The gate applies to routes that write (code, PRDs, epics, tickets, installs). Read-only routes (review, audit, explanation, discovery the user asked for) and an explicit imperative that names the work ("audita X", "revisa este PR", "implementa este PRD") need no extra confirmation.
 - Treat intent language ("quiero", "necesito", "hagamos") as routing input, not as execution authorization.
-- Before explicit route authorization, stay in `awaiting-user-choice`.
+- Before explicit route authorization of a writing route, stay in `awaiting-user-choice`.
 - In `awaiting-user-choice`, do not inspect product implementation files, do not generate implementation plans, and do not edit code.
 - Start execution only after an explicit authorization utterance for a route ("procede", "usa create-prd", "implementa este PRD", "haz el ticket").
 - If the reply is affirmative but names no route, ask the user to confirm the route by name.
-- N1 surgical offers are authorized by a short "yes" to the one-line proposal.
+- N1 surgical offers are authorized by a short "yes" to the one-line proposal. An irreversible action (push, deploy, delete) always names its risk and waits for an explicit yes.
 
 ## Routing decision trace
 
@@ -130,13 +131,14 @@ is insufficient; for `premium`, the concrete risk. Never invent token counts.
 
 | Request class | Signals | Primary action | Confirmation? |
 | --- | --- | --- | --- |
+| Irreversible operational action | push, deploy, delete, publish | name the concrete risk, wait for explicit confirmation, then act directly; no workflow skill | Yes, always |
 | Project formation | end-to-end shaping: discovery, roadmap, GTM, dossier | propose `project-formation` plus alternatives | Yes |
 | Product ambiguity | problem, need, strategy, priority, unclear direction | propose `create-epic` or `create-prd` | Yes |
 | Broad initiative | multi-phase work, research, appetite, several PRDs | `create-epic` | Yes unless the user asked for an epic |
 | Feature specification | clear feature with rules, UX states, API/data impact, AC | propose `create-prd` | Yes |
 | Tiny backlog item | small task with clear AC, no full PRD | propose `generate-pm-ticket` | Yes |
-| Workflow extension maintenance | add/edit router rules, registry entries, `.agents/skills/**` | direct workflow-maintenance edits with validation | No |
-| Production code change | build, implement, fix behavior, backend/frontend, tests | `implement-change` when a PRD, a reproducible bug, a ticket with criteria, or an iteration over an implemented PRD exists; else offer N1 when it fits, or propose `create-prd` / `generate-pm-ticket` | Yes when no input exists |
+| Workflow extension maintenance | add/edit router rules, registry entries, `.agents/skills/**` | direct workflow-maintenance edits with validation | No when the imperative names the edit; else Yes |
+| Production code change | build, implement, fix behavior, backend/frontend, tests | `implement-change` when a PRD, a reproducible bug, a ticket with criteria, or an iteration over an implemented PRD exists; else offer N1 when it fits, or propose `create-prd` / `generate-pm-ticket` | Yes, unless the imperative names the input ("arregla este bug") |
 | PRD implementation | PRD path or "implement this PRD" | `implement-change` (alias `implement-prd`) | No |
 | Review / QA | review PR or diff, validate quality, audit UI | stack-gated review skill (see `reference/route-gates.md`) | No |
 | Documentation | explain delivered feature, guide, preserve knowledge | `document-development` | No |
@@ -146,20 +148,20 @@ is insufficient; for `premium`, the concrete risk. Never invent token counts.
 1. Explicit skill invocation wins.
 2. Check hard triggers and apply route precedence when several match.
 3. Otherwise classify with the table above.
-4. Resolve confidence (High/Medium/Low) and pick the smallest safe workflow; on a tie, choose the smaller safe option and say so in the trace. Smallest-first order: direct answer, N1 surgical, `generate-pm-ticket`, `create-prd`, `create-epic`; but prefer `implement-prd` over direct coding whenever production quality, contracts, tests, tenancy, or cross-layer impact matter.
-5. Set level and cost posture (N2 `balanced`, N3 `premium`).
+4. Resolve confidence (High/Medium/Low) and pick the smallest safe workflow; on a tie, choose the smaller safe option and say so in the trace. Smallest-first order: direct answer, N1 surgical, `generate-pm-ticket`, `create-prd`, `create-epic`; but prefer `implement-change` over direct coding whenever production quality, contracts, tests, tenancy, or cross-layer impact matter.
+5. Set level and cost posture (default from the level; see Router promise 3).
 6. Set delegation state (`avoided | recommended | required`) with one concrete reason.
-7. If explicit route authorization is missing, stop in `awaiting-user-choice`.
+7. If the route writes and explicit route authorization is missing, stop in `awaiting-user-choice`.
 
 ### Hard triggers
 
 #### PR comments hard trigger
 
-Route to `pr-comments-resolution` when the user intent is to resolve, process, close, or work through PR/review comments, including mixed Spanish/English phrasing ("resuelve comentarios del PR", "vamos cerrando comentarios de la PR", "fix Copilot/Sentry comments"). Do not downgrade it to inline review. A purely explanatory question about the skill gets a direct answer.
+Route to `pr-comments-resolution` when the user intent is to resolve, process, close, or work through PR/review comments, including mixed Spanish/English phrasing ("resuelve comentarios del PR", "vamos cerrando comentarios de la PR", "fix Copilot/Sentry comments"). Do not downgrade it to inline review. Inside another active workflow it is a break signal: re-route in that turn. A purely explanatory question about the skill gets a direct answer.
 
 #### Project formation hard trigger
 
-Route to `project-formation` as the recommended option (not auto-execution) when the user asks for end-to-end project shaping: discovery, scope shaping, phased roadmap, GTM planning, or dossier handoff ("necesito formar el proyecto completo", "quiero pasar de discovery a roadmap y go-to-market"). Do not collapse it into `create-prd` unless the user narrows scope to one feature.
+Route to `project-formation` as the recommended option (not auto-execution) when the user asks for end-to-end project shaping: discovery, scope shaping, phased roadmap, GTM planning, or dossier handoff ("necesito formar el proyecto completo", "quiero pasar de discovery a roadmap y go-to-market"). Do not collapse it into `create-prd` unless the user narrows scope to one feature. Once authorized, it stays binding across its stages (skill execution lock) until a break signal.
 
 #### Solution sketch hard trigger
 
@@ -181,7 +183,7 @@ first; after comment resolution, emit a new trace for `implement-change`.
 
 ## Confidence levels
 
-- High: one workflow clearly fits. Emit the COMPACT trace, load the skill, proceed.
+- High: one workflow clearly fits. Emit the COMPACT trace and load the skill; proceed when the route is read-only or the imperative names the work, else ask for the route by name.
 - Medium: two workflows are plausible. Recommend one, include the cheaper safe alternative in the trace, ask at most one short question.
 - Low: outcome, scope, or artifact is missing. Show the options menu from `reference/route-menus.md`, recommend the smallest safe workflow, and wait for explicit authorization.
 

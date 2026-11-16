@@ -1,12 +1,24 @@
 import { parseArgs, printHelp } from './cli/args.mjs';
 import { commandHandlers } from './cli/commands.mjs';
+import packageJson from '../package.json' with { type: 'json' };
 
 export { parseArgs };
 
 export async function runCli(argv = process.argv.slice(2), io = {}) {
   const stdout = io.stdout ?? process.stdout;
   const stderr = io.stderr ?? process.stderr;
-  const options = parseArgs(argv);
+  let options;
+  try {
+    options = parseArgs(argv);
+  } catch (error) {
+    stderr.write(`${error.message}\nRun workflow-kit --help to see the available commands and flags.\n`);
+    return 2;
+  }
+
+  if (options.version) {
+    stdout.write(`${packageJson.version}\n`);
+    return 0;
+  }
 
   if (options.help || !options.command) {
     stdout.write(`${printHelp()}\n`);
