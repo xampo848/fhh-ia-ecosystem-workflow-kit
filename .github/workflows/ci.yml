@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Validate workflow kit (Node ${{ matrix.node-version }})
+    name: Validate (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -68,3 +68,20 @@ jobs:
 
       - name: Validate legal and provenance guardrails
         run: bun run check:legal
+
+  # Branch protection on main requires a check named exactly "Validate workflow
+  # kit". The matrix jobs report under their own names, so this job is the
+  # single required check: it passes only when every matrix job passed.
+  validate-all:
+    name: Validate workflow kit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: validate
+    if: ${{ always() }}
+    steps:
+      - name: Require every Node version to pass
+        env:
+          MATRIX_RESULT: ${{ needs.validate.result }}
+        run: |
+          echo "Matrix result: ${MATRIX_RESULT}"
+          test "${MATRIX_RESULT}" = "success"
