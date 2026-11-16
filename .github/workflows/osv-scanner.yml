@@ -1,0 +1,50 @@
+name: OSV-Scanner
+
+# Second source for dependency advisories, next to `bun audit` in CI
+# (check:security): OSV.dev also covers ecosystems and advisories that the npm
+# audit feed does not, and the scheduled run catches advisories published
+# after a version was merged.
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  schedule:
+    # Mondays 12:12 UTC.
+    - cron: '12 12 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: osv-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Full scan of bun.lock on main and weekly. Fails on any known vulnerability
+  # and uploads the findings to Security > Code scanning.
+  scan-scheduled:
+    if: ${{ github.event_name == 'push' || github.event_name == 'schedule' }}
+    permissions:
+      actions: read
+      security-events: write
+      contents: read
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@32d3cd482bdadfb38b186c0ad1b031902d55d932 # v2.7.1
+    with:
+      scan-args: |-
+        --lockfile=bun.lock
+
+  # On a pull request: fails only when the change introduces a vulnerability
+  # that the target branch does not already have.
+  scan-pr:
+    if: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      actions: read
+      security-events: write
+      contents: read
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@32d3cd482bdadfb38b186c0ad1b031902d55d932 # v2.7.1
+    with:
+      scan-args: |-
+        --lockfile=bun.lock

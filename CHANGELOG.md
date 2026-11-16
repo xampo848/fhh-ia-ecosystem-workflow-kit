@@ -59,6 +59,9 @@ Validation and CI:
   `bun` ecosystem.
 - Validators fail on missing targets, orphaned generated files and stale
   allowlist entries instead of skipping them.
+- A new `OSV-Scanner` workflow checks `bun.lock` against OSV.dev on every pull
+  request (new vulnerabilities only), on `main` and weekly, next to the
+  existing `bun audit` gate.
 
 Docs: README reduced to the essentials, `rollback` and all flags documented,
 no reference to a tag that does not exist, private vulnerability reporting in
