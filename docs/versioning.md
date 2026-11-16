@@ -1,64 +1,78 @@
 # Versioning Policy
 
-Use semantic versioning once the project is approved for public distribution.
+The kit is distributed from its public GitHub repository (not npm) and uses
+semantic versioning with a descriptive suffix, for example
+`0.16.0-safe-update` or `0.17.0-audit-hardening`. The history is in
+[CHANGELOG.md](../CHANGELOG.md).
 
-## Operational release contract for this GitHub install
-
-This toolkit has two independent update surfaces:
+## Two update surfaces
 
 - the globally installed `workflow-kit` binary on a user's machine;
 - the managed workflow files already installed inside target repositories.
 
-Because of that, every real rollout needs two steps:
+Every rollout therefore needs two steps:
 
-1. upgrade the toolkit binary;
-2. update each managed repository.
+1. upgrade the toolkit binary (`workflow-kit upgrade --apply --yes`);
+2. update each managed repository (`workflow-kit update --target <repo> --apply --yes`).
 
-If step 1 is skipped, `workflow-kit update` can only apply the template files bundled with the older binary already installed locally.
+If step 1 is skipped, `update` can only apply the templates bundled with the
+older binary.
 
-## Current rollout versions
+## Rollout channels
 
-Versions can use descriptive prerelease-like identifiers in `package.json` while the package remains non-publishable to npm, for example:
+- **`main`:** `workflow-kit upgrade --apply --yes` installs the latest merged
+  version.
+- **Pinned tag:** `workflow-kit upgrade --ref <tag> --apply --yes`. Pinned tags
+  are the better choice for coordinated team rollouts.
 
-- `0.1.0-cli-mvp`
-- `0.2.0-tui-mvp`
-- `0.3.0-template-packs`
+A tag is the version with a `v` prefix and points at the commit on `main` that
+released it. Tags of the current lines:
 
-While the package remains non-publishable to npm, every merge to `main` that changes the portable core, template packs, runtime adapters, planner/update logic, doctor semantics, or TUI update surface should also bump `package.json.version` before rollout consumption.
+| Tag | Notes |
+| --- | --- |
+| `v0.17.0-audit-hardening` | current |
+| `v0.16.2-remove-slidev` | |
+| `v0.16.1-roadmap-closure` | |
+| `v0.16.0-safe-update` | |
+| `v0.10.0-implement-change` | |
+| `v0.7.40-contextual-model-selection` | last `0.7.x` |
 
-## Public version rules
+Versions `0.8.0`, `0.9.0` and `0.11.0`–`0.15.0` were merged inside larger pull
+requests and have no commit of their own on `main`, so they have no tag; pin
+the next tagged version instead. Older `0.7.x` tags are on the
+[Releases page](https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/releases).
 
-After approval:
+## What requires a version bump
 
-- `0.x` versions may change installer contracts while adoption is early.
-- `1.0.0` requires stable CLI commands, documented template contracts, CI, and release checklist.
-- Breaking changes to installed file paths require a major version after `1.0.0`.
-- Template additions can be minor versions when backward-compatible.
-- Documentation-only fixes can be patch versions.
+`bun run check:release` fails when `.agents/**`, `templates/**`, `src/**`,
+`bin/**`, `scripts/**`, or the CI workflow changed without a
+`package.json.version` bump.
 
-## What requires a version bump in this repo
+- Patch: fixes downstream repos should consume, and documentation-only fixes.
+- Minor: a new user-visible command or flow (for example `rollback` or a new
+  TUI route), or backward-compatible template additions.
+- Major (after `1.0.0`): incompatible changes to install-state contracts,
+  installed paths, or overwrite semantics. While on `0.x`, such changes are
+  allowed but must be called out in the changelog and `docs/migration.md`.
 
-- Bump at least a patch version when `.agents/**`, `templates/**`, runtime adapter templates, or managed update behavior change in a way downstream repos should consume.
-- Bump a minor version when you add a new user-visible command or flow such as `workflow-kit upgrade` or a new TUI route.
-- Use a major version only when install-state contracts, installed paths, or overwrite semantics change incompatibly.
-
-## Recommended rollout channels
-
-- Fast channel: `workflow-kit upgrade --ref main --apply --yes`
-- Pinned rollout: `workflow-kit upgrade --ref vX.Y.Z --apply --yes`
-
-Prefer pinned tags for coordinated team rollouts. Use `main` only when you explicitly want the latest merged core.
+`1.0.0` requires stable CLI commands, documented template contracts, CI, and
+the release checklist.
 
 ## Release gates
 
-Every version must pass:
+Every version must pass (CI runs the same set; there `check:templates` runs
+inside `check:workflow`):
 
 ```bash
+bun run check:security
 bun run test
 bun run check
+bun run check:workflow
 bun run check:templates
+bun run check:docs
+bun run check:legal
 bun run check:release
 ```
 
-Publishing remains approval-gated even when all checks pass.
-
+Publishing a tag or release remains approval-gated even when all checks pass;
+see [RELEASE.md](../RELEASE.md).

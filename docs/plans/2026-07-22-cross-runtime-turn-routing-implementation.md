@@ -1,5 +1,7 @@
 # Cross-Runtime Per-Turn Routing Implementation Plan
 
+> **Status: historical plan, implemented.** Per-turn intake shipped in the runtime adapters and `workflow-kit doctor`; the unchecked boxes below record the original plan, not pending work.
+
 **Goal:** Make per-turn workflow intake reliable and equivalent across Codex,
 GitHub Copilot, Claude Code, and Antigravity while preserving a single neutral
 contract and extensible skill/capability registries.
@@ -126,7 +128,7 @@ artifacts.
 
   Expected: FAIL because the shared pack does not exist.
 
-- [ ] Create a generic root bootstrap based on the approved All Metrics
+- [ ] Create a generic root bootstrap based on the approved FHH IA Ecosystem
   `AGENTS.md`, containing:
   - neutral source-of-truth precedence;
   - mandatory per-turn intake;

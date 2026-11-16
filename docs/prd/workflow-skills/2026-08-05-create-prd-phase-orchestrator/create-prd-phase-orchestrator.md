@@ -3,7 +3,7 @@
 **Ticket**: Workflow hardening — `create-prd` como orquestador (ver `docs/plans/2026-08-05-create-prd-orchestrator-architecture.md`)
 **Autor**: GitHub Copilot
 **Fecha**: 2026-08-05
-**Estado**: En revisión
+**Estado**: Cerrada
 
 ---
 

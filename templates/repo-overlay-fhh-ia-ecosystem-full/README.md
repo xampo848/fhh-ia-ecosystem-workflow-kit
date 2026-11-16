@@ -1,8 +1,8 @@
 # Repo Overlay FHH IA Ecosystem Full
 
-This pack provides a complete repository overlay mirrored from the `.agents2` source in the FHH IA Ecosystem project.
+This pack provides the complete repository overlay that `workflow-kit` installs: a mirror of this repository's canonical `.agents/` tree (originally derived from the FHH IA Ecosystem project).
 
-Use this pack when you want to install the full FHH IA Ecosystem workflow surface instead of the minimal starter placeholders.
+It is the only install surface; there is no minimal or placeholder pack.
 
 Included in this overlay:
 

@@ -22,7 +22,7 @@ Recommended structure:
 .agents/capabilities/registry.md         # local capability state
 ```
 
-Default migration behavior installs the complete FHH IA Ecosystem `.agents2`-derived workflow so the target repository receives a ready-to-use flow instead of placeholders.
+Default migration behavior installs the complete FHH IA Ecosystem workflow (the full `.agents` overlay shipped in `templates/repo-overlay-fhh-ia-ecosystem-full`) so the target repository receives a ready-to-use flow instead of placeholders.
 
 ## Runtime adapters
 
@@ -41,7 +41,17 @@ not only missing files.
 
 ## Rollback
 
-The installer does not delete files. For overwritten conflicts, use the `.workflow-kit-backup-<timestamp>` file created during apply.
+Undo the last applied `init` or `update` with:
+
+```bash
+workflow-kit rollback --target /path/to/repo --dry-run
+workflow-kit rollback --target /path/to/repo --apply --yes
+```
+
+It restores the files that run changed from their backups, removes the files
+that run created, and restores the previous install state. As a fallback, you
+can restore any file by hand from the `.workflow-kit-backup-<timestamp>` file
+created during apply (files written with `--backup-mode none` have none).
 
 ## Upgrading safely after migration
 

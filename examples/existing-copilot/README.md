@@ -5,7 +5,7 @@ Use when a repository already has Copilot instructions and you need to preview c
 ## Preview
 
 ```bash
-node bin/workflow-kit.mjs init --target ./existing-repo --runtime copilot
+workflow-kit init --target ./existing-repo --runtime copilot
 ```
 
 If `.github/copilot-instructions.md` already exists, dry-run may show `overwrite_with_backup`. Review before applying.
@@ -13,7 +13,7 @@ If `.github/copilot-instructions.md` already exists, dry-run may show `overwrite
 ## Apply after review
 
 ```bash
-node bin/workflow-kit.mjs init --target ./existing-repo --runtime copilot --apply --yes
+workflow-kit init --target ./existing-repo --runtime copilot --apply --yes
 ```
 
 Backups are created next to changed files before overwrite.

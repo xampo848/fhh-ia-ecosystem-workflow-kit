@@ -2,15 +2,19 @@
 
 Thanks for helping improve the FHH IA Ecosystem Workflow Kit.
 
-## Current phase
+## What you can contribute
 
-This project is currently in Safe CLI MVP phase. Contributions may improve the dry-run-first CLI, planner, doctor, tests, and template boundaries without adding TUI or publishing behavior.
+The kit is a public CLI and TUI (`init`, `update`, `upgrade`, `export`,
+`doctor`, `rollback`, `tui`) plus the workflow contract it installs
+(`.agents/**` and the runtime adapter templates). Contributions may improve any
+of them, their tests, and the docs. Publishing behavior (npm, release uploads)
+stays out of scope without explicit maintainer approval.
 
 ## Ground rules
 
 - Keep portable core separate from repo-specific overlay.
 - Keep runtime adapters thin wrappers over neutral `.agents/**` contracts.
-- Do not add publishing automation until the publishing/release PRD.
+- Do not add publishing automation (npm publish, release uploads, tag pushes) without explicit maintainer approval.
 - Do not copy FHH IA Ecosystem backend/frontend domain rules as generic defaults.
 - Prefer explicit docs and validation over implicit behavior.
 
@@ -34,15 +38,26 @@ This adds the `Signed-off-by` line required by the Developer Certificate of Orig
 ## Local validation
 
 ```bash
-npm run check
+bun install
+bun run check:security
+bun run test
+bun run check
+bun run check:workflow
+bun run check:templates
+bun run check:docs
+bun run check:legal
+bun run check:release
 ```
+
+Changes to `.agents/**`, `templates/**`, `src/**`, `bin/**`, `scripts/**`, or
+CI need a `package.json` version bump and a `CHANGELOG.md` entry.
 
 ## PR checklist
 
-- [ ] README remains accurate for the current phase.
+- [ ] README and docs match the real CLI behavior.
 - [ ] `package.json` remains `private: true` and exposes only the local `workflow-kit` bin.
 - [ ] Template boundaries are clear.
-- [ ] Scaffold validation passes.
+- [ ] All local validation commands pass.
 - [ ] Any future-facing claim is labeled as planned, not implemented.
 - [ ] Provenance and licensing impact was reviewed.
 - [ ] DCO sign-off is present on all commits.

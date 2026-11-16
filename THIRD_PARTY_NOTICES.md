@@ -1,6 +1,6 @@
 # THIRD PARTY NOTICES
 
-Last updated: 2026-07-23
+Last updated: 2026-11-14
 
 This file summarizes third-party components identified during the provenance
 audit. The pinned source records, copied license texts, applicable notices, and
@@ -64,7 +64,18 @@ artifact and not legal advice.
 - Product Studio content was removed from canonical and installable overlays;
   this record is retained as historical provenance evidence.
 
-## 6) Product Studio historical note
+## 6) typecraft-guide-skill (attribution chain)
+
+- Local path:
+  `templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/04-crosscutting/impeccable/reference/typography.md`
+- Upstream repository: `https://github.com/ehmo/typecraft-guide-skill`
+- Pinned source: `8099648409ec73980bd693ac8d15fd3e3230072d`
+- License: `MIT` (copyright `2026`); the applicable text is
+  `docs/legal/third-party/licenses/MIT-typecraft-guide-skill.txt`.
+- Attribution is preserved by the applicable upstream impeccable NOTICE; the
+  local file is byte-identical to the pinned impeccable tree.
+
+## 7) Product Studio historical note
 
 - Product Studio was previously classified as `EXTERNAL_UNVERIFIED`.
 - On 2026-07-23, the complete Product Studio tree was removed from both

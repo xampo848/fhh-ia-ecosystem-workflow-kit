@@ -4,7 +4,13 @@
 
 Do not open public issues for security-sensitive reports.
 
-Report privately to maintainers with:
+Report privately through GitHub private vulnerability reporting: open the
+repository's **Security** tab and choose **Report a vulnerability**, or go
+directly to
+<https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/security/advisories/new>.
+Only the maintainers can see the report.
+
+Include:
 
 - affected component/path,
 - reproduction steps,

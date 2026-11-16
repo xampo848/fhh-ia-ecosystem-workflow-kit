@@ -6,15 +6,21 @@ If your repository already exists (has docs/skills/runtime conventions), start h
 
 - [Get Started for Existing Repositories](get-started-existing-repo.md)
 
+Commands assume the global install from [GitHub install](github-install.md).
+From a clone of this repository, replace `workflow-kit` with
+`node bin/workflow-kit.mjs`.
+
 ## 1. Preview an install
 
 ```bash
-node bin/workflow-kit.mjs init --target /path/to/repo
+workflow-kit init --target /path/to/repo
 ```
 
 Default behavior is dry-run. It prints planned files and writes nothing.
 
-By default, `init` uses the complete FHH IA Ecosystem workflow overlay.
+`init` always installs the complete FHH IA Ecosystem workflow overlay (the full
+`.agents` tree, skills, manifests, and workflow metadata); there is no partial
+or placeholder mode.
 
 Operation meanings in preview:
 
@@ -22,6 +28,7 @@ Operation meanings in preview:
 - `unchanged`: no write
 - `overwrite_with_backup`: write with backup first
 - `merge_with_backup`: intelligent merge with backup first
+- `overwrite_no_backup` / `merge_no_backup`: same, with `--backup-mode none`
 - `skip_modified`: managed local edit protected during update
 - `skip_unmanaged`: unmanaged collision protected during update
 - `adopt_existing`: baseline captured during update bootstrap
@@ -29,23 +36,23 @@ Operation meanings in preview:
 ## 2. Preview selected runtime adapters
 
 ```bash
-node bin/workflow-kit.mjs init \
+workflow-kit init \
   --target /path/to/repo \
   --runtime codex,copilot
 ```
 
-This always previews the complete FHH IA Ecosystem workflow package.
-
 ## 3. Apply after review
 
 ```bash
-node bin/workflow-kit.mjs init \
+workflow-kit init \
   --target /path/to/repo \
   --runtime codex,copilot \
   --apply --yes
 ```
 
-Apply requires both `--apply` and `--yes`. Changed existing files are backed up before overwrite.
+Apply requires both `--apply` and `--yes`; passing `--dry-run` together with
+`--apply` is an error. Changed existing files are backed up before overwrite
+unless you pass `--backup-mode none` (then `rollback` cannot restore them).
 
 For existing repositories, this apply step also enables:
 
@@ -78,7 +85,7 @@ model does not match. Details: `.agents/model-routing/README.md`.
 ## 4. Validate installed files
 
 ```bash
-node bin/workflow-kit.mjs doctor \
+workflow-kit doctor \
   --target /path/to/repo \
   --runtime codex,copilot
 ```
@@ -87,8 +94,9 @@ node bin/workflow-kit.mjs doctor \
 stable diagnostic codes for adapter coverage, per-turn intake, skill and
 capability registries, and managed-file drift.
 
-Supported first-class adapters are `codex`, `copilot`, `claude`, and
-`antigravity`. The neutral workflow contract is always installed.
+Supported runtimes are `codex`, `copilot`, `claude`, `antigravity`, and
+`opencode` (which uses the shared `AGENTS.md`). The neutral workflow contract
+is always installed; `--runtime neutral` installs it without adapters.
 
 If doctor reports issues, go directly to [Troubleshooting](troubleshooting.md).
 
@@ -96,24 +104,38 @@ After the first install, complete the one-time steps that belong to your
 project, starting with `.agents/project-context.md`:
 [Per-project setup after installing](../README.md#per-project-setup-after-installing).
 
+### 5-minute operational checklist
+
+1. Run dry-run once and confirm operation types are expected (`create`, `merge_with_backup`, `overwrite_with_backup`).
+2. Apply with `--apply --yes` and confirm backups exist for any overwritten or merged file.
+3. Run `workflow-kit doctor --target /path/to/repo --runtime <your-runtimes>` and confirm no blocking errors.
+4. In the target repo, verify these files exist:
+   - `.agents/instructions.md`
+   - `.agents/skills/00-router/workflow-router/SKILL.md`
+   - `.agents/skills/registry.json`
+   - `.agents/project/backend.md` and `.agents/project/frontend.md` (or an explicit N/A decision for missing surfaces)
+5. Send one natural-language prompt in your agent runtime (for example, "Implementa una mejora pequeña con tests") and confirm routing starts from the installed workflow.
+
 ## 5. Upgrade the toolkit binary before updating repos
 
 Preview the global toolkit upgrade command:
 
 ```bash
-node bin/workflow-kit.mjs upgrade
+workflow-kit upgrade
 ```
 
 Apply the latest `main` version to your machine:
 
 ```bash
-node bin/workflow-kit.mjs upgrade --apply --yes
+workflow-kit upgrade --apply --yes
 ```
 
-Pin to a released tag when needed:
+`upgrade` checks that the ref exists and is reachable before it replaces the
+installed version, so a mistyped ref or a network failure changes nothing. To
+pin a release, pass its tag (see [Versioning](versioning.md)):
 
 ```bash
-node bin/workflow-kit.mjs upgrade --ref v0.7.0 --apply --yes
+workflow-kit upgrade --ref v0.17.0-audit-hardening --apply --yes
 ```
 
 After that, run `update` in each target repository you manage.
@@ -121,7 +143,7 @@ After that, run `update` in each target repository you manage.
 ## 6. Guided TUI
 
 ```bash
-node bin/workflow-kit.mjs tui
+workflow-kit tui
 ```
 
 The TUI index offers install, update, toolkit-upgrade, and capabilities-only flows. It always shows a preview before asking whether to write. The default confirmation writes nothing.
@@ -133,13 +155,13 @@ The install package is fixed to `Full FHH IA Ecosystem`.
 Preview export:
 
 ```bash
-node bin/workflow-kit.mjs export --output /tmp/workflow-kit-export --runtime codex,copilot
+workflow-kit export --output /tmp/workflow-kit-export --runtime codex,copilot
 ```
 
 Apply export after review:
 
 ```bash
-node bin/workflow-kit.mjs export --output /tmp/workflow-kit-export --runtime codex,copilot --apply --yes
+workflow-kit export --output /tmp/workflow-kit-export --runtime codex,copilot --apply --yes
 ```
 
 `export` uses the same dry-run-first planner and backup behavior as `init`.
@@ -149,13 +171,13 @@ node bin/workflow-kit.mjs export --output /tmp/workflow-kit-export --runtime cod
 Preview update:
 
 ```bash
-node bin/workflow-kit.mjs update --target /path/to/repo
+workflow-kit update --target /path/to/repo
 ```
 
 Apply update:
 
 ```bash
-node bin/workflow-kit.mjs update --target /path/to/repo --apply --yes
+workflow-kit update --target /path/to/repo --apply --yes
 ```
 
 Local edits in tracked files are preserved (`skip_modified`), and untracked path collisions are ignored (`skip_unmanaged`).
@@ -165,7 +187,7 @@ When an update includes a smart composition, it appears as `merge_with_backup`.
 Legacy bootstrap when `.agents/workflow-kit/install-state.json` does not exist yet:
 
 ```bash
-node bin/workflow-kit.mjs update \
+workflow-kit update \
   --target /path/to/repo \
   --runtime codex,copilot \
   --adopt-existing \
@@ -175,7 +197,7 @@ node bin/workflow-kit.mjs update \
 ## 9. Optional alternative tools (Engram, Context7, codebase-memory-mcp)
 
 After `init`, you can guide users to install or attach external capabilities.
-Use the neutral integrations contract in `.agents/integrations/README`.
+Use the neutral integrations contract in `.agents/integrations/README.md`.
 
 Recommended prompts in the target repo:
 
@@ -195,9 +217,46 @@ Quiero codebase-memory-mcp. Primero dime si es install+attach o attach-only y es
 Minimum guardrails:
 
 - Never install silently; require explicit approval first.
+- Classify the intent as `install + attach` or `attach-only`.
 - Default to official/curated source unless user requests another source.
 - Record selected scope (`user/global`, `repo/project`, or `hybrid`).
 - A capability is complete only when it is attached and documented in the repo.
+
+## Example prompts
+
+Describe intent; you do not need skill names. A typical slice moves from
+discovery to epics, tickets or PRDs, implementation, and documentation.
+
+```text
+Help me run product discovery for a feature that reduces onboarding drop-off. I need problem framing, assumptions, risks, and success metrics.
+```
+
+```text
+Create epics for this initiative and organize them by user value, technical dependencies, and delivery order.
+```
+
+```text
+Break Epic 2 into implementation-ready tickets with acceptance criteria, edge cases, and test expectations.
+```
+
+```text
+Implement ticket PAY-14 in this repository. Keep changes minimal, add tests, and summarize trade-offs.
+```
+
+```text
+Document what was implemented for PAY-14, including scope, decisions, validation steps, and known limitations.
+```
+
+```text
+I want to use Context7 and memory tools in this repo. Guide me through install/attach with confirmation before any install step.
+```
+
+Practical notes:
+
+- Be explicit about the outcome you want; the router performs better with clear intent and context.
+- Reference artifact names (epic IDs, ticket IDs, PRD names) to keep continuity across phases.
+- Ask for preview/check steps before apply when working on critical repositories.
+- Use the same conversation thread for a full slice (discovery to docs) to preserve context quality.
 
 ## 10. Common adoption doubts
 
@@ -208,7 +267,7 @@ Minimum guardrails:
 : Use `docs/workflow/standards/setup-and-migration.md`, `docs/workflow/standards/backend.md`, and `docs/workflow/standards/frontend.md` in the target repository.
 
 - "How do I recover from a wrong apply?"
-: Restore from `*.workflow-kit-backup-<timestamp>` files and re-run dry-run before applying again.
+: Run `workflow-kit rollback --target /path/to/repo --dry-run`, then `--apply --yes`. It undoes the last applied `init`/`update`. As a fallback, restore from the `*.workflow-kit-backup-<timestamp>` files and re-run dry-run before applying again.
 
 - "What else is needed besides install (agents, skills, hooks)?"
 : Run `docs/workflow/runbooks/runtime-native-readiness-checklist.md` and complete adapter, skill-registry, and project instruction-hook checks.
