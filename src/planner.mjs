@@ -250,8 +250,9 @@ export async function buildUpdatePlan(options = {}) {
   const instructionInspection = await inspectProjectInstructions({ targetPath });
   const migratedInstructions = migratedInstructionContents(instructionInspection);
   // Installs from before stack packs carried the Rails + React rules inside the
-  // skills. Without a recorded choice, keep those rules by installing the pack.
-  const stackPack = normalizeStackPack(options.stack ?? existingState?.stackPack ?? 'rails-react');
+  // skills. Without a recorded or requested choice, keep those rules only when
+  // the repository looks like Rails + React; anywhere else they would be wrong.
+  const stackPack = normalizeStackPack(options.stack ?? existingState?.stackPack ?? await detectStackPack(targetPath));
   const previousHashes = new Map(Object.entries(existingState?.files ?? {}));
   const operations = [];
 
@@ -888,6 +889,31 @@ export function normalizeStackPack(value) {
     throw new Error(`Unsupported --stack value "${value}". Use one of: none, ${stackPackNames.join(', ')}.`);
   }
   return value;
+}
+
+async function readJsonOptional(file) {
+  try {
+    return JSON.parse(await fs.readFile(file, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+// A repository is Rails + React when it has a Gemfile and declares react in a
+// package.json at the root or one folder down (frontend/, client/, web/...).
+export async function detectStackPack(targetPath) {
+  try {
+    await fs.access(path.join(targetPath, 'Gemfile'));
+  } catch {
+    return 'none';
+  }
+  const entries = await fs.readdir(targetPath, { withFileTypes: true }).catch(() => []);
+  const folders = ['.', ...entries.filter((entry) => entry.isDirectory() && entry.name !== 'node_modules' && !entry.name.startsWith('.')).map((entry) => entry.name)];
+  for (const folder of folders) {
+    const manifest = await readJsonOptional(path.join(targetPath, folder, 'package.json'));
+    if (manifest?.dependencies?.react || manifest?.devDependencies?.react) return 'rails-react';
+  }
+  return 'none';
 }
 
 async function buildStackPackOperations({ targetPath, stackPack }) {

@@ -5,6 +5,22 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.17.1-stack-detection
+
+- `update` no longer installs the `rails-react` stack pack in every repository
+  installed before stack packs. With no recorded or requested stack, it
+  installs the pack only when the repository looks like Rails + React (a
+  `Gemfile` and `react` in a `package.json` at the root or one folder down),
+  and records `none` otherwise.
+- The interactive TUI asks for the stack in that case too, with the detected
+  one preselected; scripted runs keep using detection without prompting. The
+  install question also preselects the detected stack.
+- The TUI plan preview now shows the stack pack and the one-time migrations
+  before you decide to apply.
+- A repository that already received the pack by mistake keeps it, because the
+  file is yours: run `workflow-kit update --stack none --apply --yes` and
+  delete `.agents/project/stack.md`.
+
 ## 0.17.0-audit-hardening
 
 Fixes from a full audit of the CLI, the validators, the agent contract and the

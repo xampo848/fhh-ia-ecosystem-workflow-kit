@@ -91,9 +91,14 @@ Neutral structure (since `0.15.0`):
 - **Stack rules left the skills.** Rails and React rules (Minitest, Bullet,
   MSW, TanStack Query, `make` and `bun run` commands) are now a stack pack.
   A repository installed before this version gets
-  `.agents/project/stack.md` from the `rails-react` pack on its next `update`,
-  so it keeps the same rules. Use `--stack none` to opt out; new installs get
-  no pack unless you pass `--stack rails-react`. The file is yours afterwards.
+  `.agents/project/stack.md` from the `rails-react` pack on its next `update`
+  only when it looks like Rails + React (a `Gemfile` and `react` in a
+  `package.json` at the root or one folder down; since `0.17.1`, before that
+  every such repository got it). The interactive TUI asks, with the detected
+  stack preselected. Use `--stack none` or `--stack rails-react` to decide
+  explicitly; new installs get no pack unless you pass `--stack rails-react`.
+  The file is yours afterwards: if an earlier update installed it by mistake,
+  run `update --stack none` and delete it.
 - **Skills are split.** No own skill file passes 200 lines; long sections moved
   to `reference/` files that state when to read them. Nothing is deleted from
   your repository: old files are rewritten and new ones added.

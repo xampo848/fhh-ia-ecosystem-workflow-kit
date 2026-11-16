@@ -297,6 +297,7 @@ function renderDashboard(write, paint, plan) {
     `Managed target : ${plan.previousToolkitVersion ?? 'none recorded'}`,
     `Runtimes       : ${runtimeLabel}`,
     `${packageLine}: ${packageLabel}`,
+    `Stack pack     : ${plan.stackPack ?? 'none'}`,
     `Local skills   : ${discoveredSkills} auto-discovered`
   ];
 
@@ -336,6 +337,14 @@ export function renderSummary(write, paint, plan) {
   });
 
   renderDashboard(write, paint, plan);
+
+  // One-time migrations change what the update writes (for example the stack
+  // pack), so they are shown before the user decides.
+  if (Array.isArray(plan.migrations) && plan.migrations.length > 0) {
+    write(`${paint.bold('Migrations')} ${paint.dim('(applied once)')}\n`);
+    plan.migrations.forEach((item) => write(`  ${paint.copperInk('•')} ${item.summary}\n`));
+    write('\n');
+  }
 
   const previewOps = plan.operations.slice(0, 8);
   if (previewOps.length > 0) {
