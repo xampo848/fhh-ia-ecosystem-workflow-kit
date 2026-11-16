@@ -1,6 +1,6 @@
 ---
 name: implementation-skill-matcher
-description: "Delegate-only skill for implement-prd. Matches each approved implementation slice to required pattern skills, optional capabilities, fallback docs, validation hooks, and handoff metadata before coding starts."
+description: "Delegate-only skill for implement-change. Matches each approved implementation slice to required pattern skills, optional capabilities, fallback docs, validation hooks, and handoff metadata before coding starts."
 context: fork
 ---
 
@@ -144,7 +144,7 @@ a stop, not "0 candidates".
 
 ## Controlled-lite Behavior
 
-For `controlled-lite`:
+For N2:
 
 - keep output compact;
 - support 1–3 slices cleanly;

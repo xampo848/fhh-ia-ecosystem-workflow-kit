@@ -1,8 +1,8 @@
 # Neutral model routing, cost posture, and delegation policy
 
 This document is the neutral cross-runtime policy for choosing **cost posture**,
-**model tier**, **delegation default**, and **user override behavior** in All
-Metrics AI workflows.
+**model tier**, **delegation default**, and **user override behavior** in FHH IA
+Ecosystem workflows.
 
 This policy is normative at the **tier and posture** level. Exact model names are
 current runtime defaults, not eternal contract terms.
@@ -34,18 +34,23 @@ Rules:
 
 ## Model tiers
 
+The typical uses below describe what each tier is for. Which tier a delegate
+role actually gets is decided only by the profile table in `Model profiles`
+(`calidad` never uses Liviano and gives writers Grande); every other tier
+table in this file is the `costo` profile or defers to that table.
+
 | Tier | Meaning | Typical use |
 | --- | --- | --- |
 | Grande | Highest-reasoning tier for ambiguous planning, architecture, and high-stakes synthesis | `create-epic`, `create-prd`, subtle architecture/product decisions, release-critical review |
-| Mediano | Default technical workhorse for implementation and normal multi-step reasoning | `implement-prd`, main writers, normal QA, acceptance test work |
-| Liviano | Focused reading, discovery, repetitive validation, narrow review, compressed helpers | discovery/review delegates, validation, narrow helper tasks |
+| Mediano | Default technical workhorse for implementation and normal multi-step reasoning | `implement-change` orchestration, main writers in `costo`, normal QA, acceptance test work |
+| Liviano (`costo` only) | Focused reading, discovery, repetitive validation, narrow review, compressed helpers | discovery/review delegates, validation, narrow helper tasks |
 
 Rules:
 
 - The **tier** is the canonical contract.
 - Exact model names are descriptive current defaults for each runtime.
 - Parity is evaluated by equivalent tier/risk fit, not exact same model name.
-- For `create-prd`, use Liviano for Phase 1 calibration and Phase 2 ambiguity detection, Mediano for Phase 3 pattern lock and Phase 5 self-audit, and Grande only for Phase 4 drafting. Apply this only when the runtime permits phase-level tier selection; never claim an automatic switch otherwise.
+- For `create-prd` in the `costo` profile, use Liviano for Phase 1 calibration and Phase 2 ambiguity detection (Mediano in `calidad`), Mediano for Phase 3 pattern lock and Phase 5 self-audit, and Grande only for Phase 4 drafting. Apply this only when the runtime permits phase-level tier selection; never claim an automatic switch otherwise.
 - Do not claim automatic switching unless the runtime confirms it.
 
 ## Model profiles (`calidad` / `costo`)
@@ -119,7 +124,10 @@ never change tiers automatically.
 
 Fallback behavior must be explicit:
 
-- default mode is `auto-with-fallback`;
+- default mode is `auto-with-fallback` (catalog `copilotModelRouting.mode`):
+  the orchestrator picks the fallback candidate and records it. No current
+  runtime falls back on its own (generated agent files declare
+  `automatic fallback=false`), so every fallback is an explicit, recorded step;
 - every fallback must emit a brief reason;
 - fallback must never silently violate a stronger user override;
 - when the requested tier has no observed candidate, report it as blocked and
@@ -176,12 +184,14 @@ Delegation is part of routing policy, not a separate afterthought.
 
 Rules:
 
-- `controlled-lite` docs-only or one-surface work should usually avoid
-  delegation when it adds ceremony.
-- Discovery and validation delegates usually map to **Liviano** defaults.
-- Readiness, slicing, acceptance-test, QA, review, and main implementation/writer delegates usually map to **Mediano** defaults.
+- N2 docs-only or one-surface work should usually avoid delegation when it
+  adds ceremony.
+- Delegate tiers come from the profile table in `Model profiles`. In `costo`,
+  discovery and validation delegates map to **Liviano** and readiness,
+  slicing, acceptance-test, QA, review, and writer delegates to **Mediano**;
+  in `calidad` nothing is Liviano and writers, slicing, and QA are **Grande**.
 - High-risk architecture or release-critical review may escalate to **Grande** through an explicit risk rationale, never because the tier is assumed to be more expensive or better.
-- Delegation policy must remain compatible with `implement-prd` wait barriers,
+- Delegation policy must remain compatible with `implement-change` wait barriers,
   one-writer-per-file ownership, and explicit handoff rules.
 
 ### Delegation heuristics for routed implementation work
@@ -428,11 +438,14 @@ Rules:
 
 ## Cross-runtime routing matrix
 
+The Tier column is the `costo` profile. In `calidad`, read the tier from the
+profile table in `Model profiles` (never Liviano).
+
 | Workflow / task | Risk signal | Cost posture | Tier | Codex default | GitHub/Copilot default | Delegation default | User override rule |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Freeform routing, tiny docs, repetitive validation | low ambiguity, low blast radius | `lean` | Liviano | closest lightweight equivalent | closest lightweight equivalent | Avoided unless a narrow helper reduces context | Allowed; warn if user forces unnecessary premium |
 | `create-prd` and high-ambiguity planning | ambiguous scope, synthesis risk, architecture/product trade-off | `balanced` by default, `premium` if risk is high | Grande | strongest allowed planning-capable equivalent | strongest allowed planning-capable equivalent | Usually avoided inline unless workflow explicitly delegates | Allowed; warn if user forces a cheaper tier that risks under-specification |
-| `implement-prd` orchestration and main writer slices | normal multi-step technical work | `balanced` | Mediano | closest allowed technical-workhorse equivalent | closest allowed technical-workhorse equivalent | Recommended/required depending on slice boundaries | Allowed; warn if user forces Liviano for non-trivial implementation |
+| `implement-change` orchestration and main writer slices | normal multi-step technical work | `balanced` | Mediano | closest allowed technical-workhorse equivalent | closest allowed technical-workhorse equivalent | Recommended/required depending on slice boundaries | Allowed; warn if user forces Liviano for non-trivial implementation |
 | Discovery and validation delegates | focused read/triage with mostly noisy failure modes | `lean` by default | Liviano | closest allowed lightweight equivalent | closest allowed lightweight equivalent | Recommended when they reduce risk/context; avoided in simple docs-only work | Allowed; warn if user forces Grande without added value |
 | Acceptance-test, QA, and review delegates | substantive evidence judgment | `balanced` | Mediano | closest allowed technical-workhorse equivalent | closest allowed technical-workhorse equivalent | Recommended when they add independent review | Allowed; warn if user forces Liviano for substantive review |
 | Readiness and implementation slicing delegates | approved PRD with explicit scope, ownership, sequencing, and evidence | `balanced` by default; `lean` only for bounded, complete, low-risk mechanical checks; escalate for unresolved ambiguity | Mediano | closest allowed technical-workhorse equivalent | closest allowed technical-workhorse equivalent | Recommended only when they reduce context or review bias | Allowed; warn if user forces Liviano when unresolved ambiguity materially affects downstream rework |

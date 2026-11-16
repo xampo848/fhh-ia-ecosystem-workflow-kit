@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { applyInstallPlan } from '../src/apply.mjs';
@@ -96,22 +97,58 @@ test('package canonical files match the installable overlay', async () => {
   );
 });
 
+async function withOverlayDriftFixture(run) {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-overlay-drift-'));
+  try {
+    await fs.cp(path.join(repoRoot, '.agents'), path.join(root, '.agents'), { recursive: true });
+    await fs.cp(
+      path.join(repoRoot, 'templates/repo-overlay-fhh-ia-ecosystem-full'),
+      path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full'),
+      { recursive: true }
+    );
+    await run(root);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+}
+
 test('overlay drift detects divergence in mirrored third-party skills', async () => {
-  const root = await fs.mkdtemp(path.join(process.cwd(), '.tmp-overlay-drift-'));
-  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-  await fs.cp(path.join(sourceRoot, '.agents'), path.join(root, '.agents'), { recursive: true });
-  await fs.cp(
-    path.join(sourceRoot, 'templates/repo-overlay-fhh-ia-ecosystem-full'),
-    path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full'),
-    { recursive: true }
-  );
-  const canonicalSkill = path.join(root, '.agents/skills/04-crosscutting/frontend-design/SKILL.md');
-  await fs.appendFile(canonicalSkill, '\nUnmirrored content.\n', 'utf8');
+  await withOverlayDriftFixture(async (root) => {
+    const canonicalSkill = path.join(root, '.agents/skills/04-crosscutting/frontend-design/SKILL.md');
+    await fs.appendFile(canonicalSkill, '\nUnmirrored content.\n', 'utf8');
 
-  const diagnostics = await validateOverlayDrift({ root });
+    const diagnostics = await validateOverlayDrift({ root });
 
-  assert.ok(diagnostics.some((item) => item.path.includes('frontend-design/SKILL.md')));
-  await fs.rm(root, { recursive: true, force: true });
+    assert.ok(diagnostics.some((item) => item.path.includes('frontend-design/SKILL.md')));
+  });
+});
+
+test('overlay drift compares the whole .agents tree in both directions', async () => {
+  await withOverlayDriftFixture(async (root) => {
+    const overlayAgents = path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents');
+    await fs.mkdir(path.join(root, '.agents/memory/new-area'), { recursive: true });
+    await fs.writeFile(path.join(root, '.agents/memory/new-area/only-canonical.md'), '# New\n', 'utf8');
+    await fs.writeFile(path.join(overlayAgents, 'only-overlay.md'), '# Stale\n', 'utf8');
+    await fs.appendFile(path.join(overlayAgents, 'skills/01-product/create-prd/SKILL.md'), '\nOverlay-only edit.\n', 'utf8');
+
+    const paths = (await validateOverlayDrift({ root })).map((item) => item.path);
+
+    assert.ok(paths.includes('.agents/memory/new-area/only-canonical.md'), paths.join('\n'));
+    assert.ok(paths.includes('.agents/only-overlay.md'), paths.join('\n'));
+    assert.ok(paths.includes('.agents/skills/01-product/create-prd/SKILL.md'), paths.join('\n'));
+  });
+});
+
+test('overlay drift ignores files produced by a local install', async () => {
+  await withOverlayDriftFixture(async (root) => {
+    await fs.mkdir(path.join(root, '.agents/workflow-kit/diagnostics'), { recursive: true });
+    await fs.writeFile(path.join(root, '.agents/workflow-kit/install-state.json'), '{}\n', 'utf8');
+    await fs.writeFile(path.join(root, '.agents/workflow-kit/diagnostics/run.json'), '{}\n', 'utf8');
+
+    const paths = (await validateOverlayDrift({ root })).map((item) => item.path);
+
+    assert.equal(paths.some((item) => item.startsWith('.agents/workflow-kit/')), false, paths.join('\n'));
+  });
 });
 
 test('workflow router keeps deterministic PR comments hard trigger policy', async () => {
@@ -404,10 +441,11 @@ test('token-efficiency cuts keep quality gates and compact discovery', async () 
   assert.match(modelRouting, /never claim an automatic switch otherwise/);
   assert.match(createPrd, /Split by failure, rollback, ownership, contract, or validation boundary/);
   assert.doesNotMatch(createPrd, /at least two execution slices/);
-  assert.match(createPrd, /`implement-prd` must read `## Calibration`, `## Pattern Lock`, and `## Self-Audit`/);
+  assert.match(createPrd, /`implement-change` must read `## Calibration`, `## Pattern Lock`, and `## Self-Audit`/);
   assert.match(matcher, /\.agents\/skills\/06-patterns\/index\.md` as the first candidate catalog/);
   assert.match(matcher, /`\.agents\/skills\/registry\.md` only after the compact index yields at least one/);
-  assert.match(implementPrd, /Required stage pipeline \(N2 and N3\)/);
+  assert.match(implementPrd, /## Stage checklist \(N2 and N3\)/);
+  assert.match(implementPrd, /At N2 this is a logical checklist, not a delegated pipeline/);
   assert.match(implementPrd, /Capitana Alcance → Sherlock Estructura → Arquitecta Fases → matcher → writer → validation → QA Relampago/);
   assert.match(implementPrd, /Do not omit a stage to save tokens/);
   assert.match(orchestration, /Do not omit a named stage/);

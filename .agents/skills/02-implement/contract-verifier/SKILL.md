@@ -1,6 +1,6 @@
 ---
 name: contract-verifier
-description: "Delegate-only skill for implement-prd. Alias: Guardia Contrato. Verifies backend and frontend API contracts in FHH IA Ecosystem, including serializers, controller responses, hooks, query payloads, tests, empty states, and data-shape mismatches. Use whenever backend responses feed frontend behavior."
+description: "Delegate-only skill for implement-change. Alias: Guardia Contrato. Verifies backend and frontend API contracts in FHH IA Ecosystem, including serializers, controller responses, hooks, query payloads, tests, empty states, and data-shape mismatches. Use whenever backend responses feed frontend behavior."
 ---
 
 # Contract Verifier

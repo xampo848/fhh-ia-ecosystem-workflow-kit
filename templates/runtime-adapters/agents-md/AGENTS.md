@@ -1,8 +1,8 @@
 # AI Agent Bootstrap
 
-This repository uses one tool-neutral AI workflow contract.
-
-Apply the level pre-filter below to every new user prompt first.
+This is a thin root `AGENTS.md` runtime adapter; keep it thin. `.agents/instructions.md`
+is the source of truth: if this file conflicts with it, `.agents/instructions.md`
+wins. Route selection and route-specific safeguards belong to `workflow-router`.
 
 <!-- workflow-kit:level-prefilter:start -->
 Level pre-filter (apply to every new user prompt before loading any workflow file):
@@ -24,35 +24,32 @@ Level pre-filter (apply to every new user prompt before loading any workflow fil
 - The user can force a level ("hazlo quirúrgico", "hazlo completo"); forcing below an N3 signal requires naming the risk first.
 <!-- workflow-kit:level-prefilter:end -->
 
-Router-first startup for every new user prompt that the pre-filter classifies
-as N2 or N3:
+Shared bootstrap for every new user prompt:
 
-1. Read and apply `.agents/instructions.md` before answering, planning, or
-   editing. It is the source of truth.
-2. Use `.agents/skills/index.md` for startup-minimal discovery.
-   Use `.agents/skills/registry.md` only for full inventory, maintenance,
-   or fallback.
-3. If the user explicitly invokes a skill, load it directly.
-4. Otherwise run structured intake. If the request is non-trivial, iterative,
-   implementation-adjacent, or multi-step freeform work, load
-   `.agents/skills/00-router/workflow-router/SKILL.md` before acting.
-5. Treat the selected workflow from the latest routing trace as binding for the
-   next non-trivial action. If the route changes, emit a new trace first.
-6. Keep runtime adapters thin and avoid duplicating workflow logic; the
-   generated pre-filter above is the only exception.
-7. Reuse already-loaded context when its source file has not changed.
-   Do not bulk-load every skill or pattern.
+- Classify every new prompt with the level pre-filter. If it continues the
+  active workflow, apply the continuation fast-path from
+  `.agents/instructions.md`; re-route only on a break signal.
+- For non-trivial (N2/N3) work that does not continue the active workflow, read
+  `.agents/instructions.md`, then use `.agents/skills/index.md` for discovery
+  (`.agents/skills/registry.md` only for full inventory or fallback). If the
+  user explicitly invokes a skill, load it directly; otherwise load
+  `workflow-router` and emit its routing decision trace before loading the
+  selected skill. Only trivial informational direct answers may skip the trace.
+  The selected workflow/skill is binding for the next non-trivial action; if
+  workflow changes, emit a new trace first.
+- Execution authorization: for routes that write (code, PRDs, tickets,
+  installs), intent-only phrasing ("quiero", "necesito") is
+  not implementation authorization; until the user authorizes the route, do not
+  inspect product implementation files, do not plan implementation tasks, and
+  do not edit code.
+  Exceptions: N0 acts on intent, N1 needs a short "yes", and read-only routes
+  or an explicit imperative naming the work ("revisa este PR") need no extra
+  confirmation.
 
-This bootstrap does not decide whether the work should become `create-prd`,
-`implement-prd`, review, documentation, or another workflow. Outside an
-explicit skill invocation or an N0/N1 request, that decision belongs to
-`workflow-router` after `.agents/instructions.md` has been applied.
+Runtime notes:
 
-Runtime-specific files may describe tools, models, sandboxes, or invocation
-syntax, but must not redefine workflow logic. Use
-`.agents/model-routing/README.md`, `.agents/capabilities/README.md`,
-`.agents/integrations/README.md`, and `.agents/memory/README.md` when their
-respective policies apply.
-
-This bootstrap is compatible with Codex and GitHub Copilot agent surfaces that
-support root `AGENTS.md`.
+- This bootstrap is compatible with Codex and GitHub Copilot agent surfaces
+  that support root `AGENTS.md`.
+- Use `.agents/model-routing/README.md`, `.agents/capabilities/README.md`,
+  `.agents/integrations/README.md`, and `.agents/memory/README.md` when their
+  respective policies apply.

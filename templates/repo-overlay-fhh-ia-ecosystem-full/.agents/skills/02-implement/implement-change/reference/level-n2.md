@@ -31,10 +31,13 @@ Delegate one of those stages only on concrete uncertainty: more than 5
 exploratory files are needed, the area is not covered by
 `.agents/project-context.md`, or the input contradicts the code.
 
-## Required stage pipeline (N2 and N3)
+## Stage checklist (N2 and N3)
 
 Capitana Alcance → Sherlock Estructura → Arquitecta Fases → matcher → writer → validation → QA Relampago.
 
+At N2 this is a logical checklist, not a delegated pipeline: every stage may be
+collapsed into the inline pass and none requires a delegate. At N3
+(`level-n3.md`) the same stages run as the full delegated flow.
 Do not omit a stage to save tokens. The cost cut is compact or inline execution
 of the same stage, not skipping it.
 Combine readiness, discovery, and slicing into one compact preflight when the input already contains locked decisions,
@@ -44,21 +47,24 @@ documented fallback docs and risk.
 
 ## Delegation
 
-- Decide `avoided`, `recommended`, or `required` before the first slice using
-  the heuristics in `.agents/model-routing/README.md`, and record the concrete
-  reason in the tracker (`delegation_posture`, `delegation_reason`).
+- The N2 default is `avoided`: the orchestrator prepares, writes, and
+  validates inline. Change it to `recommended` or `required` only on the
+  concrete uncertainty above or a heuristic in `.agents/model-routing/README.md`,
+  and state the reason in the trace (or the tracker when one exists).
 - At most one delegate per slice, and only where independent context, file
   ownership, or validation evidence reduces risk. One lightweight delegate per
   stage is the ceiling; no ceremonial subagents.
-- Code-writing defaults to the specialized implementers
-  (`backend-phase-implementer`, `frontend-phase-implementer`,
-  `acceptance-test-engineer`); inline writing is a narrow one-writer exception
-  that must be recorded.
+- A specialized implementer (`backend-phase-implementer`,
+  `frontend-phase-implementer`, `acceptance-test-engineer`) is optional at N2;
+  it is the default writer only at N3.
 - When delegating, follow the join contract in `level-n3.md` (blocking
   handoffs, wait barrier, inspect the diff before another writer touches the
   same files).
 
 ## Coordination state
+
+Tracker and execution locks are N3 coordination. At N2 use them only when the
+change has more than one slice:
 
 - Maintain the physical tracker at `.ai-work/<prd-slug>/task_tracker.toon`
   (template in `../../implement-prd/reference/task-tracker-template.md`) for
@@ -88,4 +94,4 @@ that file, and only at closure.
 Closure: the N1 evidence plus coverage of the touched acceptance criteria,
 focused QA with `ready_to_close: yes`, and `## 10. Evidencia de
 Implementacion` updated when a PRD exists. After that, `.ai-work/<prd-slug>/`
-is removed.
+is removed when it was created.

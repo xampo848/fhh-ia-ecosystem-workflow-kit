@@ -176,11 +176,11 @@ If `Aplica` is `Si`, do not leave this block empty. Child PRDs inherit it and mu
 
 Each row must be executable as its own cycle:
 
-`create-prd` -> `implement-prd` -> `document-development`
+`create-prd` -> `implement-change` -> `document-development`
 
 | Orden | PRD | Objetivo | Alcance estricto | Depende de | Implementacion esperada | Documento posterior |
 | ----- | --- | -------- | ---------------- | ---------- | ----------------------- | ------------------- |
-| 1 | PRD: [Name] | [Goal] | [Only this] | [None / PRD] | Use `$implement-prd` after PRD approval | Use `$document-development` after implementation |
+| 1 | PRD: [Name] | [Goal] | [Only this] | [None / PRD] | Use `$implement-change` after PRD approval | Use `$document-development` after implementation |
 
 ## 11. Riesgos y Mitigaciones
 
@@ -197,7 +197,7 @@ Each row must be executable as its own cycle:
 ## 13. Guia de Uso de la Epica
 
 1. Start with PRD #1 only.
-2. After the PRD is approved, run `$implement-prd` on that PRD file.
+2. After the PRD is approved, run `$implement-change` on that PRD file.
 3. After implementation and validation, run `$document-development` for that delivered phase. This automatically updates the ledger (Section 15); it does not require the user to ask for a status update.
 4. Return to this epic, update phase status, and continue with the next PRD.
 
@@ -229,7 +229,7 @@ This epic cannot be marked `Completado` until every invariant row reads `Cumplid
 ```
 Use $create-prd to create the PRD for "[Name]" using `docs/epics/<feature-or-project>/<slug>.md` as parent context (read the companion ledger at `docs/epics/<feature-or-project>/<slug>-ledger.md` too, and the previous PRD's `Contrato entre Fases` postcondiciones when this is not the first PRD in the queue). Focus only on [strict scope]. Keep [explicit exclusions] out of scope.
 
-After that PRD is approved, use $implement-prd on the PRD file. After implementation and validation, use $document-development to document the delivered phase and update the ledger.
+After that PRD is approved, use $implement-change on the PRD file. After implementation and validation, use $document-development to document the delivered phase and update the ledger.
 ```
 
 ## Anexo: Fuentes de investigacion
@@ -256,4 +256,4 @@ After that PRD is approved, use $implement-prd on the PRD file. After implementa
 - Open questions are separated from confirmed decisions.
 - Non-negotiable inherited requirements have stable IDs, owners, rationale, and child-PRD mapping expectations.
 - The first PRD can be created without redoing the entire discovery process.
-- Each committed phase states how it proceeds through `create-prd`, `implement-prd`, and `document-development`.
+- Each committed phase states how it proceeds through `create-prd`, `implement-change`, and `document-development`.

@@ -15,7 +15,7 @@ Use this skill when the user would benefit from sharper engineering judgment, no
 just task execution.
 
 This is a cross-cutting overlay. It does not replace `workflow-router`,
-`create-prd`, `implement-prd`, or any other primary skill.
+`create-prd`, `implement-change`, or any other primary skill.
 
 ## Source of truth
 
@@ -108,7 +108,7 @@ Teach:
 
 Challenge:
 - Assumption to test: "esto es solo tocar un par de archivos"
-- Risk if ignored: saltarse `implement-prd` y romper contratos o coverage
+- Risk if ignored: saltarse `implement-change` y romper contratos o coverage
 
 Improve:
 - Better move: crear un PRD acotado primero
@@ -120,7 +120,8 @@ Teach:
 - Concept: PRD vs epica
 - Why it matters here: una epica investiga y divide; un PRD especifica una
   feature concreta
-- Where to look: `docs/internal-documentation/workflows/ai-workflow.md`
+- Where to look: "Epic safety gate" in
+  `.agents/skills/00-router/workflow-router/reference/route-gates.md`
 
 Challenge:
 - Assumption to test: "si suena importante, debe ser epica"

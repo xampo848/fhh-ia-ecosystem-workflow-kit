@@ -53,7 +53,7 @@ When recency matters, note access date or publication date. If sources conflict,
 
 ### 5. Project Investigation Structure
 
-Mirror the useful shape of `docs/internal-documentation/business-metrics/value-stream-business-metrics.md`:
+Mirror the useful shape of a reference document the project names, if any; otherwise use this shape:
 
 1. Context and problem
 2. Scope and non-scope
@@ -73,7 +73,7 @@ The epic should create a phase queue, not implementation tickets directly.
 Each phase must be small enough to become one focused PRD and should be completed through:
 
 1. `create-prd`: formalize strict requirements for the phase.
-2. `implement-prd`: implement and validate the approved PRD.
+2. `implement-change`: implement and validate the approved PRD.
 3. `document-development`: document the delivered phase for technical and non-technical stakeholders.
 
 ### Appetite and Phase Sizing Rules

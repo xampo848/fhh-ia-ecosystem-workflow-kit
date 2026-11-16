@@ -6,19 +6,27 @@
   "description": "Packaging boundary for reusing the FHH IA Ecosystem AI workflow without copying repo-specific product rules as portable core.",
   "portable_core": [
     ".agents/instructions.md",
+    ".agents/delegation/delegate-contract.md",
     ".agents/skills/index.md",
     ".agents/skills/registry.md",
     ".agents/skills/registry.schema.json",
     ".agents/skills/registry.json",
     ".agents/skills/registry.cache.json",
     ".agents/skills/00-router/workflow-router/SKILL.md",
+    ".agents/skills/00-router/workflow-router/reference/",
+    ".agents/skills/01-product/project-formation/SKILL.md",
     ".agents/skills/01-product/create-epic/SKILL.md",
     ".agents/skills/01-product/create-prd/SKILL.md",
     ".agents/skills/01-product/generate-pm-ticket/SKILL.md",
+    ".agents/skills/01-product/solution-sketch/SKILL.md",
+    ".agents/skills/02-implement/implement-change/SKILL.md",
+    ".agents/skills/02-implement/implement-change/reference/",
     ".agents/skills/02-implement/implement-prd/SKILL.md",
+    ".agents/skills/02-implement/implement-prd/reference/",
     ".agents/capabilities/README.md",
     ".agents/integrations/README.md",
     ".agents/model-routing/README.md",
+    ".agents/model-routing/delegate-agent-catalog.json",
     ".agents/memory/README.md"
   ],
   "repo_overlay": [
@@ -31,26 +39,42 @@
     ".agents/capabilities/manifests/codebase-memory-mcp.md",
     ".agents/capabilities/manifests/impeccable.md",
     ".agents/capabilities/manifests/caveman.md",
-    ".agents/capabilities/manifests/cavecrew.md"
+    ".agents/capabilities/manifests/cavecrew.md",
+    ".agents/project-context.md",
+    ".agents/project/quality-gate.md",
+    ".agents/project/backend.md",
+    ".agents/project/frontend.md",
+    ".agents/project/paths.json"
   ],
   "runtime_adapters": [
     "AGENTS.md",
+    "CLAUDE.md",
+    "ANTIGRAVITY.md",
     ".github/copilot-instructions.md",
-    ".codex/agents"
+    ".github/instructions/ai-workflow.instructions.md",
+    ".github/agents",
+    ".codex/README.md",
+    ".codex/agents",
+    ".claude/agents",
+    ".claude/skills",
+    ".antigravity/README.md"
   ],
   "derived_artifacts": [
     ".agents/skills/index.md",
+    ".agents/skills/registry.md",
     ".agents/skills/registry.json",
-    ".agents/skills/registry.cache.json"
+    ".agents/skills/registry.cache.json",
+    ".claude/skills",
+    ".claude/agents",
+    ".codex/agents",
+    ".github/agents"
   ],
   "validation_commands": [
-    "python3 scripts/validate_skill_registry.py --check",
-    "python3 scripts/refresh_skill_registry_cache.py --check",
-    "python3 scripts/validate_workflow_kit.py --check"
+    "workflow-kit doctor --target <repo>",
+    "npm run check:workflow (in the workflow-kit source repository)",
+    "npm run check:templates (in the workflow-kit source repository)"
   ],
   "excluded_from_portable_core": [
-    "backend/",
-    "front/",
     "docs/epics/",
     "docs/prd/",
     "docs/internal-documentation/"
@@ -60,6 +84,6 @@
     "Create a repo overlay for local domain rules and pattern skills.",
     "Wire runtime adapters as thin wrappers over the neutral contract.",
     "Regenerate and validate structured registry artifacts.",
-    "Run the adoption checklist before using implement-prd in the target repo."
+    "Run the adoption checklist before using implement-change in the target repo."
   ]
 }

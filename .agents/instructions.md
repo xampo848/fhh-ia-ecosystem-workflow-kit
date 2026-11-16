@@ -38,7 +38,7 @@ contract in `.agents/instructions.md` wins.
 - The compact startup discovery index lives at `.agents/skills/index.md`.
 - The neutral full skill registry lives at `.agents/skills/registry.md`.
 - Shared repo-owned skill bodies live physically under `.agents/skills/**`.
-- `.github/skills/**` is a compatibility adapter surface for GitHub/Copilot and legacy references.
+- `.claude/skills/**` holds generated Claude Code wrappers for the directly routable workflow skills; GitHub Copilot and Codex read `.agents/skills/**` directly.
 - `.github/**` and `.codex/**` remain valid runtime wrappers, but they must point back to `.agents/` and must not redefine workflow logic.
 
 This means canonical ownership and physical skill storage are both neutral. Runtime wrappers may keep symlinks or thin adapters for tool compatibility, but `.agents/skills/**` is the source path for active skill loading.
@@ -154,10 +154,13 @@ first, how visible the routing is, and the cost posture.
 | --- | --- | --- | --- | --- | --- |
 | N0 Operational | nothing from the workflow | up to 3 tool calls; if more are needed, stop and propose N1 | No: the user's intent is enough | no trace | `lean` |
 | N1 Surgical | the target files, their tests, and at most one PRD | no tracker, no delegates, no Discovery; one focused check | Yes, a short "yes" | one line, for example `N1 · surgical · touches X and its test` | `lean` |
-| N2 Standard | the normal implementation route | per route | Yes | full or compact routing trace | `balanced` |
-| N3 High risk | full gates | per route | Yes | full or compact routing trace | `premium` |
+| N2 Standard | the normal implementation route | per route | Only for routes that write (see the execution authorization gate) | full or compact routing trace | `balanced` |
+| N3 High risk | full gates | per route | As N2; an irreversible action always names the concrete risk and waits for an explicit yes | full or compact routing trace | `premium` |
 
-The cost posture follows from the level; it is not a separate decision.
+The level sets the default cost posture. A route's cost hint in
+`.agents/skills/index.md` may lower it one step only for documentation and
+workflow-maintenance routes. Never raise the posture silently: raising it
+requires naming the concrete risk in the trace.
 
 Level pre-filter (single source; generated copies live in the runtime
 adapters between the same markers and `check:workflow` fails when they drift):
@@ -201,7 +204,9 @@ Level rules:
 ## Mandatory per-turn intake
 
 Apply this contract before choosing a response path for every new user prompt.
-Do not assume that the workflow selected for a previous prompt still applies.
+Do not assume that the workflow selected for a previous prompt still applies:
+classify the new prompt, and keep that workflow only through the continuation
+fast-path below.
 Start with the level pre-filter above: N0 and N1 do not load the router.
 
 Outside an explicit skill invocation, an N0 request, or an N1 request,
@@ -210,11 +215,11 @@ next. Runtime adapters, repo overlays, and copied instruction wrappers must
 point back to this contract and then to the router instead of embedding
 alternate routing rules, workflow stacks, or implementation gates that can
 drift. The only routing content an adapter may carry is the generated level
-pre-filter.
+pre-filter plus the shared bootstrap lines listed in "Runtime adapter rule".
 
 Router-first enforcement:
 
-- For any non-trivial request (N2 or N3), run `workflow-router` before planning, editing, or implementing.
+- For any non-trivial request (N2 or N3) that does not continue the active workflow, run `workflow-router` before planning, editing, or implementing.
 - Do not skip router execution by jumping directly into coding or PRD creation.
 - If router is unavailable, stop non-trivial execution and report the missing file/tool.
 
@@ -226,9 +231,11 @@ User-owned PRD decision enforcement:
 
 Execution authorization gate:
 
+- The gate applies to routes that write: code, PRDs, epics, tickets, installs, or other repository files.
+- Read-only routes (review, audit, explanation, or discovery the user asked for) need no extra confirmation, and neither does an explicit imperative that names the work ("audita X", "revisa este PR", "implementa este PRD"): that imperative is the authorization.
 - Intent language from the user (for example: "quiero", "necesito", "hagamos") is not execution authorization by itself.
-- Level exceptions: in N0 the user's intent is enough; in N1 a short "yes" to the one-line surgical proposal authorizes it. N2 and N3 keep this gate unchanged.
-- Before explicit route authorization, the agent must stay in `awaiting-user-choice` for route-selection turns.
+- Level exceptions: in N0 the user's intent is enough; in N1 a short "yes" to the one-line surgical proposal authorizes it. An irreversible operational action (push, deploy, delete) always names the concrete risk and waits for an explicit yes, even after an imperative.
+- Before explicit route authorization of a writing route, the agent must stay in `awaiting-user-choice` for route-selection turns.
 - While in `awaiting-user-choice`, the agent must not inspect product code for implementation, must not plan implementation tasks, and must not edit files.
 - Execution starts only after the user explicitly authorizes the selected route (for example: "usa create-prd", "implementa este PRD", "haz el ticket", "procede con esa ruta").
 
@@ -237,11 +244,11 @@ Routing-to-execution binding (mandatory):
 - For non-trivial work, the workflow or skill selected in the latest routing trace is binding for the next execution step.
 - The agent must load and follow that selected skill before planning, editing, or implementing beyond intake.
 - If the agent must change workflow because of new information, risk, or user redirect, it must emit a new routing trace first and apply the same authorization gate.
-- Never announce one workflow (for example `implement-prd`) and execute a different path in the same step.
+- Never announce one workflow (for example `implement-change`) and execute a different path in the same step.
 
 Natural-language skill invocation binding:
 
-- Treat explicit natural-language directives as explicit skill invocation, for example: "usa create-prd", "implementa este PRD", "run implement-prd".
+- Treat explicit natural-language directives as explicit skill invocation, for example: "usa create-prd", "implementa este PRD", "run implement-change".
 - Once invoked, the agent must execute that skill's protocol until completion or an explicit user redirect.
 
 1. If the user explicitly invokes a skill, load that skill and follow it.
@@ -267,8 +274,10 @@ context:
 - On the first non-trivial turn of a session, or immediately after a genuine
   workflow switch, run full intake: read `.agents/instructions.md` and the
   selected skill's `SKILL.md`, then emit a full or compact routing trace.
-- Persist the active workflow, its cost posture, and its routing trace to
-  session memory right after that full intake.
+- Session memory is the conversation itself: the latest routing trace still
+  visible in context records the active workflow, its level, and its cost
+  posture. A memory tool or file is optional and used only if the runtime has
+  one.
 - On each following turn, first check session memory for an active workflow.
   If one is present, classify only whether the new prompt continues that
   workflow (answers an open question, selects a presented option, confirms an
@@ -279,16 +288,16 @@ context:
 - Break signals (any of these end the fast-path and force full intake):
   explicit skill invocation, explicit redirect ("cambiemos a...", "en
   realidad quiero..."), a materially different topic or scope, an explicit
-  request to explain or reconsider the route, or missing/stale session
-  memory for the active workflow.
+  request to explain or reconsider the route, or no routing trace for an
+  active workflow is visible in the current context (new session or
+  compacted away).
 - On a continuation turn, do not re-read `.agents/instructions.md` or the
   full router `SKILL.md` body again, and do not re-run the full
   classification table. Emit only the compact continuation trace:
   `[skill] · continuing · no reroute`, then proceed with the active
   workflow's next step.
 - On a break, emit a new full or compact routing trace as usual before
-  switching workflows, and update session memory with the new active
-  workflow.
+  switching workflows; that trace becomes the new session memory.
 
 ### Delegated context contract
 
@@ -468,6 +477,15 @@ Runtime adapters may define:
 - the generated level pre-filter, copied verbatim from this file between the
   `workflow-kit:level-prefilter` markers by `scripts/sync-level-prefilter.mjs`.
 
-Runtime adapters must not become the canonical owner of workflow logic. The
-generated level pre-filter is the only workflow logic an adapter may carry; any
+Every runtime entrypoint carries the same hand-written "Shared bootstrap"
+block, apart from runtime-specific notes: a pointer to this file as the source
+of truth, the generated level pre-filter (or a pointer to the adapter that
+carries it), the continuation line (classify every new prompt; if it continues
+the active workflow, apply the continuation fast-path above; re-route only on a
+break signal), the loading-order line, and one line for the execution
+authorization gate with its exceptions. Route-specific safeguards (PR comments,
+project formation, and other hard triggers) live in `workflow-router`, never in
+an adapter.
+
+Runtime adapters must not become the canonical owner of workflow logic; any
 other routing rule belongs here or in `workflow-router`.

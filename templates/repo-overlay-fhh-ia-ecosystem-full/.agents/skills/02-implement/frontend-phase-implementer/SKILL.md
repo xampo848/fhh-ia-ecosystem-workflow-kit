@@ -1,13 +1,13 @@
 ---
 name: frontend-phase-implementer
-description: "Delegate-only skill for implement-prd. Alias: Pixel Ninja. Implements frontend slices in any stack, including API modules, data hooks, components, forms, i18n, styles, and tests, following the project's own frontend and stack rules. Use only with explicit file ownership from the orchestrator."
+description: "Delegate-only skill for implement-change. Alias: Pixel Ninja. Implements frontend slices in any stack, including API modules, data hooks, components, forms, i18n, styles, and tests, following the project's own frontend and stack rules. Use only with explicit file ownership from the orchestrator."
 ---
 
 # Frontend Phase Implementer
 
 Alias: Pixel Ninja.
 
-Use for frontend implementation slices delegated by `implement-prd`. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`) with strict file ownership; run it inline when subagents are unavailable.
+Use for frontend implementation slices delegated by `implement-change`. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`) with strict file ownership; run it inline when subagents are unavailable.
 
 ## Mission
 
@@ -33,7 +33,7 @@ Use exists-or-skip for product docs. A missing optional path is not a failed sea
 - `.agents/project/quality-gate.md`. If it is missing, never skip it silently: report `quality gate: no configurado`; if the PRD requires it or the level is N3, return `blocked`
 - Exact matcher-selected `required_pattern_skills` paths when present.
 - Matcher-selected `fallback_docs` when required pattern skills are absent.
-- Relevant frontend docs from `docs/patterns/frontend/`
+- Relevant frontend docs from `docs/patterns/frontend/` when present
 - The PRD Contrato Visual (UI lock) when the slice includes visible UI. If it is missing or unlocked, return `blocked`.
 - `frontend-design` only to translate or sharpen that locked contract. Do not use it to invent the screen.
 - `impeccable` when the slice needs deeper craft, polish, audit, distinctive refinement, or live visual iteration after the lock exists.

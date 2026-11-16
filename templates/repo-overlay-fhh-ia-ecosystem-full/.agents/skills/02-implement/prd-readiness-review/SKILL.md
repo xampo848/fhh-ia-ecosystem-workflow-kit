@@ -1,6 +1,6 @@
 ---
 name: prd-readiness-review
-description: "Delegate-only skill for implement-prd. Alias: Capitana Alcance. Reviews an FHH IA Ecosystem PRD before implementation, extracts scope, acceptance criteria, phases, blockers, and a stop or go decision. Use before codebase discovery, implementation planning, or resuming a partially implemented PRD. Optimized for compact readiness on bounded PRDs."
+description: "Delegate-only skill for implement-change. Alias: Capitana Alcance. Reviews an FHH IA Ecosystem PRD before implementation, extracts scope, acceptance criteria, phases, blockers, and a stop or go decision. Use before codebase discovery, implementation planning, or resuming a partially implemented PRD. Optimized for compact readiness on bounded PRDs."
 context: fork
 ---
 
@@ -8,7 +8,7 @@ context: fork
 
 Alias: Capitana Alcance.
 
-Use as the first `implement-prd` delegate when the selected mode requires delegation. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`), passing this exact `SKILL.md` path; run the same procedure inline when delegation is unavailable or at compact N2.
+Use as the first `implement-change` delegate when the selected mode requires delegation. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`), passing this exact `SKILL.md` path; run the same procedure inline when delegation is unavailable or at compact N2.
 
 ## Mission
 
@@ -21,7 +21,7 @@ Optimize for the smallest useful readiness verdict. A readiness review should pr
 - PRD path or PRD text.
 - Any user clarifications already given in the thread.
 - Current goal: new implementation or resume.
-- Candidate operating mode when already selected by `implement-prd`.
+- Candidate operating mode when already selected by `implement-change`.
 
 ## Must Read
 

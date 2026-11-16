@@ -24,15 +24,21 @@ Two independent axes decide the work:
 
 | Reference | Read it only when |
 | --- | --- |
-| [reference/level-n1.md](reference/level-n1.md) | the level is N1 (surgical, inline) |
+| [reference/level-n1.md](reference/level-n1.md) | the level is N1 and this skill was invoked explicitly or the input is a PRD iteration |
 | [reference/level-n2.md](reference/level-n2.md) | the level is N2 (compact preflight, focused QA) |
 | [reference/level-n3.md](reference/level-n3.md) | the level is N3 (full delegated flow, 12-point closure) |
 | [reference/input-types.md](reference/input-types.md) | always, but only the section of the detected input type |
 | [reference/modifiers.md](reference/modifiers.md) | autonomous execution or resume applies |
 
+An N1 reached through the level pre-filter (no workflow files loaded) follows
+only the pre-filter's N1 rule in `.agents/instructions.md`; this skill and
+`level-n1.md` apply when the skill is invoked or the input is a PRD iteration.
+
 Read `.agents/project-context.md` (the project's fixed knowledge base:
 structure, validation commands and their cost, test conventions, environment
-quirks) before exploring code at any level; Discovery is a delta over it.
+quirks) before exploring code when it exists and is filled in; if it still
+contains `[TODO]` placeholders, say `project context: no configurado` once and
+continue. Discovery is a delta over it.
 
 Shared references stay under `../implement-prd/reference/` and are read only in
 N2/N3 when the step uses them: `orchestration-flow.md`, `delegate-skill-matrix.md`,

@@ -4,7 +4,9 @@ Read only when the confirmed level is N3 (former `standard`): cross-layer
 impact, backend/frontend contracts, migrations plus activation, jobs, analytics
 domain changes, authorization or tenancy risk, meaningful UI, acceptance
 criteria across layers, two or more hazards, or any `criticalConcern`. The
-required stage pipeline in `level-n2.md` applies, with the full delegated flow.
+stages Capitana Alcance → Sherlock Estructura → Arquitecta Fases → matcher →
+writer → validation → QA Relampago run here as the full delegated flow; none is
+omitted.
 
 ## Startup
 

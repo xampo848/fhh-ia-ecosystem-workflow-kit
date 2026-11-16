@@ -1,28 +1,35 @@
 # Codex Adapter Notes
 
-This directory is reserved for Codex-specific adapter metadata. The root
-`AGENTS.md` comes from the shared `agents-md` adapter.
+This is a thin Codex runtime adapter; keep it thin. `.agents/instructions.md`
+is the source of truth: if this file conflicts with it, `.agents/instructions.md`
+wins. Route selection and route-specific safeguards belong to `workflow-router`.
 
-Keep Codex files thin: they should point back to `.agents/instructions.md`, `.agents/skills/index.md`, and the canonical `.agents/skills/registry.md` instead of redefining workflow logic.
-For every new user prompt, apply structured intake before selecting non-trivial workflow execution.
-If the user explicitly invokes a skill, load it directly.
-Outside an explicit skill invocation or a trivial direct answer, Codex-specific
-metadata should defer workflow selection to `workflow-router` rather than adding
-parallel routing rules here.
+The root `AGENTS.md` comes from the shared `agents-md` adapter and carries the
+generated level pre-filter; apply it first.
 
-Routing visibility requirement:
+Shared bootstrap for every new user prompt:
 
-- For non-trivial routed work, emit the routing decision trace before loading
-	the selected skill.
-- Only trivial informational direct answers may skip visible routing trace.
+- Classify every new prompt with the level pre-filter. If it continues the
+  active workflow, apply the continuation fast-path from
+  `.agents/instructions.md`; re-route only on a break signal.
+- For non-trivial (N2/N3) work that does not continue the active workflow, read
+  `.agents/instructions.md`, then use `.agents/skills/index.md` for discovery
+  (`.agents/skills/registry.md` only for full inventory or fallback). If the
+  user explicitly invokes a skill, load it directly; otherwise load
+  `workflow-router` and emit its routing decision trace before loading the
+  selected skill. Only trivial informational direct answers may skip the trace.
+  The selected workflow/skill is binding for the next non-trivial action; if
+  workflow changes, emit a new trace first.
+- Execution authorization: for routes that write (code, PRDs, tickets,
+  installs), intent-only phrasing ("quiero", "necesito") is
+  not implementation authorization; until the user authorizes the route, do not
+  inspect product implementation files, do not plan implementation tasks, and
+  do not edit code.
+  Exceptions: N0 acts on intent, N1 needs a short "yes", and read-only routes
+  or an explicit imperative naming the work ("revisa este PR") need no extra
+  confirmation.
 
-Turn-by-turn routing guarantee:
+Runtime notes:
 
-- Re-run structured intake on every user prompt, including follow-ups in the
-	same conversation.
-- Do not reuse or cache the previous workflow decision across turns.
-
-Execution authorization guarantee:
-
-- Intent-only phrasing (for example "quiero" / "necesito") is not implementation authorization.
-- Before explicit route authorization from the user, stay in route-selection mode and do not inspect product implementation files, do not plan implementation tasks, and do not edit code.
+- `.codex/agents/*.toml` are generated delegate adapters; never edit them by
+  hand. Codex reads `.agents/skills/**` directly.

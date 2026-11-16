@@ -1,6 +1,6 @@
 ---
 name: acceptance-test-engineer
-description: "Delegate-only skill for implement-prd. Alias: Testinator 5000. Designs, writes, and stabilizes focused tests mapped to PRD acceptance criteria across backend and frontend, using the project's own test frameworks. Use after or alongside implementation slices."
+description: "Delegate-only skill for implement-change. Alias: Testinator 5000. Designs, writes, and stabilizes focused tests mapped to PRD acceptance criteria across backend and frontend, using the project's own test frameworks. Use after or alongside implementation slices."
 ---
 
 # Acceptance Test Engineer

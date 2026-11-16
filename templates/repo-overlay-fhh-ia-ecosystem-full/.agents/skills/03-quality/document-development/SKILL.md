@@ -6,7 +6,7 @@ argument-hint: "nombre o descripción del desarrollo a documentar"
 
 # Documentar Desarrollo
 
-Esta skill es el cierre natural después de `implement-prd` cuando el cambio ya está implementado y validado.
+Esta skill es el cierre natural después de `implement-change` cuando el cambio ya está implementado y validado.
 
 ## Cuándo Usar
 
@@ -33,7 +33,7 @@ Escalar a **Mediano** solo si aparece alguno de estos disparadores, y registrar 
 Antes de escribir una línea, leer solo:
 
 1. El PRD o ticket del desarrollo (en `docs/prd/<feature-or-project>/<YYYY-MM-DD>-<slug>/` o en el contexto del usuario)
-2. La evidencia de implementación y validación (tracker, handoff de QA, resumen de `implement-prd`)
+2. La evidencia de implementación y validación (tracker, handoff de QA, resumen de `implement-change`)
 3. Los archivos clave que esa evidencia cita: servicios, modelos/migraciones, controlador/vistas, tests y policies de autorización (roles, permisos por acción, restricciones por estado/ownership y feature flags)
 
 Leer más código (otros servicios, migraciones, vistas) solo si hay una contradicción o si la evidencia no cubre un dato que el documento necesita. Si no hay evidencia de implementación (sistema existente sin PRD), leer los archivos clave directamente y aplicar el escalado por complejidad.

@@ -1,6 +1,6 @@
 ---
 name: create-epic
-description: Create a formal epic or project research document before individual PRDs, shaped by the user's appetite instead of a fixed delivery window. Use when Codex must investigate a large feature, initiative, or product area; combine web research, codebase discovery, architecture review, business rules, user flows, risks, UX/data/API implications, and phased delivery planning; lock the live production path and a concrete phase cut with the user before writing the PRD queue when current behavior must coexist with a replacement; then produce an epic where each phase flows through create-prd, implement-prd, and document-development.
+description: Create a formal epic or project research document before individual PRDs, shaped by the user's appetite instead of a fixed delivery window. Use when Codex must investigate a large feature, initiative, or product area; combine web research, codebase discovery, architecture review, business rules, user flows, risks, UX/data/API implications, and phased delivery planning; lock the live production path and a concrete phase cut with the user before writing the PRD queue when current behavior must coexist with a replacement; then produce an epic where each phase flows through create-prd, implement-change, and document-development.
 ---
 
 # Create Epic
@@ -12,7 +12,7 @@ The output is not a PRD. It is the parent project definition and investigation a
 ## Core Rules
 
 - Research before drafting. Use local code/docs first. Use web research only when the epic depends on a vendor, regulation, public standard, or other external constraint, or when the user explicitly asks for it.
-- Write the epic with the depth of `docs/internal-documentation/business-metrics/value-stream-business-metrics.md`: business narrative first, technical architecture second, sources and files in annexes.
+- Write the epic with the depth of a reference document the project names, if any: business narrative first, technical architecture second, sources and files in annexes.
 - Shape committed delivery around an explicit appetite. The appetite is the investment boundary; scope is variable.
 - Do not invent implementation certainty. Separate evidence, inference, assumptions, and open questions.
 - Prefer slices that can become standalone `create-prd` inputs and later close with `document-development`.
@@ -72,7 +72,7 @@ Read `references/research-playbook.md` before synthesizing the research strategy
 
 ### 4. Synthesize Like a Project Research Document
 
-Use the narrative pattern from `docs/internal-documentation/business-metrics/value-stream-business-metrics.md`:
+Use the narrative pattern of a reference document the project names, if any; otherwise this order:
 
 - Start with the business problem and why the current product cannot answer it well.
 - Define strict scope and explicit non-scope.
@@ -112,7 +112,7 @@ Do not start this step until step 6 has locked the cut or recorded `No aplica`.
 Every committed phase or task must have a workflow handoff:
 
 1. `create-prd` - transform the phase into a focused PRD with strict scope.
-2. `implement-prd` - implement only that approved PRD and validate it.
+2. `implement-change` - implement only that approved PRD and validate it.
 3. `document-development` - document the delivered phase after implementation.
 
 For each phase, define:
@@ -155,7 +155,7 @@ Use `references/epic-template.md` for the final structure. If the appetite is a 
 - A compact `Invariantes No Negociables` table with stable IDs, owners, rationale, and child-PRD mapping expectations
 - Appetite-based delivery plan, including the locked live-path/cut decision or an explicit `No aplica`
 - PRD queue with each child PRD title, goal, scope, dependencies, and recommended order
-- Per-phase workflow through `create-prd`, `implement-prd`, and `document-development`
+- Per-phase workflow through `create-prd`, `implement-change`, and `document-development`
 - A pointer to the companion ledger file and a one-line explanation of how it is kept current
 - Risks, open questions, and explicit non-goals
 
@@ -165,7 +165,7 @@ End with the next action:
 
 - Recommend the first child PRD to create.
 - Provide a ready-to-use prompt for `create-prd`.
-- Explain that after the PRD is approved the expected flow is `implement-prd`, then `document-development`.
+- Explain that after the PRD is approved the expected flow is `implement-change`, then `document-development`.
 - Do not expand every slice into full PRDs unless the user asks.
 
 Example handoff:
@@ -176,7 +176,7 @@ Siguiente PRD recomendado: "PRD 1 - [Nombre]"
 Prompt:
 Use $create-prd to create the PRD for "[Nombre]" using `docs/epics/<feature-or-project>/<slug>.md` as parent context. Focus only on [scope] and keep [items] out of scope.
 
-After that PRD is approved, use $implement-prd on the PRD file. After implementation and validation, use $document-development to document the delivered phase.
+After that PRD is approved, use $implement-change on the PRD file. After implementation and validation, use $document-development to document the delivered phase.
 ```
 
 ## Output Quality Bar

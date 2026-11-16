@@ -1,6 +1,6 @@
 ---
 name: codebase-discovery
-description: "Delegate-only skill for implement-prd. Alias: Sherlock Estructura. Explores the FHH IA Ecosystem codebase for an approved PRD, finds existing patterns, touched files, tests, APIs, risks, and docs to load. Use before implementation slicing or when resuming unknown work. Optimized for targeted discovery and low-context handoffs."
+description: "Delegate-only skill for implement-change. Alias: Sherlock Estructura. Explores the FHH IA Ecosystem codebase for an approved PRD, finds existing patterns, touched files, tests, APIs, risks, and docs to load. Use before implementation slicing or when resuming unknown work. Optimized for targeted discovery and low-context handoffs."
 context: fork
 ---
 
@@ -49,30 +49,17 @@ Use an index-first strategy:
 
 1. Start with `rg`, `rg --files`, route files, model/service names, test names, and schema lookups.
 2. Open at most 5 exploratory source files before producing the first discovery map.
-3. If more files are needed, explain the risk and either narrow the search or recommend escalation to `standard` mode.
+3. If more files are needed, explain the risk and either narrow the search or recommend escalation to N3.
 4. Prefer exact paths, symbols, and tests over prose descriptions.
 5. Reuse already-loaded context when the orchestrator provides it.
 
 ## Docs Routing
 
-Backend docs, load only when directly relevant:
-
-- `docs/patterns/backend/service-object-pattern.md`
-- `docs/patterns/domain/domain-immutability.md`
-- `docs/patterns/backend/data-layer-adapter.md`
-- `docs/patterns/backend/integration-api.md`
-- `docs/patterns/domain/relationships-and-constraints.md`
-- `docs/patterns/domain/domain-vocabulary.md`
-- `docs/epics/analytics-foundation/analytics-facts-rollups-metrics-redesign-epic.md`
-
-Frontend docs, load only when directly relevant:
-
-- `docs/internal-documentation/workflows/frontend-new-feature.md`
-- `docs/patterns/frontend/custom-hook-state.md`
-- `docs/patterns/frontend/design-system-ui.md`
-- `docs/patterns/frontend/formik-forms.md`
-- `docs/patterns/frontend/oauth-first-pattern.md`
-- `docs/patterns/frontend/browser-e2e-verify.md`
+Load project docs only when directly relevant to the touched surface, and only
+the ones the project declares: the architecture and pattern docs listed in
+`.agents/project-context.md`, the paths mapped in `.agents/project/paths.json`,
+and `docs/patterns/**` when present. Never assume a doc exists; a listed path
+that is missing is recorded under `project_context_gaps`.
 
 ## Procedure
 
@@ -98,7 +85,7 @@ Return exactly the TOON schema defined in `.agents/skills/02-implement/implement
 
 Ensure you populate the `required_instructions[N]` field with `.agents/project/backend.md` and/or `.agents/project/frontend.md` if those surfaces are touched.
 
-For `controlled-lite`, keep findings compact and prioritize:
+For N2, keep findings compact and prioritize:
 
 - analogous files;
 - target files;

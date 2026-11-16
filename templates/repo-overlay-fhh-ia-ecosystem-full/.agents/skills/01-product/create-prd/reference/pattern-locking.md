@@ -11,7 +11,7 @@ Before drafting, lock the implementation approach to one comparable local patter
 Find the nearest local pattern that shares the relevant boundary, failure mode, artifact shape, or validation style. Examples in this repository include:
 
 - hard gates and phase sequencing in workflow `SKILL.md` files
-- PRD-local TOON execution locks in `implement-prd`
+- PRD-local TOON execution locks in `implement-change`
 - explicit `route-options` in `workflow-router`
 
 Record:

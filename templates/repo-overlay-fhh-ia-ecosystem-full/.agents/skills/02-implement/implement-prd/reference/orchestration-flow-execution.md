@@ -52,7 +52,7 @@ Validation must prove both the changed behavior and the most plausible adjacent 
 
 ## Phase 6: Final QA
 
-Run one full QA checklist for every PRD implementation before closure. This stage is mandatory outside N1; compact/inline QA is allowed, omitting QA is not. Delegate to `qa-handoff-review` for standard PRDs, cross-layer work, security/tenancy-sensitive work, contract changes, user-visible changes, rollout-sensitive work, or any diff that would benefit from fresh-context review. Re-entry QA is targeted to repaired findings, changed files, and affected acceptance criteria; repeat a full QA only when the repair changes the risk boundary or prior evidence is stale. Inside review-only sweeps, prefer `cavecrew-reviewer` when terse line-anchored findings are enough.
+Run one full QA checklist for every PRD implementation before closure. This stage is mandatory outside N1; compact/inline QA is allowed, omitting QA is not. Delegate to `qa-handoff-review` for N3 PRDs, cross-layer work, security/tenancy-sensitive work, contract changes, user-visible changes, rollout-sensitive work, or any diff that would benefit from fresh-context review. Re-entry QA is targeted to repaired findings, changed files, and affected acceptance criteria; repeat a full QA only when the repair changes the risk boundary or prior evidence is stale. Inside review-only sweeps, prefer `cavecrew-reviewer` when terse line-anchored findings are enough.
 
 If `## Self-Audit` exists, reconcile its residual risks before allowing `ready_to_close: yes`.
 

@@ -58,7 +58,7 @@ Examples:
 
 - `workflow-router`
 - `create-prd`
-- `implement-prd`
+- `implement-change`
 - `document-development`
 
 ### Standards/pattern skills
@@ -103,4 +103,4 @@ Portable packaging and capability-attachment structure are defined separately in
 
 ## Physical skill ownership
 
-The canonical taxonomy, registry, and repo-owned skill bodies live under `.agents/skills/**`. `.agents/skills/registry.md` maps logical skill identity to canonical physical paths. Runtime-specific surfaces such as `.github/skills/**` and `.codex/skills/**` may use symlinks or thin adapters, but they must not become a second source of truth.
+The canonical taxonomy, registry, and repo-owned skill bodies live under `.agents/skills/**`. `.agents/skills/registry.md` maps logical skill identity to canonical physical paths. GitHub Copilot and Codex read `.agents/skills/**` directly; Claude Code gets generated wrappers under `.claude/skills/**` (`scripts/sync-claude-skills.mjs`). No runtime surface may become a second source of truth.
