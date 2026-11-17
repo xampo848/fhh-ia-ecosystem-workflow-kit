@@ -58,7 +58,7 @@ Do not reopen a resolved category or ask a serial follow-up unless an answer cre
 
 ## Challenge Before Resolving
 
-Apply [../shared/critical-stance.md](../shared/critical-stance.md) to every answer received. Before writing a row in the resolved-decisions table, state the discarded alternative and why the chosen answer beats it. If the user's answer creates a scope, invariant, or contract risk, say so directly before recording it, even if the user already answered.
+Apply [../../shared/critical-stance.md](../../shared/critical-stance.md) to every answer received. Before writing a row in the resolved-decisions table, state the discarded alternative and why the chosen answer beats it. If the user's answer creates a scope, invariant, or contract risk, say so directly before recording it, even if the user already answered.
 
 ## Required Artifact
 

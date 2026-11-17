@@ -46,9 +46,12 @@ The ceremony drops; the quality does not.
 
 1. **The map is the PRD and its `## 10. Evidencia de Implementacion`**, not a
    new Discovery. Read only the files the evidence names and the delta touches.
-2. **Freshness is measured by changes, not time.** With the change reference
-   in section 10 (commit or PR), check what changed since closure in the
-   delivered files (`git log` or `git diff <ref>..HEAD` on those files):
+2. **Freshness is measured by changes, not time.** Resolve the change
+   reference in section 10 to a local commit first (for a PR, its merge
+   commit, for example `gh pr view <n> --json mergeCommit`). Compare the
+   delivered files with `git diff <ref> -- <files>`, which also includes staged
+   and uncommitted changes. If no commit can be resolved, run Discovery bounded
+   to the delivered area. Otherwise:
    - no changes: the map is current, go straight to the delta;
    - changes in a few files: reread only those;
    - moved or deleted files, or broad changes: Discovery bounded to that area.

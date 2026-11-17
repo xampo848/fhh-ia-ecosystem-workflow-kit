@@ -38,14 +38,14 @@ Map acceptance criteria to tests and make the smallest test additions that would
 4. Prefer focused tests near the behavior rather than broad brittle tests.
 5. Record whether any matcher-suggested optional capability was actually used and whether it was active.
 6. Backend: use the project's test framework and the factories or fixtures already present, at the level that proves the criterion (service, controller, serializer). **CRITICAL:** follow the test rules in `.agents/project/stack.md` and `.agents/project/backend.md`, including any mandatory guard (for example, an N+1 query detector).
-7. Frontend: use the project's test framework. **CRITICAL:** never hit the network in tests; mock every request with the project's mocking layer and return deterministic payloads derived from `guardia-contrato`. Follow the test rules in `.agents/project/stack.md` and `.agents/project/frontend.md`.
+7. Frontend: use the project's test framework. **CRITICAL:** unit and component tests never hit the network: mock every request with the project's mocking layer and return deterministic payloads derived from `guardia-contrato`. Integration and E2E tests (for example Playwright) may call the local application under test; external services stay mocked or stubbed. Follow the test rules in `.agents/project/stack.md` and `.agents/project/frontend.md`.
 8. Cover edge cases that the PRD names explicitly.
 9. Add at least one negative, empty, or error case when the feature has failure paths.
 10. Preserve matcher validation hooks when they affect test evidence.
 11. Run the targeted test command and fix root causes.
 12. Do not mark acceptance criteria covered by manual reasoning alone when a reasonable automated test can cover it.
 13. Keep tests proportional: write the tests for the acceptance criteria and the edge cases in the PRD test strategy. Do not add tests outside that strategy without a concrete finding that justifies them, and name that finding in the handoff.
-14. Per slice, run only the slice's specs. A full expensive suite (complete E2E) runs once, at closure or in CI, and a current result for the same command, scope, and content is reused.
+14. Per slice, run only the slice's specs. A full expensive suite (complete E2E) runs once, at closure or in CI. Integration and E2E results are never reused between stages (`../implement-prd/reference/evidence-reuse.md`).
 
 ## Stop And Ask When
 

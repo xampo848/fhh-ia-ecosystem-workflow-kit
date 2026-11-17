@@ -38,7 +38,7 @@ Do not mention `solution-sketch` when compact mode applies or a comparable local
 
 ## Challenge Before Locking
 
-Apply [../shared/critical-stance.md](../shared/critical-stance.md). Before recording the pattern lock, name the runner-up pattern (or a from-scratch alternative) and state directly why it loses, even when the AI generated the candidate itself. Do not lock a pattern on convenience alone.
+Apply [../../shared/critical-stance.md](../../shared/critical-stance.md). Before recording the pattern lock, name the runner-up pattern (or a from-scratch alternative) and state directly why it loses, even when the AI generated the candidate itself. Do not lock a pattern on convenience alone.
 
 ## Summary Visibility
 

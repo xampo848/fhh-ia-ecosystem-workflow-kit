@@ -46,7 +46,7 @@ test('iteration and bug inputs keep quality while dropping ceremony', async () =
   const inputs = await read(`${changeDir}/reference/input-types.md`);
   assert.match(inputs, /The map is the PRD and its `## 10\. Evidencia de Implementacion`/);
   assert.match(inputs, /Freshness is measured by changes, not time/);
-  assert.match(inputs, /git diff <ref>\.\.HEAD/);
+  assert.match(inputs, /git diff <ref> -- <files>/);
   assert.match(inputs, /regression of the original feature by running the existing tests that\s+section 10 lists/);
   assert.match(inputs, /"Iteración N" subsection/);
   assert.match(inputs, /No reproduction possible[\s\S]*do not fix blindly[\s\S]*explicitly authorizes/);

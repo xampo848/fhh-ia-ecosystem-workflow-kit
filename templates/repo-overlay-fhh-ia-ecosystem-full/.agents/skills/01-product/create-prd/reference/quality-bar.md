@@ -27,7 +27,7 @@ After the user answers any round of questions:
 
 ### Phase 5: Self-Audit and Hardening
 
-Load and execute [reference/self-audit.md](reference/self-audit.md). This is a hard gate; persist its required artifact and final readiness declaration before delivering the PRD.
+Load and execute [self-audit.md](self-audit.md). This is a hard gate; persist its required artifact and final readiness declaration before delivering the PRD.
 
 ## Future Scope
 
