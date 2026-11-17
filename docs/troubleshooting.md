@@ -171,12 +171,34 @@ and stops being protected. `update --diff` shows the difference beforehand.
 ## Doctor reports `skills/local-catalog-missing-skill`
 
 Your repository keeps its own `.agents/skills/index.md` or
-`.agents/skills/registry.md` (for example, because it lists local skills), so
-`update` preserves them and does not add the rows of skills introduced by
-later versions. The skill is installed, but the router discovers skills through
-the index and cannot find it. Copy the rows named in the message from the
-workflow-kit version of the same file, next to the related skills. The warning
-disappears on the next `doctor` run.
+`.agents/skills/registry.md` (for example, because it lists local skills). The
+skill is installed, but the router discovers skills through the index and
+cannot find it.
+
+Since `0.17.2`, `update` adds the rows of skills introduced by later versions
+next to the related skills and never changes your rows. Run `workflow-kit
+update` first. If the warning stays, the catalog has no table under the
+workflow-kit heading (for example, `## Direct routing inventory`): copy the rows
+named in the message from the workflow-kit version of the same file.
+
+If a script of your own regenerates the catalog (for example, from
+`registry.md`), add the new skills to that script as well; otherwise the next
+regeneration drops the rows again.
+
+## `last-apply.json` was committed
+
+`.agents/workflow-kit/last-apply.json` is the journal `workflow-kit rollback`
+uses to undo the last apply. It only makes sense on the machine that ran that
+apply: a teammate running `rollback` from a committed copy would undo someone
+else's update. Since `0.17.2`, install and update add it to `.gitignore`. If it
+was committed earlier, remove it from the index once:
+
+```bash
+git rm --cached .agents/workflow-kit/last-apply.json
+```
+
+`install-state.json` in the same directory stays versioned: it records which
+files the kit manages.
 
 In TUI update mode, when managed local edits are detected, workflow-kit now asks what to do:
 

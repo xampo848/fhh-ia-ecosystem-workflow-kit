@@ -7,6 +7,7 @@ import { loadDelegateCatalog, parseProfileOption, renderDelegateAdapterForPath, 
 import { inspectProjectInstructions, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
 import { assertNoSymlinkWrites } from './fs-safety.mjs';
+import { applyJournalRelativePath } from './apply.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
@@ -25,6 +26,17 @@ const skillCatalogPreservePaths = new Set([
   '.agents/skills/registry.md',
   '.agents/skills/registry.cache.json'
 ]);
+// Project-owned catalogs that still receive the rows of skills a later version
+// ships: the router finds skills through them, so a missing row hides an
+// installed skill. Existing rows are never changed or removed.
+const skillCatalogRowPaths = new Set([
+  '.agents/skills/index.md',
+  '.agents/skills/06-patterns/index.md',
+  '.agents/skills/registry.md'
+]);
+const catalogRowPattern = /^\|\s*`([^`]+)`\s*\|/;
+const catalogHeadingPattern = /^#{1,6}\s/;
+const catalogSkillPathPattern = /\.agents\/skills\/[A-Za-z0-9/_-]+\/SKILL\.md/;
 const protectedCustomizationPaths = new Set([
   '.agents/instructions.md',
   'AGENTS.md',
@@ -49,7 +61,7 @@ function normalizeBackupMode(value = 'required') {
 }
 
 function writeOperationForResolution(strategy, backupMode) {
-  if (strategy === 'merged') {
+  if (strategy === 'merged' || strategy === 'catalog_rows') {
     return backupMode === 'none' ? 'merge_no_backup' : 'merge_with_backup';
   }
 
@@ -132,6 +144,7 @@ export async function buildInstallPlan(options = {}) {
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
   const files = await selectedTemplateFiles({ runtimes, overlay });
+  const shippedPaths = new Set(files.map((file) => file.relativePath));
   const discoveredSkillEntries = await collectDiscoveredLocalSkillEntries(targetPath);
   const catalog = await loadDelegateCatalog();
   const modelProfiles = resolveModelProfiles({ catalog, runtimes, requested: parseProfileOption(options.profile) });
@@ -166,7 +179,8 @@ export async function buildInstallPlan(options = {}) {
       discoveredSkillEntries,
       catalog,
       modelProfiles,
-      migratedInstructions
+      migratedInstructions,
+      shippedPaths
     });
 
     if (existingContent !== null) {
@@ -186,7 +200,8 @@ export async function buildInstallPlan(options = {}) {
       sourcePath: file.sourcePath,
       content: resolution.content,
       sourceChecksum,
-      plannedChecksum: computeChecksum(resolution.content)
+      plannedChecksum: computeChecksum(resolution.content),
+      ...(resolution.strategy === 'catalog_rows' ? { dropFromState: true } : {})
     });
   }
 
@@ -239,6 +254,7 @@ export async function buildUpdatePlan(options = {}) {
   const overlay = normalizeOverlay(options.overlay ?? existingState?.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
   const files = await selectedTemplateFiles({ runtimes, overlay });
+  const shippedPaths = new Set(files.map((file) => file.relativePath));
   const discoveredSkillEntries = await collectDiscoveredLocalSkillEntries(targetPath);
   const catalog = await loadDelegateCatalog();
   const modelProfiles = resolveModelProfiles({
@@ -286,7 +302,8 @@ export async function buildUpdatePlan(options = {}) {
       discoveredSkillEntries,
       catalog,
       modelProfiles,
-      migratedInstructions
+      migratedInstructions,
+      shippedPaths
     });
 
     if (existingContent === null) {
@@ -298,6 +315,20 @@ export async function buildUpdatePlan(options = {}) {
         content: resolution.content,
         sourceChecksum,
         plannedChecksum: computeChecksum(resolution.content)
+      });
+      continue;
+    }
+
+    if (resolution.strategy === 'catalog_rows') {
+      operations.push({
+        operation: writeOperationForResolution('merged', backupMode),
+        relativePath: file.relativePath,
+        targetFile,
+        sourcePath: file.sourcePath,
+        content: resolution.content,
+        sourceChecksum,
+        plannedChecksum: computeChecksum(resolution.content),
+        dropFromState: true
       });
       continue;
     }
@@ -581,10 +612,13 @@ function buildNextInstallState({ previousState, operations, runtimes, overlay, m
   const files = { ...(previousState?.files ?? {}) };
 
   for (const item of operations) {
-    if (item.operation === 'skip_unmanaged') {
-      if (item.dropFromState) delete files[item.relativePath];
+    // Project-owned files the kit only adds rows to never enter the state.
+    if (item.dropFromState) {
+      delete files[item.relativePath];
       continue;
     }
+
+    if (item.operation === 'skip_unmanaged') continue;
 
     if (item.operation === 'skip_modified') {
       if (item.recordedChecksum) files[item.relativePath] = item.recordedChecksum;
@@ -619,7 +653,50 @@ function buildNextInstallState({ previousState, operations, runtimes, overlay, m
   };
 }
 
-function resolvePlannedContent({ relativePath, templateContent, existingContent, discoveredSkillEntries = [], catalog, modelProfiles = {}, migratedInstructions = {} }) {
+function catalogRows(lines) {
+  const rows = [];
+  let heading = null;
+  lines.forEach((line, index) => {
+    if (catalogHeadingPattern.test(line)) {
+      heading = line.trim();
+      return;
+    }
+    const match = line.match(catalogRowPattern);
+    if (match) rows.push({ heading, name: match[1], index, line });
+  });
+  return rows;
+}
+
+// Adds each shipped row whose skill path the project catalog does not mention,
+// inside the table under the same heading: after the row that precedes it in
+// the kit catalog, else before the row that follows it, else at the table end.
+// A catalog without that heading or table is left alone (doctor still warns).
+function addMissingCatalogRows({ existingContent, templateContent, shippedPaths }) {
+  const lines = existingContent.split('\n');
+  const templateRows = catalogRows(templateContent.split('\n'));
+  let added = false;
+
+  for (const [position, row] of templateRows.entries()) {
+    const skillPath = row.line.match(catalogSkillPathPattern)?.[0];
+    if (!skillPath || !shippedPaths.has(skillPath) || lines.some((line) => line.includes(skillPath))) continue;
+
+    // A row with the same name under another path is the project's choice.
+    const section = catalogRows(lines).filter((candidate) => candidate.heading === row.heading);
+    if (section.length === 0 || section.some((candidate) => candidate.name === row.name)) continue;
+    const sameSection = templateRows.filter((candidate) => candidate.heading === row.heading);
+    const indexInSection = sameSection.indexOf(templateRows[position]);
+    const find = (name) => section.find((candidate) => candidate.name === name);
+    const before = sameSection.slice(0, indexInSection).reverse().map((candidate) => find(candidate.name)).find(Boolean);
+    const after = sameSection.slice(indexInSection + 1).map((candidate) => find(candidate.name)).find(Boolean);
+    const insertAt = before ? before.index + 1 : after ? after.index : section.at(-1).index + 1;
+    lines.splice(insertAt, 0, row.line);
+    added = true;
+  }
+
+  return added ? lines.join('\n') : existingContent;
+}
+
+function resolvePlannedContent({ relativePath, templateContent, existingContent, discoveredSkillEntries = [], catalog, modelProfiles = {}, migratedInstructions = {}, shippedPaths = new Set() }) {
   // First install of the neutral layout over hand-written Copilot instructions:
   // the project's own rules become the neutral file instead of the template.
   if (existingContent === null && typeof migratedInstructions[relativePath] === 'string') {
@@ -647,6 +724,11 @@ function resolvePlannedContent({ relativePath, templateContent, existingContent,
       strategy: 'merged',
       content: mergeDocsReadme({ existingContent, templateContent })
     };
+  }
+
+  if (skillCatalogRowPaths.has(relativePath)) {
+    const content = addMissingCatalogRows({ existingContent, templateContent, shippedPaths });
+    if (content !== existingContent) return { strategy: 'catalog_rows', content };
   }
 
   if (skillCatalogPreservePaths.has(relativePath)) {
@@ -690,11 +772,38 @@ function mergeSkillRegistryJson({ existingContent, templateContent, discoveredSk
     ...existing,
     schema_version: existing.schema_version ?? incoming.schema_version ?? '1.0.0',
     canonical_source: existing.canonical_source ?? incoming.canonical_source ?? '.agents/skills/registry.md',
-    skills: mergeRegistryEntries(stillPresent(existing.skills), [...normalizeRegistryEntries(incoming.skills), ...discoveredSkillEntries.filter((entry) => entry.class !== 'Standards/pattern')]),
-    pattern_skills: mergeRegistryEntries(stillPresent(existing.pattern_skills), [...normalizeRegistryEntries(incoming.pattern_skills), ...discoveredSkillEntries.filter((entry) => entry.class === 'Standards/pattern')])
+    skills: addDiscoveredEntries(
+      mergeRegistryEntries(stillPresent(existing.skills), incoming.skills),
+      discoveredSkillEntries.filter((entry) => entry.class !== 'Standards/pattern')
+    ),
+    pattern_skills: addDiscoveredEntries(
+      mergeRegistryEntries(stillPresent(existing.pattern_skills), incoming.pattern_skills),
+      discoveredSkillEntries.filter((entry) => entry.class === 'Standards/pattern')
+    )
   };
 
   return `${JSON.stringify(merged, null, 2)}\n`;
+}
+
+function isAutoDiscoveredEntry(entry) {
+  return typeof entry.runtime_notes === 'string' && entry.runtime_notes.startsWith('Auto-discovered');
+}
+
+// A skill found on disk only fills a gap. An entry the kit ships or the
+// project wrote for the same path or key keeps its name, trigger and posture;
+// only an entry an earlier update discovered is refreshed from the SKILL.md.
+function addDiscoveredEntries(entries, discoveredEntries) {
+  const result = [...entries];
+  for (const discovered of discoveredEntries) {
+    const key = registryEntryIdentity(discovered);
+    const position = result.findIndex((entry) => registryEntryPath(entry) === discovered.path || registryEntryIdentity(entry) === key);
+    if (position === -1) {
+      result.push(discovered);
+    } else if (isAutoDiscoveredEntry(result[position])) {
+      result[position] = discovered;
+    }
+  }
+  return result;
 }
 
 function mergeRegistryEntries(existingEntries, incomingEntries) {
@@ -953,22 +1062,42 @@ function projectInstructionWrapperOperations({ targetPath, runtimes, operations,
     .map((operation) => ({ ...operation, plannedChecksum: computeChecksum(operation.content) }));
 }
 
-// The AI workspace (.ai-work/) must be ignored by Git in the target repository.
-// The entry is appended once; .gitignore stays user-owned, so the operation
+// Local state the kit writes in the target repository must be ignored by Git:
+// the AI workspace (.ai-work/) and the rollback journal of the last apply,
+// which only makes sense on the machine that ran it (a teammate running
+// rollback from a committed copy would undo someone else's update). Missing
+// entries are appended once; .gitignore stays user-owned, so the operation
 // carries no checksum and never enters install-state.
 export const workspaceDirectory = '.ai-work';
 const workspaceIgnoreEntry = `${workspaceDirectory}/`;
 
-export function gitignoreHasWorkspaceEntry(content) {
-  return String(content).split(/\r?\n/).some((line) => {
-    const entry = line.trim().replace(/^\//, '');
-    return entry === workspaceIgnoreEntry || entry === workspaceDirectory;
-  });
+function gitignoreEntries(content) {
+  return String(content).split(/\r?\n/).map((line) => line.trim().replace(/^\//, ''));
 }
+
+export function gitignoreHasWorkspaceEntry(content) {
+  return gitignoreEntries(content).some((entry) => entry === workspaceIgnoreEntry || entry === workspaceDirectory);
+}
+
+export function gitignoreHasApplyJournalEntry(content) {
+  return gitignoreEntries(content).includes(applyJournalRelativePath);
+}
+
+const localStateIgnoreBlocks = [
+  {
+    id: 'workspace',
+    present: gitignoreHasWorkspaceEntry,
+    block: `# AI workflow workspace (temporary coordination state)\n${workspaceIgnoreEntry}\n`
+  },
+  {
+    id: 'apply-journal',
+    present: gitignoreHasApplyJournalEntry,
+    block: `# workflow-kit rollback journal (local to the machine that ran the last apply)\n/${applyJournalRelativePath}\n`
+  }
+];
 
 async function buildWorkspaceIgnoreOperations({ targetPath, backupMode }) {
   const targetFile = path.join(targetPath, '.gitignore');
-  const block = `# AI workflow workspace (temporary coordination state)\n${workspaceIgnoreEntry}\n`;
   let existing = null;
   try {
     existing = await fs.readFile(targetFile, 'utf8');
@@ -976,10 +1105,14 @@ async function buildWorkspaceIgnoreOperations({ targetPath, backupMode }) {
     if (error.code !== 'ENOENT') throw error;
   }
 
+  const missing = localStateIgnoreBlocks.filter((item) => !item.present(existing ?? ''));
+  if (missing.length === 0) return [];
+  const blocks = missing.map((item) => item.block).join('\n');
+  const ignoredEntries = missing.map((item) => item.id);
+
   if (existing === null) {
-    return [{ operation: 'create', relativePath: '.gitignore', targetFile, sourcePath: null, content: block }];
+    return [{ operation: 'create', relativePath: '.gitignore', targetFile, sourcePath: null, content: blocks, ignoredEntries }];
   }
-  if (gitignoreHasWorkspaceEntry(existing)) return [];
 
   const separator = existing.length === 0 || existing.endsWith('\n') ? '' : '\n';
   return [{
@@ -987,7 +1120,8 @@ async function buildWorkspaceIgnoreOperations({ targetPath, backupMode }) {
     relativePath: '.gitignore',
     targetFile,
     sourcePath: null,
-    content: `${existing}${separator}\n${block}`
+    content: `${existing}${separator}\n${blocks}`,
+    ignoredEntries
   }];
 }
 

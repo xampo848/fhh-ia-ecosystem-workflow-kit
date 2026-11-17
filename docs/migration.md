@@ -73,8 +73,10 @@ files; a second update right after is a no-op. The full version history is in
 After an update (since `0.16.1`): if you copy the new version of a protected
 file over your edited one, the next `update` reports it as `unchanged` and
 stops protecting it. If your repository keeps its own skill catalogs,
-`doctor` reports `skills/local-catalog-missing-skill` for skills that later
-versions added; add those rows by hand. The steps that belong to each project
+`update` adds the rows of skills that later versions ship (since `0.17.2`;
+before, `doctor` reported `skills/local-catalog-missing-skill` and the rows
+had to be added by hand), and it adds `.agents/workflow-kit/last-apply.json`
+to `.gitignore`. The steps that belong to each project
 are listed in the README, section "Per-project setup after installing".
 
 Neutral structure (since `0.15.0`):

@@ -169,8 +169,8 @@ test('a protected file that already matches the new version is no longer reporte
   assert.equal(protectedPlan.operations.find((item) => item.relativePath === relativePath).operation, 'skip_modified');
 });
 
-// Projects that keep their own skill catalogs do not receive new rows, so a
-// newly installed skill stays invisible to the router until someone adds it.
+// A project catalog can still miss a row (another layout, or a project script
+// regenerated it), and then the installed skill is invisible to the router.
 test('doctor reports installed skills that a preserved local catalog does not list', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));

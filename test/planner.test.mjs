@@ -437,3 +437,101 @@ test('buildUpdatePlan keeps one registry entry per skill path and heals earlier 
     await applyInstallPlan(plan);
   }
 });
+
+test('buildUpdatePlan adds rows of newly shipped skills to project-owned catalogs without taking them over', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral', toolkitVersion: '0.6.0-test' }));
+
+  // A catalog written before implement-change shipped, plus one project row.
+  const customRow = '| `zz-project-skill` | Project trigger | `.agents/skills/local/zz-project-skill/SKILL.md` | lean |';
+  const indexPath = path.join(target, '.agents/skills/index.md');
+  const shippedIndex = await fs.readFile(indexPath, 'utf8');
+  const implementChangeRow = shippedIndex.split('\n').find((line) => line.startsWith('| `implement-change`'));
+  assert.ok(implementChangeRow, 'the shipped index lists implement-change');
+  const olderIndex = shippedIndex
+    .split('\n')
+    .filter((line) => line !== implementChangeRow)
+    .join('\n')
+    .replace(/(\| `workflow-router` [^\n]*)/, `$1\n${customRow}`);
+  await fs.writeFile(indexPath, olderIndex, 'utf8');
+
+  const registryMdPath = path.join(target, '.agents/skills/registry.md');
+  const shippedRegistryMd = await fs.readFile(registryMdPath, 'utf8');
+  await fs.writeFile(registryMdPath, shippedRegistryMd.split('\n').filter((line) => !line.startsWith('| `implement-change`')).join('\n'), 'utf8');
+
+  const plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral', toolkitVersion: '0.7.0-test' });
+  const indexOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/index.md');
+  assert.equal(indexOperation.operation, 'merge_with_backup');
+  const lines = indexOperation.content.split('\n');
+  assert.ok(lines.includes(implementChangeRow), 'the missing kit row is added');
+  assert.ok(lines.includes(customRow), 'project rows are kept');
+  assert.equal(lines.indexOf(implementChangeRow) + 1, lines.findIndex((line) => line.startsWith('| `implement-prd`')), 'the row lands in name order inside its table');
+
+  const registryMdOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/registry.md');
+  assert.equal(registryMdOperation.operation, 'merge_with_backup');
+  assert.equal(registryMdOperation.content, shippedRegistryMd, 'the row returns to its original place in the inventory');
+
+  await applyInstallPlan(plan);
+  const state = JSON.parse(await fs.readFile(path.join(target, installStateRelativePath), 'utf8'));
+  assert.equal('.agents/skills/index.md' in state.files, false, 'the catalog stays project-owned');
+  assert.equal('.agents/skills/registry.md' in state.files, false, 'the catalog stays project-owned');
+
+  const again = await buildUpdatePlan({ targetPath: target, runtime: 'neutral', toolkitVersion: '0.7.0-test' });
+  assert.equal(again.operations.find((item) => item.relativePath === '.agents/skills/index.md').operation, 'skip_unmanaged');
+});
+
+test('buildInstallPlan keeps a curated registry entry when the skill frontmatter uses another name', async () => {
+  const target = await makeTempRepo();
+  const skillPath = '.agents/skills/01-product/create-investigation-report/SKILL.md';
+  await fs.mkdir(path.join(target, path.dirname(skillPath)), { recursive: true });
+  await fs.writeFile(path.join(target, skillPath), '---\nname: investigation-report\ndescription: Generic description\n---\n\n# Skill\n', 'utf8');
+  await fs.writeFile(path.join(target, '.agents/skills/registry.json'), `${JSON.stringify({
+    schema_version: '1.0.0',
+    skills: [{
+      name: 'create-investigation-report',
+      class: 'Workflow',
+      path: skillPath,
+      trigger: 'Curated trigger',
+      loading_posture: 'Explicit-only',
+      key: 'create-investigation-report'
+    }],
+    pattern_skills: []
+  }, null, 2)}\n`, 'utf8');
+
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
+  const merged = JSON.parse(plan.operations.find((item) => item.relativePath === '.agents/skills/registry.json').content);
+  const entries = merged.skills.filter((entry) => entry.path === skillPath);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].key, 'create-investigation-report');
+  assert.equal(entries[0].trigger, 'Curated trigger');
+});
+
+test('buildUpdatePlan refreshes an auto-discovered registry entry when its skill changes', async () => {
+  const target = await makeTempRepo();
+  const skillPath = '.agents/skills/local/renamed-skill/SKILL.md';
+  await fs.mkdir(path.join(target, path.dirname(skillPath)), { recursive: true });
+  await fs.writeFile(path.join(target, skillPath), '---\nname: old-name\ndescription: Old\n---\n', 'utf8');
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+
+  await fs.writeFile(path.join(target, skillPath), '---\nname: new-name\ndescription: New\n---\n', 'utf8');
+  const plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral' });
+  const merged = JSON.parse(plan.operations.find((item) => item.relativePath === '.agents/skills/registry.json').content);
+  const entries = merged.skills.filter((entry) => entry.path === skillPath);
+  assert.deepEqual(entries.map((entry) => entry.key), ['new-name']);
+});
+
+test('buildUpdatePlan leaves a catalog alone when it lists the skill under another path or has no matching table', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  const indexPath = path.join(target, '.agents/skills/index.md');
+  const shipped = await fs.readFile(indexPath, 'utf8');
+
+  const moved = shipped.replace('.agents/skills/02-implement/implement-change/SKILL.md', '.agents/skills/local/implement-change/SKILL.md');
+  await fs.writeFile(indexPath, moved, 'utf8');
+  let plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral' });
+  assert.equal(plan.operations.find((item) => item.relativePath === '.agents/skills/index.md').operation, 'skip_unmanaged');
+
+  await fs.writeFile(indexPath, '# Our skills\n\n- implement-prd\n', 'utf8');
+  plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral' });
+  assert.equal(plan.operations.find((item) => item.relativePath === '.agents/skills/index.md').operation, 'skip_unmanaged');
+});
