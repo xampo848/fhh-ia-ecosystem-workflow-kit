@@ -8,7 +8,8 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const idPattern = /\b(?:AC|UC|INV(?:-[A-Z0-9]+)*|P\d+-S)-?\d+\b/g;
+// Ids may carry a letter suffix (AC-1a, P2-S2b) or omit the dash (AC1).
+const idPattern = /\b(?:AC|UC|INV(?:-[A-Z0-9]+)*|P\d+-S)-?\d+[A-Za-z]?\b/g;
 export const edgeCaseCategories = ['datos vacios', 'limites', 'errores', 'permisos/tenancy', 'concurrencia/orden', 'rollout/rollback'];
 
 function normalize(text) {

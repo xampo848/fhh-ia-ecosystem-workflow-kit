@@ -7,7 +7,7 @@ available.
 
 | Capability | GitHub Copilot (when the tool is present) | Any runtime with the `gh` CLI |
 | --- | --- | --- |
-| Read the active PR and its review threads | `github-pull-request_activePullRequest` | `gh pr view --json number,title,url,reviews,comments,statusCheckRollup`, plus the review threads with their ids: `gh api graphql -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){reviewThreads(first:100){nodes{id isResolved path line comments(first:20){nodes{author{login} body}}}}}}}' -F o=<owner> -F r=<repo> -F n=<number>` |
+| Read the active PR and its review threads | `github-pull-request_activePullRequest` | `gh pr view --json number,title,url,reviews,comments,statusCheckRollup`, plus the review threads with their ids: `gh api graphql --paginate -f query='query($o:String!,$r:String!,$n:Int!,$endCursor:String){repository(owner:$o,name:$r){pullRequest(number:$n){reviewThreads(first:100,after:$endCursor){pageInfo{hasNextPage endCursor} nodes{id isResolved path line comments(first:100){totalCount nodes{author{login} body}}}}}}}' -F o=<owner> -F r=<repo> -F n=<number>` (`--paginate` follows every page of threads; when a thread's `totalCount` is over 100, read the rest of that thread before deciding) |
 | Resolve a thread | `github-pull-request_resolveReviewThread` | `gh api graphql -f query='mutation($id:ID!){resolveReviewThread(input:{threadId:$id}){thread{isResolved}}}' -F id=<thread id>` |
 | Post a reply | the runtime's PR reply tool | `gh api repos/<owner>/<repo>/pulls/<number>/comments/<comment id>/replies -f body=<text>` |
 

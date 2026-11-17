@@ -68,6 +68,15 @@ test('PRD index verifier catches missing ids, missing edge-case categories and a
   assert.ok(stale.failures.some((failure) => failure.includes('AC-3')));
 });
 
+test('PRD index verifier recognizes ids with a letter suffix', () => {
+  const prd = '# PRD\n| AC-1 | a |\n| AC-1a | b |\n| AC2 | c |\n| P2-S2b | d |\n';
+  assert.deepEqual(extractPrdIds(prd), ['AC-1', 'AC-1a', 'AC2', 'P2-S2b']);
+  const index = `prd_sha256: ${prdHash(prd)}\nAC-1\nAC2\nP2-S2b\n`;
+  const result = verifyPrdIndex({ prd, index });
+  assert.equal(result.ok, false);
+  assert.ok(result.failures.some((failure) => failure.includes('AC-1a')));
+});
+
 test('project-context.md is created once, never overwritten, and checked by doctor', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));

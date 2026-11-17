@@ -5,6 +5,40 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.17.3-contract-gaps
+
+Fixes from a Copilot review of a project updated to 0.17.2; every item was a
+contradiction between kit files.
+
+- Broken links: `create-prd` pointed its self-audit hard gate and the
+  critical-stance rule at missing paths. A test now checks every relative link
+  inside skills.
+- `acceptance-test-engineer`: only unit and component tests must mock every
+  request; integration and E2E tests (Playwright) may call the local app under
+  test. E2E results are never reused between stages, as `evidence-reuse.md`
+  already said.
+- PRD scripts count ids with a letter suffix or no dash (`AC-1a`, `AC1`,
+  `P2-S2b`), so `verify-prd-index.mjs` no longer passes an index that misses
+  one. `prd-size-signals.mjs --open-blocking` raises the signal when blocking
+  questions stay open after the last allowed round; before, it never fired.
+- Delegate contract summary: delegates may read their owned source and test
+  files, direct callers and contracts, the PRD index entries for the slice, and
+  selected patterns. All runtime adapters are regenerated.
+- PRD index (N3): Capitana returns it in its handoff and the orchestrator
+  writes and verifies it, since Capitana does not edit files. A bug or ticket
+  at N3 without a PRD has no index; Capitana returns a readiness brief instead.
+- N2: a delegated coding slice always gets its execution lock, even when it is
+  the only slice, because `VERIFIED` requires it.
+- N1 pre-filter: when behavior changes, the focused check is the touched
+  tests; lint or build alone is not enough. For a bug, the test fails before
+  the fix and passes after it.
+- `validation-runner` looks for a layer's command in `project-context.md`, the
+  stack rules, the quality gate, and then the layer instructions before
+  reporting that none is declared.
+- Iterations resolve the section 10 reference to a commit and compare with
+  `git diff <ref> -- <files>`, which includes uncommitted changes.
+- `pr-comments-resolution` paginates review threads.
+
 ## 0.17.2-catalog-rows
 
 - `update` adds the rows of newly shipped skills to the skill catalogs your

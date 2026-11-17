@@ -71,8 +71,8 @@ decide the work:
 | Input type | PRD, bug, ticket, iteration | evidence: AC coverage, failing-first test, ticket AC, delta plus regression |
 
 An **iteration** over an implemented PRD uses its `## 10. Evidencia de
-Implementacion` as the map, checks freshness with `git diff <ref>..HEAD` on the
-delivered files, runs the original feature's regression tests, and closes with
+Implementacion` as the map, checks freshness with `git diff <ref> -- <files>` (working
+tree included) on the delivered files, runs the original feature's regression tests, and closes with
 an "Iteración N" subsection. **Autonomous** execution is offered for N2/N3 and
 chosen per run; supervised is the default. Former mode names map to levels:
 `small/local` → N1, `controlled-*` → N2, `standard` → N3.

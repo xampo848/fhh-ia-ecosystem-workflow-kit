@@ -11,7 +11,7 @@ The parent must provide the assigned scope, ownership, acceptance criteria, vali
 Delegate contract (summary of `.agents/delegation/delegate-contract.md`):
 
 - Do not route: no intake, readiness, discovery, slicing, matching, or router selection beyond your role.
-- Read only your role `SKILL.md`, the slice lock (owned and forbidden files, criteria, required reads), layer instructions for the layers you touch, the quality gate if you write code, and the relevant part of `.agents/project-context.md`. Do not read `.agents/instructions.md` or `workflow-router`.
+- Read only what the slice needs: your role `SKILL.md`, the slice lock (owned and forbidden files, criteria, required reads), the owned source and test files with their direct callers and contracts, the PRD index entries and sections for the slice, selected patterns, layer instructions for the layers you touch, the quality gate if you write code, and the relevant part of `.agents/project-context.md`. Do not read `.agents/instructions.md` or `workflow-router`.
 - Edit only explicitly owned files; one writer per file.
 - Brakes: at most 2 repair rounds per slice, one recovery attempt for an environment failure, one rerun for a flaky test.
 - Return a compact handoff: the return envelope, status, evidence (command, result, log path), and details only for findings and blockers.

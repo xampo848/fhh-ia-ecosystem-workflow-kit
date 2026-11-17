@@ -11,10 +11,13 @@ omitted.
 ## Startup
 
 1. `capitana-alcance` reads the input completely **once** (PRD sections per
-   `input-types.md`) and delivers the PRD index
-   (`.ai-work/<prd-slug>/prd-index.toon`, defined in
-   `../../prd-readiness-review/SKILL.md`). Verify it with
-   `verify-prd-index.mjs` as soon as it arrives. The orchestrator keeps the
+   `input-types.md`) and returns the PRD index (defined in
+   `../../prd-readiness-review/SKILL.md`). Write it to
+   `.ai-work/<prd-slug>/prd-index.toon` and verify it with
+   `verify-prd-index.mjs` as soon as it arrives. A bug or ticket without a
+   PRD has no index: Capitana returns a readiness brief from the report or
+   ticket (reproduction or acceptance criteria, affected area, blockers), and
+   Discovery and slicing work from that brief. The orchestrator keeps the
    index, not the whole PRD, and reads a referenced section when it needs
    detail. Discovery and slicing receive the index and only the sections they
    need. Read `.agents/project-context.md` before any Discovery.

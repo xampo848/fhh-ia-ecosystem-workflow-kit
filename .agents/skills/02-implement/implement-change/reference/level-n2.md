@@ -63,13 +63,17 @@ documented fallback docs and risk.
 
 ## Coordination state
 
-Tracker and execution locks are N3 coordination. At N2 use them only when the
-change has more than one slice:
+Tracker and execution locks are N3 coordination. At N2 keep the tracker only
+when the change has more than one slice; create execution locks then, and also
+for every delegated coding slice, even a single one, because a delegated slice
+cannot be marked `VERIFIED` without its lock:
 
-- Maintain the physical tracker at `.ai-work/<prd-slug>/task_tracker.toon`
-  (template in `../../implement-prd/reference/task-tracker-template.md`) for
-  coordination only; it is not closure authority.
-- Initialize the ignored immutable execution lock for each coding slice at
+- With more than one slice, maintain the physical tracker at
+  `.ai-work/<prd-slug>/task_tracker.toon` (template in
+  `../../implement-prd/reference/task-tracker-template.md`) for coordination
+  only; it is not closure authority.
+- Initialize the ignored immutable execution lock for each coding slice in
+  those cases at
   `.ai-work/<prd-slug>/locks/<slice-id>.toon` (fields in `level-n3.md`,
   "Execution Lock Baseline").
 - For visible UI, do not start a coding slice until the PRD Contrato Visual is
