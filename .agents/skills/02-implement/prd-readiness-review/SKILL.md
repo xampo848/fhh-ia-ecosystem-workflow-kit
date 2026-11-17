@@ -18,7 +18,7 @@ Optimize for the smallest useful readiness verdict. A readiness review should pr
 
 ## Inputs From Orchestrator
 
-- PRD path or PRD text.
+- PRD path or PRD text; at N3 without a PRD, the bug report or ticket (no PRD index is built for it).
 - Any user clarifications already given in the thread.
 - Current goal: new implementation or resume.
 - Candidate operating mode when already selected by `implement-change`.
@@ -47,12 +47,14 @@ Do not load code quality documents during readiness. Code-writing delegates load
 9. Run the granularity audit below. Distinguish a coarse plan that slicing can safely refine from a PRD that lacks enough behavioral detail to refine without guessing.
 10. Detect blocking ambiguity. Treat these as blockers: unresolved business rules, destructive migrations, public API changes, permissions gaps, multi-tenancy uncertainty, missing i18n requirements, unclear acceptance criteria, acceptance criteria with no falsifiable evidence path, or visible UI whose Contrato Visual is missing, unlocked, or would still force implementation to invent the screen. Use `cavecrew-investigator` for repo-answerable scope or ownership lookups before escalating a question to the user.
 11. Recommend the safest level (N2 or N3) and produce a stop or go decision.
-12. At N3, build the **PRD index** described below so later stages do not reread the whole PRD.
+12. At N3 with a PRD, build the **PRD index** described below so later stages do not reread the whole PRD.
 
 ## PRD Index (N3)
 
-Capitana Alcance reads the full PRD **once** and writes
-`.ai-work/<prd-slug>/prd-index.toon`. Discovery, slicing, and the orchestrator
+Capitana Alcance reads the full PRD **once** and returns the index in its
+handoff; it does not edit files. The orchestrator writes it to
+`.ai-work/<prd-slug>/prd-index.toon` (inline, it builds and writes it
+itself). Discovery, slicing, and the orchestrator
 then work from the index plus the sections they need; the orchestrator keeps
 the index, not the whole PRD, in context.
 
@@ -76,11 +78,12 @@ Rules:
    copied verbatim. Sections with nuance (business rules in prose, the
    Contrato Visual) are not summarized: list them in `read_in_full` for the
    roles that need them.
-2. **Verify it when it is created.** Run
+2. **Verify it when it is written.** The orchestrator runs
    `node .agents/skills/02-implement/prd-readiness-review/scripts/verify-prd-index.mjs --prd <prd> --index <index>`.
    It compares the PRD's ids (AC, UC, INV, slice ids) and mandatory edge-case
-   categories with the index and fails on any omission. Fix the index before
-   handing off; catching a gap here is free, catching it at QA is rework.
+   categories with the index and fails on any omission. Send the gaps back to
+   Capitana for a corrected index before Discovery starts; catching a gap here
+   is free, catching it at QA is rework.
 3. **Freshness.** The index stores the PRD hash and lives in the workspace, so
    it survives a resume. If the PRD changes during implementation the hash no
    longer matches: regenerate the index.

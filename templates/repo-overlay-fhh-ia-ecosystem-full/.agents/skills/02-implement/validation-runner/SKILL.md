@@ -30,8 +30,11 @@ If `bin/validate-slice` does not exist in the target repository, its absence is 
 
 If the wrapper is too broad for an isolated quick check, fall back to the
 narrowest lint or fast test command declared for the touched layer in
-`.agents/project-context.md` (or `.agents/project/stack.md`). If no command is
-declared for that layer, report it instead of guessing one.
+`.agents/project-context.md`, `.agents/project/stack.md`, the quality gate, or
+that layer's instructions (`.agents/project/backend.md`,
+`.agents/project/frontend.md`, or the paths in `.agents/project/paths.json`),
+in that order. If no command is declared anywhere for that layer, report it
+instead of guessing one.
 
 ## Procedure
 

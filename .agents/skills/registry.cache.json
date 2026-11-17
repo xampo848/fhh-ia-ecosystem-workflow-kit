@@ -21,7 +21,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/acceptance-test-engineer/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "7df25fcf1e435394d02128653a0581b875266fb32c2de9117fb2875a48b9caab"
+      "skill_sha256": "cbefaa476ea5416576057c3c7d1115a53c64464215860122b970284e65caba44"
     },
     {
       "key": "backend-phase-implementer",
@@ -129,7 +129,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/codebase-discovery/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "56d821e21738db1fd47ee6ca40f771297ee200daee07b39a2f951048cd588c7d"
+      "skill_sha256": "5186c7cfe809b7010706e4b0f09c48bf676a61f877ebcc5a0ca6b226050a92b3"
     },
     {
       "key": "contract-verifier",
@@ -246,7 +246,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/implementation-slicing/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "940116c814147aec6e3c78321a4afa556e700c2efcb195038371d771eef0fa3b"
+      "skill_sha256": "b88bf7fc84452775d2eb0500bd5470137f75702c299f929cd23100f4dd09737c"
     },
     {
       "key": "pattern-authoring-add-project-pattern",
@@ -291,7 +291,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/prd-readiness-review/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "d68669d138151fc18bc87014be54a5a9ec58788c371fcd8cab22eb019ad5815c"
+      "skill_sha256": "cc142694a7c9c3d5fe2d13bcd2999a05c8c26d37de35f1d0c39b755fa7ebb4fc"
     },
     {
       "key": "project-formation",
@@ -390,7 +390,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/validation-runner/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "b6134ac8a273e7d64b740ee9e58b5c90bf1136a1eea0e9b74fd87768bad292d7"
+      "skill_sha256": "1e9edea4c7648d77f64881eadc64ea3c6880d8a03fc4d216c0bc100661fac018"
     },
     {
       "key": "workflow-router",

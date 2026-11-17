@@ -87,6 +87,7 @@ test('one N1 procedure per entry path and a placeholder project context never bl
   assert.match(core, /when it exists and is filled in; if it still\s+contains `\[TODO\]` placeholders, say `project context: no configurado` once and\s+continue/);
   assert.doesNotMatch(core, /before exploring code at any level/);
   assert.match(n2, /The N2 default is `avoided`/);
-  assert.match(n2, /Tracker and execution locks are N3 coordination\. At N2 use them only when the\s+change has more than one slice/);
+  assert.match(n2, /Tracker and execution locks are N3 coordination\. At N2 keep the tracker only\s+when the change has more than one slice/);
+  assert.match(n2, /every delegated coding slice, even a single one/);
   assert.doesNotMatch(n2, /Code-writing defaults to the specialized implementers/);
 });

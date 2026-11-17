@@ -18,7 +18,7 @@ Level pre-filter (apply to every new user prompt before loading any workflow fil
 
 - The level is the highest signal that applies; when unsure between two levels, pick the higher one.
 - N0: act directly without reading workflow files or emitting a trace; after 3 tool calls, stop and propose N1.
-- N1: emit one line (`N1 · surgical · <files>`), wait for a short yes, edit only the target files, and run one focused check (lint, build, or test). Add or update a test only when behavior changes; for a bug, the test must fail before the fix.
+- N1: emit one line (`N1 · surgical · <files>`), wait for a short yes, edit only the target files, and run one focused check (lint, build, or test). When behavior changes, add or update a test and make that check the touched tests (lint or build alone is not enough); for a bug, the test must fail before the fix and pass after it.
 - N2/N3: apply `.agents/instructions.md` and `workflow-router` before planning, editing, or implementing.
 - If something unexpected appears in N0 or N1 (another file, a contract, a test you do not understand), stop and propose a higher level.
 - The user can force a level ("hazlo quirúrgico", "hazlo completo"); forcing below an N3 signal requires naming the risk first.
