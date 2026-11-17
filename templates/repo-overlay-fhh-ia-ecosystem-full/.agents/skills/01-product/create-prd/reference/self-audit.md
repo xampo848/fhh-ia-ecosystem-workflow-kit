@@ -38,7 +38,8 @@ Challenge the draft:
 ## Size Signals
 
 Measure the PRD before declaring it ready. Run
-`node .agents/skills/01-product/create-prd/scripts/prd-size-signals.mjs --prd <prd> [--hazards <n>] [--question-rounds <n>]`
+`node .agents/skills/01-product/create-prd/scripts/prd-size-signals.mjs --prd <prd> [--hazards <n>] [--question-rounds <n>] [--open-blocking]`
+(add `--open-blocking` when blocking questions are still open after the last round)
 or count by hand:
 
 | Signal | Default threshold |

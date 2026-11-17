@@ -31,6 +31,20 @@ test('PRD size signals: one signal warns, two propose a split, length never coun
   assert.equal(evaluatePrdSize(measurePrd(manyCriteria, { questionRounds: 4 })).verdict, 'propose-split');
 });
 
+test('PRD size signals count suffixed ids and fire when blocking questions remain after the last round', () => {
+  const suffixed = measurePrd('AC1 AC-1a AC-1b AC-2 P2-S2 P2-S2b');
+  assert.equal(suffixed.acceptanceCriteria, 4);
+  assert.equal(suffixed.slices, 2);
+
+  // ambiguity-detection allows at most 3 rounds, so "more than 3" never happens.
+  const prd = Array.from({ length: 21 }, (_, n) => `AC-${n + 1}`).join('\n');
+  const open = evaluatePrdSize(measurePrd(prd, { questionRounds: 3, openBlockingQuestions: true }));
+  assert.equal(open.verdict, 'propose-split');
+  assert.ok(open.signals.some((signal) => signal.includes('blocking questions')));
+  const resolved = evaluatePrdSize(measurePrd(prd, { questionRounds: 3, openBlockingQuestions: false }));
+  assert.equal(resolved.verdict, 'warning', 'three resolved rounds are not a signal');
+});
+
 test('create-prd asks better questions, tracks assumptions and lists what becomes obsolete', async () => {
   const [template, ambiguity, calibration, audit, skill] = await Promise.all([
     read(`${createPrd}/PRD_TEMPLATE.md`),
