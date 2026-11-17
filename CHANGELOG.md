@@ -5,6 +5,24 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.17.2-catalog-rows
+
+- `update` adds the rows of newly shipped skills to the skill catalogs your
+  repository keeps (`.agents/skills/index.md`, `.agents/skills/registry.md`,
+  `.agents/skills/06-patterns/index.md`). Before, it preserved them untouched,
+  so `implement-change` stayed invisible to the router after updating. Rows go
+  next to the related skills inside the table under the same heading; your
+  rows are never changed and the files stay yours (not in install-state).
+- `registry.json` keeps the entry you or the kit registered for a skill. A
+  skill found on disk only fills a gap; before, an entry whose `SKILL.md`
+  frontmatter used another name was renamed to that name.
+- Install and update add `.agents/workflow-kit/last-apply.json` (the local
+  rollback journal) to `.gitignore`. If it was committed earlier, run
+  `git rm --cached .agents/workflow-kit/last-apply.json`.
+- Model routing: when subscription limits are hit in `calidad`, lower
+  `guardia-contrato` and `testinator-5000` to Mediano first and keep
+  `arquitecta-fases` and `qa-relampago` on Grande.
+
 ## 0.17.1-stack-detection
 
 - `update` no longer installs the `rails-react` stack pack in every repository

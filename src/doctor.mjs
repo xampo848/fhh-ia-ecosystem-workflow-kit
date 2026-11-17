@@ -68,9 +68,11 @@ function managedVersionDiagnostics(state) {
   }];
 }
 
-// A project that keeps its own skill catalogs (update preserves them) does not
-// receive the rows of skills added by later versions. The skill is installed,
-// but the router discovers skills through the index, so it stays invisible.
+// A project keeps its own skill catalogs. Update adds the rows of skills added
+// by later versions, but only inside a table under the same heading; a catalog
+// with another layout, or one a project script regenerated afterwards, can
+// still miss a row. The skill is installed, but the router discovers skills
+// through the index, so it stays invisible.
 const localSkillCatalogs = ['.agents/skills/index.md', '.agents/skills/registry.md'];
 const skillPathPattern = /\.agents\/skills\/[A-Za-z0-9/_-]+\/SKILL\.md/g;
 
@@ -101,7 +103,7 @@ async function localCatalogDiagnostics({ targetPath, files }) {
       diagnostics.push({
         code: 'skills/local-catalog-missing-skill',
         path: relativePath,
-        message: `Installed but not listed here, so the router cannot discover ${absent.length === 1 ? 'it' : 'them'}: ${absent.sort().join(', ')}. This catalog is yours and update preserves it; copy the missing row${absent.length === 1 ? '' : 's'} from the workflow-kit version of this file.`,
+        message: `Installed but not listed here, so the router cannot discover ${absent.length === 1 ? 'it' : 'them'}: ${absent.sort().join(', ')}. Run workflow-kit update to add the missing row${absent.length === 1 ? '' : 's'}; if it still appears, this catalog has no table under the workflow-kit heading, so copy the row${absent.length === 1 ? '' : 's'} from the workflow-kit version of this file.`,
         severity: 'warning'
       });
     }

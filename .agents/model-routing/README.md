@@ -92,7 +92,13 @@ Rules:
   Never edit generated agent files by hand; `doctor` fails when an agent's
   model setting does not match its profile.
 - Subscriptions are not unlimited: Opus consumes usage limits faster. If they
-  are hit often in `calidad`, lower `qa-relampago` to Mediano first.
+  are hit often in `calidad`, lower `guardia-contrato` and `testinator-5000`
+  to Mediano first: a public contract still escalates `guardia-contrato` to
+  Grande through `criticalConcerns`, and `testinator-5000` works from explicit
+  acceptance criteria. Keep `arquitecta-fases` and `qa-relampago` on Grande:
+  each runs about once per change, and a planning or final-review miss costs
+  more than it saves. Tiers are not configurable per agent yet;
+  `--profile <runtime>=costo` changes every role at once.
 
 ## User override
 

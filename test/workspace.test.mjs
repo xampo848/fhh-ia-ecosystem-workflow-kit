@@ -93,3 +93,24 @@ test('execution brakes and compact handoffs are part of the shared contract', as
     assert.doesNotMatch(stops, new RegExp(legacy), `${legacy} must be expressed as a level or modifier`);
   }
 });
+
+test('update ignores the rollback journal in a repository that already ignores the workspace', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  const installed = await fs.readFile(path.join(target, '.gitignore'), 'utf8');
+  assert.match(installed, /^\/\.agents\/workflow-kit\/last-apply\.json$/m, 'a fresh install ignores the journal');
+
+  // A repository installed before the journal entry existed.
+  await fs.writeFile(path.join(target, '.gitignore'), 'node_modules/\n.ai-work/\n', 'utf8');
+  const plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral' });
+  const operation = plan.operations.find((item) => item.relativePath === '.gitignore');
+  assert.equal(operation.operation, 'merge_with_backup');
+  assert.deepEqual(plan.migrations.map((item) => item.id).filter((id) => id.includes('ignored') || id.includes('workspace')), ['0.17.2-apply-journal-ignored']);
+  await applyInstallPlan(plan);
+
+  const gitignore = await fs.readFile(path.join(target, '.gitignore'), 'utf8');
+  assert.equal(gitignore.match(/^\.ai-work\/$/gm).length, 1, 'the workspace entry is not repeated');
+  assert.match(gitignore, /^\/\.agents\/workflow-kit\/last-apply\.json$/m);
+  const again = await buildUpdatePlan({ targetPath: target, runtime: 'neutral' });
+  assert.equal(again.operations.some((item) => item.relativePath === '.gitignore'), false);
+});

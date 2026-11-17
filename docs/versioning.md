@@ -30,7 +30,8 @@ released it. Tags of the current lines:
 
 | Tag | Notes |
 | --- | --- |
-| `v0.17.1-stack-detection` | current |
+| `v0.17.2-catalog-rows` | current |
+| `v0.17.1-stack-detection` | |
 | `v0.17.0-audit-hardening` | |
 | `v0.16.2-remove-slidev` | |
 | `v0.16.1-roadmap-closure` | |
