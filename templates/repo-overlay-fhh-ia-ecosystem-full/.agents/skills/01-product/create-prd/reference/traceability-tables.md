@@ -17,6 +17,7 @@ Tests are part of the design, not a follow-up activity.
 
 - Format: `Nivel (unidad/integración/contrato/smoke/e2e) | Objetivo | Caso de uso vinculado | Cobertura esperada | Comando o mecanismo de validación`.
 - Every use case links to at least one row in this table.
+- Each level tests what that layer owns; a rule is not repeated at a higher level (an entry-point row proves wiring, auth, tenancy, and response shape, not the rule's variants).
 - Each slice in the implementation plan must inherit its relevant rows from this table (see Section 4 slice fields).
 
 ### Matriz de Edge Cases (mandatory)
@@ -24,5 +25,6 @@ Tests are part of the design, not a follow-up activity.
 Edge cases must be classified and traceable, not merely narrated in prose.
 
 - Mandatory categories: **datos vacíos**, **límites**, **errores**, **permisos/tenancy**, **concurrencia/orden**, **rollout/rollback**.
-- Format: `Categoría | Descripción | Caso de uso vinculado | Validación (test/contrato/smoke/evidencia manual justificada) | Estado`.
+- Format: `Categoría | Descripción | Caso de uso vinculado | Capa duena | Validación (test/contrato/smoke/evidencia manual justificada) | Estado`.
+- `Capa duena` names the lowest layer that contains the rule (query, service, model, job, entry point, component). The case is tested there only, except permissions/tenancy, which is always tested at the entry point too. Slicing and QA validate against this column (`.agents/skills/02-implement/implement-prd/reference/test-design-rules.md`).
 - Every row maps to at least one validation mechanism. A category with no applicable case must say `No aplica` plus a one-line reason grounded in the actual scope — never a silent omission.

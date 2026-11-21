@@ -36,6 +36,17 @@ read this file together with `.agents/project/backend.md` and
 - Backend: Minitest with the factories and fixtures already present; service, controller, and serializer tests as appropriate. `Bullet` must be active in tests to catch N+1 query regressions.
 - Frontend: Vitest and Testing Library. Mock every network request with MSW (Mock Service Worker); create or update MSW handlers that return deterministic payloads derived from the verified contract.
 
+### Test design in Rails
+
+Rails examples of the workflow's test-design rules
+(`.agents/skills/02-implement/implement-prd/reference/test-design-rules.md`):
+
+- Owning layer: a rule's variants live in the query or service test (`test/queries/`, `test/services/`); `test/controllers/` or `test/integration/` proves authentication, CanCanCan authorization, company isolation, strong-params validation, status, and JSON shape, plus one happy path per rule. A job test (`test/jobs/`) proves `perform`'s record selection, batching, `retry_on`/`discard_on`, and error handling; stub the service or call it once.
+- Table-driven variants: iterate over an array of cases inside one Minitest test, or define the tests from a case table with `[...].each do |input, expected| test "..." do ... end end`.
+- Migration lifecycle: a `test/migrations/` test that runs `up`/`down` or a backfill is deleted once the migration under `db/migrate` is on the main branch. A live constraint, index, trigger, or SQL function is tested in `test/models/` (or `test/db/`) against the current `schema.rb`/`structure.sql`, without requiring a migration class. Never reload an old migration in the suite: its `up` can replace a current SQL function with an old version.
+- Behavior, not implementation: no `instance_variable_get`, `send` to private methods, `method(:x).arity`/`parameters`, or `assert_output` on `puts` unless the output is the contract (a rake task's documented output). Exact counts with `assert_queries`/`assert_queries_count` only in tests named or tagged as performance tests; `Bullet` stays active suite-wide as declared above. Do not test `test/support/` helpers or factories.
+- Cheap setup: keep `use_transactional_tests = true`; disable it only for a test that needs a real commit (threads sharing data across connections, deferred constraints, `after_commit`), with a comment saying why. Prove batching with `batch_size: 2` and three records instead of 100–200 rows. `TracePoint`, `ActiveSupport::Notifications` subscribers, query counters, and `Thread.new` belong only in the tests that verify them, never in `test_helper.rb` or on every request.
+
 ## Validation commands
 
 Copy these into the "Validation commands" table of `.agents/project-context.md`

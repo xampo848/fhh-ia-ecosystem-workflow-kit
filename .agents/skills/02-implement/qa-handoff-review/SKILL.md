@@ -56,7 +56,7 @@ Act as an adversarial final reviewer. Find issues that would block merge, violat
 When the PRD defines a Matriz de Edge Cases, report coverage explicitly by category, not as a single pass/fail aggregate:
 
 - Check each of the six mandatory categories (datos vacíos, límites, errores, permisos/tenancy, concurrencia/orden, rollout/rollback) against the PRD matrix and the implementation evidence.
-- A category is `PASS` only when every PRD row for it has concrete validation evidence (test, contract, smoke, or an explicit user-accepted manual justification).
+- A category is `PASS` only when every PRD row for it has concrete validation evidence (test, contract, smoke, or an explicit user-accepted manual justification) at the layer named in the row's `Capa duena` column. A row proven only at another layer is a `gap`; a row proven again at extra layers is a duplicate finding.
 - A category is a `gap` when a PRD row lacks evidence, or the PRD marks it `No aplica` without a justification grounded in actual scope.
 - `ready_to_close: yes` is not allowed while a critical-category gap is open and unaccepted. Name the exact category and missing row in the review output.
 
@@ -128,7 +128,8 @@ Use this checklist as coverage for the mandatory procedure; it does not replace 
 - Regressions: changed behavior and adjacent existing flows are still safe.
 - Standards: code quality gate, domain instructions, and existing patterns were actually satisfied.
 - Tests: required coverage exists; missing coverage is either justified concretely or escalated.
-- Coverage for new scope: every newly created production file and newly added method/function has executed-test evidence and at least one relevant edge-case assertion, or a named blocker/waiver.
+- Coverage for new scope: every new or changed branch has an executed assertion in its owning layer, or a named blocker/waiver. A method that only delegates needs no test of its own.
+- Test design: run the checklist in `../implement-prd/reference/test-design-rules.md`. Search the touched area's tests by name and by rule: a rule proven again in another layer (an entry point repeating query or service variants, a job re-proving its service) is a duplicate finding; so are implementation-detail assertions, unmarked query counts, expensive default setup, and a migration test whose migration is already on the main branch.
 - Durable closure evidence: `## 10. Evidencia de Implementacion` in the PRD has the delivered changes, AC status, validation results, QA result, change reference, risks/waivers, and closure date; it contains no AI-only coordination state.
 - Matcher consumption: required pattern skills or fallback docs were actually read and reported; optional capabilities are reported accurately.
 - UI smoke/E2E: visible frontend changes have smoke verification, and most navigable user-facing flows include E2E when tooling is available unless an explicit documented exception or user waiver applies.

@@ -74,6 +74,10 @@ the change, are there two sources of truth for X?".
   an explicit ticket, never implicit. This is a business decision: ask the
   user.
 
+Tests count too: tests of the removed behavior, temporary migration tests, tests
+of a one-off tool that leaves, and tests that duplicate a rule this change moves
+to another layer.
+
 Record each item in the PRD's `Que queda obsoleto` table, with a verification
 search that must return zero usages. Only what **this** change makes obsolete
 counts; unrelated dead code is a suggestion, not scope.

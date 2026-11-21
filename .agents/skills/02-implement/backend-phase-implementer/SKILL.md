@@ -59,7 +59,8 @@ Before editing, identify and record:
 - DRY risk: duplicated business rules, enum/status mappings, query logic, authorization, serializer fields, or validations to avoid.
 - KISS/YAGNI constraint: the simplest acceptable service/model/controller shape and any abstraction explicitly not needed.
 - Hardcoding risk: strings, roles, tenant IDs, statuses, severity/category values, thresholds, credentials, URLs, API payload fields.
-- Test evidence required for each acceptance criterion.
+- Test evidence required for each acceptance criterion, with its owning layer.
+- Test DRY risk: existing tests of the same rule in other layers (searched by name and by rule) to extend instead of duplicating, per `.agents/skills/02-implement/implement-prd/reference/test-design-rules.md`.
 
 Reject the implementation or return `blocked` if satisfying the slice requires quality violations outside the assigned scope.
 
@@ -73,7 +74,7 @@ Reject the implementation or return `blocked` if satisfying the slice requires q
 6. Record whether any matcher-suggested optional capability was actually used and whether it was active.
 7. Implement the smallest backend change that satisfies the slice.
 8. Keep business rules in services or domain collaborators, not controllers, serializers, jobs, or callbacks.
-9. Add or update tests with positive, empty/error, auth, tenancy, and contract cases as relevant.
+9. Add or update tests with positive, empty/error, auth, tenancy, and contract cases as relevant, each rule at its owning layer: the service or query proves the rule's variants; the entry point proves authentication, authorization, tenancy, parameters, status, and response shape plus one wiring case; a job proves its own selection, batching, retries, and error handling. Every new branch needs an assertion there; a method that only delegates does not need its own test.
 10. Add i18n keys for any user-facing backend text.
 11. Run the narrowest validation that can falsify the slice, preserving matcher validation hooks when present. Use the backend commands declared in `.agents/project-context.md` (or `.agents/project/stack.md`): the fast focused test target first, a single test file only when it is the narrowest reliable check, and lint only for touched backend files.
 12. Fix root causes. Do not silence tests, weaken assertions, bypass tenant checks, or lower standards.
