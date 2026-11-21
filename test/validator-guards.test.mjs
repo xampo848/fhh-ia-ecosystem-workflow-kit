@@ -8,6 +8,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { validateClaudeSkills } from '../scripts/sync-claude-skills.mjs';
 import { validateDelegateRuntimeAdapters } from '../scripts/sync-delegate-runtime-adapters.mjs';
+import { delegateContractPath, validateDelegateContract } from '../scripts/validate-delegate-contract.mjs';
 import { prefilterTargets, validateLevelPrefilter } from '../scripts/sync-level-prefilter.mjs';
 import { validateLegalReadiness } from '../scripts/validate-legal-readiness.mjs';
 import { validateNeutralPaths } from '../scripts/validate-neutral-paths.mjs';
@@ -118,3 +119,30 @@ test('legal check validates every provenance component, not only the pinned ones
     assert.ok(failures.includes(expected), `${expected}\n---\n${failures.join('\n')}`);
   }
 });
+
+// The bounded command output rule must stay in the delegate contract and in
+// the summary that runtime adapters embed.
+for (const { id, body, summary } of [
+  {
+    id: 'bounded-command-output',
+    body: /16\. \*\*Bounded command output\.\*\*[\s\S]*$/,
+    summary: /- Bounded command output: [^\n]*\n/
+  }
+]) {
+  for (const [where, pattern] of [['contract rules', body], ['summary', summary]]) {
+    test(`delegate contract check fails when the ${id} rule is removed from the ${where}`, async () => {
+      const root = await fixtureWith(['.agents', 'scripts/delegate-agent-catalog.json', 'scripts/delegate-rule-inventory.json']);
+      assert.deepEqual((await validateDelegateContract({ root })).failures, []);
+      const contractFile = path.join(root, delegateContractPath);
+      const contract = await fs.readFile(contractFile, 'utf8');
+      assert.match(contract, pattern);
+      await fs.writeFile(contractFile, contract.replace(pattern, ''), 'utf8');
+
+      const result = await validateDelegateContract({ root });
+
+      assert.equal(result.ok, false);
+      assert.ok(result.failures.some((failure) => failure.includes(`"${id}"`)), result.failures.join('\n'));
+    });
+  }
+}
+

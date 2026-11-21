@@ -5,6 +5,24 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.17.6-bounded-output
+
+Delegates must keep tool output small. Measured on a downstream project, Bash
+made up most of what entered a delegate's context.
+
+- New delegate contract rule 16, bounded command output: tests and linters run
+  in quiet mode so only failures print, long output goes to a file under the
+  tracker's `logs/` with only its last lines read, large files are read by
+  range or symbol, and images are read only by roles that do visual
+  verification. The summary carries it and all runtime adapters are
+  regenerated.
+- `validation-runner` runs commands in quiet mode and sends long output to the
+  tracker's `logs/`.
+- `validate-delegate-contract.mjs` also checks an optional `summaryPattern`
+  against the contract summary embedded in runtime adapters: removing the new
+  rule from the rules or from the summary fails `check:workflow`.
+- No token saving is claimed yet; that needs a usage comparison after real use.
+
 ## 0.17.5-slice-checkpoint
 
 Long N2/N3 implementations no longer have to carry closed slices in one

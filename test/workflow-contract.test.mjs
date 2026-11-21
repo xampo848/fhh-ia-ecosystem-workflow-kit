@@ -636,3 +636,8 @@ test('product hooks offer solution-sketch only on T2-T4 and inherit a locked ske
   assert.doesNotMatch(ticket, /solution-sketch/);
 });
 
+test('validation-runner keeps command output bounded', async () => {
+  const runner = await fs.readFile(path.join(repoRoot, '.agents/skills/02-implement/validation-runner/SKILL.md'), 'utf8');
+  assert.match(runner, /in quiet mode so only failures print/);
+  assert.match(runner, /\.ai-work\/<prd-slug>\/logs\/<file>` and read only its last lines/);
+});

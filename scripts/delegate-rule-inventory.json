@@ -1,5 +1,5 @@
 {
-  "description": "Inventory of workflow rules by audience (roadmap D-18). Every rule with scope delegate or both must be present in .agents/delegation/delegate-contract.md; scripts/validate-delegate-contract.mjs enforces it. Add a row here when a new rule must reach delegates.",
+  "description": "Inventory of workflow rules by audience (roadmap D-18). Every rule with scope delegate or both must be present in .agents/delegation/delegate-contract.md; scripts/validate-delegate-contract.mjs enforces it. Add a row here when a new rule must reach delegates. An optional summaryPattern must also match the generated summary between the delegate-contract:summary markers, which runtime adapters embed.",
   "rules": [
     { "id": "no-routing", "scope": "both", "rule": "Delegates never restart intake, readiness, discovery, slicing, matching, or routing.", "contractPattern": "must not restart those parent stages or recursively\\s+reroute" },
     { "id": "required-reads", "scope": "delegate", "rule": "A new delegate reads its complete skill, applicable instructions, and controlling source.", "contractPattern": "reads its complete required skill, applicable instructions" },
@@ -14,6 +14,7 @@
     { "id": "neutral-wins", "scope": "both", "rule": "The neutral contract wins over a runtime adapter.", "contractPattern": "the neutral files win" },
     { "id": "file-boundaries", "scope": "delegate", "rule": "Edit only owned files; one writer per file.", "contractPattern": "Edit only explicitly owned files; one writer per file" },
     { "id": "brakes", "scope": "both", "rule": "At most 2 repair rounds per slice; one recovery attempt for environment failures; one rerun for flaky tests.", "contractPattern": "At most 2 repair rounds per slice" },
+    { "id": "bounded-command-output", "scope": "delegate", "rule": "Quiet tests and linters, long output to the tracker logs/ with only the last lines read, large files by range or symbol, images only for visual verification.", "contractPattern": "\\*\\*Bounded command output\\.\\*\\*[\\s\\S]*quiet mode[\\s\\S]*`logs/`[\\s\\S]*by line range or by symbol[\\s\\S]*visual verification", "summaryPattern": "Bounded command output: run tests and linters in quiet mode[^\\n]*`logs/`[^\\n]*range or symbol[^\\n]*visual verification" },
     { "id": "compact-handoff", "scope": "delegate", "rule": "Handoffs return only new information.", "contractPattern": "Compact Handoff Rules" },
     { "id": "escape-rule", "scope": "delegate", "rule": "Anything not covered stops and returns blocked to the orchestrator.", "contractPattern": "stop and return `blocked` to the orchestrator" },
     { "id": "level-prefilter", "scope": "orchestrator", "rule": "Every prompt is classified N0-N3 before loading workflow files." },

@@ -3,7 +3,9 @@
 // does not drop a rule they need (roadmap D-18):
 // 1. every delegate role skill reads the delegate contract and no longer asks
 //    for the orchestrator's routing contract;
-// 2. every inventory rule scoped to delegates is present in the contract.
+// 2. every inventory rule scoped to delegates is present in the contract, and
+//    a rule with a summaryPattern is also present in the summary that runtime
+//    adapters embed.
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -13,6 +15,7 @@ const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 export const delegateContractPath = '.agents/delegation/delegate-contract.md';
 // Third-party skills keep their upstream text (see docs/legal/third-party/provenance.json).
 const thirdPartyPrefixes = ['.agents/skills/05-caveman/'];
+const summaryBlock = /<!-- delegate-contract:summary:start -->([\s\S]*?)<!-- delegate-contract:summary:end -->/;
 const routingContractRead = /^\s*(?:[-*]|\d+\.)\s+(?:Read\s+)?`(?:\.github\/copilot-instructions\.md|\.agents\/instructions\.md)`/m;
 
 export async function validateDelegateContract({ root = packageRoot } = {}) {
@@ -40,6 +43,9 @@ export async function validateDelegateContract({ root = packageRoot } = {}) {
     }
   }
 
+  const summary = contract.match(summaryBlock)?.[1];
+  if (summary === undefined) failures.push(`${delegateContractPath} has no delegate-contract:summary block.`);
+
   const inventory = JSON.parse(await read('scripts/delegate-rule-inventory.json'));
   const seen = new Set();
   for (const rule of inventory.rules ?? []) {
@@ -54,6 +60,9 @@ export async function validateDelegateContract({ root = packageRoot } = {}) {
       failures.push(`Inventory rule ${rule.id} needs a contractPattern because delegates must follow it.`);
     } else if (!new RegExp(rule.contractPattern).test(contract)) {
       failures.push(`Rule "${rule.id}" (${rule.scope}) is missing from ${delegateContractPath}.`);
+    }
+    if (rule.summaryPattern && summary !== undefined && !new RegExp(rule.summaryPattern).test(summary)) {
+      failures.push(`Rule "${rule.id}" (${rule.scope}) is missing from the summary in ${delegateContractPath}.`);
     }
   }
 

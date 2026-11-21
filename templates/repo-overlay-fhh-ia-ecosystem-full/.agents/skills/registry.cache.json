@@ -390,7 +390,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/validation-runner/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "1e9edea4c7648d77f64881eadc64ea3c6880d8a03fc4d216c0bc100661fac018"
+      "skill_sha256": "444049db44e279249c4c49f98bc19f8173e93afaca8009ed3ad9b934d1751a8a"
     },
     {
       "key": "workflow-router",
