@@ -102,7 +102,8 @@ When calibration records `visible_ui: yes`, a PRD is never ready to implement on
 - Required fields: surface (new vs existing), density/composition, primary action, required UI states, visual thesis in one sentence, Design System primitives or sibling screen to reuse, and `UI lock: locked`.
 - Optional evidence, in this preference order: existing sibling screen in the repo; Figma or digital mockup; photo of a paper/whiteboard sketch; competitor screenshot. Cite the path or attachment when present.
 - A mockup, screenshot, or photo is an input to the lock, not the lock. High-fidelity mockups are never a universal requirement.
-- Do not lock hex colors, new typefaces, or animation unless the user already has a product design system decision for them.
+- Do not lock hex colors, new typefaces, or animation unless the user already has a product design system decision for them or explicitly asks for a `pixel` lock.
+- When the request brings a prototype (HTML or image), read [reference/visual-lock.md](reference/visual-lock.md) in Phase 2: the prototype locks structure and content, the project patterns own the visual language; list every clash, ask once, and record each decision and component in the `Lock visual` table. The implementer never resolves a clash.
 - If `visible_ui: no`, record `UI lock: not-applicable` plus a one-line reason. Do not invent a visual section for importer-only or backend-only PRDs.
 - If `implement-change` would still have to invent the screen, stop: the visual contract is blocking ambiguity, same bar as an unlocked API contract.
 
@@ -176,6 +177,7 @@ Load a reference only when its condition holds:
 - [reference/architecture-rules.md](reference/architecture-rules.md) — read it in Phase 4, when the PRD touches the data model, domain placement, enumerations, or tests
 - [reference/traceability-tables.md](reference/traceability-tables.md) — read it in Phase 4, when filling the three mandatory traceability tables
 - [reference/quality-bar.md](reference/quality-bar.md) — read it after each round of answers and before delivering the PRD
+- [reference/visual-lock.md](reference/visual-lock.md) — read it in Phase 2 and Phase 4 when the request brings a prototype (HTML or image)
 
 ## 📄 PRD Structure Template
 

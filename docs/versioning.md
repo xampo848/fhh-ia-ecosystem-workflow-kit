@@ -30,7 +30,8 @@ released it. Tags of the current lines:
 
 | Tag | Notes |
 | --- | --- |
-| `v0.19.1-tui-option-clarity` | current |
+| `v0.19.2-visual-lock` | current |
+| `v0.19.1-tui-option-clarity` | |
 | `v0.19.0-test-design` | |
 | `v0.18.1-orchestrator-reads` | |
 | `v0.18.0-equilibrado-profile` | |

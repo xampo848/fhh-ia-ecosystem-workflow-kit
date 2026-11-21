@@ -15,6 +15,7 @@ Cover these classes when applicable:
 - async/background behavior, success/partial/failure states, idempotency/retries, and observability
 - verification evidence, rollout/recovery, activation/adoption, parent invariants, inherited live-path/phase-cut, and future-scope exclusions
 - visible UI / visual contract, when calibration records `visible_ui: yes`: new vs existing surface, density/composition, primary action, required UI states, and reference input
+- prototype vs project patterns, when the request brings a prototype: every clash in one grouped question with the pattern as default ([visual-lock.md](visual-lock.md))
 
 When `visible_ui: yes`, treat an unlocked screen as blocking ambiguity. Ask only questions that would produce a materially different layout or state set. A mockup, screenshot, Figma file, or photo is optional evidence, never a substitute for those fields. Do not demand high-fidelity mockups as a universal gate.
 

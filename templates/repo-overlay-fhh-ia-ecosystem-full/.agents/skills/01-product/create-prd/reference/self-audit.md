@@ -17,7 +17,7 @@ After drafting, perform the final hard gate before delivering the PRD. Persist t
 - Slices do not combine backend/frontend or multiple high-risk boundaries without a written split rationale.
 - Business rules are confirmed decisions, the decision table preserves the conversation, and product future scope is explicitly out of the current PRD.
 - Risks have mitigations; the Mermaid class diagram, data-model, and flow artifacts are present; relevant architecture and standards were checked.
-- If `visible_ui: yes`, the Contrato Visual (UI lock) is complete; a mockup or photo may be cited but does not replace the lock. If `visible_ui: no`, `UI lock: not-applicable` is recorded with a one-line reason.
+- If `visible_ui: yes`, the Contrato Visual (UI lock) is complete; a mockup or photo may be cited but does not replace the lock. If `visible_ui: no`, `UI lock: not-applicable` is recorded with a one-line reason. If a prototype is cited, the `Lock visual` names its source and level, and every element has a component and every clash a decision (`visual-lock.md`).
 
 ## Adversarial Review
 

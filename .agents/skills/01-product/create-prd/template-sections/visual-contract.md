@@ -14,7 +14,7 @@ Completar cuando hay UI visible. Si no hay pantalla de usuario, dejar `UI lock: 
 **Tesis visual**: [Una frase: jerarquia, ritmo y el movimiento que evita un look generico]
 **Reutilizar**: [Primitiva del Design System o pantalla hermana]
 **Evidencia opcional**: [path de screen actual / Figma / foto / mockup | ninguna]
-**No lockear aqui**: hex, tipografias nuevas, animacion, salvo decision de producto ya existente
+**No lockear aqui**: hex, tipografias nuevas, animacion, salvo decision de producto ya existente o `Lock visual: pixel` pedido explicitamente
 
 ```text
 [Wireframe ASCII de la pantalla principal]
@@ -27,3 +27,14 @@ Completar cuando hay UI visible. Si no hay pantalla de usuario, dejar `UI lock: 
 ```
 
 `implement-change` no puede inventar esta pantalla. Un mockup o foto ancla; no sustituye los campos de arriba.
+
+#### Lock visual (prototipo)
+
+Reglas en `reference/visual-lock.md`: el prototipo manda en estructura y contenido; los patterns del proyecto, en lo visual. Sin prototipo: `Lock visual: N/A`.
+
+**Lock visual**: N/A | estructura | pixel
+**Fuente**: [ruta del HTML o la imagen]
+
+| Elemento | Fuente | Componente | Decision |
+| --- | --- | --- | --- |
+| [seccion, campo, texto, estado o interaccion] | prototipo/pattern | [Componente existente / componente nuevo] | [default / pattern gana: valor / prototipo (explicito): palabras del usuario / prototipo (pixel) / pattern update pendiente] |

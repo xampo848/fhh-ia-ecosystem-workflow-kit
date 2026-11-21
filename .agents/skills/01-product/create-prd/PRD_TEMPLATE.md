@@ -86,7 +86,7 @@ Una categoria sin caso aplicable se marca `No aplica` con una justificacion de u
 
 **UI lock**: locked | not-applicable
 
-Si hay UI visible, reemplazar este bloque por la seccion completa de `template-sections/visual-contract.md` y dejar `UI lock: locked`. Si no hay pantalla de usuario, dejar `UI lock: not-applicable` y una razon de una linea.
+Si hay UI visible, reemplazar este bloque por la seccion completa de `template-sections/visual-contract.md` y dejar `UI lock: locked`; si hay prototipo (HTML o imagen), completar su `Lock visual` (si no, `Lock visual: N/A`). Si no hay pantalla de usuario, dejar `UI lock: not-applicable` y una razon de una linea.
 
 ---
 
@@ -206,6 +206,7 @@ Repeat the complete phase structure above. Do not replace executable slices with
 
 - [ ] Si hay UI visible, el Contrato Visual esta `locked` y `implement-change` no tiene que inventar la pantalla
 - [ ] Si no hay UI visible, `UI lock: not-applicable` tiene una razon de una linea
+- [ ] Si hay prototipo, cada choque con los patterns tiene decision en el `Lock visual` y cada elemento tiene componente
 | #   | Pregunta           | Bloquea | Area   |
 | --- | ------------------ | ------- | ------ |
 | 1   | [Pending question] | Si/No   | fase X |
