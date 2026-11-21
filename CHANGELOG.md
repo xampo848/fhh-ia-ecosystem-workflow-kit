@@ -5,30 +5,33 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
-## 0.18.2-orchestrator-reads
+## 0.18.1-orchestrator-reads
 
 At N2/N3 the orchestrator keeps decisions and evidence in its context, not raw
 code, screenshots, or browser sessions.
 
 - `implement-change` gains one rule, "Orchestrator reads (N2/N3)": the
   orchestrator reads the tracker, locks, handoffs, the input, and specific
-  snippets; locating and reading product code is delegated to
-  `cavecrew-investigator` or `sherlock-estructura`, with no whole-file dumps
-  or broad searches inline.
+  snippets. A bounded search (exact symbol, short output) may stay inline;
+  broad exploration and whole-file reads are delegated to
+  `cavecrew-investigator` or `sherlock-estructura`.
 - Visual verification belongs to the role that performs it (frontend writer,
   QA, or a visual verifier): it opens the browser, reads the screenshots, and
   returns a verdict per criterion, the screenshot path, and findings. The
   orchestrator does not read images or drive the browser unless the user asks
-  directly.
+  directly, with two exceptions: it may spot-check one screenshot or snippet
+  when a criterion is critical or a verdict conflicts with other evidence,
+  and it verifies inline, recording why, when the verifier returns `blocked`
+  with `blocked_reason: no_browser_tools`.
 - Level exception: N0 and N1 do not delegate, so the rule applies to N2 and N3
   only. A locator or visual-verifier call is not a stage delegate and does not
   change the N2 `avoided` default.
 - `subagent-prompts.md` adds a Visual Verification Delegate template with its
-  return format (`criteria[N]{id,verdict,screenshot,finding}`).
+  return format (`blocked_reason`, `criteria[N]{id,verdict,screenshot,finding}`).
   `qa-handoff-review`, `frontend-phase-implementer`, `level-n2.md`, and the
   "Compressed delegation preference" of `.agents/instructions.md` point to the
   rule.
-- From the T06 report (origin of `general-purpose` runs): the same section of
+- From a usage analysis of `general-purpose` runs: the same section of
   `.agents/instructions.md` now says that at N2/N3 a delegation picks a
   catalog delegate by role (`sherlock-estructura`, `turbo-backend`,
   `pixel-ninja`, `testinator-5000`, `lint-ranger`, `qa-relampago`) or a

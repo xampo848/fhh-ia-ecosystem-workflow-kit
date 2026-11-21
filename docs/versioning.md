@@ -30,10 +30,10 @@ released it. Tags of the current lines:
 
 | Tag | Notes |
 | --- | --- |
-| `v0.18.2-orchestrator-reads` | current |
-| `v0.17.5-slice-checkpoint` | |
+| `v0.18.1-orchestrator-reads` | current |
 | `v0.18.0-equilibrado-profile` | |
 | `v0.17.6-bounded-output` | |
+| `v0.17.5-slice-checkpoint` | |
 | `v0.17.4-usage-measurement` | |
 | `v0.17.3-contract-gaps` | |
 | `v0.17.2-catalog-rows` | |

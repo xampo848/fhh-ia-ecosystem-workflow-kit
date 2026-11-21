@@ -135,7 +135,10 @@ Reglas:
 Use at N2/N3 whenever a screen must be looked at: the orchestrator does not
 `Read` screenshots or drive the browser (`implement-change` SKILL.md, Step 3,
 "Orchestrator reads"). At N2 read only this section of this file. N0 and N1 do
-not delegate; they verify inline.
+not delegate; they verify inline. The orchestrator may still spot-check one
+screenshot when a criterion is critical or a verdict conflicts with other
+evidence, and verifies inline when this delegate returns `blocked` with
+`blocked_reason: no_browser_tools`, recording why.
 
 ```text
 Actua como [ALIAS: QA Relampago at closure | Pixel Ninja for its own slice].
@@ -159,15 +162,17 @@ Reglas:
 2. No edites codigo de producto. Escribe solo capturas y logs en el directorio indicado.
 3. Un veredicto por criterio: `pass` solo con una captura que lo muestre;
    `fail` con lo observado; `blocked` con la causa si no pudiste abrir la
-   pantalla (servidor, login, datos).
+   pantalla (`server`, `login`, `data`).
 4. No devuelvas imagenes, HTML, arbol de accesibilidad ni logs completos: cita rutas.
-5. Sin navegador ni Playwright disponibles, retorna `blocked` con la causa; no
-   pidas al orquestador que verifique visualmente.
+5. Sin navegador ni Playwright disponibles, retorna `blocked` con
+   `blocked_reason: no_browser_tools` y nada mas: el orquestador verificara
+   inline y dejara registrado el motivo.
 6. Synchronization: the parent orchestrator is blocked on your terminal handoff.
    Do not end until every criterion has a verdict or the run is explicitly blocked.
 
 Salida obligatoria (TOON, sin texto adicional):
 status: success | partial | blocked
+blocked_reason: <no_browser_tools | server | login | data | none>
 criteria[N]{id,verdict,screenshot,finding}:
   AC-1,pass,.ai-work/<prd-slug>/screenshots/ac-1-desktop.png,-
   AC-2,fail,.ai-work/<prd-slug>/screenshots/ac-2-mobile.png,<one line: what differs>

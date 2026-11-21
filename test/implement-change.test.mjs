@@ -139,12 +139,14 @@ test('the N2/N3 orchestrator does not read raw: rule, level exception, and visua
   const rule = core.slice(core.indexOf('**Orchestrator reads (N2/N3).**'), core.indexOf('## Invariants'));
   assert.ok(rule.length > 40, 'implement-change must keep the "Orchestrator reads (N2/N3)" rule');
   assert.match(rule, /reads the tracker, locks, handoffs, the input, and specific snippets/);
-  assert.match(rule, /Locating and reading product\s+code beyond that is delegated: `cavecrew-investigator`[\s\S]*?`sherlock-estructura`/);
-  assert.match(rule, /No whole-file dumps/);
+  assert.match(rule, /A bounded search \(exact\s+symbol, short output\) may stay inline/);
+  assert.match(rule, /Broad exploration and whole-file\s+reads[\s\S]*?are delegated: `cavecrew-investigator`[\s\S]*?`sherlock-estructura`/);
   assert.match(rule, /opens the\s+browser, reads the screenshots, and returns a verdict per criterion, the\s+screenshot path, and its findings/);
   assert.match(rule, /The orchestrator does not `Read` images or\s+drive the browser unless the user asks directly/);
   assert.match(rule, /Level exception: N0 and N1 do\s+not\s+delegate[\s\S]*?applies to N2 and N3 only/);
   assert.match(rule, /Visual Verification Delegate/);
+  assert.match(rule, /\*\*Spot-check:\*\* when a criterion is critical or a verdict conflicts with\s+other evidence, it may open one specific screenshot or snippet/);
+  assert.match(rule, /\*\*Visual fallback:\*\* when the verifier returns `blocked` with\s+`blocked_reason: no_browser_tools`, the orchestrator verifies inline and\s+records why/);
 
   assert.match(levelN2, /orchestrator read\s+rule in `\.\.\/SKILL\.md`/);
   assert.match(instructions, /Compressed delegation preference:[\s\S]*?"Orchestrator reads \(N2\/N3\)" in `\.agents\/skills\/02-implement\/implement-change\/SKILL\.md`/);
@@ -161,7 +163,9 @@ test('the N2/N3 orchestrator does not read raw: rule, level exception, and visua
   assert.match(template, /^status: success \| partial \| blocked$/m);
   assert.match(template, /^criteria\[N\]\{id,verdict,screenshot,finding\}:$/m);
   assert.match(template, /^findings\[N\]\{severity,criterion,observation\}:$/m);
-  assert.match(template, /no\s+pidas al orquestador que verifique visualmente/);
+  assert.match(template, /^blocked_reason: <no_browser_tools \| server \| login \| data \| none>$/m);
+  assert.match(template, /`blocked_reason: no_browser_tools` y nada mas: el orquestador verificara\s+inline y dejara registrado el motivo/);
+  assert.match(template, /spot-check one\s+screenshot when a criterion is critical or a verdict conflicts/);
 });
 
 test('N2/N3 delegation prefers catalog delegates over general-purpose and names only catalog agents', async () => {
@@ -171,7 +175,7 @@ test('N2/N3 delegation prefers catalog delegates over general-purpose and names 
   ]);
   const section = instructions.slice(instructions.indexOf('Compressed delegation preference:'), instructions.indexOf('## Model routing'));
   const rule = section.split('\n').find((line) => line.includes('general-purpose'));
-  assert.ok(rule, 'Compressed delegation preference must keep the catalog-delegate rule (from the T06 report)');
+  assert.ok(rule, 'Compressed delegation preference must keep the catalog-delegate rule (from a usage analysis of `general-purpose` runs)');
   assert.match(rule, /^- in N2\/N3, when delegating, pick a catalog delegate by role/);
   assert.match(rule, /Use `general-purpose` only when no catalog delegate fits the role, and state why before launching it/);
 
