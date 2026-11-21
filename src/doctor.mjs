@@ -63,7 +63,7 @@ function managedVersionDiagnostics(state) {
   return [{
     code: 'managed/toolkit-version-mismatch',
     path: '.agents/workflow-kit/install-state.json',
-    message: `Managed files were last applied with toolkit version ${state.toolkitVersion}; current CLI version is ${packageJson.version}. Run workflow-kit update if you want this repository on the current toolkit surface.`,
+    message: `Managed files were last applied with toolkit version ${state.toolkitVersion}; current CLI version is ${packageJson.version}. Run workflow-kit update --target <repo> to bring this project's workflow to the current workflow-kit version.`,
     severity: 'warning'
   }];
 }

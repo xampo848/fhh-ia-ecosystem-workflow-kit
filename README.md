@@ -21,7 +21,7 @@ What the installed workflow does:
 One neutral source of truth lives in `.agents/`; runtime files such as
 `CLAUDE.md` or `AGENTS.md` are thin adapters that point back to it.
 
-> Status: public GitHub install, version `0.19.0-test-design`. The CLI and
+> Status: public GitHub install, version `0.19.1-tui-option-clarity`. The CLI and
 > TUI install, update, export, check, and roll back the workflow, with dry-run
 > by default and backups before every overwrite. The package is intentionally
 > **not published to npm**.
@@ -43,7 +43,7 @@ workflow-kit --help
 ```
 
 `main` installs the latest merged version. To pin a release instead, append
-`#<tag>`, for example `#v0.19.0-test-design`; every released version has a
+`#<tag>`, for example `#v0.19.1-tui-option-clarity`; every released version has a
 `v<version>` tag, listed on the repository's
 [Releases page](https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/releases).
 SSH install and access details:
@@ -109,12 +109,12 @@ apply in both. Example prompts for each phase are in
 | Command | What it does |
 | --- | --- |
 | `init` | Plans or applies a first install of the workflow into `--target`. |
-| `update` | Refreshes only the files workflow-kit manages; protects your local edits. |
-| `upgrade` | Upgrades the globally installed `workflow-kit` itself (it checks that the ref exists and is reachable before replacing the installed version). |
+| `update` | Updates the workflow installed in a project (`--target`) to this workflow-kit version. Refreshes only the files workflow-kit manages; protects your local edits. |
+| `upgrade` | Updates `workflow-kit` itself (this tool) on your machine; it does not change any project (it checks that the ref exists and is reachable before replacing the installed version). |
 | `export` | Writes the templates to `--output` without treating it as an install. |
 | `doctor` | Checks installed files and workflow semantics; prints stable diagnostic codes. |
 | `rollback` | Undoes the last applied `init`/`update`: restores changed files from their backups, removes files that run created, and restores the previous install state. |
-| `tui` | Guided menu for install, update, upgrade, and optional capabilities. |
+| `tui` | Guided menu for every command above plus optional capabilities; see [Guided TUI](docs/quickstart.md#6-guided-tui). |
 
 `workflow-kit --help` prints the full usage. Main flags:
 
@@ -133,7 +133,9 @@ apply in both. Example prompts for each phase are in
 
 ## Updating
 
-Upgrade the tool first, then update each repository:
+Updating has two separate steps: first update `workflow-kit` itself on your
+machine (`upgrade`), then update the workflow installed in each project
+(`update`):
 
 ```bash
 workflow-kit upgrade --apply --yes
