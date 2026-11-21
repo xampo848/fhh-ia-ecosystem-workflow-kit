@@ -26,7 +26,7 @@
     }
   },
   "modelProfiles": {
-    "description": "Per-project model profile by billing model (roadmap D-05a, D-07). calidad = subscription runtimes, never Liviano; costo = Copilot premium requests or per-token API, close to the original catalog. criticalConcerns escalate any role to Grande in both profiles; in costo it is the only path to Grande.",
+    "description": "Per-project model profile by billing model (roadmap D-05a, D-07). calidad = subscription runtimes, never Liviano; equilibrado = subscription runtimes that hit usage limits often: planning and final QA stay Grande, writers and test/contract roles drop to Mediano, never Liviano; costo = Copilot premium requests or per-token API, close to the original catalog. criticalConcerns escalate any role to Grande in every profile; in costo it is the only path to Grande.",
     "defaultByRuntime": { "claude": "calidad", "codex": "calidad", "copilot": "costo", "antigravity": "costo" },
     "profiles": {
       "calidad": {
@@ -40,6 +40,25 @@
           "pixel-ninja": "Grande",
           "guardia-contrato": "Grande",
           "testinator-5000": "Grande",
+          "lint-ranger": "Mediano",
+          "qa-relampago": "Grande",
+          "escriba-doc": "Mediano",
+          "cavecrew-investigator": "Mediano",
+          "cavecrew-builder": "Mediano",
+          "cavecrew-reviewer": "Mediano"
+        }
+      },
+      "equilibrado": {
+        "billing": "subscription",
+        "allowedTiers": ["Mediano", "Grande"],
+        "agentTiers": {
+          "capitana-alcance": "Mediano",
+          "sherlock-estructura": "Mediano",
+          "arquitecta-fases": "Grande",
+          "turbo-backend": "Mediano",
+          "pixel-ninja": "Mediano",
+          "guardia-contrato": "Mediano",
+          "testinator-5000": "Mediano",
           "lint-ranger": "Mediano",
           "qa-relampago": "Grande",
           "escriba-doc": "Mediano",

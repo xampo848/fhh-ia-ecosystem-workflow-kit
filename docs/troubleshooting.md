@@ -113,8 +113,9 @@ agent by hand; regenerate it:
 workflow-kit update --target /path/to/repo --profile claude=calidad --apply --yes
 ```
 
-Use the profile you actually want (`calidad` for subscriptions, `costo` for
-Copilot or per-token APIs).
+Use the profile you actually want (`calidad` for subscriptions, `equilibrado`
+for subscriptions that often hit their weekly limits, `costo` for Copilot or
+per-token APIs).
 
 ## Doctor reports `project-instructions/*` or `stack-pack/missing`
 

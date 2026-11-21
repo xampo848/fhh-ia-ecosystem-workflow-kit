@@ -177,6 +177,11 @@ const MODEL_PROFILE_OPTIONS = [
     description: 'Claude Pro/Max o ChatGPT: Sonnet/GPT Sol por defecto y Opus/GPT Sol extra-high para implementar; nunca modelos chicos.'
   },
   {
+    value: 'equilibrado',
+    label: 'Suscripción con límites ajustados (perfil equilibrado)',
+    description: 'Si alcanzas los límites semanales a menudo: Opus/extra-high solo para planificar y QA final; implementación, tests y contratos en Sonnet/medium. Nunca modelos chicos.'
+  },
+  {
     value: 'costo',
     label: 'API por token (perfil costo)',
     description: 'Pago por uso: modelos chicos para lectura, validación y documentación; Grande solo ante riesgos críticos.'
@@ -215,7 +220,7 @@ export function modelProfileQuestions(runtimeList = '', env = {}) {
         title: `¿Cómo se cobra ${info.label} en este proyecto?`,
         hint: hasApiKey ? `${info.apiKey} está definida: se preselecciona API por token. Confírmalo o cámbialo.` : null,
         options: MODEL_PROFILE_OPTIONS,
-        defaultIndex: hasApiKey ? 1 : 0
+        defaultIndex: MODEL_PROFILE_OPTIONS.findIndex((option) => option.value === (hasApiKey ? 'costo' : 'calidad'))
       };
     });
 }

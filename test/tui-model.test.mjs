@@ -4,6 +4,7 @@ import {
   createCapabilityGuide,
   defaultIntentFor,
   installPackageDetails,
+  modelProfileQuestions,
   runtimeSet,
   selectedCapabilityList,
   selectedRuntimeList,
@@ -93,4 +94,13 @@ test('toInquirerChoices preserves label value and description fields', () => {
       { name: 'Codex', value: 'codex', description: 'Neutral core + Codex adapter.' }
     ]
   );
+});
+test('modelProfileQuestions offers equilibrado and keeps calidad and costo as the preselections', () => {
+  const [question] = modelProfileQuestions('claude', {});
+  assert.deepEqual(question.options.map((option) => option.value), ['calidad', 'equilibrado', 'costo']);
+  assert.match(question.options[1].label, /equilibrado/);
+  assert.equal(question.options[question.defaultIndex].value, 'calidad');
+
+  const [withKey] = modelProfileQuestions('claude', { ANTHROPIC_API_KEY: 'test-only-not-a-real-key' });
+  assert.equal(withKey.options[withKey.defaultIndex].value, 'costo');
 });

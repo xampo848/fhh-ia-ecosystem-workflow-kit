@@ -5,7 +5,8 @@ import test from 'node:test';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { parseArgs } from '../src/cli/args.mjs';
 import { runDoctor } from '../src/doctor.mjs';
-import { loadDelegateCatalog, parseProfileOption, resolveModelProfiles } from '../src/model-profiles.mjs';
+import { agentTierFor, loadDelegateCatalog, parseProfileOption, resolveModelProfiles } from '../src/model-profiles.mjs';
+import { decideContextualTier } from '../scripts/copilot-model-routing.mjs';
 import { buildInstallPlan, buildUpdatePlan, installStateRelativePath } from '../src/planner.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
@@ -32,6 +33,7 @@ test('catalog defines calidad and costo profiles per D-05a', async () => {
     assert.equal(profiles.calidad.agentTiers[slug], 'Grande', slug);
   }
   assert.deepEqual(profiles.costo.agentTiers, catalog.copilotModelRouting.agentTiers, 'costo matches the Copilot routing tiers');
+  assert.equal(Object.values(defaultByRuntime).includes('equilibrado'), false, 'equilibrado is opt-in, never a runtime default');
   assert.deepEqual(runtimeTierSettings.claude, { Liviano: 'haiku', Mediano: 'sonnet', Grande: 'opus' });
   assert.equal(catalog.runtimeCapabilities.claude.pinSubagentModel, true);
   assert.equal(catalog.runtimeCapabilities.codex.pinSubagentTier, true);
@@ -40,7 +42,8 @@ test('catalog defines calidad and costo profiles per D-05a', async () => {
 test('profile option parsing and resolution precedence', async () => {
   assert.deepEqual(parseProfileOption('claude=costo, codex=calidad'), { claude: 'costo', codex: 'calidad' });
   assert.deepEqual(parseProfileOption(undefined), {});
-  assert.throws(() => parseProfileOption('claude=cheap'), /calidad or costo/);
+  assert.throws(() => parseProfileOption('claude=cheap'), /Use one of: calidad, equilibrado, costo/);
+  assert.deepEqual(parseProfileOption('claude=equilibrado,codex=equilibrado'), { claude: 'equilibrado', codex: 'equilibrado' });
   assert.throws(() => parseProfileOption('antigravity=costo'), /Unsupported --profile runtime/);
   assert.equal(parseArgs(['update', '--profile', 'claude=costo']).profile, 'claude=costo');
 
@@ -105,4 +108,86 @@ test('update and doctor without --runtime reuse the runtimes stored at install',
   const doctor = await runDoctor({ targetPath: target });
   assert.deepEqual(doctor.runtimes, ['claude', 'copilot']);
   assert.equal(doctor.ok, true);
+});
+
+// T02: equilibrado keeps Grande for planning and final QA and moves the
+// writers and the test/contract roles to Mediano. Never Liviano.
+const equilibradoMediano = ['turbo-backend', 'pixel-ninja', 'testinator-5000', 'guardia-contrato'];
+const equilibradoGrande = ['arquitecta-fases', 'qa-relampago'];
+
+test('catalog defines the equilibrado profile between calidad and costo', async () => {
+  const catalog = await readCatalog();
+  const { calidad, equilibrado } = catalog.modelProfiles.profiles;
+  assert.equal(equilibrado.billing, 'subscription');
+  assert.deepEqual(equilibrado.allowedTiers, ['Mediano', 'Grande']);
+  assert.deepEqual(Object.keys(equilibrado.agentTiers).sort(), catalog.agents.map((agent) => agent.slug).sort());
+  for (const slug of equilibradoMediano) assert.equal(equilibrado.agentTiers[slug], 'Mediano', slug);
+  for (const slug of equilibradoGrande) assert.equal(equilibrado.agentTiers[slug], 'Grande', slug);
+  for (const [slug, tier] of Object.entries(equilibrado.agentTiers)) {
+    assert.ok(equilibrado.allowedTiers.includes(tier), `${slug} uses an allowed tier`);
+    if (![...equilibradoMediano, ...equilibradoGrande].includes(slug)) {
+      assert.equal(tier, calidad.agentTiers[slug], `${slug} keeps its calidad tier`);
+    }
+  }
+});
+
+test('update --profile claude=equilibrado renders sonnet writers and opus planning/QA, and update keeps it', async () => {
+  const { runCli } = await import('../src/cli.mjs');
+  const { createMemoryIo } = await import('./helpers.mjs');
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+  assert.match(await readTarget(target, '.claude/agents/turbo-backend.md'), /^model: opus$/m, 'existing install starts on calidad');
+
+  const io = createMemoryIo();
+  assert.equal(await runCli(['update', '--target', target, '--profile', 'claude=equilibrado', '--apply', '--yes'], io), 0);
+  for (const slug of equilibradoMediano) {
+    assert.match(await readTarget(target, `.claude/agents/${slug}.md`), /^model: sonnet$/m, slug);
+  }
+  for (const slug of equilibradoGrande) {
+    assert.match(await readTarget(target, `.claude/agents/${slug}.md`), /^model: opus$/m, slug);
+  }
+  assert.match(await readTarget(target, '.claude/agents/sherlock-estructura.md'), /^model: sonnet$/m, 'never haiku');
+  assert.match(await readTarget(target, '.claude/agents/turbo-backend.md'), /Model profile: equilibrado · tier: Mediano\./);
+  let state = JSON.parse(await readTarget(target, installStateRelativePath));
+  assert.deepEqual(state.modelProfiles, { claude: 'equilibrado' });
+
+  const keep = await buildUpdatePlan({ targetPath: target });
+  assert.deepEqual(keep.modelProfiles, { claude: 'equilibrado' });
+  for (const slug of [...equilibradoMediano, ...equilibradoGrande]) {
+    assert.equal(keep.operations.find((item) => item.relativePath === `.claude/agents/${slug}.md`).operation, 'unchanged', slug);
+  }
+  const keepIo = createMemoryIo();
+  assert.equal(await runCli(['update', '--target', target, '--apply', '--yes'], keepIo), 0);
+  assert.match(keepIo.output.stdout, /Model profiles: claude=equilibrado/);
+  state = JSON.parse(await readTarget(target, installStateRelativePath));
+  assert.deepEqual(state.modelProfiles, { claude: 'equilibrado' });
+  assert.match(await readTarget(target, '.claude/agents/turbo-backend.md'), /^model: sonnet$/m);
+
+  const doctor = await runDoctor({ targetPath: target });
+  assert.equal(doctor.ok, true);
+  assert.deepEqual(doctor.modelProfiles, { claude: 'equilibrado' });
+});
+
+test('criticalConcerns still escalate equilibrado Mediano roles to Grande', async () => {
+  const catalog = await loadDelegateCatalog();
+  const routing = catalog.copilotModelRouting;
+  const slice = (overrides = {}) => ({
+    objective: 'Implement the owned backend slice',
+    workKind: 'implementation',
+    risk: 'medium',
+    ambiguity: 'low',
+    contextCompleteness: 'complete',
+    bounded: true,
+    ...overrides
+  });
+  for (const slug of equilibradoMediano) {
+    const agentDefaultTier = agentTierFor(catalog, 'equilibrado', slug);
+    assert.equal(agentDefaultTier, 'Mediano', slug);
+    assert.equal(decideContextualTier({ routing, agentDefaultTier, taskContext: slice() }).tier, 'Mediano', `${slug} without concerns`);
+    for (const concern of routing.contextPolicy.criticalConcerns) {
+      const decision = decideContextualTier({ routing, agentDefaultTier, taskContext: slice({ criticalConcerns: [concern] }) });
+      assert.equal(decision.tier, 'Grande', `${slug} with ${concern}`);
+      assert.equal(decision.posture, 'critical');
+    }
+  }
 });
