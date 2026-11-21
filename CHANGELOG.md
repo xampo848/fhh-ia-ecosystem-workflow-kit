@@ -5,6 +5,43 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.19.0-test-design
+
+Agents stop writing redundant and expensive tests. The rules have one source,
+`.agents/skills/02-implement/implement-prd/reference/test-design-rules.md`,
+and each owning skill points to it.
+
+- Owning layer: each business rule is tested in one layer only, the lowest
+  one that contains it. Entry points cover authentication, authorization,
+  tenancy, parameters, status, and response shape, plus one wiring case per
+  rule. Jobs cover their own selection, batching, retries, and errors, not the
+  service they call. Tenancy and authorization are always tested at the entry
+  point too.
+- The per-method coverage gate ("one test plus an edge-case assertion per new
+  file or method") becomes "every new or changed branch in its owning layer"
+  in `validation-and-stop-conditions.md`, `orchestration-flow-execution.md`,
+  `level-n3.md`, and `qa-handoff-review`. A method that only delegates needs
+  no test of its own.
+- The PRD edge-case matrix gains a `Capa duena` column that slicing and QA
+  validate. Section 2.9 `Que queda obsoleto` also lists the tests a change
+  makes meaningless, and the owning slice deletes them.
+- Agents search existing tests by name and by rule before writing and extend
+  them; same-branch variants become one table-driven test.
+- Migration up/down and backfill tests are temporary and are deleted once the
+  migration is on the main branch; live database rules are tested next to the
+  model or database tests without loading migration classes.
+- Tests prove behavior, not implementation (no signature, console-output, or
+  internal-state assertions; exact query counts only in marked performance
+  tests), with cheap setup by default: transactional, minimal data, and no
+  instrumentation or threads unless the test verifies them.
+- `qa-handoff-review` flags cross-layer duplicates; the implementer
+  checklists and validation anti-patterns carry the same rules. The default
+  quality gate adds a test DRY rule (new installs; the project owns its copy).
+- Rails examples go to the `rails-react` stack pack ("Test design in Rails");
+  the core stays stack-neutral. Nine maintainer evals live in
+  `test-design-evals.md`, and contract tests guard the rules.
+- Existing project tests are not pruned by this version.
+
 ## 0.18.1-orchestrator-reads
 
 At N2/N3 the orchestrator keeps decisions and evidence in its context, not raw

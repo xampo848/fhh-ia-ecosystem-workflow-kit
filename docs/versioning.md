@@ -30,7 +30,8 @@ released it. Tags of the current lines:
 
 | Tag | Notes |
 | --- | --- |
-| `v0.18.1-orchestrator-reads` | current |
+| `v0.19.0-test-design` | current |
+| `v0.18.1-orchestrator-reads` | |
 | `v0.18.0-equilibrado-profile` | |
 | `v0.17.6-bounded-output` | |
 | `v0.17.5-slice-checkpoint` | |
