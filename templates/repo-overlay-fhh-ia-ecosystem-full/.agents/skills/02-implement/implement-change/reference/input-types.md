@@ -15,6 +15,10 @@ Recognized by a PRD path or "implementa este PRD".
    `not-applicable` without a reason, or would still force Pixel Ninja to
    invent the screen, stop and return to `create-prd` or the user. A mockup or
    photo cited by the lock is evidence, not permission to ignore its fields.
+   A prototype cited in the `Lock visual` locks structure and content; visual
+   values come from the design system unless the table records otherwise.
+   A clash the table does not decide goes back to the PRD
+   (`../../../01-product/create-prd/reference/visual-lock.md`).
 4. Evidence: the acceptance-criteria coverage matrix (each criterion linked to
    code, tests, validation output, or an accepted residual risk), plus the
    closure of the confirmed level.

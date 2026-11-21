@@ -90,7 +90,7 @@ Do not manufacture slices solely to increase their count. Split by failure, roll
 
 If `## Calibration` records `touched_surfaces`, treat any newly introduced surface as scope expansion and stop or re-slice.
 
-If the plan includes a visible-UI slice, require the PRD Contrato Visual to be `locked` before handing that slice to `frontend-phase-implementer`. A missing or unlocked visual contract is a stop condition, not a thesis for Pixel Ninja to invent.
+If the plan includes a visible-UI slice, require the PRD Contrato Visual to be `locked` before handing that slice to `frontend-phase-implementer`. A missing or unlocked visual contract is a stop condition, not a thesis for Pixel Ninja to invent. When the Contrato Visual has a `Lock visual` table, assign every row to exactly one frontend slice; rows marked `componente nuevo` go to the slice that creates the shared component, before the slices that use it (`../../01-product/create-prd/reference/visual-lock.md`).
 
 ## Mandatory Slice Gate
 

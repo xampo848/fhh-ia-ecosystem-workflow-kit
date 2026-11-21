@@ -137,6 +137,7 @@ Load a reference only when its condition holds:
 Stop and ask the user before continuing when:
 
 - Visible UI work would require inventing density, hierarchy, primary action, or UI states because the Contrato Visual is missing or unlocked.
+- A prototype clashes with the design system on something the PRD `Lock visual` table does not decide (`../../../01-product/create-prd/reference/visual-lock.md`).
 - The PRD has unresolved blocking questions.
 - There are multiple valid technical options not constrained by the PRD.
 - A migration is destructive.

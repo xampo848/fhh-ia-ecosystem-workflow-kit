@@ -5,6 +5,38 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.19.2-visual-lock
+
+A prototype attached to a PRD (an HTML file or an image) is now followed
+without losing details, and it never overrides the project's design system.
+The rule has one source,
+`.agents/skills/01-product/create-prd/reference/visual-lock.md`, and each
+owning skill points to it.
+
+- Ownership: the prototype locks structure and content (layout, hierarchy,
+  sections and their order, texts, fields, states, interactions); the project
+  patterns or design system own the visual language (colors, typography,
+  spacing, radii, shadows, existing components). By default the pattern wins
+  on visuals; the prototype wins on a visual aspect only when the user says so
+  explicitly.
+- Clashes are resolved in the PRD, never during implementation: `create-prd`
+  compares the prototype with the patterns in Phase 2, lists every clash, asks
+  once, and records each decision. An intentional new style (rebrand, new
+  palette) is proposed as a pattern update first.
+- The Contrato Visual gains a minimal `Lock visual` block: source, level
+  (`estructura` by default, `pixel` only on explicit request), and the table
+  `Elemento | Fuente | Componente | Decision`. Every element maps to an
+  existing component or is marked `componente nuevo`; loose variants are not
+  allowed. Without a prototype the block is `Lock visual: N/A`.
+- `prd-readiness-review` stops on a prototype with an unresolved clash;
+  `implementation-slicing` assigns every table row to one frontend slice;
+  `frontend-phase-implementer` and the Pixel Ninja card implement the rows as
+  written and return `blocked` on an undecided clash; `qa-handoff-review`
+  validates against the table, not the raw prototype, and compares with a
+  screenshot when `playwright-testing` is available.
+- React examples go to the `rails-react` stack pack; the core stays
+  stack-neutral. Eight maintainer evals and contract tests are added.
+
 ## 0.19.1-tui-option-clarity
 
 The TUI and the CLI help now tell updating `workflow-kit` itself apart from

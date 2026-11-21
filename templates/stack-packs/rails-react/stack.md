@@ -31,6 +31,16 @@ read this file together with `.agents/project/backend.md` and
 - Use Formik + Yup and shared Formik components for forms.
 - Use Vitest + Testing Library.
 
+### Visual lock in React
+
+React examples of the prototype visual lock
+(`.agents/skills/01-product/create-prd/reference/visual-lock.md`):
+
+- Pattern wins: a prototype `<button style="background:#16a34a">` becomes the existing `<Button variant="primary">`, styled by `var(--color-primary)`; never `className="btn-green"`, an inline `style`, or a hex literal in JSX or CSS modules.
+- No loose variants: do not add a `color="green"` prop or copy `Button` into `GreenButton`; a variant the table marks `componente nuevo: variante ...` is added once to the shared component with its own token.
+- `componente nuevo`: built as a shared component from tokens with its own Vitest + Testing Library test, in the slice before the screens that use it.
+- QA: search the touched files for raw hex/rgb values and inline `style` props; with Playwright, compare `page.screenshot()` of the shipped screen with the prototype opened from `docs/design/<slug>-mockups/` (layout and content for `estructura`, also visual values with `toHaveScreenshot` for `pixel`).
+
 ## Tests
 
 - Backend: Minitest with the factories and fixtures already present; service, controller, and serializer tests as appropriate. `Bullet` must be active in tests to catch N+1 query regressions.
