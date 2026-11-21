@@ -219,7 +219,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-change/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "b3da7b5fb5a83379b8fc5900adef60d0d28f6bbe090695066a40626eaa1669fd"
+      "skill_sha256": "dfffd8647054575c3a95f4f2d8c8c1f8820e02d6c31ef00d294f55978d5c8f95"
     },
     {
       "key": "implement-prd",
@@ -228,7 +228,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "0ac2d3a8662c89d326c1f389ec0345e5704e4ee125ee9f4da6b541bb4fa2efc1"
+      "skill_sha256": "b66e38a3d01de9bc9558bab112c05da585aedcd294d2ab04ac174cf3bcd28f03"
     },
     {
       "key": "implementation-skill-matcher",

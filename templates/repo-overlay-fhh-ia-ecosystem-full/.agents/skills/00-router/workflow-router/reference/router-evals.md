@@ -28,6 +28,7 @@ change to the pre-filter or the router, and recording the result in the PR.
 | L12 | "Haz push de la rama y despliega a staging" | N3 | direct-action |
 | L13 | "En el listado de pedidos que ya implementamos (PRD ds-14), agrega ordenar por fecha de entrega" | N1 | implement-change |
 | L14 | "Al guardar un pedido sin ítems, la API responde 500; debería responder 422" | N2 | implement-change |
+| L15 | "Continúa desde .ai-work/pedidos-filtros/task_tracker.toon" (new session, tracker with a `checkpoint` block) | N2 | implement-change |
 <!-- router-evals:level-prompts:end -->
 
 Notes:
@@ -48,6 +49,11 @@ Notes:
   workflow-maintenance routes may go one step lower.
 - L14 is a bug input touching an API response: reproduce, failing-first test,
   one-line root cause.
+- L15 is a resumed session after a slice cut: the checkpoint's `route_trace`
+  is the session memory, so it takes the continuation fast-path
+  (`implement-change · continuing · no reroute`), reads the tracker and the
+  next slice lock, and does not rerun the router, readiness, or discovery
+  (`implement-change/reference/session-checkpoint.md`).
 
 ## Trigger examples
 

@@ -82,6 +82,19 @@ closure_gate[N]{item,status,evidence}:
   edge-cases,NOT_STARTED,none
   qa-readiness,NOT_STARTED,none
 
+# checkpoint (only at a session cut point; see implement-change/reference/session-checkpoint.md)
+checkpoint:
+  written: <ISO-datetime>
+  trigger: <cut-point <slice-id> | size-brake <context size or substitute>>
+  route_trace: <latest routing trace line, verbatim>
+  closed_slices[N]: <slice-id>
+  next_slice: <slice-id>
+  next_lock: <.ai-work/<prd-slug>/locks/<slice-id>.toon>
+  open_decisions[N]: <question waiting for the user>
+  branch: <branch>
+  commit: <sha>
+  working_tree: <clean | uncommitted files>
+
 ```
 
 ## Events Log

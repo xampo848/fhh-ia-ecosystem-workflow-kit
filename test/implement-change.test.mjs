@@ -14,7 +14,7 @@ test('implement-change core stays under 200 lines and declares when each referen
   const core = await read(`${changeDir}/SKILL.md`);
   assert.ok(core.split('\n').length <= 200, 'implement-change SKILL.md must stay at or under 200 lines');
   assert.match(core, /^name: implement-change$/m);
-  for (const reference of ['level-n1.md', 'level-n2.md', 'level-n3.md', 'input-types.md', 'modifiers.md']) {
+  for (const reference of ['level-n1.md', 'level-n2.md', 'level-n3.md', 'input-types.md', 'modifiers.md', 'session-checkpoint.md']) {
     assert.match(core, new RegExp(`\\[reference/${reference.replace('.', '\\.')}\\]\\(reference/${reference.replace('.', '\\.')}\\) \\| \\S`), reference);
     await fs.access(path.join(root, changeDir, 'reference', reference));
   }
@@ -90,4 +90,38 @@ test('one N1 procedure per entry path and a placeholder project context never bl
   assert.match(n2, /Tracker and execution locks are N3 coordination\. At N2 keep the tracker only\s+when the change has more than one slice/);
   assert.match(n2, /every delegated coding slice, even a single one/);
   assert.doesNotMatch(n2, /Code-writing defaults to the specialized implementers/);
+});
+
+test('both implement skills name the session cut point and link the single checkpoint reference', async () => {
+  const [core, alias, checkpoint, tracker, resume, handoffs, instructions] = await Promise.all([
+    read(`${changeDir}/SKILL.md`),
+    read('.agents/skills/02-implement/implement-prd/SKILL.md'),
+    read(`${changeDir}/reference/session-checkpoint.md`),
+    read('.agents/skills/02-implement/implement-prd/reference/task-tracker-template.md'),
+    read('.agents/skills/02-implement/implement-prd/reference/validation-and-stop-conditions.md'),
+    read('.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md'),
+    read('.agents/instructions.md')
+  ]);
+  assert.match(core, /\*\*Session cut point \(N2\/N3\)\.\*\*[\s\S]*?`reference\/session-checkpoint\.md`/);
+  assert.match(core, /The cut is proposed, never imposed, and\s+never interrupts a wait for delegates/);
+  assert.match(alias, /Session cut point:[\s\S]*?\[\.\.\/implement-change\/reference\/session-checkpoint\.md\]\(\.\.\/implement-change\/reference\/session-checkpoint\.md\)/);
+  for (const text of [resume, handoffs, instructions]) assert.match(text, /implement-change\/reference\/session-checkpoint\.md/);
+  assert.match(tracker, /^checkpoint:$/m);
+  assert.match(tracker, /route_trace: /);
+
+  assert.match(checkpoint, /^## Cut point$/m);
+  assert.match(checkpoint, /terminal handoff was read/);
+  assert.match(checkpoint, /no other delegate is `PENDING_SUBAGENT`/);
+  assert.match(checkpoint, /^## Size brake$/m);
+  assert.match(checkpoint, /about 150k tokens/);
+  assert.match(checkpoint, /If it does not, use an observable substitute/);
+  assert.match(checkpoint, /never report a context size the\s+runtime did not show/);
+  assert.match(checkpoint, /Never cut, compact, or start a session silently/);
+  assert.match(checkpoint, /Never propose it while a delegate is `PENDING_SUBAGENT`/);
+  assert.match(checkpoint, /No parallel file or\s+format/);
+  const reads = checkpoint.slice(checkpoint.indexOf('## What the resumed session reads'), checkpoint.indexOf('## What it does not repeat'));
+  assert.match(reads, /The lock of `next_slice`/);
+  const skipped = checkpoint.slice(checkpoint.indexOf('## What it does not repeat'));
+  assert.match(skipped, /`implement-change · continuing · no reroute`/);
+  assert.match(skipped, /Readiness, discovery, slicing, and matching while their evidence stays fresh/);
 });

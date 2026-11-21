@@ -119,6 +119,9 @@ Load a reference only when its condition holds:
 - `blocking_findings_open: yes` (any `critical`/`high` finding not `repaired` or `waived_by_user`) forbids `ready_to_close: yes` regardless of every other field's value.
 - A `waived_by_user` entry for a `critical`/`high` finding, or for authorization/tenancy/destructive-migration gaps, is valid only when it quotes the concrete risk the user accepted; a generic acknowledgement without a named risk is treated as `evidence_state: missing`.
 - `unrelated_failures[N]` with `user_decision: pending` blocks the slice from `VERIFIED`; the orchestrator must obtain an explicit `repair_now | log_as_risk | block` decision from the user before continuing.
+- A terminal handoff that brings a slice to `VERIFIED` makes it a session cut
+  point (`../../implement-change/reference/session-checkpoint.md`); a partial
+  handoff never does.
 - `VERIFIED` requires a `delegation-envelope/v1` prefix with a present,
   non-`none`, matching `execution_lock_id`, complete immutable slice-lock fields, and
   `evidence_state: fresh`. `waived_by_user` does not permit an absent, `none`,

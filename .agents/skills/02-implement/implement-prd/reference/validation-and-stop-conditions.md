@@ -181,7 +181,10 @@ Cual prefieres?
 
 ## Resume Mode
 
-When resuming a partial PRD implementation:
+When the tracker holds a `checkpoint` block, resume as
+`../../implement-change/reference/session-checkpoint.md` says instead: it does
+not rerun readiness or discovery while their evidence is fresh. Otherwise,
+when resuming a partial PRD implementation:
 
 1. Read the physical task tracker file `.ai-work/<prd-slug>/task_tracker.toon` to restore the orchestration state and see progress. If it was cleaned after a completed run, reconstruct progress from the PRD, final response, diff, and tests.
 2. Run `prd-readiness-review` against the PRD and current user request.

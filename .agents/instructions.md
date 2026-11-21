@@ -394,7 +394,11 @@ Token-spike prevention defaults:
   already loaded and unchanged for the active workflow; apply the
   continuation fast-path above and rely on session memory instead of
   re-deriving routing from scratch every turn;
-- summarize large tool payloads instead of echoing raw output.
+- summarize large tool payloads instead of echoing raw output;
+- in N2/N3 implementation, propose a new session at each slice cut point or
+  size brake (`.agents/skills/02-implement/implement-change/reference/session-checkpoint.md`);
+  its checkpoint carries the routing trace, so the resumed session applies
+  the continuation fast-path.
 
 Compressed delegation preference:
 
