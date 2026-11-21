@@ -112,6 +112,30 @@ checkpoint and propose continuing in a new session
 (`reference/session-checkpoint.md`). The cut is proposed, never imposed, and
 never interrupts a wait for delegates.
 
+**Orchestrator reads (N2/N3).** The orchestrator's context keeps decisions and
+evidence, not raw material:
+
+- It reads the tracker, locks, handoffs, the input, and specific snippets (a
+  bounded line range it is about to edit or cite). A bounded search (exact
+  symbol, short output) may stay inline. Broad exploration and whole-file
+  reads (`cat`, long `sed -n` ranges) are delegated: `cavecrew-investigator`
+  for a file:line lookup, `sherlock-estructura` for patterns, tests, and
+  validation commands.
+- Visual verification belongs to the role that performs it (the frontend writer
+  for its slice, QA at closure, or the Visual Verification Delegate in
+  `../implement-prd/reference/subagent-prompts.md`): that role opens the
+  browser, reads the screenshots, and returns a verdict per criterion, the
+  screenshot path, and its findings. The orchestrator does not `Read` images or
+  drive the browser unless the user asks directly, with two exceptions:
+  - **Spot-check:** when a criterion is critical or a verdict conflicts with
+    other evidence, it may open one specific screenshot or snippet.
+  - **Visual fallback:** when the verifier returns `blocked` with
+    `blocked_reason: no_browser_tools`, the orchestrator verifies inline and
+    records why in the tracker (or the final response when there is none).
+- Level exception: N0 and N1 do not delegate (N1 allows no delegates), so this
+  rule applies to N2 and N3 only. A locator or visual-verifier call is not a
+  stage delegate and does not change the N2 `avoided` default.
+
 ## Invariants (every level)
 
 No level, modifier, or user hurry removes these:

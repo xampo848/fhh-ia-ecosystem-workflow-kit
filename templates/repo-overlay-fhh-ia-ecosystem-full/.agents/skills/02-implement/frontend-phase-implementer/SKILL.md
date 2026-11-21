@@ -87,7 +87,7 @@ Reject the implementation or return `blocked` if satisfying the slice requires q
 13. Add tests using realistic API payloads for positive, empty, loading, and error states as relevant.
 14. Run the narrowest useful validation, preserving matcher validation hooks when present. Use the frontend commands declared in `.agents/project-context.md` (or `.agents/project/stack.md`): tests, lint, and style checks for the touched files.
 15. Fix root causes. Do not hide failures, weaken tests, bypass design system conventions, or lower standards.
-16. For visible UI, verify the screen against the premium bar from `.agents/project/frontend.md`. If it still feels generic, continue iterating or return `partial`.
+16. For visible UI, verify the screen against the premium bar from `.agents/project/frontend.md`. If it still feels generic, continue iterating or return `partial`. Open the screen and read the screenshots yourself; the handoff carries one verdict per criterion with its screenshot path and findings, never the image, because at N2/N3 the orchestrator does not view screenshots (`implement-change` Step 3, "Orchestrator reads"; rows as in the Visual Verification Delegate of `../implement-prd/reference/subagent-prompts.md`).
 17. Complete the quality gate result and matcher-consumption evidence in the handoff.
 
 ## Stop And Ask When

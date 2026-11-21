@@ -130,6 +130,61 @@ Reglas:
 8. Do not treat a requested model as execution evidence. `resolved_model: unknown` is valid without runtime evidence, but `VERIFIED` is invalid when the required lock is absent, `none`, mismatched, incomplete, stale, or missing evidence.
 ```
 
+## Visual Verification Delegate
+
+Use at N2/N3 whenever a screen must be looked at: the orchestrator does not
+`Read` screenshots or drive the browser (`implement-change` SKILL.md, Step 3,
+"Orchestrator reads"). At N2 read only this section of this file. N0 and N1 do
+not delegate; they verify inline. The orchestrator may still spot-check one
+screenshot when a criterion is critical or a verdict conflicts with other
+evidence, and verifies inline when this delegate returns `blocked` with
+`blocked_reason: no_browser_tools`, recording why.
+
+```text
+Actua como [ALIAS: QA Relampago at closure | Pixel Ninja for its own slice].
+
+Usa esta skill:
+.agents/skills/02-implement/[qa-handoff-review | frontend-phase-implementer]/SKILL.md
+
+Contexto:
+- PRD or ticket: [path]
+- Level: [N2 | N3]
+- Screens: [URL or route per criterion]
+- How to reach them: [dev server command, test user or fixture from project files]
+- Visual criteria: [id: criterion] (acceptance criteria or the locked Contrato Visual)
+- Viewports and states: [desktop, mobile; empty, loading, error, ...]
+- Screenshot directory: .ai-work/<prd-slug>/screenshots/
+
+Reglas:
+1. Tu abres el navegador y lees las capturas; el orquestador no las vera.
+   Usa la herramienta de navegador del runtime si la tienes; si no, el
+   Playwright del proyecto desde la terminal, y lee el PNG con tu lector de archivos.
+2. No edites codigo de producto. Escribe solo capturas y logs en el directorio indicado.
+3. Un veredicto por criterio: `pass` solo con una captura que lo muestre;
+   `fail` con lo observado; `blocked` con la causa si no pudiste abrir la
+   pantalla (`server`, `login`, `data`).
+4. No devuelvas imagenes, HTML, arbol de accesibilidad ni logs completos: cita rutas.
+5. Sin navegador ni Playwright disponibles, retorna `blocked` con
+   `blocked_reason: no_browser_tools` y nada mas: el orquestador verificara
+   inline y dejara registrado el motivo.
+6. Synchronization: the parent orchestrator is blocked on your terminal handoff.
+   Do not end until every criterion has a verdict or the run is explicitly blocked.
+
+Salida obligatoria (TOON, sin texto adicional):
+status: success | partial | blocked
+blocked_reason: <no_browser_tools | server | login | data | none>
+criteria[N]{id,verdict,screenshot,finding}:
+  AC-1,pass,.ai-work/<prd-slug>/screenshots/ac-1-desktop.png,-
+  AC-2,fail,.ai-work/<prd-slug>/screenshots/ac-2-mobile.png,<one line: what differs>
+findings[N]{severity,criterion,observation}:
+console_errors: <count | none | not_checked>
+residual_risks: <one line | none>
+next: <exact repair or validation step | none>
+```
+
+A frontend writer or QA that verifies inside its own run carries the same
+`criteria[N]` rows in its handoff's evidence instead of a separate return.
+
 ## Prompt Card Files
 
 For quick copy/paste, use the matching file in `agents/`:
