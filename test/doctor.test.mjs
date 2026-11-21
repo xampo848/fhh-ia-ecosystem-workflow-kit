@@ -116,3 +116,24 @@ test('doctor warns when an always-loaded adapter lost the level pre-filter', asy
   const result = await runDoctor({ targetPath: target, runtime: 'claude' });
   assert.ok(result.diagnostics.some((item) => item.code === 'adapter/missing-level-prefilter' && item.path === 'CLAUDE.md' && item.severity === 'warning'));
 });
+
+test('doctor fails when a generated agent does not match the equilibrado profile', async () => {
+  const target = await makeTempRepo();
+  assert.equal(await runCli(['init', '--target', target, '--runtime', 'claude', '--profile', 'claude=equilibrado', '--apply', '--yes'], createMemoryIo()), 0);
+
+  const healthyIo = createMemoryIo();
+  assert.equal(await runCli(['doctor', '--target', target], healthyIo), 0);
+  assert.match(healthyIo.output.stdout, /Model profiles: claude=equilibrado/);
+
+  // A calidad agent left behind (for example a manual copy) no longer matches.
+  const agentPath = path.join(target, '.claude/agents/testinator-5000.md');
+  const content = await fs.readFile(agentPath, 'utf8');
+  assert.match(content, /^model: sonnet$/m);
+  await fs.writeFile(agentPath, content.replace(/^model: sonnet$/m, 'model: opus'), 'utf8');
+
+  const io = createMemoryIo();
+  assert.equal(await runCli(['doctor', '--target', target], io), 1);
+  assert.match(io.output.stdout, /model-profile\/agent-mismatch/);
+  assert.match(io.output.stdout, /Expected `model: sonnet` for the equilibrado profile but found `model: opus`/);
+  assert.match(io.output.stdout, /update --profile claude=equilibrado --apply --yes/);
+});

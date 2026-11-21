@@ -60,7 +60,7 @@ For existing repositories, this apply step also enables:
 - docs hub non-destructive insertion,
 - one-time legacy docs migration map generation when legacy docs are detected.
 
-### Model profile per runtime (`calidad` / `costo`)
+### Model profile per runtime (`calidad` / `equilibrado` / `costo`)
 
 Delegate agents get their model from the project's **model profile**, chosen
 by how each runtime is billed:
@@ -68,6 +68,9 @@ by how each runtime is billed:
 - `calidad` (default for Claude Code and Codex): subscription. Sonnet or GPT
   Sol by default, Opus or GPT Sol extra-high for implementers, QA, and
   slicing; never small models.
+- `equilibrado` (opt-in): a subscription that often hits its weekly limits.
+  Opus or GPT Sol extra-high only for slicing and final QA; implementers,
+  tests, and contract checks on Sonnet or GPT Sol medium; never small models.
 - `costo` (default for Copilot, and any per-token API): small models for
   reading, validation, and docs; Grande only for critical concerns.
 
@@ -135,7 +138,7 @@ installed version, so a mistyped ref or a network failure changes nothing. To
 pin a release, pass its tag (see [Versioning](versioning.md)):
 
 ```bash
-workflow-kit upgrade --ref v0.17.6-bounded-output --apply --yes
+workflow-kit upgrade --ref v0.18.0-equilibrado-profile --apply --yes
 ```
 
 After that, run `update` in each target repository you manage.

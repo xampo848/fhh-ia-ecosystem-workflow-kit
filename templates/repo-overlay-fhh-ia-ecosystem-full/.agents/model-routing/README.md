@@ -36,8 +36,9 @@ Rules:
 
 The typical uses below describe what each tier is for. Which tier a delegate
 role actually gets is decided only by the profile table in `Model profiles`
-(`calidad` never uses Liviano and gives writers Grande); every other tier
-table in this file is the `costo` profile or defers to that table.
+(`calidad` and `equilibrado` never use Liviano; `calidad` gives writers
+Grande); every other tier table in this file is the `costo` profile or defers
+to that table.
 
 | Tier | Meaning | Typical use |
 | --- | --- | --- |
@@ -53,32 +54,34 @@ Rules:
 - For `create-prd` in the `costo` profile, use Liviano for Phase 1 calibration and Phase 2 ambiguity detection (Mediano in `calidad`), Mediano for Phase 3 pattern lock and Phase 5 self-audit, and Grande only for Phase 4 drafting. Apply this only when the runtime permits phase-level tier selection; never claim an automatic switch otherwise.
 - Do not claim automatic switching unless the runtime confirms it.
 
-## Model profiles (`calidad` / `costo`)
+## Model profiles (`calidad` / `equilibrado` / `costo`)
 
 The tier assigned to each delegate depends on how the runtime is billed, not
 on the model brand. Each project fixes one profile per runtime; the catalog
-(`delegate-agent-catalog.json` → `modelProfiles`) holds both assignments.
+(`delegate-agent-catalog.json` → `modelProfiles`) holds every assignment.
 
 | Profile | Default runtimes | Billing | Rule |
 | --- | --- | --- | --- |
 | `calidad` | Claude Code, Codex | subscription (usage limits per window, not credits per request) | quality first; never Liviano |
+| `equilibrado` | none (opt-in) | subscription that often hits its weekly limits | Grande only for planning and final QA; never Liviano |
 | `costo` | GitHub Copilot, Antigravity, and any API-key/per-token runtime | premium requests with model multipliers, or pay per token | close to the original catalog; Liviano allowed |
 
-| Role | `calidad` | `costo` |
-| --- | --- | --- |
-| `turbo-backend`, `pixel-ninja`, `testinator-5000`, `guardia-contrato` | Grande | Mediano |
-| `arquitecta-fases`, `qa-relampago` | Grande | Mediano |
-| `capitana-alcance`, `cavecrew-builder`, `cavecrew-reviewer` | Mediano | Mediano |
-| `sherlock-estructura`, `cavecrew-investigator`, `lint-ranger` | Mediano | Liviano |
-| `escriba-doc` | Mediano | Liviano, escalating to Mediano (see Documentation role routing) |
+| Role | `calidad` | `equilibrado` | `costo` |
+| --- | --- | --- | --- |
+| `turbo-backend`, `pixel-ninja`, `testinator-5000`, `guardia-contrato` | Grande | Mediano | Mediano |
+| `arquitecta-fases`, `qa-relampago` | Grande | Grande | Mediano |
+| `capitana-alcance`, `cavecrew-builder`, `cavecrew-reviewer` | Mediano | Mediano | Mediano |
+| `sherlock-estructura`, `cavecrew-investigator`, `lint-ranger` | Mediano | Mediano | Liviano |
+| `escriba-doc` | Mediano | Mediano | Liviano, escalating to Mediano (see Documentation role routing) |
 
 Rules:
 
 - `criticalConcerns` (security, migrations, public contracts, and the rest of
-  the catalog list) escalate any role to Grande in both profiles. In `costo`
-  this is the only path to Grande; never escalate silently there.
-- In `calidad`, a `lean` posture means less context and less delegation, not a
-  smaller model.
+  the catalog list) escalate any role to Grande in every profile. In `costo`
+  this is the only path to Grande; never escalate silently there. Claude Code
+  applies it at launch time (`Claude Code critical-concern escalation`).
+- In `calidad` and `equilibrado`, a `lean` posture means less context and
+  less delegation, not a smaller model.
 - Runtime mapping: Claude Code `Mediano` = `sonnet`, `Grande` = `opus`
   (`Liviano` = `haiku`, `costo` only). Codex pins `model_reasoning_effort`
   (`medium` for Mediano, `xhigh` for Grande, `low` for Liviano) and inherits
@@ -88,17 +91,22 @@ Rules:
   `workflow-kit init` asks "subscription or API?" for Claude Code and Codex
   (an `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` only preselects `costo`; the user
   confirms). Non-interactive runs use the runtime default. `update` keeps the
-  stored value; change it with `workflow-kit update --profile <runtime>=<calidad|costo>`.
+  stored value; change it with `workflow-kit update --profile <runtime>=<calidad|equilibrado|costo>`.
+  `equilibrado` is never a runtime default: an install only gets it when the
+  user picks it, so existing installs keep their models on `update`.
   Never edit generated agent files by hand; `doctor` fails when an agent's
   model setting does not match its profile.
-- Subscriptions are not unlimited: Opus consumes usage limits faster. If they
-  are hit often in `calidad`, lower `guardia-contrato` and `testinator-5000`
-  to Mediano first: a public contract still escalates `guardia-contrato` to
-  Grande through `criticalConcerns`, and `testinator-5000` works from explicit
-  acceptance criteria. Keep `arquitecta-fases` and `qa-relampago` on Grande:
-  each runs about once per change, and a planning or final-review miss costs
-  more than it saves. Tiers are not configurable per agent yet;
-  `--profile <runtime>=costo` changes every role at once.
+- Subscriptions are not unlimited: Opus consumes usage limits faster. If the
+  weekly limits are hit often in `calidad`, switch to `equilibrado`
+  (`workflow-kit update --profile claude=equilibrado`) instead of `costo`. It
+  lowers the writers and `testinator-5000`/`guardia-contrato` to Mediano: a
+  public contract still escalates `guardia-contrato` to Grande through
+  `criticalConcerns`, and the writers and `testinator-5000` work from explicit
+  slices and acceptance criteria. It keeps `arquitecta-fases` and
+  `qa-relampago` on Grande: each runs about once per change, and a planning or
+  final-review miss costs more than it saves. Trade-off: hard slices may need
+  more repair rounds; if they rise steadily, go back to `calidad`. Tiers are
+  not configurable per agent; a profile changes every role at once.
 
 ## User override
 
@@ -321,6 +329,19 @@ Protocol` of `.agents/skills/02-implement/implement-prd/reference/subagent-promp
 The resolver and the evidence verifier ship in this directory as generated,
 Node-only helpers (`copilot-model-routing.mjs`, `delegate-agent-catalog.json`,
 `verify-copilot-model-evidence.mjs`); do not edit them by hand.
+
+### Claude Code critical-concern escalation
+
+Generated Claude Code agents pin their profile tier in the `model:` front
+matter, so the file alone never applies `criticalConcerns`. The launch call
+accepts a per-call `model` (`haiku`, `sonnet`, `opus`) that overrides it. When
+a delegated slice lists any `criticalConcern` and the role's profile tier is
+below Grande (every Mediano role in `equilibrado` and `costo`), the
+orchestrator launches it with `model: opus` and records `requested_tier:
+Grande`, `requested_model: opus`, and `contextual_tier: Grande` with the
+concern as the reason; `resolved_model` stays `unknown` unless the runtime
+exposes it. In `costo` this is the only path to Grande, so name it in the
+trace. Never use this parameter to run a role below its profile tier.
 
 ### Contextual task selection
 

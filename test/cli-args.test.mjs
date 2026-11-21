@@ -67,4 +67,5 @@ test('printHelp documents all commands', () => {
   assert.match(help, /workflow-kit doctor/);
   assert.match(help, /workflow-kit tui/);
   assert.match(help, /--backup-mode required\|none/);
+  assert.match(help, /--profile <runtime>=<calidad\|equilibrado\|costo>/);
 });

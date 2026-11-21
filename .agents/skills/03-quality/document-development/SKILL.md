@@ -17,7 +17,7 @@ Esta skill es el cierre natural después de `implement-change` cuando el cambio 
 
 ## Modelo por defecto
 
-Documentar es sintetizar algo ya implementado y validado (postura `lean`). El tier depende del perfil de modelo del proyecto, según `.agents/model-routing/README.md`: **Mediano** en `calidad` (suscripción) y **Liviano** en `costo` (Copilot/API), escalando a Mediano según esa política. En runtimes que permiten fijar el modelo del subagente (Claude Code, Copilot, Codex), delegar en `escriba-doc`; si no, ejecutar inline y reportar el tier recomendado sin afirmar que el modelo cambió.
+Documentar es sintetizar algo ya implementado y validado (postura `lean`). El tier depende del perfil de modelo del proyecto, según `.agents/model-routing/README.md`: **Mediano** en `calidad` y `equilibrado` (suscripción) y **Liviano** en `costo` (Copilot/API), escalando a Mediano según esa política. En runtimes que permiten fijar el modelo del subagente (Claude Code, Copilot, Codex), delegar en `escriba-doc`; si no, ejecutar inline y reportar el tier recomendado sin afirmar que el modelo cambió.
 
 Cuando se ejecuta como delegado (`escriba-doc`), leer primero `.agents/delegation/delegate-contract.md` en vez de `.agents/instructions.md` o el router.
 

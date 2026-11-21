@@ -161,6 +161,11 @@ For Claude Code that changes the delegate agents from `model: inherit` to
 per-token API key, pass `--profile claude=costo` (or `codex=costo`) on that
 update. The profile is then stored and kept by later updates.
 
+The `equilibrado` profile (since `0.18.0`) is unknown to older toolkits. Before
+downgrading the toolkit or pinning a tag older than `v0.18.0-equilibrado-profile`,
+switch back with `--profile claude=calidad` (or `codex=calidad`); otherwise
+`update` and `doctor` stop with "No equilibrado tier defined".
+
 If your repo was installed before install-state support, run a one-time bootstrap:
 
 ```bash

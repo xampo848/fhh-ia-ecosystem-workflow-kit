@@ -101,7 +101,9 @@ changes. This skill is the applicable instruction that authorizes launching
 the generated custom agents listed in the delegate matrix:
 
 - **Claude Code:** launch the generated agent by name; its `model` comes from
-  the project's model profile.
+  the project's model profile. If the slice has a `criticalConcern` and that
+  model is below Grande, pass `model: opus` in the launch call and record it
+  (`Claude Code critical-concern escalation` in `.agents/model-routing/README.md`).
 - **Codex:** spawn the generated agent by name and wait with `wait_agent`; its
   `model_reasoning_effort` comes from the profile and the model is inherited
   from the session unless the project pins one.
