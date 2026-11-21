@@ -11,7 +11,7 @@
 
 F1 dejó el límite escrito: `.agents/workflow-kit/manifest.json` dice de quién es cada ruta, pero el CLI no lo lee. `workflow-kit update` sigue decidiendo con tres conjuntos de rutas escritos a mano, protege los adaptadores completos, mezcla filas del proyecto en los catálogos del kit y nunca borra lo que el kit dejó de distribuir. Este PRD hace que `update` obedezca al manifiesto y migra una sola vez los repos instalados con el layout 0.18/0.19, con dry-run, backup y rollback.
 
-> **Alcance estricto**: lectura del manifiesto en `src/`, plan por clase (`kit`, `derived`, `adapter`, `seed`, `state`), `install-state` v2, borrado de lo retirado sin editar (P4), journal v2 y rollback, migración desde un state v1 (skills propias al overlay, `project-context.md` → `.agents/project/context.md`, recorte del quality gate duplicado, adaptadores sin marcadores, archivos del kit editados con decisión por archivo), `doctor` del límite, drift check por manifiesto (P5), TUI y docs de migración. Incluye una slice chica de manifiesto y plantilla (P1-S1) que se coordina con el orquestador antes de editarla. **No incluye**: `stack.md` como default del kit + extend (P10 de `stack.md`, follow-up), runbooks (F3), modo plugin (F4), merge a 3 vías, reescribir `scripts/validate-kit-boundary.mjs`.
+> **Alcance estricto**: lectura del manifiesto en `src/`, plan por clase (`kit`, `derived`, `adapter`, `seed`, `state`), `install-state` v2, borrado de lo retirado sin editar (P4), journal v2 y rollback, migración desde un state v1 (skills propias al overlay, `project-context.md` → `.agents/project/context.md`, recorte del quality gate duplicado, adaptadores sin marcadores, archivos del kit editados con decisión por archivo), `doctor` del límite, drift check por manifiesto (P5), TUI y docs de migración. Incluye una slice chica de manifiesto y plantilla (P1-S1) que se coordina con el orquestador antes de editarla. **No incluye**: `stack.md` como default del kit + extend (P10 de `stack.md`, follow-up), runbooks (F3), modo plugin (F4), merge a 3 vías y cualquier cambio en archivos que son de F3: `scripts/validate-kit-boundary.mjs`, `test/kit-boundary.test.mjs`, `scripts/validate-stack-neutrality.mjs` y su test, `.agents/skills/registry.schema.json`. F2 solo los ejecuta; si necesitara cambiarlos, para y avisa al orquestador.
 
 **Sketch heredado**: `docs/design/kit-project-overlay-sketch.md` (Locked, opción B)
 **UI lock**: not-applicable
@@ -173,7 +173,7 @@ TUI: con archivos pendientes pregunta **Keep** (default) / **Replace all** / **D
 | AC-13 | El repo del kit | `check:workflow` | `validateOverlayDrift` compara solo las rutas `kit`, `derived` y `seed` del manifiesto bajo `.agents/`; un archivo propio no seed bajo `.agents/project/` no cuenta como drift | `test/workflow-contract.test.mjs` |
 | AC-14 | `src/` | Corre el test de contrato | No hay literales de rutas del kit (`'.agents/skills/`, `.agents/project-context.md`) ni conjuntos de ownership; `skillCatalogPreservePaths`, `skillCatalogRowPaths` y `protectedCustomizationPaths` no existen | `test/workflow-contract.test.mjs` |
 | AC-15 | `update` en el TUI con pendientes | Se elige cada opción | Keep deja pendientes; Replace all los descarta con backup; Decide file by file pregunta por archivo solo con decisiones válidas; la selección parcial no parte la migración | `test/tui.test.mjs` |
-| AC-16 | P1-S1 aplicada | `check:workflow` | El manifiesto cubre `.agents/project/context.md` y `legacy-docs-map.md` como seed; el schema acepta `ignore_entries` y `superseded_seeds`; espejo igual | `validate-kit-boundary` + `test/kit-boundary.test.mjs` |
+| AC-16 | P1-S1 aplicada | `check:workflow` | El manifiesto cubre `.agents/project/context.md` y `legacy-docs-map.md` como seed; el schema acepta `ignore_entries` y `superseded_seeds`; espejo igual. Sin editar el validador ni su test (son de F3): el validador actual no rechaza claves nuevas y salta la existencia de rutas legacy. | `node scripts/validate-kit-boundary.mjs` dentro de `check:workflow` |
 | AC-17 | El repo completo | Se cierra el PRD | Pasan `npm test`, `check:workflow`, `check:release`, `check:legal` y `check:docs`. `docs/migration.md` y `docs/troubleshooting.md` explican la migración, las decisiones y el rollback. La versión la asigna el orquestador. | Salida de los comandos |
 
 ### 2.6 Casos de Uso
@@ -386,7 +386,7 @@ flowchart LR
 
 | ID | Outcome | Depends on | Scope / likely files | Out of scope | Acceptance criteria | Use cases | Tests | Edge cases | Validation | Evidence | Stop conditions |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P1-S1 | Manifiesto y plantilla listos para F2 (tabla de 2.1) | none | `.agents/workflow-kit/manifest.json` y `.schema.json`, mover `project-context.md` a `.agents/project/context.md` (raíz y plantilla), `.agents/kit-boundary.md` (nota legacy), espejo | Lectores del kit (ya tienen fallback, F1) | AC-16 | UC-9 | `test/kit-boundary.test.mjs` | — | `npm run check:workflow` | Salida en verde | **Antes de editar: visto bueno del orquestador** (archivos reservados; posible choque con F3 en `kit-boundary.md`) |
+| P1-S1 | Manifiesto y plantilla listos para F2 (tabla de 2.1) | none | `.agents/workflow-kit/manifest.json` y `.schema.json`, mover `project-context.md` a `.agents/project/context.md` (raíz y plantilla), `.agents/kit-boundary.md` (nota legacy), espejo | Lectores del kit (ya tienen fallback, F1) | AC-16 | UC-9 | Validador existente (sin editar) | — | `npm run check:workflow` | Salida en verde | **Antes de editar: visto bueno del orquestador** (archivos reservados; posible choque con F3 en `kit-boundary.md`). Si el validador o su test necesitan cambios: parar y avisar (son de F3). |
 | P1-S2 | `src/kit-manifest.mjs` carga y clasifica | P1-S1 | `src/kit-manifest.mjs`, `test/kit-manifest.test.mjs` | Uso en el planner | AC-1 | UC-3, UC-9 | Unidad | Errores (manifiesto ilegible) | `node --test test/kit-manifest.test.mjs` | Salida en verde | Una ruta de la plantilla sin clase: parar y reportar (es un hueco de F1) |
 | P1-S3 | Planner por clase y state v2 para `init` y `update` v2 | P1-S2 | `src/planner.mjs`, `src/project-instructions.mjs` (wrapper desde el default del kit), `test/planner.test.mjs`, `test/project-instructions.test.mjs` | Migración v1, borrados | AC-1, AC-2, AC-3, AC-6, AC-14 | UC-2 | Integración planner | Datos vacíos | `node --test test/planner.test.mjs test/project-instructions.test.mjs` | Salida en verde + `rg` de 2.11 | Un test existente del CLI depende del merge de filas fuera de `planner.test.mjs`: parar y listar |
 | P1-S4 | Retirados, journal v2 y rollback | P1-S3 | `src/planner.mjs` (retirados), `src/apply.mjs`, `src/rollback.mjs`, `test/rollback-journal.test.mjs` | Migración v1 | AC-4, AC-5 | UC-1, UC-7 | Integración rollback | Límites, Errores | `node --test test/rollback-journal.test.mjs test/planner.test.mjs` | Salida en verde | — |
@@ -420,7 +420,7 @@ flowchart LR
 ### Fase Futura _(fuera de alcance de este PRD)_
 
 - P10 de `stack.md`: pack del kit + `.agents/project/stack.md` solo con agregados (cambia lectores en skills del kit).
-- Unificar `matchEntry` de `scripts/validate-kit-boundary.mjs` con `src/kit-manifest.mjs`.
+- Unificar `matchEntry` de `scripts/validate-kit-boundary.mjs` (dueño: F3) con `src/kit-manifest.mjs`.
 - `init-legacy-attachments` todavía registra skills legacy en el registry del kit (nota de F1): alinearlo con la migración.
 - F4: `mode: "plugin"` y verificación de modos en `doctor`.
 
@@ -496,7 +496,7 @@ _(Vacio = PRD listo para implementar)_
 | AC-13 | UC-9 | P3-S1 | `workflow-contract.test.mjs` | — | `check:workflow` | Pending |
 | AC-14 | UC-9 | P1-S3, P3-S1 | `workflow-contract.test.mjs` | — | `npm test` | Pending |
 | AC-15 | UC-8 | P3-S2 | `tui.test.mjs` | Concurrencia | `npm test` | Pending |
-| AC-16 | UC-9 | P1-S1 | `kit-boundary.test.mjs` | — | `check:workflow` | Pending |
+| AC-16 | UC-9 | P1-S1 | `validate-kit-boundary` (sin editar) | — | `check:workflow` | Pending |
 | AC-17 | UC-11 | P3-S2 | Suite completa | — | Comandos de cierre | Pending |
 
 ---
