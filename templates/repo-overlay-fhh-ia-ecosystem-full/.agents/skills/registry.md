@@ -61,6 +61,7 @@ Rules:
 | Cross-cutting overlay | Supplements a primary workflow when the trigger applies. |
 | Mode/helper | Alters communication style or creates narrow helper artifacts. |
 | Standards/pattern | AI-executable repeatable procedure for a technical pattern. |
+| Runbook | Project-only operational procedure listed in the project catalog `.agents/project/index.md`; never a row of this registry. |
 
 ## Pattern skill contract
 

@@ -18,6 +18,11 @@ const classes = new Set(['kit', 'derived', 'adapter', 'seed', 'state']);
 const defaultBlock = 'workflow-kit:managed';
 const prefilterBlock = 'workflow-kit:level-prefilter';
 const projectRoot = '.agents/project/';
+const projectSkillsRoot = '.agents/project/skills/';
+const runbooksRoot = '.agents/project/skills/runbooks/';
+const projectSkillClasses = new Set(['Pattern', 'Runbook']);
+// Headings every runbook carries (.agents/kit-boundary.md, "Runbooks").
+export const runbookSections = ['## Trigger', '## Preconditions', '## Steps', '## Verification', '## Rollback'];
 const ignoredBasenames = new Set(['.DS_Store']);
 // Characters that turn a path reference into a pattern (placeholder or glob).
 const patternChars = /[<*{[]/;
@@ -284,16 +289,35 @@ async function kitSkillNames(root) {
   }
 }
 
+async function validateRunbook(root, skillPath) {
+  const failures = [];
+  const content = await fs.readFile(path.join(root, skillPath), 'utf8');
+  const folder = path.posix.basename(path.posix.dirname(skillPath));
+  const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(content)?.[1] ?? '';
+  const name = /^name:\s*["']?([^"'\r\n]*?)["']?\s*$/m.exec(frontmatter)?.[1];
+  if (name !== folder) failures.push(`${skillPath}: runbook frontmatter name ${name ?? '(missing)'} differs from its folder ${folder}.`);
+  const headings = new Set(content.split(/\r?\n/).map((line) => line.trim()));
+  for (const section of runbookSections) {
+    if (!headings.has(section)) failures.push(`${skillPath}: runbook has no ${section} section.`);
+  }
+  return failures;
+}
+
 export async function validateProjectOverlay(root, manifest) {
   const failures = [];
   const indexPath = '.agents/project/index.md';
   if (!await exists(path.join(root, indexPath))) return failures;
   const index = await fs.readFile(path.join(root, indexPath), 'utf8');
   const kitNames = await kitSkillNames(root);
-  for (const [name, , , skillPath] of tableRows(index, 'Skills')) {
+  for (const [name, skillClass, , skillPath] of tableRows(index, 'Skills')) {
     if (kitNames.has(name)) failures.push(`${indexPath}: project skill ${name} reuses a kit skill name; use extend or shadow instead.`);
-    if (!skillPath?.startsWith('.agents/project/skills/')) failures.push(`${indexPath}: project skill ${name} must live under .agents/project/skills/.`);
+    if (!projectSkillClasses.has(skillClass)) failures.push(`${indexPath}: project skill ${name} has class ${skillClass}; use Pattern or Runbook.`);
+    const runbookPath = `${runbooksRoot}${name}/SKILL.md`;
+    if (skillClass === 'Runbook' && skillPath !== runbookPath) failures.push(`${indexPath}: runbook ${name} must live at ${runbookPath} (folder equals the skill name).`);
+    if (skillClass === 'Pattern' && skillPath?.startsWith(runbooksRoot)) failures.push(`${indexPath}: pattern ${name} must not live under ${runbooksRoot}; only runbooks do.`);
+    if (!skillPath?.startsWith(projectSkillsRoot)) failures.push(`${indexPath}: project skill ${name} must live under ${projectSkillsRoot}.`);
     else if (!await exists(path.join(root, skillPath))) failures.push(`${indexPath}: project skill ${name} points to missing ${skillPath}.`);
+    else if (skillClass === 'Runbook') failures.push(...await validateRunbook(root, skillPath));
   }
   for (const [skill, file] of tableRows(index, 'Extensions')) {
     if (manifest.extension_points?.[skill] !== file) failures.push(`${indexPath}: ${skill} declares no extension point at ${file}.`);

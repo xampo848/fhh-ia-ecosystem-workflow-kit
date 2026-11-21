@@ -31,7 +31,8 @@ source repository checks both with `node scripts/validate-kit-boundary.mjs`
 | --- | --- |
 | `.agents/project/index.md` | Project catalog: project skills, extensions, and shadows |
 | `.agents/project/routing.md` | Project routing rules (the router's extension point) |
-| `.agents/project/skills/<name>/SKILL.md` | Project skills: patterns now, runbooks later |
+| `.agents/project/skills/<name>/SKILL.md` | Project skills of class `Pattern` |
+| `.agents/project/skills/runbooks/<name>/SKILL.md` | Project skills of class `Runbook` (see Runbooks below) |
 | `.agents/project/extensions/<skill>.md` | Reserved for kit skills that declare an extension point there (none does yet) |
 | `.agents/project/shadows/<skill>/` | Full replacement of a kit leaf skill |
 | `.agents/project/context.md` | Project knowledge base (legacy path: `.agents/project-context.md`) |
@@ -82,7 +83,9 @@ lock.
 
 ## Project catalog format
 
-`.agents/project/index.md` has up to three tables; each is optional:
+`.agents/project/index.md` has up to three tables; each is optional. The
+`Class` column of `Skills` is `Pattern` or `Runbook`, and the folder of a
+project skill equals its name:
 
 ```markdown
 ## Skills
@@ -90,6 +93,7 @@ lock.
 | Skill name | Class | Trigger | Physical path | Cost hint |
 | --- | --- | --- | --- | --- |
 | `<name>` | Pattern | <when to use it> | `.agents/project/skills/<name>/SKILL.md` | lean |
+| `<runbook-name>` | Runbook | <operational phrases> | `.agents/project/skills/runbooks/<runbook-name>/SKILL.md` | lean |
 
 ## Extensions
 
@@ -103,6 +107,30 @@ lock.
 | --- | --- |
 | `<kit leaf skill>` | `.agents/project/shadows/<kit leaf skill>/` |
 ```
+
+## Runbooks
+
+A runbook is a project procedure: environment promotion, release, hotfix,
+rollback. It lives at `.agents/project/skills/runbooks/<name>/SKILL.md`, where
+the folder equals the frontmatter `name`, and has a `Runbook` row in the
+`Skills` table. A `Pattern` never lives under `.agents/project/skills/runbooks/`.
+
+- Required headings: `## Trigger`, `## Preconditions`, `## Steps`,
+  `## Verification`, `## Rollback` (it may say `Not applicable: <reason>`),
+  plus `## Owner` with the owning role and `last_verified: <YYYY-MM-DD>`.
+- Each precondition says how to check it (a command or an observation).
+- An irreversible step (push, deploy, delete, data migration, publish) carries
+  `confirm: required` and `risk: <consequence>`.
+- Secrets appear only as variable or secret-store names, never values: a
+  runbook is `public-in-repo` (`.agents/memory/README.md`).
+- Start from the kit template
+  `.agents/skills/06-patterns/authoring/runbook-template.md` through the
+  `add-project-pattern` skill.
+
+Routing, execution, and capture rules belong to the kit
+(`.agents/skills/00-router/workflow-router/reference/project-overlay.md` and
+`.agents/instructions.md`); no runbook text can weaken them. The kit ships no
+runbook.
 
 ## Routing rules format
 
