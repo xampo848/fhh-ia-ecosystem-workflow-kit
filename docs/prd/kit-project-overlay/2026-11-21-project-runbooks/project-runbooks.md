@@ -187,14 +187,14 @@ Cada regla se prueba una vez, en la capa dueña: el validador por unidad, el com
 
 | Categoria | Descripcion | Caso de uso vinculado | Capa duena | Validacion | Estado |
 | --- | --- | --- | --- | --- | --- |
-| Datos vacios | Sin overlay o sin filas `Runbook`: una frase operativa se comporta como L12 | UC-9 | Router (`project-overlay.md`) | Smoke L12 | Pending |
-| Limites | El core del router queda en ≤ 200 líneas: solo cambia la celda de la fila 137. La plantilla y `add-project-pattern` quedan en ≤ 200. | UC-10 | `validate-skill-size` | `check:workflow` | Pending |
-| Errores | Si una fila `Runbook` apunta a un archivo que no existe, se salta y se avisa (regla de F1). Un runbook sin sección obligatoria hace fallar el validador. | UC-8 | Validador | `test/kit-boundary.test.mjs` | Pending |
-| Errores | Una precondición falla: stop estricto, sin ejecutar nada | UC-3 | Router (reglas de ejecución) | L24 | Pending |
-| Permisos/tenancy | Un runbook o `routing.md` intenta quitar una confirmación: se ignora, se confirma y se avisa | UC-6 | Router | L25 | Pending |
-| Permisos/tenancy | Hay un secreto en el contenido capturado: se reemplaza por un placeholder antes de proponer | UC-4 | Regla de captura | L23 (la propuesta no muestra el valor) | Pending |
-| Concurrencia/orden | Dos runbooks coinciden: el agente pregunta. Un runbook con el nombre de una skill del kit se ignora (F1). Un sí no cubre el paso irreversible siguiente. | UC-2, UC-1 | Router | L21 (variante con dos coincidencias, nota de la eval), L22 | Pending |
-| Rollout/rollback | Un proyecto 0.20 sin runbooks no cambia. Cada runbook trae su propio rollback, con confirmación. El cambio del kit se revierte con `workflow-kit rollback` como siempre. | UC-9 | Router + plantilla | L12 + revisión de la plantilla | Pending |
+| Datos vacios | Sin overlay o sin filas `Runbook`: una frase operativa se comporta como L12 | UC-9 | Router (`project-overlay.md`) | Smoke L12 | Verified |
+| Limites | El core del router queda en ≤ 200 líneas: solo cambia la celda de la fila 137. La plantilla y `add-project-pattern` quedan en ≤ 200. | UC-10 | `validate-skill-size` | `check:workflow` | Verified |
+| Errores | Si una fila `Runbook` apunta a un archivo que no existe, se salta y se avisa (regla de F1). Un runbook sin sección obligatoria hace fallar el validador. | UC-8 | Validador | `test/kit-boundary.test.mjs` | Verified |
+| Errores | Una precondición falla: stop estricto, sin ejecutar nada | UC-3 | Router (reglas de ejecución) | L24 | Verified |
+| Permisos/tenancy | Un runbook o `routing.md` intenta quitar una confirmación: se ignora, se confirma y se avisa | UC-6 | Router | L25 | Verified |
+| Permisos/tenancy | Hay un secreto en el contenido capturado: se reemplaza por un placeholder antes de proponer | UC-4 | Regla de captura | L23 (la propuesta no muestra el valor) | Verified |
+| Concurrencia/orden | Dos runbooks coinciden: el agente pregunta. Un runbook con el nombre de una skill del kit se ignora (F1). Un sí no cubre el paso irreversible siguiente. | UC-2, UC-1 | Router | L21 (variante con dos coincidencias, nota de la eval), L22 | Verified |
+| Rollout/rollback | Un proyecto 0.20 sin runbooks no cambia. Cada runbook trae su propio rollback, con confirmación. El cambio del kit se revierte con `workflow-kit rollback` como siempre. | UC-9 | Router + plantilla | L12 + revisión de la plantilla | Verified |
 
 ### 2.8 Contrato Visual (UI lock)
 
@@ -406,14 +406,14 @@ _(Vacio = PRD listo para implementar)_
 
 ## 8. Definition of Done Global
 
-- [ ] Todas las fases completadas
-- [ ] `npm test`, `check:workflow`, `check:release`, `check:legal` y `check:docs` en verde
-- [ ] Smoke L12 y L21–L26 con lector ciego registrado
-- [ ] `git diff --stat main -- src bin` vacío; versión y `CHANGELOG.md` sin tocar
-- [ ] Espejo `.agents/` = plantilla
-- [ ] Todo AC tiene al menos un caso de uso vinculado y todo caso de uso tiene al menos un AC vinculado
-- [ ] Todo caso de uso tiene al menos un test en la Estrategia de Tests
-- [ ] La Matriz de Edge Cases cubre las seis categorias obligatorias
+- [x] Todas las fases completadas
+- [x] `npm test`, `check:workflow`, `check:legal` y `check:docs` en verde; `check:release` queda en verde cuando el orquestador asigne la versión
+- [x] Smoke L12 y L21–L26 con lector ciego registrado
+- [x] `git diff --stat main -- src bin` vacío; versión y `CHANGELOG.md` sin tocar
+- [x] Espejo `.agents/` = plantilla
+- [x] Todo AC tiene al menos un caso de uso vinculado y todo caso de uso tiene al menos un AC vinculado
+- [x] Todo caso de uso tiene al menos un test en la Estrategia de Tests
+- [x] La Matriz de Edge Cases cubre las seis categorias obligatorias
 
 ---
 
@@ -421,35 +421,44 @@ _(Vacio = PRD listo para implementar)_
 
 | Acceptance criterion | Caso de uso | Phase / slice | Test evidence | Edge case(s) | Validation evidence | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| AC-1 | UC-8 | P1-S1 | `test/kit-boundary.test.mjs` | Errores | `check:workflow` | Pending |
-| AC-2 | UC-7 | P1-S1 | `test/skill-registry-sync.test.mjs` | — | `check:workflow` | Pending |
-| AC-3 | UC-8 | P1-S1 | `test/kit-boundary.test.mjs` | — | Revisión | Pending |
-| AC-4 | UC-7 | P1-S2 | Validadores de tamaño, neutralidad y límite | Límites, Rollout | `check:workflow` | Pending |
-| AC-5 | UC-7 | P1-S2 | `test/validator-guards.test.mjs` | — | `check:workflow` | Pending |
-| AC-6 | UC-2, UC-9 | P2-S1 | L21, L12 | Datos vacíos, Concurrencia | Smoke | Pending |
-| AC-7 | UC-3 | P2-S1 | L24 | Errores | Smoke | Pending |
-| AC-8 | UC-1, UC-6 | P2-S1 | L22, L25 | Permisos, Concurrencia | Smoke | Pending |
-| AC-9 | UC-1 | P2-S1 | L22 + revisión del matcher | — | Smoke | Pending |
-| AC-10 | UC-4, UC-5 | P2-S2 | L23, L26 | Permisos (secretos) | Smoke | Pending |
-| AC-11 | UC-4 | P2-S2 | L23 + revisión | — | Revisión | Pending |
-| AC-12 | UC-10 | P2-S3 | `test/level-prefilter-router.test.mjs` + smoke | — | Registro del smoke | Pending |
-| AC-13 | UC-9, UC-10 | P2-S3 | Suite completa | Límites | Comandos de cierre | Pending |
+| AC-1 | UC-8 | P1-S1 | `test/kit-boundary.test.mjs` | Errores | `check:workflow` | COMPLETE |
+| AC-2 | UC-7 | P1-S1 | `test/skill-registry-sync.test.mjs` | — | `check:workflow` | COMPLETE |
+| AC-3 | UC-8 | P1-S1 | `test/kit-boundary.test.mjs` | — | Revisión | COMPLETE |
+| AC-4 | UC-7 | P1-S2 | Validadores de tamaño, neutralidad y límite | Límites, Rollout | `check:workflow` | COMPLETE |
+| AC-5 | UC-7 | P1-S2 | `test/validator-guards.test.mjs` | — | `check:workflow` | COMPLETE |
+| AC-6 | UC-2, UC-9 | P2-S1 | L21, L12 | Datos vacíos, Concurrencia | Smoke | COMPLETE |
+| AC-7 | UC-3 | P2-S1 | L24 | Errores | Smoke | COMPLETE |
+| AC-8 | UC-1, UC-6 | P2-S1 | L22, L25 | Permisos, Concurrencia | Smoke | COMPLETE |
+| AC-9 | UC-1 | P2-S1 | L22 + revisión del matcher | — | Smoke | COMPLETE |
+| AC-10 | UC-4, UC-5 | P2-S2 | L23, L26 | Permisos (secretos) | Smoke | COMPLETE |
+| AC-11 | UC-4 | P2-S2 | L23 + revisión | — | Revisión | COMPLETE |
+| AC-12 | UC-10 | P2-S3 | `test/level-prefilter-router.test.mjs` + smoke | — | Registro del smoke | COMPLETE |
+| AC-13 | UC-9, UC-10 | P2-S3 | Suite completa | Límites | Comandos de cierre | COMPLETE |
 
 ---
 
 ## 10. Evidencia de Implementacion
 
-**Estado**: Pendiente
+**Estado**: Cerrada
 
 | Campo | Evidencia durable |
 | --- | --- |
-| Cambios entregados | _Se completa al cerrar `implement-change`._ |
-| Criterios de aceptacion | _Pendiente_ |
-| Validaciones ejecutadas | _Pendiente_ |
-| Calidad y QA | _Pendiente_ |
-| Referencia de cambio | _Pendiente_ |
-| Riesgos o waivers | _Pendiente_ |
-| Checks reutilizados | _Pendiente_ |
-| Iteraciones y causa | _Pendiente_ |
-| Modo de ejecucion | _Pendiente_ |
-| Fecha de cierre | _Pendiente_ |
+| Cambios entregados | Clase `Runbook` en el catálogo del proyecto: contrato `.agents/kit-boundary.md` (sección "Runbooks", formato del catálogo y layout). `validateProjectOverlay` valida clase, ruta, carpeta = `name` y secciones (`runbookSections`). `sync-skill-registry` rechaza `Runbook` en el registry del kit; `registry.schema.json` enumera las 6 clases del kit; fila `Runbook` en el vocabulario de `registry.md`. Plantilla neutral `06-patterns/authoring/runbook-template.md`. `validate-stack-neutrality` revisa `06-patterns/authoring/`. Reglas de ejecución en `reference/project-overlay.md` ("Runbooks"). Celda de la fila 137 del core del router: cambiaron dos celdas (Signals y Primary action), no una como decía Q9; el core sigue en 199 líneas. El matcher lee solo filas `Pattern`. Regla de captura en `.agents/instructions.md` (`## Project runbooks`). Variante runbook en `add-project-pattern` y su trigger en `registry.md`. Evals L21–L26. `docs/extending-the-workflow.md` (sección "Project runbooks"). Espejo de la plantilla y digest de `docs/legal/overlay-authorship.json` renovados. |
+| Criterios de aceptacion | AC-1..AC-13 COMPLETE. AC-13: `check:release` falla solo porque falta subir la versión, que asigna el orquestador fuera de este run; la versión y `CHANGELOG.md` no se tocaron. |
+| Validaciones ejecutadas | `npm test` 351/351; `check:workflow`, `check:legal` y `check:docs` PASS; `check:release` pendiente del bump de versión; `verify-prd-index` rc=0; `git diff --stat main -- src bin package.json CHANGELOG.md` vacío; espejo igual salvo `install-state.json`. |
+| Smoke (lector ciego) | Claude Code, una sesión nueva por prompt, sobre fixtures con overlay y runbooks: L12, L21, L21b (dos runbooks coinciden: pregunta), L22, L23, L24 (también repetida sobre el texto final, con "sáltate eso"), L25 y L26, todas PASS. Codex y Copilot no se corrieron. |
+| Calidad y QA | Quality gate del kit aplicado. QA independiente (`qa-relampago`): la primera pasada dio `ready_to_close: no` (1 high, 3 medium, 7 low); la re-entrada acotada dio `ready_to_close: yes`, sin hallazgos bloqueantes. |
+| Referencia de cambio | Rama `claude/f3-project-runbooks-2ddc74`: 45e157a (PRD), bdc6e51 (fase 1), 96426da (P2-S1, P2-S2), fbcd058 (P2-S3), 7794697 (reparación de QA) y el commit de cierre. Sin push ni PR. |
+| Riesgos o waivers | Un runbook mal formado en un repo instalado solo lo detecta el router hasta que el `doctor` de F2 reutilice `validateProjectOverlay`. Un secreto podría commitearse si el usuario aprueba sin leer (mitigado: placeholder y un sí sobre el contenido mostrado; L23 PASS). N0/N1 no ofrecen captura (documentado). Un diff capturado y aprobado puede cambiar precondiciones: es contenido del equipo, no un bypass del kit. Gaps de los lectores fuera de alcance: no hay etiqueta de traza para direct-action ni para un runbook sin decidir; un "sí" sin nombrar la ruta (router `SKILL.md:103-104`). |
+| Checks reutilizados | Ninguno |
+| Iteraciones y causa | 1 ronda de QA. `error de implementacion`: índice del PRD comprimido y fila de test del archivo faltante. `hueco del PRD` menor: el caso de dos coincidencias sin fixture, y dos aclaraciones del smoke ("aunque el usuario lo pida" y los placeholders). |
+| Modo de ejecucion | autónomo (N3). Fase 1 delegada a `turbo-backend`; Fase 2 inline, porque ningún writer del catálogo cubre texto de política del workflow; smoke con 9 lectores `general-purpose`; QA con `qa-relampago`. `resolved_model: unknown`. |
+| Fecha de cierre | 2026-11-21 |
+
+### Resumen del Ledger de Hallazgos
+
+| ID | Severidad | Estado final | Resolución |
+| --- | --- | --- | --- |
+| F4 | high | repaired | Índice del PRD regenerado textual; `verify-prd-index` rc=0 (7794697) |
+
+Resto: 3 medium (F1, F2, F3) repaired; 7 low, de los cuales 5 repaired (F5, F7, F8, F9, F11) y 2 cerrados en esta sección (F6: celda doble de la fila 137; F10: sección 10 y estados).
