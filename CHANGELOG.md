@@ -5,6 +5,33 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.17.6-delegate-brake
+
+Delegates now have a work-volume brake and must keep tool output small. Before,
+the contract capped repair rounds but not how much a delegate read or ran.
+
+- Delegate contract rule 13 adds a volume brake: at most 40 tool calls per
+  delegate run on a slice. At the cap the delegate starts nothing new and
+  returns `status: partial` with `stop_reason: tool_call_cap`, what is done,
+  what is pending, and why it did not finish. 40 is a deliberately generous
+  starting value; it will be calibrated with real usage data.
+- New contract rule 16, bounded command output: tests and linters run in quiet
+  mode, long output goes to a file under the tracker's `logs/` with only the
+  last lines read, large files are read by range or symbol, and images are
+  read only by roles that do visual verification.
+- `handoff-schemas.md` defines the partial return on the existing `partial`
+  status (`blocked` still means missing information or authorization). The
+  orchestrator treats it as terminal for that run but never as a finished
+  slice: it splits the slice, relaunches it with fresh context, or escalates
+  the tier, and asks the user after a second partial return on the same slice.
+  `validation-and-stop-conditions.md` and `implement-change` point to it.
+- `validation-runner` runs commands in quiet mode and sends long output to the
+  tracker's `logs/`.
+- `validate-delegate-contract.mjs` also checks the contract summary embedded in
+  runtime adapters: removing either new rule from the rules or the summary
+  fails `check:workflow`. All runtime adapters are regenerated.
+- No token saving is claimed yet; that needs a usage comparison after real use.
+
 ## 0.17.5-slice-checkpoint
 
 Long N2/N3 implementations no longer have to carry closed slices in one

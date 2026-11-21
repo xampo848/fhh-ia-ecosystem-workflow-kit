@@ -106,6 +106,9 @@ modifier: autonomy removes routine pauses, not brakes.
 4. **Proportional tests.** Write the tests for the acceptance criteria and the
    edge cases in the PRD test strategy. Do not add tests outside that strategy
    without a concrete finding that justifies them.
+5. **Volume brake.** A delegate stops at 40 tool calls per run and returns
+   `status: partial` with `stop_reason: tool_call_cap`. Never accept it as done:
+   split, relaunch, or escalate as `handoff-schemas.md` (Partial return) says.
 
 ## References
 

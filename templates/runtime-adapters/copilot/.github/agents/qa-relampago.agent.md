@@ -18,6 +18,8 @@ Delegate contract (summary of `.agents/delegation/delegate-contract.md`):
 - Read only what the slice needs: your role `SKILL.md`, the slice lock (owned and forbidden files, criteria, required reads), the owned source and test files with their direct callers and contracts, the PRD index entries and sections for the slice, selected patterns, layer instructions for the layers you touch, the quality gate if you write code, and the relevant part of `.agents/project-context.md`. Do not read `.agents/instructions.md` or `workflow-router`.
 - Edit only explicitly owned files; one writer per file.
 - Brakes: at most 2 repair rounds per slice, one recovery attempt for an environment failure, one rerun for a flaky test.
+- Volume brake: at most 40 tool calls per run on a slice. At the cap, start nothing new: return `status: partial` with `stop_reason: tool_call_cap`, what is done, what is pending, and why it did not finish. The orchestrator decides the next step.
+- Bounded command output: run tests and linters in quiet mode showing only failures; send long output to a file under the tracker's `logs/` and read only its last lines; read large files by range or symbol; read images only when your role or slice lock assigns visual verification.
 - Return a compact handoff: the return envelope, status, evidence (command, result, log path), and details only for findings and blockers.
 - If something is not covered (scope change, route decision, installation, missing information), stop and return `blocked` to the orchestrator. Never improvise.
 

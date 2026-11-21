@@ -42,7 +42,7 @@ instead of guessing one.
 2. Read matcher-selected required pattern skill paths or fallback docs when validation behavior depends on them. If a required path is missing, return `blocked`.
 3. Record whether any matcher-suggested optional capability was actually used and whether it was active.
 4. Choose the narrowest validation command based on touched files, matcher `validation_hooks`, and risk.
-5. Run commands from the correct working directory.
+5. Run commands from the correct working directory, in quiet mode so only failures print (a dot or summary reporter, or the tool's quiet flag). Send long output to `.ai-work/<prd-slug>/logs/<file>` and read only its last lines or its first error (`tail`, `grep`); never stream a full run into context.
 6. Classify failures:
    - Product bug introduced by the slice
    - Test expectation stale or incomplete
@@ -54,7 +54,7 @@ instead of guessing one.
 10. Classify every failure as product or environment before fixing. Environment failures (database, ports, seeding or purging, infrastructure timeouts, a model that cannot be launched) get one recovery attempt and are then reported, not repaired inside the slice. A flaky test with no code change is rerun once and recorded as flaky.
 11. Before running an expensive deterministic check (package typecheck, unit suite, build), apply Evidence Reuse in `../implement-prd/reference/validation-and-stop-conditions.md`: compute the fingerprint with `scripts/validation-fingerprint.mjs`, ask `decide`, and `record` every result. In shadow mode always run and report whether the result matched what would have been reused.
 12. Report evidence compactly: command, exit code, duration, passed/failed counts, and the path of the full log under `.ai-work/<prd-slug>/logs/`. Include at most ~30 relevant lines per failure (first error and its stack); never paste a full log.
-10. Escalate to broader validation only when narrow validation passes and risk warrants it.
+13. Escalate to broader validation only when narrow validation passes and risk warrants it.
 
 ## Stop And Ask When
 

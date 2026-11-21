@@ -52,6 +52,41 @@ evidence[N]{command,exit_code,duration_s,passed,failed,log_path,fingerprint,reus
 failure_excerpt[N]{command,lines}: <command>,<first error and stack, at most ~30 lines>
 ```
 
+### Partial return (volume brake)
+
+`status: partial` already exists in every role schema. A delegate that reaches
+the volume brake (40 tool calls per run on a slice; rule 13 of
+`.agents/delegation/delegate-contract.md`) uses it with these extra fields,
+after the return envelope and whatever role fields it already has evidence
+for. `blocked` keeps its meaning (missing information or authorization) and is
+never used for this.
+
+```
+status: partial
+stop_reason: tool_call_cap
+tool_calls_used: <count>
+done[N]: <finished step>,<evidence: file, command, or log path>
+pending[N]: <step not started or not finished>
+why_not_finished: <what used the budget: wide reads, long output, repairs, slice too big>
+```
+
+What the orchestrator does with it:
+
+1. It is terminal for that run (join barrier satisfied), but never a result to
+   accept: the slice cannot reach `VALIDATED` or `VERIFIED` from it, and work
+   listed in `done` still needs the evidence the slice lock expects.
+2. Record it in the tracker, then choose one, and say which and why:
+   - **split** the slice when `pending` is separable work; the new slices get
+     their own locks, ownership, and acceptance criteria;
+   - **relaunch** with fresh context when the budget went to exploration or
+     long output and `pending` is small; pass `done` and `pending` as input
+     and the new run revalidates the changed files (contract rule 4);
+   - **escalate the tier** when the work stalled on reasoning, with the reason
+     recorded as `escalation_reason`.
+3. A partial return does not consume a repair round. A second partial return
+   on the same slice stops and asks the user, with `pending` and
+   `why_not_finished` from both runs.
+
 ## Delegation Envelope Prefix
 
 The orchestrator records this full `delegation-envelope/v1` request once, in
