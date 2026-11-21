@@ -71,16 +71,16 @@ _Si el PRD pertenece a una epica, insertar aqui las secciones "Contexto de Epica
 
 ### 2.6 Matriz de Edge Cases
 
-| Categoria | Descripcion | Caso de uso vinculado | Validacion | Estado |
-| --- | --- | --- | --- | --- |
-| Datos vacios | [Scenario] | UC-1 | [Test/contract/smoke/evidencia manual] | Pending |
-| Limites | [Scenario] | UC-1 | [Test/contract/smoke/evidencia manual] | Pending |
-| Errores | [Scenario] | UC-1 | [Test/contract/smoke/evidencia manual] | Pending |
-| Permisos/tenancy | [Scenario] | UC-1 | [Test/contract/smoke/evidencia manual] | Pending |
-| Concurrencia/orden | [Scenario] | UC-1 | [Test/contract/smoke/evidencia manual] | Pending |
-| Rollout/rollback | [Scenario] | UC-1 | [Test/contract/smoke/evidencia manual] | Pending |
+| Categoria | Descripcion | Caso de uso vinculado | Capa duena | Validacion | Estado |
+| --- | --- | --- | --- | --- | --- |
+| Datos vacios | [Scenario] | UC-1 | [Query/servicio] | [Test/contract/smoke/evidencia manual] | Pending |
+| Limites | [Scenario] | UC-1 | [Query/servicio] | [Test/contract/smoke/evidencia manual] | Pending |
+| Errores | [Scenario] | UC-1 | [Servicio/entrada HTTP] | [Test/contract/smoke/evidencia manual] | Pending |
+| Permisos/tenancy | [Scenario] | UC-1 | [Entrada HTTP] | [Test/contract/smoke/evidencia manual] | Pending |
+| Concurrencia/orden | [Scenario] | UC-1 | [Servicio/job] | [Test/contract/smoke/evidencia manual] | Pending |
+| Rollout/rollback | [Scenario] | UC-1 | [Migracion/datos] | [Test/contract/smoke/evidencia manual] | Pending |
 
-Una categoria sin caso aplicable se marca `No aplica` con una justificacion de una linea basada en el alcance real; nunca se omite en silencio.
+Una categoria sin caso aplicable se marca `No aplica` con una justificacion de una linea basada en el alcance real; nunca se omite en silencio. `Capa duena` es la capa mas baja que contiene la regla (query, servicio, modelo, job, entrada HTTP, componente): el caso se prueba ahi y solo ahi, salvo permisos/tenancy, que siempre se prueban tambien en la entrada HTTP.
 
 ### 2.7 Contrato Visual (UI lock)
 
@@ -102,7 +102,7 @@ Un supuesto `asumido` que afecta un criterio de aceptacion necesita verificacion
 
 ### 2.9 Que queda obsoleto
 
-Lo que este desarrollo deja obsoleto forma parte del alcance. Si no hay nada, escribir `Ninguno` con una razon de una linea. Solo cuenta lo que **este** cambio vuelve obsoleto; el codigo muerto no relacionado se anota como sugerencia, fuera del alcance.
+Lo que este desarrollo deja obsoleto forma parte del alcance. Si no hay nada, escribir `Ninguno` con una razon de una linea. Solo cuenta lo que **este** cambio vuelve obsoleto; el codigo muerto no relacionado se anota como sugerencia, fuera del alcance. Incluye los tests que dejan de tener sentido (prueban comportamiento retirado, duplican una regla que pasa a otra capa, o prueban una migracion o herramienta de corte que se va); el slice dueno los borra.
 
 | Elemento | Tipo | Ubicacion | Reemplazado por | Accion | Consumidores | Slice | Busqueda de verificacion |
 | --- | --- | --- | --- | --- | --- | --- | --- |

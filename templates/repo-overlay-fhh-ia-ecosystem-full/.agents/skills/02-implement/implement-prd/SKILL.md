@@ -20,7 +20,7 @@ the ceremony.
 The shared references used by `implement-change` at N2/N3 stay in this
 directory: [reference/](reference/) (orchestration flow, delegate matrix,
 subagent prompts, handoff schemas, task tracker template, validation and stop
-conditions) and the per-alias prompt cards in [agents/](agents/).
+conditions, test design rules) and the per-alias prompt cards in [agents/](agents/).
 
 Session cut point: at N2/N3, when a slice is `VERIFIED` from its terminal
 handoff and no delegate is pending, or the size brake fires, the orchestrator

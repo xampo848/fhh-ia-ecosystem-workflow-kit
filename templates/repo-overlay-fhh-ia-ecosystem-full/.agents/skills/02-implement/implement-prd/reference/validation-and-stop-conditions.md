@@ -68,7 +68,7 @@ Before marking any PRD implementation done, record and satisfy all of these gate
 - Regression gate: the changed behavior and the most plausible adjacent regressions were checked with the narrowest reliable validation.
 - Standards gate: project patterns, code quality, and domain instructions pass without unresolved exceptions.
 - Test gate: required tests exist for the slice; any missing tests are justified concretely or block closure.
-- Coverage gate: each newly created production file and newly added method/function has at least one executed test plus at least one relevant edge-case assertion, or an explicit `waived_by_user` record with reason.
+- Coverage gate: every new or changed branch has an executed assertion in its owning layer (`branch → test → layer`); a method that only delegates is covered by the test of the layer above or below it. Tests follow [test-design-rules.md](test-design-rules.md) (owning layer, no cross-layer duplicates, behavior not implementation). A gap needs an explicit `waived_by_user` record with reason.
 - Edge-case gate: relevant empty, error, boundary, permission, rollout, migration, and failure states are verified or block closure.
 - QA gate: final QA ends with `ready_to_close: yes`.
 - Findings gate: `findings_ledger` has no `critical`/`high` row with `status: open`; every such row is `repaired` or validly `waived_by_user` (see Waiver Floor below).
@@ -162,7 +162,7 @@ Stop and ask the user before continuing when:
 - A delegate restarts parent intake, readiness, discovery, slicing, matching, or router selection instead of executing its assigned slice.
 - The correlated immutable slice execution lock is absent, `none`, mismatched, incomplete, stale, or `unknown` when `VERIFIED` is requested.
 - A configured quality-gate or required domain-instruction path is missing; report the exact path and stop until it is created or corrected.
-- Coverage evidence for newly created production files or newly added methods/functions is missing, ambiguous, or not mapped to executed tests plus relevant edge-case assertions.
+- Coverage evidence for a new or changed branch is missing, ambiguous, or not mapped to an executed assertion in its owning layer ([test-design-rules.md](test-design-rules.md)).
 - A failure is classified as pre-existing/unrelated to the current slice or PRD scope: present exactly three options — (A) repair it now inside this PRD's scope, (B) log it as an explicit residual risk in `## 10. Evidencia de Implementacion` and continue, (C) block closure until it is resolved elsewhere. Do not decide on the user's behalf.
 - A `critical`/`high` severity finding, or an authorization/tenancy/destructive-migration gap, is offered a `waived_by_user` resolution without a concretely named risk (see Waiver Floor).
 

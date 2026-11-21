@@ -29,17 +29,18 @@ Map acceptance criteria to tests and make the smallest test additions that would
 - Exact matcher-selected `required_pattern_skills` paths when present.
 - Matcher-selected `fallback_docs` when required pattern skills are absent.
 - Existing tests adjacent to the touched code.
+- `.agents/skills/02-implement/implement-prd/reference/test-design-rules.md` (owning layer, search before writing, cheap setup).
 
 ## Procedure
 
 1. Read every matcher-selected required pattern skill path before designing tests. If a required path is missing, return `blocked`.
 2. If no required pattern skill exists, read the matcher-selected fallback docs and record which were used.
-3. Build an acceptance matrix: criterion, test file, scenario, expected assertion.
-4. Prefer focused tests near the behavior rather than broad brittle tests.
+3. Build an acceptance matrix: criterion, owning layer (the edge-case row's `Capa duena` when the PRD has one), test file, scenario, expected assertion.
+4. Before writing a test, search the existing tests of the same behavior in every layer, by subject name and by rule. If one exists, extend it with a new case instead of writing a parallel test. Same-branch variants go into one table-driven test.
 5. Record whether any matcher-suggested optional capability was actually used and whether it was active.
-6. Backend: use the project's test framework and the factories or fixtures already present, at the level that proves the criterion (service, controller, serializer). **CRITICAL:** follow the test rules in `.agents/project/stack.md` and `.agents/project/backend.md`, including any mandatory guard (for example, an N+1 query detector).
+6. Backend: use the project's test framework and the factories or fixtures already present, at the owning layer of the rule: the lowest layer that contains it. Entry-point tests prove only authentication, authorization, tenancy, parameter validation, status, and response shape plus one wiring case per rule; job tests prove only their selection, batching, retries, and error handling. **CRITICAL:** follow the test rules in `.agents/project/stack.md` and `.agents/project/backend.md`, including any mandatory guard (for example, an N+1 query detector).
 7. Frontend: use the project's test framework. **CRITICAL:** unit and component tests never hit the network: mock every request with the project's mocking layer and return deterministic payloads derived from `guardia-contrato`. Integration and E2E tests (for example Playwright) may call the local application under test; external services stay mocked or stubbed. Follow the test rules in `.agents/project/stack.md` and `.agents/project/frontend.md`.
-8. Cover edge cases that the PRD names explicitly.
+8. Cover edge cases that the PRD names explicitly, each at its owning layer. Test behavior, not implementation (no signature, console-output, or internal-state assertions), and keep setup cheap: transactional, minimal data, no instrumentation or threads unless the test verifies them.
 9. Add at least one negative, empty, or error case when the feature has failure paths.
 10. Preserve matcher validation hooks when they affect test evidence.
 11. Run the targeted test command and fix root causes.

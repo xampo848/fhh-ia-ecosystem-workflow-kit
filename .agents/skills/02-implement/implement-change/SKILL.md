@@ -145,6 +145,8 @@ No level, modifier, or user hurry removes these:
 3. **Tests of the delta and regression.** Behavior changes get a test; a bug
    gets a test that fails before the fix; existing tests of the touched area
    (and, for an iteration, the tests listed in the PRD's section 10) run again.
+   A new test sits at the rule's owning layer and extends an existing test of
+   the same rule when one exists (`../implement-prd/reference/test-design-rules.md`).
 4. **Quality gate.** Code-writing work applies the project quality gate
    (`.agents/project/quality-gate.md`) and the instructions of the layers it
    touches (`.agents/project/backend.md`, `.agents/project/frontend.md`, and

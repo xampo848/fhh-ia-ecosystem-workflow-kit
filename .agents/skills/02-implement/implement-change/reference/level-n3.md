@@ -185,7 +185,7 @@ Do not declare the PRD complete until all of these are explicitly true:
 3. Regression-sensitive behavior adjacent to the change has been checked, not just the happy path that was edited.
 4. The code-quality gate and project standards pass with evidence, not narrative confidence.
 5. Missing tests are either added, proven unnecessary with a concrete reason, or escalated as a blocker.
-6. Coverage evidence exists for newly created production files and newly added methods/functions: each one maps to at least one executed test and at least one relevant edge-case assertion, or it is explicitly marked as `waived_by_user` with reason.
+6. Coverage evidence exists for every new or changed branch: each one maps to an executed assertion in its owning layer (`../../implement-prd/reference/test-design-rules.md`), or it is explicitly marked as `waived_by_user` with reason.
 7. Relevant edge cases, failure states, empty states, and rollout/cutover scenarios are verified or explicitly blocked.
 8. Final QA ends in `ready_to_close: yes`, which requires `blocking_findings_open: no` — no `critical`/`high` finding in `findings_ledger` remains `open` without being `repaired` or validly `waived_by_user` (a generic acknowledgement does not satisfy this for `critical`/`high` findings or authorization/tenancy/destructive-migration gaps).
 9. Every `VERIFIED` slice has fresh command evidence in its immutable execution lock, or an explicit `waived_by_user` record.

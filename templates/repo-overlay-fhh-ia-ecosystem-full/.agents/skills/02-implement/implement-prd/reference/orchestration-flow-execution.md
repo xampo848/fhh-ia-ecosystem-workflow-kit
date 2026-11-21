@@ -64,13 +64,13 @@ The QA checklist must explicitly answer all of these before closure:
 - Regressions: checked on adjacent flows and existing consumers.
 - Standards: project rules and quality gate pass without unresolved violations.
 - Tests: required coverage exists; missing coverage is justified or blocked.
-- Coverage for new scope: each newly created production file and newly added method/function has executed-test evidence plus at least one relevant edge-case assertion, or an explicit blocker/waiver.
+- Coverage for new scope: every new or changed branch has an executed assertion in its owning layer, with no duplicate of the same rule in another layer ([test-design-rules.md](test-design-rules.md)), or an explicit blocker/waiver.
 - Edge cases: relevant empty/error/boundary/rollout states are verified or blocked.
 - Blocking findings: `blocking_findings_open: no` — no `critical`/`high` finding remains `open` in `findings_ledger` without being `repaired` or validly `waived_by_user` (see Waiver Floor in `qa-handoff-review/SKILL.md`).
 
 QA review should report findings and also explain the pattern being protected, so it reinforces learning instead of only listing defects.
 
-Do not advance to closure while QA reports `ready_to_close: no`, `blocking_findings_open: yes`, `validation_status: FAIL | PARTIAL`, incomplete acceptance evidence, unresolved regressions, unresolved standards gaps, missing required tests, missing coverage evidence for newly created files or newly added methods/functions, or unreviewed edge cases.
+Do not advance to closure while QA reports `ready_to_close: no`, `blocking_findings_open: yes`, `validation_status: FAIL | PARTIAL`, incomplete acceptance evidence, unresolved regressions, unresolved standards gaps, missing required tests, missing coverage evidence for a new or changed branch in its owning layer, or unreviewed edge cases.
 
 ## Phase 7: Closure
 

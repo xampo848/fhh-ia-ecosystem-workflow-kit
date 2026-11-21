@@ -82,7 +82,7 @@ A PRD is never "ready to implement" on AC alone. Before delivering the final PRD
 - Every PRD must contain a **Casos de Uso** table, a **Estrategia de Tests** table, and a **Matriz de Edge Cases** table (see Phase 3 and the canonical template).
 - Every acceptance criterion must link to at least one use case; every use case must link to at least one AC.
 - Every use case must link to at least one test in the test-strategy table.
-- The edge-case matrix must cover all six mandatory categories (datos vacíos, límites, errores, permisos/tenancy, concurrencia/orden, rollout/rollback). A category may be marked `No aplica` only with a one-line justification tied to the actual scope.
+- The edge-case matrix must cover all six mandatory categories (datos vacíos, límites, errores, permisos/tenancy, concurrencia/orden, rollout/rollback), and every row names its `Capa duena` (the one layer where it is tested). A category may be marked `No aplica` only with a one-line justification tied to the actual scope.
 - If any AC, use case, or edge-case category has no mapped row, stop drafting and either fill the gap or ask the user a targeted question. Do not deliver a PRD with an unmapped row and no justification.
 - This gate is verified again in the Quality Checklist and Final Self-Review before delivery.
 - When `visible_ui: yes`, every required UI state in the Contrato Visual must map to at least one use case or edge-case row. An unlocked screen is an unmapped row.
