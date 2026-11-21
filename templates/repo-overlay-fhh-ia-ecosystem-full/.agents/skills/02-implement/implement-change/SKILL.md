@@ -133,9 +133,7 @@ No level, modifier, or user hurry removes these:
    always stop the run, autonomous or not: at most 2 repair rounds per slice,
    one recovery attempt for an environment failure, one rerun for a flaky test.
 6. **One writer per file**, and a delegate's handoff is the only
-   synchronization point: never continue from partial output or silence. A
-   `partial` handoff from the volume brake ends that run without finishing the
-   slice: split, relaunch, or escalate (`handoff-schemas.md`, Partial return).
+   synchronization point: never continue from partial output or silence.
 7. **No closure without evidence**: closure follows the level table below.
 8. **Challenge always, teach selectively.** When a better alternative exists,
    state the trade-off briefly, recommend one path, and continue. Write a

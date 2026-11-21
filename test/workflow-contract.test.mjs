@@ -636,29 +636,8 @@ test('product hooks offer solution-sketch only on T2-T4 and inherit a locked ske
   assert.doesNotMatch(ticket, /solution-sketch/);
 });
 
-test('volume brake returns a partial handoff the orchestrator never accepts as done', async () => {
-  const read = (relativePath) => fs.readFile(path.join(repoRoot, relativePath), 'utf8');
-  const [schemas, stops, implementChange, runner] = await Promise.all([
-    read('.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md'),
-    read('.agents/skills/02-implement/implement-prd/reference/validation-and-stop-conditions.md'),
-    read('.agents/skills/02-implement/implement-change/SKILL.md'),
-    read('.agents/skills/02-implement/validation-runner/SKILL.md')
-  ]);
-
-  assert.match(schemas, /### Partial return \(volume brake\)/);
-  assert.match(schemas, /stop_reason: tool_call_cap/);
-  for (const field of ['tool_calls_used', 'done\\[N\\]', 'pending\\[N\\]', 'why_not_finished']) {
-    assert.match(schemas, new RegExp(`^${field}: `, 'm'), field);
-  }
-  assert.match(schemas, /`blocked` keeps its meaning \(missing information or authorization\)/);
-  assert.match(schemas, /terminal for that run[\s\S]*never a result to\s+accept/);
-  for (const option of ['\\*\\*split\\*\\*', '\\*\\*relaunch\\*\\*', '\\*\\*escalate the tier\\*\\*']) {
-    assert.match(schemas, new RegExp(option), option);
-  }
-  assert.match(schemas, /second partial return\s+on the same slice stops and asks the user/);
-  assert.match(stops, /\*\*Volume brake\.\*\*[\s\S]*Never accept it as done/);
-  assert.match(implementChange, /`partial` handoff from the volume brake ends that run/);
+test('validation-runner keeps command output bounded', async () => {
+  const runner = await fs.readFile(path.join(repoRoot, '.agents/skills/02-implement/validation-runner/SKILL.md'), 'utf8');
   assert.match(runner, /in quiet mode so only failures print/);
-  assert.match(runner, /\.ai-work\/<prd-slug>\/logs\//);
+  assert.match(runner, /\.ai-work\/<prd-slug>\/logs\/<file>` and read only its last lines/);
 });
-

@@ -120,14 +120,9 @@ test('legal check validates every provenance component, not only the pinned ones
   }
 });
 
-// T03: the volume brake and the bounded command output rule must stay in the
-// delegate contract and in the summary that runtime adapters embed.
+// The bounded command output rule must stay in the delegate contract and in
+// the summary that runtime adapters embed.
 for (const { id, body, summary } of [
-  {
-    id: 'volume-brake',
-    body: /\*\*Volume brake:\*\* at most 40 tool calls per delegate run on a slice/,
-    summary: /- Volume brake: [^\n]*\n/
-  },
   {
     id: 'bounded-command-output',
     body: /16\. \*\*Bounded command output\.\*\*[\s\S]*$/,

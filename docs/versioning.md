@@ -30,7 +30,7 @@ released it. Tags of the current lines:
 
 | Tag | Notes |
 | --- | --- |
-| `v0.17.6-delegate-brake` | current |
+| `v0.17.6-bounded-output` | current |
 | `v0.17.5-slice-checkpoint` | |
 | `v0.17.4-usage-measurement` | |
 | `v0.17.3-contract-gaps` | |

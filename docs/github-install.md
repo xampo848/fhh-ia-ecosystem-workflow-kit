@@ -39,7 +39,7 @@ release, append its tag (`v<version>`); tags are listed on the repository's
 [Releases page](https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/releases):
 
 ```bash
-bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.17.6-delegate-brake
+bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.17.6-bounded-output
 ```
 
 See [Versioning](versioning.md) for the list of tags and how they are named.
