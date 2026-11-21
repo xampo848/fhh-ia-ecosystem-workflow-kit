@@ -32,7 +32,7 @@ Use exists-or-skip. A missing optional path is not a failed search.
 - `.ai-work/<prd-slug>/orchestration.md` `## Calibration`, `## Pattern Lock`, and `## Self-Audit` when they exist.
 - `docs/foundations/ARCHITECTURE.md` only when it exists and the PRD is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths.
 
-Do not load code quality documents during readiness. Code-writing delegates load `.agents/project/quality-gate.md` when they actually write or review code.
+Do not load code quality documents during readiness. Code-writing delegates load the quality gate (`.agents/delegation/quality-gate.md` plus `.agents/project/quality-gate.md`) when they actually write or review code.
 
 ## Procedure
 

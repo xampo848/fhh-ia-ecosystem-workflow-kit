@@ -26,7 +26,7 @@ not.
 ## Backend And Frontend Validation
 
 The commands belong to the project, not to this workflow. Use the validation
-commands declared in `.agents/project-context.md`, with their cost, and the
+commands declared in `.agents/project/context.md` (legacy: `.agents/project-context.md`), with their cost, and the
 stack rules in `.agents/project/stack.md` when present:
 
 - run the fast, focused command first; a single test file only when it is the
@@ -35,7 +35,7 @@ stack rules in `.agents/project/stack.md` when present:
   warrants it or at closure;
 - lint only the touched files unless the change is broad;
 - if no command is declared for a touched layer, stop and ask instead of
-  guessing one, then record it in `.agents/project-context.md` at closure.
+  guessing one, then record it in `.agents/project/context.md` (legacy: `.agents/project-context.md`) at closure.
 
 ## Auxiliary Validation Skills
 

@@ -20,7 +20,7 @@ Implement the assigned backend slice completely: code, tests, i18n, focused vali
 - Files owned and files forbidden.
 - Discovery notes and required docs.
 - Matcher output: `required_pattern_skills`, `optional_capabilities`, `fallback_docs`, `validation_hooks`, `handoff_required_fields`, `match_confidence`, `blocked_reason`.
-- Quality gate loaded from `.agents/project/quality-gate.md`.
+- Quality gate loaded: kit default `.agents/delegation/quality-gate.md` plus `.agents/project/quality-gate.md` when it exists.
 - Validation command target.
 
 ## Must Read
@@ -30,7 +30,7 @@ Use exists-or-skip for product docs. A missing optional path is not a failed sea
 - `.agents/delegation/delegate-contract.md` (not `.agents/instructions.md` or the router)
 - `.agents/project/backend.md` when it exists, and `.agents/project/stack.md` when it exists
 - `docs/foundations/ARCHITECTURE.md` only when it exists and the slice is cross-layer, architectural, migration-heavy, authorization-sensitive, or tenancy-sensitive
-- `.agents/project/quality-gate.md`. If it is missing, never skip it silently: report `quality gate: no configurado`; if the PRD requires it or the level is N3, return `blocked`
+- The quality gate: `.agents/delegation/quality-gate.md` (kit default, always), then `.agents/project/quality-gate.md` when it exists (project additions, which may tighten but never relax the default). If the kit default is missing, never skip it silently: report `quality gate: no configurado`; if the PRD requires it or the level is N3, return `blocked`
 - Exact matcher-selected `required_pattern_skills` paths when present.
 - Matcher-selected `fallback_docs` when required pattern skills are absent.
 - Relevant backend docs from `docs/patterns/backend/` when present
@@ -48,7 +48,7 @@ the handoff. Stack-neutral rules that always apply:
 - Respect tenant and organization scoping.
 - Never add cross-tenant queries without explicit inline justification and regression tests.
 - Put user-facing text in the project's locale files, never inline.
-- Use the project's test framework and the validation commands declared in `.agents/project-context.md`.
+- Use the project's test framework and the validation commands declared in `.agents/project/context.md` (legacy: `.agents/project-context.md`).
 
 ## Code Quality Gate
 
@@ -76,7 +76,7 @@ Reject the implementation or return `blocked` if satisfying the slice requires q
 8. Keep business rules in services or domain collaborators, not controllers, serializers, jobs, or callbacks.
 9. Add or update tests with positive, empty/error, auth, tenancy, and contract cases as relevant, each rule at its owning layer: the service or query proves the rule's variants; the entry point proves authentication, authorization, tenancy, parameters, status, and response shape plus one wiring case; a job proves its own selection, batching, retries, and error handling. Every new branch needs an assertion there; a method that only delegates does not need its own test.
 10. Add i18n keys for any user-facing backend text.
-11. Run the narrowest validation that can falsify the slice, preserving matcher validation hooks when present. Use the backend commands declared in `.agents/project-context.md` (or `.agents/project/stack.md`): the fast focused test target first, a single test file only when it is the narrowest reliable check, and lint only for touched backend files.
+11. Run the narrowest validation that can falsify the slice, preserving matcher validation hooks when present. Use the backend commands declared in `.agents/project/context.md` (legacy: `.agents/project-context.md`) (or `.agents/project/stack.md`): the fast focused test target first, a single test file only when it is the narrowest reliable check, and lint only for touched backend files.
 12. Fix root causes. Do not silence tests, weaken assertions, bypass tenant checks, or lower standards.
 13. Complete the quality gate result and matcher-consumption evidence in the handoff.
 

@@ -5,6 +5,61 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.20.0-kit-overlay-contract
+
+The boundary between the kit and the project that installs it is now written
+down and checked. This is the contract phase (F1) of the kit/project overlay
+epic: the updater does not use it yet, so `workflow-kit update` behaves as
+before, and a repository installed with an earlier version keeps working
+without any change.
+
+- Contract: `.agents/kit-boundary.md` (for agents) and
+  `docs/project-boundaries.md` (for people). Everything under
+  `.agents/project/` belongs to the project. The project extends the kit only
+  from there, in three levels: **add** (a new project skill under
+  `.agents/project/skills/<name>/SKILL.md`, registered in
+  `.agents/project/index.md`), **extend** (a declared extension point such as
+  `.agents/project/routing.md` or `.agents/project/quality-gate.md`), and
+  **shadow** (`.agents/project/shadows/<skill>/` with a `shadow.json` that
+  stores the kit file's hash). The router and `.agents/instructions.md` accept
+  only extend. A shadow of a delegated role reaches the delegate through the
+  slice lock's `role_skill`.
+- Manifest v2: `.agents/workflow-kit/manifest.json` is now the closed, classed
+  list of the paths the kit owns (`kit`, `derived`, `adapter`, `seed`, `state`),
+  with its schema in `manifest.schema.json`. The old `portable_core` and
+  `repo_overlay` keys are gone; nothing read them.
+- Adapters: `CLAUDE.md`, `AGENTS.md`, `ANTIGRAVITY.md`,
+  `.github/copilot-instructions.md`, and
+  `.github/instructions/ai-workflow.instructions.md` wrap the kit's text in
+  `<!-- workflow-kit:managed:start -->` / `<!-- workflow-kit:managed:end -->`.
+  Project notes go below the end marker. An adapter you edited is still
+  skipped by `update`, as before.
+- Router: after the kit catalog, `workflow-router` reads
+  `.agents/project/index.md` and `.agents/project/routing.md` when they exist
+  (new reference `reference/project-overlay.md`). A project skill that reuses a
+  kit skill name is ignored, and a project rule can never remove a hard
+  trigger, the authorization gate, or the confirmation of an irreversible
+  action. The implementation matcher also reads the project catalog. Router
+  evals L16–L20 cover the overlay.
+- Project skills: Codex, GitHub Copilot, and Cursor only discover skills in
+  fixed folders, so `.agents/project/skills/**` is reached through the router.
+  `add-project-pattern` now writes there and registers the skill in
+  `.agents/project/index.md`; it no longer edits the kit registries.
+- Quality gate: the default rules move to the kit file
+  `.agents/delegation/quality-gate.md`, which every reader loads first, so
+  installed projects now receive the test-design rules of 0.19.0.
+  `.agents/project/quality-gate.md` becomes project additions only (tighten,
+  never relax); an existing copy keeps working.
+- Project context: the target path is `.agents/project/context.md`; the kit
+  reads `.agents/project-context.md` while the new file does not exist. The
+  installer still creates the old path until the updater phase moves it.
+- Check: `node scripts/validate-kit-boundary.mjs`, now part of
+  `npm run check:workflow`, fails when an installable file has no manifest
+  class, an adapter loses its block or drifts from its template, a path
+  reference breaks the rules (kit to kit inside the kit tree, kit to project
+  only through the overlay layout, project to kit by name), or the template
+  ships project files.
+
 ## 0.19.2-visual-lock
 
 A prototype attached to a PRD (an HTML file or an image) is now followed

@@ -1,3 +1,4 @@
+<!-- workflow-kit:managed:start -->
 # Copilot Instructions
 
 This is a thin GitHub Copilot runtime adapter; keep it thin. `.agents/instructions.md`
@@ -54,3 +55,6 @@ Runtime notes:
   from a global model list. Select a model or `Auto` only when the user
   requests it or the runtime exposes that choice. Do not claim that a
   delegated agent is pinned to a specific model unless Copilot confirms it.
+
+<!-- The kit regenerates only this block. Add project-specific notes below the end marker. -->
+<!-- workflow-kit:managed:end -->

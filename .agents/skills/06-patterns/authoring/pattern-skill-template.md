@@ -1,8 +1,11 @@
 # Pattern Skill Template
 
-Copy this file into:
+Copy this file into the project overlay:
 
-` .agents/skills/06-patterns/<domain>/<skill>/SKILL.md `
+` .agents/project/skills/<skill>/SKILL.md `
+
+The folder name equals the frontmatter `name`. Kit pattern skills under
+`.agents/skills/06-patterns/` are kit maintenance, not project work.
 
 Then replace every placeholder.
 
@@ -62,19 +65,20 @@ Examples:
 - <what-this-pattern-must-not-cover-1>
 - <what-this-pattern-must-not-cover-2>
 
-## Registry Entry Template
+## Catalog Entry Template
 
-Add one row under standards/pattern skills in `.agents/skills/registry.md`:
+Add one row to the `Skills` table of `.agents/project/index.md` (create the
+file with the table header from `.agents/kit-boundary.md` when it is missing):
 
-| Skill name | Class | Physical path | Trigger | Loading posture | Cost hint | Future structured key | Runtime notes |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `<pattern-skill-name>` | Standards/pattern | `.agents/skills/06-patterns/<domain>/<skill>/SKILL.md` | `<narrow-trigger>` | Just-in-time | `<lean|balanced|premium>` | `pattern-<domain>-<pattern-skill-name>` | `<short-runtime-note>` |
+| Skill name | Class | Trigger | Physical path | Cost hint |
+| --- | --- | --- | --- | --- |
+| `<pattern-skill-name>` | Pattern | `<narrow-trigger>` | `.agents/project/skills/<pattern-skill-name>/SKILL.md` | `<lean|balanced|premium>` |
 
 ## Post-Create Checklist
 
-1. Skill file exists in `.agents/skills/06-patterns/<domain>/<skill>/SKILL.md`.
-2. Registry row added in `.agents/skills/registry.md`.
-3. `.agents/skills/registry.json` updated.
-4. `.agents/skills/registry.cache.json` updated.
+1. Skill file exists in `.agents/project/skills/<pattern-skill-name>/SKILL.md`.
+2. One `Skills` row in `.agents/project/index.md` with that exact path.
+3. The name collides with no kit skill.
+4. No kit file changed (`git status` shows nothing under `.agents/skills/`).
 5. No stale references to removed or foreign-project patterns.
 6. Rollout-governing patterns include the required `Rollout Lifecycle` block.

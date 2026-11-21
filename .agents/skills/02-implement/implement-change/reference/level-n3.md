@@ -20,7 +20,7 @@ omitted.
    Discovery and slicing work from that brief. The orchestrator keeps the
    index, not the whole PRD, and reads a referenced section when it needs
    detail. Discovery and slicing receive the index and only the sections they
-   need. Read `.agents/project-context.md` before any Discovery.
+   need. Read `.agents/project/context.md` (legacy: `.agents/project-context.md`) before any Discovery.
 2. If `.ai-work/<prd-slug>/orchestration.md` exists, read `## Calibration`,
    `## Pattern Lock`, and `## Self-Audit` before discovery or slicing. Reuse
    `touched_surfaces`, the locked pattern, and residual risks.
@@ -39,6 +39,8 @@ omitted.
    **activation checklist**: existing-data bootstrap/backfill, deploy or repair
    command, success and failure signals, rollback/repair path, and smoke target.
 7. Initialize an ignored immutable execution lock for each coding slice at `.ai-work/<prd-slug>/locks/<slice-id>.toon` with `run_id`, `lock_id`, `prd_path`, `slice_id`, `hazards`, `selected_patterns`, `required_checks`, `evidence_state`, `waiver_state`.
+   When the `Shadows` table of `.agents/project/index.md` lists the delegate's
+   role skill, record the shadow path as `role_skill` in the lock.
 8. For every delegated slice, initialize a `delegation-envelope/v1` record in
    the tracker per `.agents/model-routing/README.md`, recording requested
    invocation data separately from runtime-observed resolution data
@@ -161,7 +163,7 @@ is not rewritten: propose phase-by-phase execution as in `modifiers.md`.
 
 When the implementation changed patterns, validation commands, or structure,
 or Discovery recorded `project_context_gaps`, the orchestrator proposes a small
-diff to `.agents/project-context.md` that ships in the same PR. Only the
+diff to `.agents/project/context.md` (legacy: `.agents/project-context.md`) that ships in the same PR. Only the
 orchestrator edits that file, and only at closure; delegates never touch it
 mid-run. Candidates come from `events.log`; when the optional Engram
 capability is attached, it may be used to capture findings during the run and

@@ -20,7 +20,7 @@ Implement the assigned frontend slice completely: logic, UI, i18n, tests, focuse
 - Files owned and files forbidden.
 - API contract notes and payload examples.
 - Matcher output: `required_pattern_skills`, `optional_capabilities`, `fallback_docs`, `validation_hooks`, `handoff_required_fields`, `match_confidence`, `blocked_reason`.
-- Quality gate loaded from `.agents/project/quality-gate.md`.
+- Quality gate loaded: kit default `.agents/delegation/quality-gate.md` plus `.agents/project/quality-gate.md` when it exists.
 - Validation command target.
 
 ## Must Read
@@ -30,7 +30,7 @@ Use exists-or-skip for product docs. A missing optional path is not a failed sea
 - `.agents/delegation/delegate-contract.md` (not `.agents/instructions.md` or the router)
 - `.agents/project/frontend.md` when it exists, and `.agents/project/stack.md` when it exists
 - `docs/foundations/ARCHITECTURE.md` only when it exists and the slice is cross-layer, architectural, migration-heavy, authorization-sensitive, or tenancy-sensitive
-- `.agents/project/quality-gate.md`. If it is missing, never skip it silently: report `quality gate: no configurado`; if the PRD requires it or the level is N3, return `blocked`
+- The quality gate: `.agents/delegation/quality-gate.md` (kit default, always), then `.agents/project/quality-gate.md` when it exists (project additions, which may tighten but never relax the default). If the kit default is missing, never skip it silently: report `quality gate: no configurado`; if the PRD requires it or the level is N3, return `blocked`
 - Exact matcher-selected `required_pattern_skills` paths when present.
 - Matcher-selected `fallback_docs` when required pattern skills are absent.
 - Relevant frontend docs from `docs/patterns/frontend/` when present
@@ -85,7 +85,7 @@ Reject the implementation or return `blocked` if satisfying the slice requires q
 11. Reject generic default compositions. If the screen still reads like a stock SaaS dashboard, rework it before closing.
 12. Add i18n keys in both locales for every visible string.
 13. Add tests using realistic API payloads for positive, empty, loading, and error states as relevant. Logic in a hook or utility is tested there, not again through the component; search existing tests by name and by rule and extend them before adding new ones (`.agents/skills/02-implement/implement-prd/reference/test-design-rules.md`).
-14. Run the narrowest useful validation, preserving matcher validation hooks when present. Use the frontend commands declared in `.agents/project-context.md` (or `.agents/project/stack.md`): tests, lint, and style checks for the touched files.
+14. Run the narrowest useful validation, preserving matcher validation hooks when present. Use the frontend commands declared in `.agents/project/context.md` (legacy: `.agents/project-context.md`) (or `.agents/project/stack.md`): tests, lint, and style checks for the touched files.
 15. Fix root causes. Do not hide failures, weaken tests, bypass design system conventions, or lower standards.
 16. For visible UI, verify the screen against the premium bar from `.agents/project/frontend.md`. If it still feels generic, continue iterating or return `partial`. Open the screen and read the screenshots yourself; the handoff carries one verdict per criterion with its screenshot path and findings, never the image, because at N2/N3 the orchestrator does not view screenshots (`implement-change` Step 3, "Orchestrator reads"; rows as in the Visual Verification Delegate of `../implement-prd/reference/subagent-prompts.md`).
 17. Complete the quality gate result and matcher-consumption evidence in the handoff.

@@ -6,8 +6,10 @@ user-invocable: true
 
 # Add Project Pattern
 
-Use when the user asks to create, register, or evolve a local pattern skill in
-`.agents/skills/06-patterns/**`.
+Use when the user asks to create, register, or evolve a pattern skill that
+belongs to this project. Project patterns live only in the project overlay
+`.agents/project/**` (contract: `.agents/kit-boundary.md`), so a kit update
+never touches them.
 
 This skill exists to keep project overlays extendible and avoid hard-coded
 patterns from other products.
@@ -16,7 +18,8 @@ patterns from other products.
 
 - The concrete technical surface to standardize (backend, frontend, domain, or
   another project-specific domain).
-- The target pattern skill name (short and stable).
+- The target pattern skill name (short and stable, and not the name of a kit
+  skill).
 - The expected trigger sentence for loading.
 - Validation hooks that prove correct usage.
 - Optional fallback docs if pattern coverage is not complete yet.
@@ -24,46 +27,45 @@ patterns from other products.
 ## Procedure
 
 1. Confirm scope: one repeatable implementation class, not a whole workflow.
-2. Choose path:
-   `.agents/skills/06-patterns/<domain>/<skill>/SKILL.md`.
-3. Start from
+2. Check the name against the kit catalogs (`.agents/skills/index.md` and
+   `.agents/skills/06-patterns/index.md`). If the user wants to change a kit
+   skill instead, use extend or shadow (`.agents/kit-boundary.md`), not a new
+   skill with the same name.
+3. Choose path: `.agents/project/skills/<skill>/SKILL.md`. The folder name and
+   the frontmatter `name` are equal (Agent Skills format).
+4. Start from
    `.agents/skills/06-patterns/authoring/pattern-skill-template.md`.
-4. Create `SKILL.md` with:
+5. Create `SKILL.md` with:
    - frontmatter (`name`, `description`),
    - trigger,
-   - must-read references,
+   - must-read references (kit skills by name, never by path),
    - step-by-step procedure,
    - validation hooks,
    - stop conditions,
    - out-of-scope notes.
    - `Rollout Lifecycle` when the pattern governs controlled production activation.
-5. Register the skill in `.agents/skills/registry.md` under standards/pattern
-   skills with:
-   - stable name,
-   - class `Standards/pattern`,
-   - exact path,
-   - narrow trigger,
-   - loading posture (usually `Just-in-time`),
-   - cost hint,
-   - stable key.
-6. Regenerate/update derived artifacts:
-   `.agents/skills/registry.json` and `.agents/skills/registry.cache.json`.
+6. Register the skill in the `Skills` table of `.agents/project/index.md`
+   (create the file with the table header from `.agents/kit-boundary.md` when it
+   does not exist): stable name, class `Pattern`, narrow trigger, exact path,
+   cost hint. The router and the implementation matcher read this table.
 7. Validate no stale references to removed or foreign-project patterns remain.
+
+Never write a project pattern under `.agents/skills/**` and never edit the kit
+registries (`registry.md`, `registry.json`, `registry.cache.json`) or the kit
+indexes for it: those are kit files and a kit update replaces them.
 
 ## Validation Hooks
 
-- Path exists and ends with `SKILL.md`.
-- `registry.md` contains matching row with the exact path.
-- `registry.json` pattern skill entry matches `registry.md`.
-- `registry.cache.json` contains matching `pattern_skills` entry.
-- Overlay manifest includes the new pattern skill when it is part of shipped
-  overlay defaults.
+- Path exists under `.agents/project/skills/` and ends with `SKILL.md`.
+- `.agents/project/index.md` has one `Skills` row with the exact path.
+- The name collides with no kit skill.
+- `git status` shows no change under `.agents/skills/`.
 
 ## Stop Conditions
 
 - The requested pattern is really a workflow orchestrator.
 - The scope is too broad to define one repeatable pattern.
-- Registry entry cannot be made deterministic (name/path/trigger unclear).
+- Catalog entry cannot be made deterministic (name/path/trigger unclear).
 - A rollout-governing pattern lacks owner, default disabled state, both-state tests, rollback path, or retirement plan.
 
 ## Out of Scope

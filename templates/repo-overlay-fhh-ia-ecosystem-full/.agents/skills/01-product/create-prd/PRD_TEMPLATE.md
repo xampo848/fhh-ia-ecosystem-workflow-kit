@@ -226,7 +226,7 @@ _(Vacio = PRD listo para implementar)_
 ## 8. Definition of Done Global
 
 - [ ] Todas las fases completadas
-- [ ] `[comando de tests del proyecto, segun .agents/project-context.md]` en verde
+- [ ] `[comando de tests del proyecto, segun .agents/project/context.md o el legacy .agents/project-context.md]` en verde
 - [ ] `[comando de lint del proyecto]` sin hallazgos
 - [ ] Retrocompatibilidad: archivos sin columnas nuevas siguen importando
 - [ ] Columnas BD en ingles

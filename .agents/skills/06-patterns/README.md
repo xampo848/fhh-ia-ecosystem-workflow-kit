@@ -1,21 +1,22 @@
 # Pattern Skills Contract
 
-This directory is the neutral home for repo-owned implementation pattern skills.
+This directory holds the kit's neutral pattern skills and the contract every
+implementation pattern skill follows. It belongs to the kit: a kit update
+replaces it.
 
-Initial physical convention for new pattern skills:
+A project's own pattern skills live in the project overlay, never here:
 
 ```text
-.agents/skills/06-patterns/<domain>/<skill>/SKILL.md
+.agents/project/skills/<skill>/SKILL.md   registered in .agents/project/index.md
 ```
 
-Examples:
+Kit pattern skills shipped here:
 
-- `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md` (shipped)
-- `.agents/skills/06-patterns/authoring/init-legacy-attachments/SKILL.md` (shipped)
-- `06-patterns/backend/<your-importer>/SKILL.md` (a project creates its own)
+- `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md`
+- `.agents/skills/06-patterns/authoring/init-legacy-attachments/SKILL.md`
 
-This overlay is intentionally project-extensible. It ships only a neutral
-authoring helper and does not ship domain-specific default patterns.
+The kit ships only neutral authoring helpers and no domain-specific default
+patterns. Ownership and extension rules: `.agents/kit-boundary.md`.
 
 ## Purpose
 
@@ -100,7 +101,7 @@ slice_skill_contract:
 Every new pattern skill should define:
 
 1. **Stable logical name** — short, searchable, trigger-specific.
-2. **Exact physical path** — `.agents/skills/06-patterns/<domain>/<skill>/SKILL.md`.
+2. **Exact physical path** — `.agents/project/skills/<skill>/SKILL.md` for a project pattern; `.agents/skills/06-patterns/<domain>/<skill>/SKILL.md` only for a kit pattern.
 3. **Narrow trigger** — concrete implementation surface, not a vague category.
 4. **Required-before stage** — whether it must be loaded before read, write,
    test, or review.
@@ -138,12 +139,10 @@ When a repository starts from this overlay:
 2. Copy
   `.agents/skills/06-patterns/authoring/pattern-skill-template.md` and fill it.
 3. Create 1-3 local project patterns under
-  `.agents/skills/06-patterns/<domain>/<skill>/SKILL.md`.
-4. Register each new skill in `.agents/skills/registry.md`.
-5. Regenerate derived artifacts:
-  `.agents/skills/index.md`, `.agents/skills/06-patterns/index.md`,
-  `.agents/skills/registry.json`, and `.agents/skills/registry.cache.json`.
-6. Keep fallback docs in `docs/patterns/**` until enough local pattern skills
+  `.agents/project/skills/<skill>/SKILL.md`.
+4. Register each new skill in the `Skills` table of `.agents/project/index.md`.
+   The kit registries and indexes are kit files: do not edit them.
+5. Keep fallback docs in `docs/patterns/**` until enough local pattern skills
   exist.
 
 ## Handoff Evidence Contract

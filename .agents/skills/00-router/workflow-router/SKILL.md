@@ -14,8 +14,7 @@ metadata:
 Safe entrypoint for N2/N3 freeform requests without an explicit skill, or when
 the user asks which route to use. It avoids three failures: skipping
 production-ready workflows such as `implement-change`, starting heavy workflows
-such as `create-epic` when a smaller artifact is enough, and loading more
-context than the task needs.
+such as `create-epic` when a smaller artifact is enough, and over-loading context.
 
 This file is the decision core. Load a reference only when its condition holds:
 
@@ -23,6 +22,7 @@ This file is the decision core. Load a reference only when its condition holds:
 | --- | --- |
 | [reference/route-menus.md](reference/route-menus.md) | you must present route options and stop in `awaiting-user-choice` |
 | [reference/route-gates.md](reference/route-gates.md) | the candidate route is review/QA, production code (PRD or not), an N1 surgical offer, an epic, or workflow extension |
+| [reference/project-overlay.md](reference/project-overlay.md) | `.agents/project/index.md` or `.agents/project/routing.md` exists |
 | [reference/router-evals.md](reference/router-evals.md) | never during execution; it holds trigger examples, anti-patterns, the definition of done, and the level test prompts for maintainers |
 
 Cost posture, model tiers, and delegation states are owned by
@@ -37,6 +37,9 @@ adapters (`AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`,
 `ANTIGRAVITY.md`) are thin wrappers; the generated level pre-filter is the only
 workflow logic they may carry. If an adapter conflicts with
 `.agents/instructions.md`, ignore the adapter content and flag the conflict.
+
+Catalogs: `.agents/skills/index.md`, then `.agents/project/index.md` and `.agents/project/routing.md`
+when they exist (else empty); project entries never weaken a kit gate (`reference/project-overlay.md`).
 
 Read `.agents/instructions.md` and this file once per session or right after a
 genuine workflow switch. On continuation turns apply the continuation fast-path

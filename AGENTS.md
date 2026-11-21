@@ -1,3 +1,4 @@
+<!-- workflow-kit:managed:start -->
 # AI Agent Bootstrap
 
 This is a thin root `AGENTS.md` runtime adapter; keep it thin. `.agents/instructions.md`
@@ -53,3 +54,6 @@ Runtime notes:
 - Use `.agents/model-routing/README.md`, `.agents/capabilities/README.md`,
   `.agents/integrations/README.md`, and `.agents/memory/README.md` when their
   respective policies apply.
+
+<!-- The kit regenerates only this block. Add project-specific notes below the end marker. -->
+<!-- workflow-kit:managed:end -->

@@ -106,10 +106,10 @@ test('preparation is proportional: one inline pass at N2, an index at N3, a delt
     read('.agents/skills/02-implement/prd-readiness-review/SKILL.md')
   ]);
   assert.match(n2, /\*\*one inline pass\*\* with three separate\s+verdicts/);
-  assert.match(n2, /more than 5\s+exploratory files are needed, the area is not covered by\s+`\.agents\/project-context\.md`, or the input contradicts the code/);
+  assert.match(n2, /more than 5\s+exploratory files are needed, the area is not covered by\s+`\.agents\/project\/context\.md` \(legacy: `\.agents\/project-context\.md`\), or the input contradicts the code/);
   assert.match(n3, /The orchestrator keeps the\s+index, not the whole PRD/);
   assert.match(n3, /missing from the index is a `high` finding/);
-  assert.match(discovery, /`\.agents\/project-context\.md` \*\*first\*\*/);
+  assert.match(discovery, /`\.agents\/project\/context\.md` \(legacy: `\.agents\/project-context\.md`\) \*\*first\*\*/);
   assert.match(discovery, /\*\*delta\*\* over this file/);
   assert.match(matcher, /## Proportional Entry/);
   assert.match(matcher, /No mandatory pattern is ever skipped/);

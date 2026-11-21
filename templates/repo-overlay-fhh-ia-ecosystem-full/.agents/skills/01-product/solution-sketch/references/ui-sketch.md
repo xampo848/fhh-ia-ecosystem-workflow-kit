@@ -21,7 +21,7 @@ Record the choice in the sketch as `ui-path: shape | critique | team-design | sk
 When the problem mixes architecture and UI, lock the architecture first and put
 the visual part in its own section of the same sketch.
 
-Project preference: a `ui_sketch` line in `.agents/project-context.md` sets the
+Project preference: a `ui_sketch` line in `.agents/project/context.md` (legacy: `.agents/project-context.md`) sets the
 default (`offer`, `team-design`, or `no-impeccable`). Without it, offer the four
 paths with none preselected. The user can change it at any time.
 
