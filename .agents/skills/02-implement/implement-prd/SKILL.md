@@ -21,3 +21,9 @@ The shared references used by `implement-change` at N2/N3 stay in this
 directory: [reference/](reference/) (orchestration flow, delegate matrix,
 subagent prompts, handoff schemas, task tracker template, validation and stop
 conditions) and the per-alias prompt cards in [agents/](agents/).
+
+Session cut point: at N2/N3, when a slice is `VERIFIED` from its terminal
+handoff and no delegate is pending, or the size brake fires, the orchestrator
+writes a checkpoint and proposes a new session, as
+[../implement-change/reference/session-checkpoint.md](../implement-change/reference/session-checkpoint.md)
+defines; it is the only checkpoint reference.

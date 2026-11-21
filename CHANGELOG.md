@@ -5,6 +5,31 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.17.5-slice-checkpoint
+
+Long N2/N3 implementations no longer have to carry closed slices in one
+session.
+
+- `implement-change` (and its alias `implement-prd`) names a session cut
+  point: a slice `VERIFIED` from its terminal handoff with no delegate
+  pending. There the orchestrator writes a checkpoint and proposes continuing
+  in a new session. The rule lives in one new reference,
+  `implement-change/reference/session-checkpoint.md`; other files only point
+  to it.
+- The checkpoint is a `checkpoint` block in the existing tracker, not a new
+  file: the routing trace, closed slices, next slice and its lock, open
+  decisions, branch, commit, and working tree.
+- A resumed session reads the tracker, the next slice's lock and its required
+  reads; it takes the continuation fast-path and does not rerun the router,
+  readiness, discovery, or validation of slices with fresh evidence.
+- Size brake: propose a cut at about 150k tokens when the runtime shows the
+  context size; otherwise after 4 terminal handoffs or 60 orchestrator tool
+  calls since the last cut, naming the substitute used.
+- The cut is proposed, never imposed, and never interrupts a wait for
+  delegates. A new router eval (L15) covers the resumed session.
+- No saving is claimed yet: it must be measured against the baseline before
+  and after this change.
+
 ## 0.17.4-usage-measurement
 
 - New maintainer script `scripts/measure-claude-usage.mjs`

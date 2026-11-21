@@ -29,6 +29,7 @@ Two independent axes decide the work:
 | [reference/level-n3.md](reference/level-n3.md) | the level is N3 (full delegated flow, 12-point closure) |
 | [reference/input-types.md](reference/input-types.md) | always, but only the section of the detected input type |
 | [reference/modifiers.md](reference/modifiers.md) | autonomous execution or resume applies |
+| [reference/session-checkpoint.md](reference/session-checkpoint.md) | at N2/N3 a slice reaches its cut point, the size brake fires, or a session starts from a checkpoint |
 
 An N1 reached through the level pre-filter (no workflow files loaded) follows
 only the pre-filter's N1 rule in `.agents/instructions.md`; this skill and
@@ -104,6 +105,12 @@ between phases) or **autonomous** (`reference/modifiers.md`).
 
 Load exactly one of `level-n1.md`, `level-n2.md`, or `level-n3.md`, plus the
 input-type section. Do not preload N3 material for N1 or N2 work.
+
+**Session cut point (N2/N3).** When a slice is `VERIFIED` from its terminal
+handoff and no delegate is pending, or the size brake fires, write the
+checkpoint and propose continuing in a new session
+(`reference/session-checkpoint.md`). The cut is proposed, never imposed, and
+never interrupts a wait for delegates.
 
 ## Invariants (every level)
 

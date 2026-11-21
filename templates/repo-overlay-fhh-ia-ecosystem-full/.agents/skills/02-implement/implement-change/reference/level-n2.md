@@ -86,6 +86,9 @@ One observable outcome per slice and one primary acceptance objective; prefer
 consumer slices unless strict atomicity is required. A dependent slice starts
 only after its predecessor is `VERIFIED`.
 
+A `VERIFIED` slice that is not the last one is a session cut point: write the
+checkpoint and propose a new session as `session-checkpoint.md` says.
+
 ## QA and closure
 
 Final QA is mandatory and focused: changed files, findings, and the acceptance
