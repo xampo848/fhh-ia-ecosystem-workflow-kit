@@ -1,6 +1,6 @@
 {
   "name": "fhh-ia-ecosystem-workflow-kit",
-  "version": "0.17.3-contract-gaps",
+  "version": "0.17.4-usage-measurement",
   "private": true,
   "description": "Public GitHub-installable CLI/TUI workflow kit with safe install/export commands.",
   "license": "MIT",
@@ -21,6 +21,7 @@
     "check:docs": "node scripts/validate-docs.mjs",
     "check:legal": "node scripts/validate-legal-readiness.mjs",
     "check:security": "node scripts/validate-dependency-security.mjs",
+    "measure:usage": "node scripts/measure-claude-usage.mjs",
     "test": "node --test"
   },
   "keywords": [

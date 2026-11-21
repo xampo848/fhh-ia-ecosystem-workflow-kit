@@ -30,7 +30,8 @@ released it. Tags of the current lines:
 
 | Tag | Notes |
 | --- | --- |
-| `v0.17.3-contract-gaps` | current |
+| `v0.17.4-usage-measurement` | current |
+| `v0.17.3-contract-gaps` | |
 | `v0.17.2-catalog-rows` | |
 | `v0.17.1-stack-detection` | |
 | `v0.17.0-audit-hardening` | |

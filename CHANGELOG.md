@@ -5,6 +5,17 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.17.4-usage-measurement
+
+- New maintainer script `scripts/measure-claude-usage.mjs`
+  (`npm run measure:usage`): reads local Claude Code transcripts and reports
+  token consumption per agent type (cost share, context medians, share of cost
+  above 150k, cost by model, compactions, tool-result size per tool). It counts
+  each response once per `message.id`, is read-only, prints counts only, and is
+  not part of `check:workflow`. It is the baseline for the token-saving items
+  that follow. See `docs/workflow/runbooks/measure-claude-usage.md`.
+- Nothing installed in target repositories changes.
+
 ## 0.17.3-contract-gaps
 
 Fixes from a Copilot review of a project updated to 0.17.2; every item was a
