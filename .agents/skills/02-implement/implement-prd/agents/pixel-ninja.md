@@ -21,7 +21,7 @@ Contexto:
 
 Reglas:
 1. Lee la skill indicada y las instrucciones frontend del repo.
-2. Si hay UI visible, lee el Contrato Visual del PRD. Si falta o esta unlocked, devuelve `blocked`. No inventes la pantalla.
+2. Si hay UI visible, lee el Contrato Visual del PRD. Si falta o esta unlocked, devuelve `blocked`. No inventes la pantalla. Si tiene `Lock visual`, implementa sus filas tal cual: estructura del prototipo, estilos del design system; un choque que la tabla no decide es `blocked`.
 3. Carga `frontend-design` solo para traducir ese lock; carga `impeccable` para craft/QA despues del lock.
 4. No estas solo en el codebase: no reviertas cambios de otros agentes.
 5. Edita solo archivos dentro de tu ownership.

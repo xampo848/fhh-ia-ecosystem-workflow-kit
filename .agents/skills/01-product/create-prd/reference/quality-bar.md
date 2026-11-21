@@ -47,6 +47,7 @@ Product future scope remains out of the current PRD. Workflow reuse of `.ai-work
 - Inverting a parent epic's locked live path or phase-cut sequence without an approved change request
 - Delivering a visible-UI PRD whose screen `implement-change` would still have to invent
 - Treating a mockup or photo as the visual contract instead of locking density, hierarchy, primary action, and UI states
+- Letting a prototype's colors, fonts, or spacing override the project patterns without a recorded `Lock visual` decision, or leaving a prototype clash for the implementer to resolve
 - Using Spanish names for code identifiers
 - Describing UI changes in an importer-only PRD (they belong in a separate PRD)
 - Assuming a feature flag is not needed — **always ask**

@@ -72,7 +72,8 @@ Rules:
 - **Fake data only.** Never real customer data.
 - **Not product code:** the application never imports the mockups.
   `implement-change` uses them as visual reference next to the Contrato Visual,
-  which remains the contract.
+  which remains the contract. `create-prd` cites the chosen one as the
+  `Lock visual` source (`create-prd/reference/visual-lock.md`).
 - **Path c:** no mockups are generated; cite the designer's.
 - **Runtime-neutral:** they are local HTML files. Open them in the runtime's
   browser preview when it has one; otherwise the user opens them.

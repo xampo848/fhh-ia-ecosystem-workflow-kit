@@ -34,7 +34,7 @@ Use exists-or-skip for product docs. A missing optional path is not a failed sea
 - Exact matcher-selected `required_pattern_skills` paths when present.
 - Matcher-selected `fallback_docs` when required pattern skills are absent.
 - Relevant frontend docs from `docs/patterns/frontend/` when present
-- The PRD Contrato Visual (UI lock) when the slice includes visible UI. If it is missing or unlocked, return `blocked`.
+- The PRD Contrato Visual (UI lock) when the slice includes visible UI. If it is missing or unlocked, return `blocked`. Its `Lock visual` rows assigned to the slice are binding (`.agents/skills/01-product/create-prd/reference/visual-lock.md`, section 7).
 - `frontend-design` only to translate or sharpen that locked contract. Do not use it to invent the screen.
 - `impeccable` when the slice needs deeper craft, polish, audit, distinctive refinement, or live visual iteration after the lock exists.
 - Existing analogous frontend files and tests.
@@ -79,7 +79,7 @@ Reject the implementation or return `blocked` if satisfying the slice requires q
 5. Name the existing pattern, primitive, hook, or API module being reused.
 6. Record whether any matcher-suggested optional capability was actually used and whether it was active.
 7. Update API modules and hooks before components when server data is involved.
-8. For visible UI, restate the locked Contrato Visual before editing. Implement that lock. If any required field is missing, return `blocked` instead of inventing hierarchy, density, or states.
+8. For visible UI, restate the locked Contrato Visual before editing. Implement that lock. If any required field is missing, return `blocked` instead of inventing hierarchy, density, or states. Implement the assigned `Lock visual` rows as written: structure and content from the prototype, visual values only from the design system, each element with its listed component. Never add a loose variant to match the prototype.
 9. Implement presentational components with existing layout and design system conventions.
 10. Extract new shared components or primitives only when reuse or a genuine system gap is clear; otherwise keep the composition local.
 11. Reject generic default compositions. If the screen still reads like a stock SaaS dashboard, rework it before closing.
@@ -94,6 +94,7 @@ Reject the implementation or return `blocked` if satisfying the slice requires q
 
 - The UI behavior is ambiguous.
 - The PRD Contrato Visual is missing, unlocked, or too thin to implement without inventing the screen.
+- The prototype clashes with the design system on something the `Lock visual` table does not decide: return `blocked`; the clash goes back to the PRD.
 - API payload shape is unknown or inconsistent.
 - The slice requires cross-feature imports.
 - A new design pattern would be needed instead of existing primitives.

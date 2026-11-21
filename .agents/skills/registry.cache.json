@@ -156,7 +156,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "0cda63f3da7792038b8a53424b9e076f1830fa30bce91098a0d975f3ff6a4753"
+      "skill_sha256": "8449314643cc86bf72775228aa00a61bac2971ee26736f6b91d538c5f5342873"
     },
     {
       "key": "document-development",
@@ -192,7 +192,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/frontend-phase-implementer/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "bcec41952c605916d868e4c347a402ae8b59d654afd9d4bdb80ea06b22a2a657"
+      "skill_sha256": "8e191bc3194947e0d0d5addca5ae16efa3a810ffcd0351e02a816b306ad87ebd"
     },
     {
       "key": "generate-pm-ticket",
@@ -246,7 +246,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/implementation-slicing/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "bb9c0985c2a21aa878d3026e5a2e2b46072b78f0d90f25000c7120f96418b591"
+      "skill_sha256": "4cf4f5940235226b08d2870b2df0b191816cb4f77e004a5e53377e65c2183176"
     },
     {
       "key": "pattern-authoring-add-project-pattern",
@@ -291,7 +291,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/prd-readiness-review/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "cc142694a7c9c3d5fe2d13bcd2999a05c8c26d37de35f1d0c39b755fa7ebb4fc"
+      "skill_sha256": "5462b4f8daae94dbb53a5ed94679528c8c81cf3320ade940ef43cd88342f5239"
     },
     {
       "key": "project-formation",
@@ -363,7 +363,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/qa-handoff-review/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "18f1105e7b7e3edb049cc6e88be445a1891c9f89c0a22583faa5274d9ae7c4fb"
+      "skill_sha256": "4c87b38fee785d95887d9a98c7116595ec8755ac3bc951292c78f67143975df5"
     },
     {
       "key": "react-doctor",

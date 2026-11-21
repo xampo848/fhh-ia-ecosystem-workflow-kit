@@ -45,7 +45,7 @@ Do not load code quality documents during readiness. Code-writing delegates load
 7. Identify touched surfaces: backend, frontend, API contract, data model, background jobs, integrations, UI, E2E.
 8. Build a traceability map from every acceptance criterion to a phase/task and expected verification evidence.
 9. Run the granularity audit below. Distinguish a coarse plan that slicing can safely refine from a PRD that lacks enough behavioral detail to refine without guessing.
-10. Detect blocking ambiguity. Treat these as blockers: unresolved business rules, destructive migrations, public API changes, permissions gaps, multi-tenancy uncertainty, missing i18n requirements, unclear acceptance criteria, acceptance criteria with no falsifiable evidence path, or visible UI whose Contrato Visual is missing, unlocked, or would still force implementation to invent the screen. Use `cavecrew-investigator` for repo-answerable scope or ownership lookups before escalating a question to the user.
+10. Detect blocking ambiguity. Treat these as blockers: unresolved business rules, destructive migrations, public API changes, permissions gaps, multi-tenancy uncertainty, missing i18n requirements, unclear acceptance criteria, acceptance criteria with no falsifiable evidence path, or visible UI whose Contrato Visual is missing, unlocked, or would still force implementation to invent the screen, or a cited prototype whose `Lock visual` table is missing, has a clash without a decision, or an element without a component (`../../01-product/create-prd/reference/visual-lock.md`). Use `cavecrew-investigator` for repo-answerable scope or ownership lookups before escalating a question to the user.
 11. Recommend the safest level (N2 or N3) and produce a stop or go decision.
 12. At N3 with a PRD, build the **PRD index** described below so later stages do not reread the whole PRD.
 
@@ -118,7 +118,7 @@ The readiness reviewer does not need to force an arbitrary phase count. It must 
 1. Can each acceptance criterion be implemented without inventing behavior?
 2. Can `implementation-slicing` split the work deterministically at contract, risk, ownership, and validation boundaries?
 3. Can every resulting slice reach `IMPLEMENTED → TESTED → VALIDATED → VERIFIED` independently?
-4. If the PRD changes visible UI, can Pixel Ninja implement the screen from the Contrato Visual without inventing density, hierarchy, primary action, or required states?
+4. If the PRD changes visible UI, can Pixel Ninja implement the screen from the Contrato Visual without inventing density, hierarchy, primary action, or required states, and without resolving a prototype clash?
 
 Return `Decision: STOP` when any answer is no. Return `GO` with granularity findings when the PRD behavior is complete but the slicing skill can safely make the execution plan smaller.
 
