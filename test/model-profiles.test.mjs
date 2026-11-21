@@ -191,3 +191,27 @@ test('criticalConcerns still escalate equilibrado Mediano roles to Grande', asyn
     }
   }
 });
+
+// The generated Claude Code agent pins the profile tier, so the escalation has
+// to happen at launch time: the N3 runtime-parity rule and the routing policy
+// must tell the orchestrator to pass `model: opus` for a critical concern.
+test('Claude Code escalates criticalConcerns at launch time for roles below Grande', async () => {
+  for (const base of ['', 'templates/repo-overlay-fhh-ia-ecosystem-full/']) {
+    const levelN3 = await fs.readFile(path.join(root, base, '.agents/skills/02-implement/implement-change/reference/level-n3.md'), 'utf8');
+    const claudeRule = levelN3.split('\n- **').find((item) => item.startsWith('Claude Code:**'));
+    assert.ok(claudeRule, `${base}level-n3.md has a Claude Code launch rule`);
+    assert.match(claudeRule, /`criticalConcern`/);
+    assert.match(claudeRule, /pass `model: opus` in the launch call/);
+
+    const policy = await fs.readFile(path.join(root, base, '.agents/model-routing/README.md'), 'utf8');
+    const section = policy.split('### Claude Code critical-concern escalation')[1]?.split('\n## ')[0];
+    assert.ok(section, `${base}model-routing README has the Claude Code escalation section`);
+    assert.match(section, /launches it with `model: opus`/);
+    assert.match(section, /`requested_model: opus`/);
+    assert.match(section, /`equilibrado` and `costo`/);
+  }
+
+  const catalog = await loadDelegateCatalog();
+  assert.equal(catalog.runtimeCapabilities.claude.pinSubagentModel, true, 'the rule relies on per-call model pinning');
+  assert.equal(catalog.modelProfiles.runtimeTierSettings.claude.Grande, 'opus', 'Grande maps to the model the rule passes');
+});

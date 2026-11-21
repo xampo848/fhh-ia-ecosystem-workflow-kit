@@ -78,9 +78,10 @@ Rules:
 
 - `criticalConcerns` (security, migrations, public contracts, and the rest of
   the catalog list) escalate any role to Grande in every profile. In `costo`
-  this is the only path to Grande; never escalate silently there.
-- In `calidad` and `equilibrado`, a `lean` posture means less context and less delegation, not a
-  smaller model.
+  this is the only path to Grande; never escalate silently there. Claude Code
+  applies it at launch time (`Claude Code critical-concern escalation`).
+- In `calidad` and `equilibrado`, a `lean` posture means less context and
+  less delegation, not a smaller model.
 - Runtime mapping: Claude Code `Mediano` = `sonnet`, `Grande` = `opus`
   (`Liviano` = `haiku`, `costo` only). Codex pins `model_reasoning_effort`
   (`medium` for Mediano, `xhigh` for Grande, `low` for Liviano) and inherits
@@ -328,6 +329,19 @@ Protocol` of `.agents/skills/02-implement/implement-prd/reference/subagent-promp
 The resolver and the evidence verifier ship in this directory as generated,
 Node-only helpers (`copilot-model-routing.mjs`, `delegate-agent-catalog.json`,
 `verify-copilot-model-evidence.mjs`); do not edit them by hand.
+
+### Claude Code critical-concern escalation
+
+Generated Claude Code agents pin their profile tier in the `model:` front
+matter, so the file alone never applies `criticalConcerns`. The launch call
+accepts a per-call `model` (`haiku`, `sonnet`, `opus`) that overrides it. When
+a delegated slice lists any `criticalConcern` and the role's profile tier is
+below Grande (every Mediano role in `equilibrado` and `costo`), the
+orchestrator launches it with `model: opus` and records `requested_tier:
+Grande`, `requested_model: opus`, and `contextual_tier: Grande` with the
+concern as the reason; `resolved_model` stays `unknown` unless the runtime
+exposes it. In `costo` this is the only path to Grande, so name it in the
+trace. Never use this parameter to run a role below its profile tier.
 
 ### Contextual task selection
 

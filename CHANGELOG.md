@@ -15,6 +15,11 @@ subscriptions that often hit their weekly usage limits.
   `testinator-5000` and `guardia-contrato` to Mediano (Sonnet, `medium`). Every
   other role stays Mediano; it never uses Liviano. `criticalConcerns` still
   escalate any role to Grande.
+- Claude Code now applies that escalation: generated agents pin the profile
+  model, so for a slice with a `criticalConcern` the orchestrator launches a
+  role below Grande with `model: opus` and records it
+  (`implement-change/reference/level-n3.md`, `.agents/model-routing/README.md`).
+  Before, nothing told it to, which mattered once writers could be Sonnet.
 - Choose it with `workflow-kit update --profile claude=equilibrado` (or
   `codex=equilibrado`), or in the TUI billing question. It is opt-in: no
   runtime defaults to it, and `update` keeps the stored profile, so existing
