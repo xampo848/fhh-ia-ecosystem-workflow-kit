@@ -373,7 +373,7 @@ source repository, where these boundaries apply:
 
 After extension edits, run relevant repository validation commands and summarize outcomes.
 
-### Project runbooks
+## Project runbooks
 
 A runbook is a project procedure (environment promotion, release, hotfix,
 rollback) kept as a project skill of class `Runbook` under

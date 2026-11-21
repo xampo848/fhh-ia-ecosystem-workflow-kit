@@ -138,16 +138,20 @@ test('a project catalog lists only Pattern and Runbook skills, and a runbook kee
   await write(dir, '.agents/project/index.md', skillsTable([patternRow, runbookRow()]).join('\n'));
   assert.equal(await failuresFor(dir), '', 'one Pattern and one Runbook pass');
 
-  for (const { rule, rows = [patternRow, runbookRow()], file = body, expected } of [
+  for (const { rule, rows = [patternRow, runbookRow()], file = body, expected, absent } of [
     { rule: 'class is Pattern or Runbook', rows: [patternRow.replace('Pattern', 'Guide'), runbookRow()], expected: /project skill api-pagination has class Guide; use Pattern or Runbook/ },
     { rule: 'runbook outside runbooks/', rows: [patternRow, runbookRow('.agents/project/skills/promote-build/SKILL.md')], expected: /runbook promote-build must live at \.agents\/project\/skills\/runbooks\/promote-build\/SKILL\.md/ },
     { rule: 'runbook folder equals its name', rows: [patternRow, runbookRow(runbookFile, 'release-build')], expected: /runbook release-build must live at \.agents\/project\/skills\/runbooks\/release-build\/SKILL\.md/ },
     { rule: 'pattern never under runbooks/', rows: [patternRow.replace('`.agents/project/skills/api-pagination/SKILL.md`', `\`${runbookFile}\``)], expected: /pattern api-pagination must not live under \.agents\/project\/skills\/runbooks\// },
     { rule: 'required section', file: body.replace('\n## Rollback\n', '\n'), expected: /promote-build\/SKILL\.md: runbook has no ## Rollback section/ },
-    { rule: 'frontmatter name equals folder', file: body.replace('name: promote-build', 'name: release-build'), expected: /promote-build\/SKILL\.md: runbook frontmatter name release-build differs from its folder promote-build/ }
+    { rule: 'frontmatter name equals folder', file: body.replace('name: promote-build', 'name: release-build'), expected: /promote-build\/SKILL\.md: runbook frontmatter name release-build differs from its folder promote-build/ },
+    { rule: 'missing runbook file is reported, not parsed', file: null, expected: /project skill promote-build points to missing/, absent: /runbook has no/ }
   ]) {
     await write(dir, '.agents/project/index.md', skillsTable(rows).join('\n'));
-    await write(dir, runbookFile, file);
-    assert.match(await failuresFor(dir), expected, rule);
+    if (file === null) await fs.rm(path.join(dir, runbookFile));
+    else await write(dir, runbookFile, file);
+    const failures = await failuresFor(dir);
+    assert.match(failures, expected, rule);
+    if (absent) assert.doesNotMatch(failures, absent, rule);
   }
 });

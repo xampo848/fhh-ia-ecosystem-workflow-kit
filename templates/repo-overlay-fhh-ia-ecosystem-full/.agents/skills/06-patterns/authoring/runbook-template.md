@@ -4,7 +4,7 @@ Use this template when the user asks to save a project procedure (environment
 promotion, release, hotfix, rollback) as a runbook: the runbook variant of
 `add-project-pattern`. Copy the fenced block below into the project overlay:
 
-` .agents/project/skills/runbooks/<runbook-name>/SKILL.md `
+`.agents/project/skills/runbooks/<runbook-name>/SKILL.md`
 
 The folder name equals the frontmatter `name`, and the catalog row has class
 `Runbook` (contract: `.agents/kit-boundary.md`, section "Runbooks"). Replace

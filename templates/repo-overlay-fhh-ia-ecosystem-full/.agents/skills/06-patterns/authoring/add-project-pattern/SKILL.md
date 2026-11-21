@@ -83,9 +83,9 @@ user's explicit yes to that proposal, and only the content shown.
 - The name collides with no kit skill.
 - `git status` shows no change under `.agents/skills/`.
 - A runbook lives at `.agents/project/skills/runbooks/<skill>/SKILL.md`, has the
-  headings `## Trigger`, `## Preconditions`, `## Steps`, `## Verification`,
-  and `## Rollback`, marks every irreversible step `confirm: required`, and
-  holds no secret value.
+  headings `## Trigger`, `## Owner` (with `last_verified`), `## Preconditions`,
+  `## Steps`, `## Verification`, and `## Rollback`, marks every irreversible
+  step `confirm: required`, and holds no secret value.
 
 ## Stop Conditions
 

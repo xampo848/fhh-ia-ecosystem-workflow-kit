@@ -85,7 +85,7 @@ lock.
 
 `.agents/project/index.md` has up to three tables; each is optional. The
 `Class` column of `Skills` is `Pattern` or `Runbook`, and the folder of a
-project skill equals its name:
+runbook equals its name:
 
 ```markdown
 ## Skills

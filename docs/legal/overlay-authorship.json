@@ -5,7 +5,7 @@
   "remainingInventory": {
     "path": "templates/repo-overlay-fhh-ia-ecosystem-full",
     "fileCount": 178,
-    "pathContentSha256": "7149a97734103328707b8896d084bb116fbe987d491f7fbccb1a75b6ecffcfc9"
+    "pathContentSha256": "53c268f3db94e97e37880ec7f36ea5ecbc81a836e88c4699b95952cbd2981961"
   },
   "externalPathCoverage": [
     {
