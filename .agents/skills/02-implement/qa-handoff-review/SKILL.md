@@ -141,6 +141,7 @@ Use this checklist as coverage for the mandatory procedure; it does not replace 
 - Include file paths and line references when possible.
 - A clean validation run is not enough to return `ready_to_close: yes`; the full closure gate must pass.
 - If no issues are found, say that and list residual test gaps.
+- Visual checks (Visual contract, UI smoke): open the screens and read the screenshots yourself, then report one verdict per criterion with its screenshot path and findings, never the image. At N2/N3 the orchestrator does not view screenshots or drive the browser (`implement-change` Step 3, "Orchestrator reads"; return rows as in the Visual Verification Delegate of `../implement-prd/reference/subagent-prompts.md`).
 
 ## Handoff Output
 

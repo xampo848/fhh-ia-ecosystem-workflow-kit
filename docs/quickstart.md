@@ -138,7 +138,7 @@ installed version, so a mistyped ref or a network failure changes nothing. To
 pin a release, pass its tag (see [Versioning](versioning.md)):
 
 ```bash
-workflow-kit upgrade --ref v0.18.0-equilibrado-profile --apply --yes
+workflow-kit upgrade --ref v0.18.2-orchestrator-reads --apply --yes
 ```
 
 After that, run `update` in each target repository you manage.

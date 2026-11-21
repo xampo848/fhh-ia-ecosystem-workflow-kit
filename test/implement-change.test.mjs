@@ -125,3 +125,60 @@ test('both implement skills name the session cut point and link the single check
   assert.match(skipped, /`implement-change · continuing · no reroute`/);
   assert.match(skipped, /Readiness, discovery, slicing, and matching while their evidence stays fresh/);
 });
+
+test('the N2/N3 orchestrator does not read raw: rule, level exception, and visual delegation template', async () => {
+  const [core, levelN2, prompts, qa, frontend, instructions] = await Promise.all([
+    read(`${changeDir}/SKILL.md`),
+    read(`${changeDir}/reference/level-n2.md`),
+    read('.agents/skills/02-implement/implement-prd/reference/subagent-prompts.md'),
+    read('.agents/skills/02-implement/qa-handoff-review/SKILL.md'),
+    read('.agents/skills/02-implement/frontend-phase-implementer/SKILL.md'),
+    read('.agents/instructions.md')
+  ]);
+
+  const rule = core.slice(core.indexOf('**Orchestrator reads (N2/N3).**'), core.indexOf('## Invariants'));
+  assert.ok(rule.length > 40, 'implement-change must keep the "Orchestrator reads (N2/N3)" rule');
+  assert.match(rule, /reads the tracker, locks, handoffs, the input, and specific snippets/);
+  assert.match(rule, /Locating and reading product\s+code beyond that is delegated: `cavecrew-investigator`[\s\S]*?`sherlock-estructura`/);
+  assert.match(rule, /No whole-file dumps/);
+  assert.match(rule, /opens the\s+browser, reads the screenshots, and returns a verdict per criterion, the\s+screenshot path, and its findings/);
+  assert.match(rule, /The orchestrator does not `Read` images or\s+drive the browser unless the user asks directly/);
+  assert.match(rule, /Level exception: N0 and N1 do\s+not\s+delegate[\s\S]*?applies to N2 and N3 only/);
+  assert.match(rule, /Visual Verification Delegate/);
+
+  assert.match(levelN2, /orchestrator read\s+rule in `\.\.\/SKILL\.md`/);
+  assert.match(instructions, /Compressed delegation preference:[\s\S]*?"Orchestrator reads \(N2\/N3\)" in `\.agents\/skills\/02-implement\/implement-change\/SKILL\.md`/);
+  for (const [name, text] of [['qa-handoff-review', qa], ['frontend-phase-implementer', frontend]]) {
+    assert.match(text, /read the screenshots yourself/, name);
+    assert.match(text, /"Orchestrator reads"/, name);
+  }
+
+  const start = prompts.indexOf('## Visual Verification Delegate');
+  assert.ok(start >= 0, 'subagent-prompts.md must keep the Visual Verification Delegate template');
+  const template = prompts.slice(start, prompts.indexOf('## Prompt Card Files'));
+  assert.match(template, /N0 and N1\s+do\s+not\s+delegate/);
+  assert.match(template, /Salida obligatoria/);
+  assert.match(template, /^status: success \| partial \| blocked$/m);
+  assert.match(template, /^criteria\[N\]\{id,verdict,screenshot,finding\}:$/m);
+  assert.match(template, /^findings\[N\]\{severity,criterion,observation\}:$/m);
+  assert.match(template, /no\s+pidas al orquestador que verifique visualmente/);
+});
+
+test('N2/N3 delegation prefers catalog delegates over general-purpose and names only catalog agents', async () => {
+  const [instructions, catalogText] = await Promise.all([
+    read('.agents/instructions.md'),
+    read('scripts/delegate-agent-catalog.json')
+  ]);
+  const section = instructions.slice(instructions.indexOf('Compressed delegation preference:'), instructions.indexOf('## Model routing'));
+  const rule = section.split('\n').find((line) => line.includes('general-purpose'));
+  assert.ok(rule, 'Compressed delegation preference must keep the catalog-delegate rule (from the T06 report)');
+  assert.match(rule, /^- in N2\/N3, when delegating, pick a catalog delegate by role/);
+  assert.match(rule, /Use `general-purpose` only when no catalog delegate fits the role, and state why before launching it/);
+
+  const catalogAgents = new Set(JSON.parse(catalogText).agents.map((agent) => agent.slug));
+  const named = [...rule.matchAll(/`([a-z0-9]+(?:-[a-z0-9]+)+)`/g)].map((match) => match[1]).filter((name) => name !== 'general-purpose');
+  for (const role of ['sherlock-estructura', 'turbo-backend', 'pixel-ninja', 'testinator-5000', 'lint-ranger', 'qa-relampago', 'cavecrew-investigator', 'cavecrew-builder', 'cavecrew-reviewer']) {
+    assert.ok(named.includes(role), `rule must name ${role}`);
+  }
+  for (const name of named) assert.ok(catalogAgents.has(name), `${name} is not in scripts/delegate-agent-catalog.json`);
+});

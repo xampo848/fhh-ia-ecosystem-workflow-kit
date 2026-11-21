@@ -54,6 +54,11 @@ documented fallback docs and risk.
 - At most one delegate per slice, and only where independent context, file
   ownership, or validation evidence reduces risk. One lightweight delegate per
   stage is the ceiling; no ceremonial subagents.
+- Locating product code and visual verification follow the orchestrator read
+  rule in `../SKILL.md` (Step 3): a `cavecrew-investigator` lookup or a visual
+  verifier is not a stage delegate, and the orchestrator's exploratory reads
+  are the snippets those lookups return. For visual verification read only the
+  `Visual Verification Delegate` section of `subagent-prompts.md`.
 - A specialized implementer (`backend-phase-implementer`,
   `frontend-phase-implementer`, `acceptance-test-engineer`) is optional at N2;
   it is the default writer only at N3.

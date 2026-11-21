@@ -192,7 +192,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/frontend-phase-implementer/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "f4b876b99370c4ff28760ae41fe0c41f03b01790a8e82a9e319d901197a65114"
+      "skill_sha256": "927103e6529567fac0edc670e5ae3830a6220988780056eccd543ec7e2e1df3a"
     },
     {
       "key": "generate-pm-ticket",
@@ -219,7 +219,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-change/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "dfffd8647054575c3a95f4f2d8c8c1f8820e02d6c31ef00d294f55978d5c8f95"
+      "skill_sha256": "4b1694d9f5392c9f0c9640dd6b783494eec876c8e6dc10301d08e3bd6e97a1d0"
     },
     {
       "key": "implement-prd",
@@ -363,7 +363,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/qa-handoff-review/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "9513c71147341c9809744084209e2e1160d05a61798f2697c09f8f30fb201f90"
+      "skill_sha256": "86593207d9fc1951e497f99b1a8cb3452e0efeeceed20c33d3143e00d86d7d55"
     },
     {
       "key": "react-doctor",
