@@ -10,9 +10,17 @@
 **Ledger**: [kit-project-overlay-ledger.md](kit-project-overlay-ledger.md)
 **Mejoras que cubre**: #1 separar kit y proyecto (prio 0), #2 plugin o MCP instalable (prio 1), #3 aprendizaje de procesos del proyecto (prio 0)
 
-> **Gate de inicio:** no empieza ninguna implementación de esta épica hasta que estén integradas en `main` estas tres mejoras: #6 reglas de tests (PR en curso, 0.19.0), #4 lock visual y #5 textos del TUI.
-> - F1 choca con #6 y #4: comparten `.agents/**`, `templates/**`, `create-prd`, slicing, QA y el implementador frontend.
-> - F2 choca con #5: comparten `src/**`.
+> **Gate de inicio:** no empieza ninguna implementación de esta épica hasta que estén integradas en `main` estas tres mejoras: #6 reglas de tests, #4 lock visual y #5 textos del TUI.
+>
+> Estado al 2026-11-21:
+> - #6 entró en 0.19.0 y #5 en 0.19.1.
+> - #4 está en el PR #78 (0.19.2). Agrega el lock visual como sub-bloque del Contrato Visual 2.7 de `create-prd`.
+>
+> Por qué el gate:
+> - F1 choca con #6 y #4: comparten `.agents/**`, `templates/**`, `registry.cache.json` y el espejo de las plantillas.
+> - F2 choca con #5: comparten `src/tui.mjs`, `src/tui/view.mjs` y `src/doctor.mjs`.
+>
+> Ninguna fase de esta épica edita archivos de `create-prd` ni del lock visual.
 >
 > El gate es el invariante `INV-SEQ-01`.
 
@@ -331,7 +339,7 @@ Cómo cada fase deja el path vivo usable:
 
 | Fase | Apetito relativo | Resultado | Dependencias | Riesgo principal | Definition of Done |
 | ---- | ---------------- | --------- | ------------ | ---------------- | ------------------ |
-| F1 Contrato kit/overlay | Medium | El límite queda escrito y se valida: manifiesto con clases, layout de `.agents/project/**`, niveles add/extend/shadow, reglas de rutas, marcadores en los adaptadores y lectura de dos catálogos por el router. | `INV-SEQ-01` (#6 y #4 integradas). P1, P3 y P5 resueltas. | Romper el descubrimiento nativo o los links de los proyectos | `check:workflow` incluye un validador del manifiesto y de las referencias de ruta (INV-PATH-01). Las evals del router cubren el catálogo del proyecto. Las docs de límites y extensión están actualizadas. El layout viejo sigue funcionando. |
+| F1 Contrato kit/overlay | Medium | El límite queda escrito y se valida: manifiesto con clases, layout de `.agents/project/**`, niveles add/extend/shadow, reglas de rutas, marcadores en los adaptadores, lectura de dos catálogos por el router y separación entre el default del kit y la parte del proyecto en los archivos del proyecto que traen contenido del kit (P10). | `INV-SEQ-01` (#6 y #4 integradas). P1, P3, P5 y P10 resueltas. | Romper el descubrimiento nativo o los links de los proyectos | `check:workflow` incluye un validador del manifiesto y de las referencias de ruta (INV-PATH-01). Las evals del router cubren el catálogo del proyecto. Las docs de límites y extensión están actualizadas. El layout viejo sigue funcionando. |
 | F2 Actualizador por manifiesto + migración | Large | `update` reemplaza el kit por manifiesto, borra lo retirado sin editar, regenera los marcadores, usa `install-state` v2 y migra el layout 0.18 con dry-run, backup y rollback. | F1. `INV-SEQ-01` (#5 integrada). P4 resuelta. | Perder contenido editado durante la migración | Hay e2e desde 0.18 para Claude, Codex, Copilot y Antigravity: contenido propio conservado, segundo update sin escrituras y rollback restaura. Ningún conjunto de rutas escrito a mano en `src/`. |
 | F3 Runbooks de proyecto | Medium | Clase `Runbook`, plantilla, variante en `add-project-pattern`, ruteo de frases operativas, `confirm: required` y ciclo de captura con confirmación. | F1. Puede ir en paralelo con F2. P1 resuelta. | Un runbook que se salta la confirmación | Las evals del router cubren el ruteo operativo, la confirmación irreversible y "capturar sin escribir sin un sí". El validador de neutralidad pasa. |
 | F4 Modo plugin (piloto Claude + Copilot) | Medium | El build genera `plugin.json` y `.claude-plugin` desde el árbol del kit. `init` y `update` funcionan con `--mode plugin`. `doctor` verifica los modos. Hay docs. | F2. P2, P6, P7 y P8 resueltas. | Precedencia o nombres distintos entre runtimes | Smoke test en Claude Code y en VS Code Copilot: las skills cargan, el overlay se lee y no hay duplicados. El repo en modo plugin tiene ≤ 5 archivos del kit. |
@@ -363,9 +371,9 @@ Estas listas son la estimación del diseño. Cada PRD hijo la confirma en su dis
 | Fase | Archivos existentes | Archivos nuevos | Choca con |
 | --- | --- | --- | --- |
 | F1 | `.agents/instructions.md` · `.agents/skills/00-router/workflow-router/SKILL.md` · `…/reference/route-gates.md` · `…/reference/router-evals.md` · `.agents/skills/index.md` · `.agents/skills/registry.md` · `registry.json` · `registry.cache.json` · `registry.schema.json` · `.agents/skills/06-patterns/README.md` · `.agents/capabilities/README.md` · `.agents/workflow-kit/manifest.json` · `docs/project-boundaries.md` · `docs/extending-the-workflow.md` · `templates/repo-overlay-fhh-ia-ecosystem-full/**` (espejo) · `templates/runtime-adapters/{claude,agents-md,antigravity,copilot}/**` (marcadores) · `templates/template-manifest.json` · `scripts/sync-skill-registry.mjs` · `scripts/sync-level-prefilter.mjs` · `scripts/validate-template-packs.mjs` · `scripts/validate-neutral-paths.mjs` · `test/workflow-contract.test.mjs` · `test/skill-registry-sync.test.mjs` · `test/level-prefilter-router.test.mjs` · `test/template-packs.test.mjs` · `package.json` (`check:workflow`, versión) · `CHANGELOG.md` | validador del manifiesto y de las referencias de ruta (`scripts/validate-kit-boundary.mjs`), schema del manifiesto | #6 (reglas de tests: `.agents/**`, `templates/**`), #4 (lock visual: `create-prd`, slicing, QA, implementador frontend) |
-| F2 | `src/planner.mjs` · `src/apply.mjs` · `src/rollback.mjs` · `src/doctor.mjs` · `src/workflow-contract/drift.mjs` · `src/workflow-contract/skills.mjs` · `src/workflow-contract/adapters.mjs` · `src/cli/commands.mjs` · `src/cli/summaries.mjs` · `src/plan-insight.mjs` · `src/tui/view.mjs` (grupos de la migración) · `test/planner.test.mjs` · `test/upgrade-e2e.test.mjs` · `test/doctor.test.mjs` · `test/cli-summaries.test.mjs` · `docs/migration.md` · `docs/troubleshooting.md` · `package.json` · `CHANGELOG.md` | fixtures e2e del layout 0.18 | #5 (textos del TUI en `src/**`) |
+| F2 | `src/planner.mjs` · `src/apply.mjs` · `src/rollback.mjs` · `src/doctor.mjs` · `src/workflow-contract/drift.mjs` · `src/workflow-contract/skills.mjs` · `src/workflow-contract/adapters.mjs` · `src/cli/commands.mjs` · `src/cli/summaries.mjs` · `src/plan-insight.mjs` · `src/tui.mjs` y `src/tui/view.mjs` (grupos de la migración; desde 0.19.1, los textos del menú viven en `src/tui.mjs`) · `test/planner.test.mjs` · `test/upgrade-e2e.test.mjs` · `test/doctor.test.mjs` · `test/cli-summaries.test.mjs` · `docs/migration.md` · `docs/troubleshooting.md` · `package.json` · `CHANGELOG.md` | fixtures e2e del layout 0.18 | #5 (textos del TUI en `src/**`) |
 | F3 | `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md` · `.agents/skills/06-patterns/authoring/pattern-skill-template.md` · `.agents/skills/06-patterns/README.md` · router `SKILL.md` · `route-gates.md` · `router-evals.md` · `.agents/instructions.md` (regla de captura) · `registry.schema.json` · `scripts/sync-skill-registry.mjs` · espejo en `templates/**` · `test/turn-routing-contract.test.mjs` · `docs/extending-the-workflow.md` · `package.json` · `CHANGELOG.md` | plantilla de runbook (`.agents/skills/06-patterns/authoring/runbook-template.md`) | F1 (comparte router e `instructions.md`: secuencial después de F1). F2 no comparte archivos. |
-| F4 | `src/runtime-matrix.mjs` · `src/model-profiles.mjs` · `src/planner.mjs` · `src/doctor.mjs` · `src/cli/args.mjs` · `src/cli/commands.mjs` · `scripts/sync-claude-skills.mjs` · `scripts/sync-delegate-runtime-adapters.mjs` · `package.json` (`files`, scripts) · `docs/README.md` · `docs/quickstart.md` · `docs/github-install.md` · `docs/workflow/cross-runtime-capability-matrix.md` · `CHANGELOG.md` | `scripts/build-plugin.mjs`, `plugin.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `test/plugin-build.test.mjs` | F2 (comparte `planner.mjs` y `doctor.mjs`: secuencial después de F2) |
+| F4 | `src/runtime-matrix.mjs` · `src/model-profiles.mjs` · `src/planner.mjs` · `src/doctor.mjs` · `src/cli/args.mjs` · `src/cli/commands.mjs` · `src/tui.mjs` y `src/tui/model.mjs` (elección del modo al instalar) · `scripts/sync-claude-skills.mjs` · `scripts/sync-delegate-runtime-adapters.mjs` · `package.json` (`files`, scripts) · `docs/README.md` · `docs/quickstart.md` · `docs/github-install.md` · `docs/workflow/cross-runtime-capability-matrix.md` · `CHANGELOG.md` | `scripts/build-plugin.mjs`, `plugin.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `test/plugin-build.test.mjs` | F2 (comparte `planner.mjs` y `doctor.mjs`: secuencial después de F2) |
 
 ## 11. Riesgos y Mitigaciones
 
@@ -392,11 +400,12 @@ Estas listas son la estimación del diseño. Cada PRD hijo la confirma en su dis
 | P7 | Hay datos externos sin verificar: el estado formal de Agent Plugins 1.0, la precedencia entre skills de plugin y locales en Copilot y Cursor, y si el agente cloud de Copilot carga plugins. | Si, F4 | Verificarlos al iniciar el PRD 4 |
 | P8 | ¿Cómo se llama el plugin? En Claude define `/<plugin>:<skill>` en el uso diario. | Si, F4 | Nombre del plugin |
 | P9 | ¿El apetito es multi-ciclo con cuatro PRDs? Si fuera menor, F4 se difiere como bet futura. | No (supuesto vigente) | Confirmar el apetito |
+| P10 | Algunos archivos del proyecto traen contenido por defecto del kit: `.agents/project/quality-gate.md` se preserva una vez creado y `.agents/project/stack.md` se crea una sola vez. En 0.19.0 el kit cambió los dos (reglas de tests), pero esas mejoras no llegan a los proyectos ya instalados. ¿Cómo se separa el default del kit, que se actualiza, de lo propio del proyecto, que no se toca? Por ejemplo: un archivo del kit más un extend del proyecto, o marcadores dentro del archivo. | Si, F1 | Patrón para los archivos del proyecto que traen defaults del kit |
 
 ## 13. Guia de Uso de la Epica
 
 1. Esperar el gate `INV-SEQ-01`: #6, #4 y #5 integradas en `main`.
-2. Resolver P1, P3 y P5 y empezar solo el PRD 1.
+2. Resolver P1, P3, P5 y P10 y empezar solo el PRD 1.
 3. Cuando el PRD esté aprobado, correr `$implement-change` sobre ese archivo.
 4. Después de implementar y validar, correr `$document-development` para esa fase. Eso actualiza el ledger (Sección 14).
 5. Volver a esta épica, actualizar el estado de la fase y seguir. Los PRDs 2 y 3 pueden ir en sesiones paralelas porque no comparten archivos. El PRD 4 va después del 2.
@@ -412,7 +421,7 @@ Archivo complementario: [kit-project-overlay-ledger.md](kit-project-overlay-ledg
 **Prompt sugerido**:
 
 ```
-Use $create-prd to create the PRD for "Contrato kit/overlay" using `docs/epics/kit-project-overlay/kit-project-overlay.md` as parent context (read the companion ledger at `docs/epics/kit-project-overlay/kit-project-overlay-ledger.md`, the evidence pack `kit-project-overlay-evidence.md`, and the locked sketch `docs/design/kit-project-overlay-sketch.md`). First resolve open questions P1, P3 and P5 with the user. Focus only on the kit manifest with path classes, the `.agents/project/**` layout, add/extend/shadow levels, `routing.md`, path-reference rules (INV-PATH-01), adapter marker blocks, and the router reading the kit and project catalogs with exists-or-skip. Keep the updater/migration (PRD 2), runbooks (PRD 3) and plugin mode (PRD 4) out of scope. Re-verify every cited line against current `main`, since #6, #4 and #5 will have landed.
+Use $create-prd to create the PRD for "Contrato kit/overlay" using `docs/epics/kit-project-overlay/kit-project-overlay.md` as parent context (read the companion ledger at `docs/epics/kit-project-overlay/kit-project-overlay-ledger.md`, the evidence pack `kit-project-overlay-evidence.md`, and the locked sketch `docs/design/kit-project-overlay-sketch.md`). First resolve open questions P1, P3, P5 and P10 with the user. Focus only on the kit manifest with path classes, the `.agents/project/**` layout, add/extend/shadow levels, `routing.md`, path-reference rules (INV-PATH-01), adapter marker blocks, and the router reading the kit and project catalogs with exists-or-skip. Keep the updater/migration (PRD 2), runbooks (PRD 3) and plugin mode (PRD 4) out of scope. Re-verify every cited line against current `main`, since #6, #4 and #5 will have landed.
 
 After that PRD is approved, use $implement-change on the PRD file. After implementation and validation, use $document-development to document the delivered phase and update the ledger.
 ```

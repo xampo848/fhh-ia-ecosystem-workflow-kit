@@ -24,7 +24,7 @@ La épica no se marca `Completado` mientras quede alguna invariante en `Pendient
 | INV-RUN-02 | Pendiente | | |
 | INV-NEUT-01 | Pendiente | | |
 | INV-MIG-01 | Pendiente | | |
-| INV-SEQ-01 | Pendiente | | Gate: #6, #4 y #5 integradas en `main` |
+| INV-SEQ-01 | Pendiente | | Gate: #6, #4 y #5 integradas en `main`. Al 2026-11-21: #6 en 0.19.0, #5 en 0.19.1, #4 en el PR #78. |
 | INV-CUT-01 | Pendiente | | |
 
 ## PRDs

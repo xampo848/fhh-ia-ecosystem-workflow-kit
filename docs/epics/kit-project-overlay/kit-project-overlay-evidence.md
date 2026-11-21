@@ -4,7 +4,12 @@
 **Épica**: [kit-project-overlay.md](kit-project-overlay.md)
 **Sketch**: [../../design/kit-project-overlay-sketch.md](../../design/kit-project-overlay-sketch.md)
 
-Los PRDs hijos reutilizan este pack. Las citas `archivo:línea` corresponden al commit `f5ddeb0` (0.18.1). Si el archivo cambió, hay que volver a verificarlas.
+Los PRDs hijos reutilizan este pack. Las citas `archivo:línea` corresponden al commit `f5ddeb0` (0.18.1). Las de `src/planner.mjs`, `src/apply.mjs`, `src/rollback.mjs` y `src/workflow-contract/*` siguen valiendo en `737bd36` (0.19.1), porque 0.19.0 y 0.19.1 no tocaron esos archivos. Si un archivo cambió, hay que volver a verificarlas.
+
+Lo que cambió después de 0.18.1 y afecta a esta épica:
+- **0.19.0 (reglas de tests)** editó `.agents/project/quality-gate.md` y `templates/stack-packs/rails-react/stack.md`. Los dos son archivos del proyecto que se preservan o se crean una sola vez, así que los proyectos ya instalados no reciben esos cambios. Es un caso real del problema, y se registra como P10 en la épica.
+- **0.19.1 (textos del TUI)** movió los textos del menú a `src/tui.mjs` y `src/tui/view.mjs`.
+- **PR #78 (0.19.2, lock visual)** toca solo `create-prd`, slicing, QA, el implementador frontend y `solution-sketch/references/ui-sketch.md`. No se cruza con ninguna fase.
 
 ## Archivos que no existen
 
