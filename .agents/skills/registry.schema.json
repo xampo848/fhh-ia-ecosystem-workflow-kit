@@ -40,7 +40,17 @@
       ],
       "properties": {
         "name": { "type": "string" },
-        "class": { "type": "string" },
+        "class": {
+          "type": "string",
+          "enum": [
+            "Workflow",
+            "Delegate-only implementation",
+            "Quality/validation",
+            "Cross-cutting overlay",
+            "Mode/helper",
+            "Standards/pattern"
+          ]
+        },
         "path": { "type": "string" },
         "trigger": { "type": "string" },
         "loading_posture": { "type": "string" },

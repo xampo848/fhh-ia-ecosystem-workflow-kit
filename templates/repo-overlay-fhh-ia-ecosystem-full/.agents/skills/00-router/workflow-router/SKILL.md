@@ -134,7 +134,7 @@ is insufficient; for `premium`, the concrete risk. Never invent token counts.
 
 | Request class | Signals | Primary action | Confirmation? |
 | --- | --- | --- | --- |
-| Irreversible operational action | push, deploy, delete, publish | name the concrete risk, wait for explicit confirmation, then act directly; no workflow skill | Yes, always |
+| Irreversible operational action | push, deploy, delete, publish, or a project runbook trigger | name the concrete risk, wait for explicit confirmation, then act directly; no workflow skill. A matching project runbook sets the steps (`reference/project-overlay.md`) | Yes, always |
 | Project formation | end-to-end shaping: discovery, roadmap, GTM, dossier | propose `project-formation` plus alternatives | Yes |
 | Product ambiguity | problem, need, strategy, priority, unclear direction | propose `create-epic` or `create-prd` | Yes |
 | Broad initiative | multi-phase work, research, appetite, several PRDs | `create-epic` | Yes unless the user asked for an epic |

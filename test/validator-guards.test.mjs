@@ -92,6 +92,12 @@ test('stack neutrality accepts a stack only after the example marker', async () 
 
   assert.equal(skillFailures.length, 1, result.failures.join('\n'));
   assert.ok(skillFailures[0].includes('"RSpec"'));
+
+  // Authoring templates are copied into projects, so they are core too.
+  const template = path.join(root, '.agents/skills/06-patterns/authoring/runbook-template.md');
+  await fs.appendFile(template, '\nRun the release with Sidekiq.\n', 'utf8');
+  const { failures } = await validateStackNeutrality({ root });
+  assert.ok(failures.some((failure) => failure.startsWith('.agents/skills/06-patterns/authoring/runbook-template.md') && failure.includes('"Sidekiq"')), failures.join('\n'));
 });
 
 test('legal check validates every provenance component, not only the pinned ones', async () => {

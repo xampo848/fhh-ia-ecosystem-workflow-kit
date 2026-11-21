@@ -9,7 +9,7 @@ Automation artifacts remain in `.agents/skills/registry.json` and `.agents/skill
 
 | Skill name | Class | Trigger | Physical path | Loading posture | Cost hint |
 | --- | --- | --- | --- | --- | --- |
-| `add-project-pattern` | Standards/pattern | User asks to create/register project-specific pattern skills in repo overlay | `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md` | Explicit-only | lean |
+| `add-project-pattern` | Standards/pattern | User asks to create/register a project-specific pattern or runbook skill in the project overlay | `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md` | Explicit-only | lean |
 | `init-legacy-attachments` | Standards/pattern | User asks to initialize or attach pre-existing local skills/patterns that existed before workflow installation | `.agents/skills/06-patterns/authoring/init-legacy-attachments/SKILL.md` | Explicit-only | balanced |
 
 ## Matcher usage

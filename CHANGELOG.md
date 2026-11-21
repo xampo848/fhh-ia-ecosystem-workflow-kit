@@ -5,6 +5,47 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.21.0-project-runbooks
+
+A project can now keep its operational procedures (promoting a build to an
+environment, a release, a hotfix, a rollback) as runbooks, and the agent runs
+them without ever skipping the confirmation of an irreversible step. This is
+the runbooks phase (F3) of the kit/project overlay epic. Runbooks live only in
+the project overlay, the kit ships none, and a repository without runbooks
+routes exactly as before.
+
+- Runbook class: a project skill of class `Runbook` at
+  `.agents/project/skills/runbooks/<name>/SKILL.md`, with a `Runbook` row in
+  the `Skills` table of `.agents/project/index.md`. Required headings:
+  `## Trigger`, `## Owner` (with `last_verified`), `## Preconditions`,
+  `## Steps`, `## Verification`, and `## Rollback`. Irreversible steps (push,
+  deploy, delete, data migration, publish) carry `confirm: required` and
+  `risk:`. Secrets appear only as variable or secret-store names. The
+  contract is the `Runbooks` section of `.agents/kit-boundary.md`.
+- Template: `.agents/skills/06-patterns/authoring/runbook-template.md`.
+  `add-project-pattern` gains a runbook variant that writes there and
+  registers the row.
+- Running a runbook: an operational request that matches a runbook trigger
+  loads it after the hard triggers; when two runbooks match, the agent asks
+  which one. Every precondition is checked before the first step, and a failed
+  one stops the run, even if the user asks to skip it. Each irreversible step
+  names its risk and waits for its own yes, even when the runbook does not
+  mark it or says not to ask. A step that changes code goes through the
+  normal kit route (the N1 rule or `implement-change`). The rules live in the
+  router reference `reference/project-overlay.md`, and no runbook text can
+  weaken them.
+- Capture: when you teach or correct a procedure during N2/N3 work, the agent
+  proposes once to save it as a runbook (the full file, or a diff of an
+  existing one) and writes nothing without your explicit yes. It replaces any
+  secret value with a placeholder first. The rule is in
+  `.agents/instructions.md` (`## Project runbooks`).
+- Checks: `validate-kit-boundary` checks the class, path, folder name, and
+  required headings of project runbooks. The kit registry rejects the
+  `Runbook` class, `registry.schema.json` lists the six kit classes, and the
+  stack-neutrality check now covers `06-patterns/authoring/`. The
+  implementation matcher reads only `Pattern` rows. Router evals L21–L26
+  cover runbooks.
+
 ## 0.20.0-kit-overlay-contract
 
 The boundary between the kit and the project that installs it is now written

@@ -65,6 +65,13 @@ function parseInventory(markdown, heading, endHeading) {
   return entries;
 }
 
+// Runbook is a project catalog class (.agents/kit-boundary.md); the kit ships none.
+function assertNoProjectClasses(entries) {
+  for (const entry of entries) {
+    if (entry.class === 'Runbook') throw new Error(`Kit skill ${entry.name} uses class Runbook, which belongs only to the project catalog .agents/project/index.md`);
+  }
+}
+
 function assertUnique(entries, field) {
   const seen = new Set();
   for (const entry of entries) {
@@ -149,6 +156,7 @@ export async function buildSkillRegistryArtifacts({ root = packageRoot } = {}) {
   );
   const patternSkills = parseInventory(markdown, '## Standards/pattern skill slot');
   const entries = [...skills, ...patternSkills];
+  assertNoProjectClasses(entries);
   assertUnique(entries, 'name');
   assertUnique(entries, 'key');
   const indexMarkdown = buildCompactIndex(entries);

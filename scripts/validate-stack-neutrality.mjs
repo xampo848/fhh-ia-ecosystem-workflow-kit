@@ -10,7 +10,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const coreRoots = ['.agents/skills/00-router', '.agents/skills/01-product', '.agents/skills/02-implement', '.agents/skills/03-quality', '.agents/delegation'];
+const coreRoots = ['.agents/skills/00-router', '.agents/skills/01-product', '.agents/skills/02-implement', '.agents/skills/03-quality', '.agents/skills/06-patterns/authoring', '.agents/delegation'];
 // Stack tools are loaded only when their stack is detected; they may name it.
 const stackToolPrefixes = ['.agents/skills/03-quality/react-doctor/', '.agents/skills/03-quality/playwright-testing/'];
 const stackTerms = /\b(Rails|Ruby|Minitest|RSpec|RuboCop|rubocop|Bullet|CanCanCan|Pundit|acts_as_tenant|enumerate_it|TanStack|Zustand|Formik|Yup|Vitest|Jest|MSW|Sidekiq|Django|Laravel)\b|\bTesting Library\b|\bmake test|\bbun run |\bbundle exec\b/;

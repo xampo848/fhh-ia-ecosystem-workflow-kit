@@ -14,9 +14,15 @@ Kit pattern skills shipped here:
 
 - `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md`
 - `.agents/skills/06-patterns/authoring/init-legacy-attachments/SKILL.md`
+- `.agents/skills/06-patterns/authoring/pattern-skill-template.md` and
+  `.agents/skills/06-patterns/authoring/runbook-template.md` (templates)
+
+Runbooks are project skills of class `Runbook` under
+`.agents/project/skills/runbooks/<name>/SKILL.md`: project procedures such as a
+release or a rollback (contract: `.agents/kit-boundary.md`, section "Runbooks").
 
 The kit ships only neutral authoring helpers and no domain-specific default
-patterns. Ownership and extension rules: `.agents/kit-boundary.md`.
+patterns or runbooks. Ownership and extension rules: `.agents/kit-boundary.md`.
 
 ## Purpose
 

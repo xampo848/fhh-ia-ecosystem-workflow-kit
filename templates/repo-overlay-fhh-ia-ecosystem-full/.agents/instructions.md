@@ -373,6 +373,32 @@ source repository, where these boundaries apply:
 
 After extension edits, run relevant repository validation commands and summarize outcomes.
 
+## Project runbooks
+
+A runbook is a project procedure (environment promotion, release, hotfix,
+rollback) kept as a project skill of class `Runbook` under
+`.agents/project/skills/runbooks/<name>/SKILL.md` (`.agents/kit-boundary.md`).
+The router reaches it and applies the kit's execution rules in
+`.agents/skills/00-router/workflow-router/reference/project-overlay.md`.
+
+Capture rule (applies to N2/N3 work, which loads this file; at N0/N1 the user
+can still ask for it):
+
+- When a task in which the user taught or corrected an operational procedure
+  ends, or when the user asks, propose saving it once: for a new runbook, the
+  full file built from `.agents/skills/06-patterns/authoring/runbook-template.md`
+  plus its `Skills` row; for an existing one, the diff.
+- Never write a runbook, or a change to one, without an explicit yes to that
+  proposal. The yes covers exactly the content shown. After a no, do not
+  propose it again in the session.
+- Before showing the proposal, replace every secret value (token, key,
+  password, URL with credentials) with a placeholder and say so: runbooks are
+  `public-in-repo` (`.agents/memory/README.md`).
+- Mark every irreversible step (push, deploy, delete, data migration,
+  publish) `confirm: required` with its `risk:`. A runbook never removes that
+  confirmation.
+- Write it with `add-project-pattern` (runbook variant).
+
 
 ## Token-saving posture
 

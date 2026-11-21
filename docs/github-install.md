@@ -39,7 +39,7 @@ release, append its tag (`v<version>`); tags are listed on the repository's
 [Releases page](https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/releases):
 
 ```bash
-bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.20.0-kit-overlay-contract
+bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.21.0-project-runbooks
 ```
 
 See [Versioning](versioning.md) for the list of tags and how they are named.

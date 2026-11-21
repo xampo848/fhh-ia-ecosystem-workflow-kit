@@ -7,10 +7,10 @@
   "compact_pattern_index": ".agents/skills/06-patterns/index.md",
   "structured_registry": ".agents/skills/registry.json",
   "source_hashes": {
-    ".agents/skills/index.md": "29936e5e0df5a3b6268da8c6a9481dc1c1c929dcb51ed29a3beefd76116000db",
-    ".agents/skills/06-patterns/index.md": "93951753002cd3cc900caaad297faf072c168a5b1c88145ae391719c4f683ac9",
-    ".agents/skills/registry.md": "ec0f6251d84e13f28d7b32c1733354eedafa2b71a7a4405cf1633a6da49ed045",
-    ".agents/skills/registry.json": "883f500df3c67833e363fdde95db88b19fe0075f242958cba5e53d3d977ff2dd"
+    ".agents/skills/index.md": "4c2e5ab06f03588da9f6c56bb23df9b8ecedc653389b45e5bdea5e287c0f793d",
+    ".agents/skills/06-patterns/index.md": "198939585585b6cc7432d88a42060be2b9e912cced431bd6f85e511ecae61c76",
+    ".agents/skills/registry.md": "3d330b1909d4a6b355e4efb147b291e71162c662c7a74a3f3802a5dd0e621b20",
+    ".agents/skills/registry.json": "531fce321b7d51caf843f6e7c9b9810478c566b794b53cbbaabfad7c20b56fe9"
   },
   "entry_count": 43,
   "entries": [
@@ -237,7 +237,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/implementation-skill-matcher/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "4f6663bb0ca292eb1ed3b9bf4cd8b15a961f0962f91727c82f64c5eb45b94ab8"
+      "skill_sha256": "12fa7339683ad986f9882a430400da5fd329e716a5c63b2014728bdd42d329d3"
     },
     {
       "key": "implementation-slicing",
@@ -255,7 +255,7 @@
       "class": "Standards/pattern",
       "path": ".agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "3b4ecf7f939c018993535a9cb98818499cda6c98e54cc14892b87926c2901b82"
+      "skill_sha256": "732a413d10981f6bae60336a477ac97fabeb453fcb49146b77525bbff0a16120"
     },
     {
       "key": "pattern-authoring-init-legacy-attachments",
@@ -399,7 +399,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "3ab8874b563f2b3758cf28b9a056849f76f09fcd25188db7ca368888628d00d2"
+      "skill_sha256": "2daa802a7863bc7d9a762d011a883e9facfb7c170f37737fda093dbe8761fc9a"
     }
   ]
 }

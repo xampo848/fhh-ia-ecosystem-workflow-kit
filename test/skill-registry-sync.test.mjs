@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 import {
   buildSkillRegistryArtifacts,
@@ -31,4 +34,13 @@ test('skill registry generator emits deterministic Node-owned artifacts', async 
 test('checked-in registry artifacts match canonical Markdown', async () => {
   const result = await checkSkillRegistry();
   assert.equal(result.ok, true, result.failures.join('\n'));
+});
+
+test('a kit registry row with the project-only class Runbook fails the check and names the row', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'skill-registry-'));
+  const registry = await fs.readFile(path.join(root, '.agents/skills/registry.md'), 'utf8');
+  await fs.mkdir(path.join(dir, '.agents/skills'), { recursive: true });
+  await fs.writeFile(path.join(dir, '.agents/skills/registry.md'), registry.replace('| `workflow-router` | Workflow |', '| `workflow-router` | Runbook |'));
+  await assert.rejects(checkSkillRegistry({ root: dir }), /Kit skill workflow-router uses class Runbook/);
 });

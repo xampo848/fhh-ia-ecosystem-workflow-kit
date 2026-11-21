@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { validateKitBoundary } from '../scripts/validate-kit-boundary.mjs';
+import { runbookSections, validateKitBoundary } from '../scripts/validate-kit-boundary.mjs';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const copied = ['.agents', 'templates', 'package.json', 'AGENTS.md', 'CLAUDE.md', 'ANTIGRAVITY.md', '.github'];
@@ -25,6 +25,9 @@ async function edit(dir, relativePath, change) {
   await fs.writeFile(file, change(await fs.readFile(file, 'utf8')));
 }
 
+const skillsTable = (rows) => ['## Skills', '', '| Skill name | Class | Trigger | Physical path | Cost hint |', '| --- | --- | --- | --- | --- |', ...rows, ''];
+const patternRow = '| `api-pagination` | Pattern | Paginated list endpoints | `.agents/project/skills/api-pagination/SKILL.md` | lean |';
+
 async function failuresFor(dir) {
   const result = await validateKitBoundary({ root: dir });
   return result.failures.join('\n');
@@ -39,6 +42,7 @@ test('the kit source holds its boundary and an old-layout overlay is an empty ov
     fs.readFile(path.join(root, '.agents/workflow-kit/manifest.json'), 'utf8').then(JSON.parse)
   ]);
   for (const entry of manifest.project_layout) assert.ok(contract.includes(entry.replace(/\/$/, '')), `the contract names ${entry}`);
+  for (const heading of runbookSections) assert.ok(contract.includes(`\`${heading}\``), `the contract names the runbook heading ${heading}`);
 });
 
 test('every installable file needs a manifest class and the template never ships the project overlay', async () => {
@@ -97,8 +101,7 @@ test('a project catalog registers add, extend, and shadow only through the overl
   await write(dir, '.agents/project/shadows/validation-runner/SKILL.md', '---\nname: validation-runner\n---\n');
   await write(dir, '.agents/project/shadows/validation-runner/shadow.json', JSON.stringify({ skill: 'validation-runner', kit_path: kitPath, base_sha256: 'a'.repeat(64), kit_version: '0.20.0' }));
   const catalog = ({ skills = [], extensions = [], shadows = [] }) => [
-    '## Skills', '', '| Skill name | Class | Trigger | Physical path | Cost hint |', '| --- | --- | --- | --- | --- |',
-    '| `api-pagination` | Pattern | Paginated list endpoints | `.agents/project/skills/api-pagination/SKILL.md` | lean |', ...skills, '',
+    ...skillsTable([patternRow, ...skills]),
     '## Extensions', '', '| Kit skill | Extension file |', '| --- | --- |', '| `quality-gate` | `.agents/project/quality-gate.md` |', ...extensions, '',
     '## Shadows', '', '| Kit skill | Shadow directory |', '| --- | --- |', '| `validation-runner` | `.agents/project/shadows/validation-runner/` |', ...shadows, ''
   ].join('\n');
@@ -121,4 +124,34 @@ test('a project catalog registers add, extend, and shadow only through the overl
   await write(dir, '.agents/project/shadows/validation-runner/shadow.json', JSON.stringify({ skill: 'validation-runner', kit_path: '.agents/skills/gone/SKILL.md', base_sha256: 'a'.repeat(64) }));
   await write(dir, '.agents/project/index.md', catalog({}));
   assert.match(await failuresFor(dir), /kit_path \.agents\/skills\/gone\/SKILL\.md does not exist in the kit/);
+});
+
+test('a project catalog lists only Pattern and Runbook skills, and a runbook keeps its path, name, and sections', async () => {
+  const dir = await fixture();
+  const runbookFile = '.agents/project/skills/runbooks/promote-build/SKILL.md';
+  // The valid runbook is the kit template's copied body, so the template itself meets the contract.
+  const template = await fs.readFile(path.join(root, '.agents/skills/06-patterns/authoring/runbook-template.md'), 'utf8');
+  const body = /```markdown\n([\s\S]*?)```/.exec(template)[1].replaceAll('<runbook-name>', 'promote-build');
+  const runbookRow = (path = runbookFile, name = 'promote-build') => `| \`${name}\` | Runbook | promote the build | \`${path}\` | lean |`;
+  await write(dir, '.agents/project/skills/api-pagination/SKILL.md', '---\nname: api-pagination\n---\n');
+  await write(dir, runbookFile, body);
+  await write(dir, '.agents/project/index.md', skillsTable([patternRow, runbookRow()]).join('\n'));
+  assert.equal(await failuresFor(dir), '', 'one Pattern and one Runbook pass');
+
+  for (const { rule, rows = [patternRow, runbookRow()], file = body, expected, absent } of [
+    { rule: 'class is Pattern or Runbook', rows: [patternRow.replace('Pattern', 'Guide'), runbookRow()], expected: /project skill api-pagination has class Guide; use Pattern or Runbook/ },
+    { rule: 'runbook outside runbooks/', rows: [patternRow, runbookRow('.agents/project/skills/promote-build/SKILL.md')], expected: /runbook promote-build must live at \.agents\/project\/skills\/runbooks\/promote-build\/SKILL\.md/ },
+    { rule: 'runbook folder equals its name', rows: [patternRow, runbookRow(runbookFile, 'release-build')], expected: /runbook release-build must live at \.agents\/project\/skills\/runbooks\/release-build\/SKILL\.md/ },
+    { rule: 'pattern never under runbooks/', rows: [patternRow.replace('`.agents/project/skills/api-pagination/SKILL.md`', `\`${runbookFile}\``)], expected: /pattern api-pagination must not live under \.agents\/project\/skills\/runbooks\// },
+    { rule: 'required section', file: body.replace('\n## Rollback\n', '\n'), expected: /promote-build\/SKILL\.md: runbook has no ## Rollback section/ },
+    { rule: 'frontmatter name equals folder', file: body.replace('name: promote-build', 'name: release-build'), expected: /promote-build\/SKILL\.md: runbook frontmatter name release-build differs from its folder promote-build/ },
+    { rule: 'missing runbook file is reported, not parsed', file: null, expected: /project skill promote-build points to missing/, absent: /runbook has no/ }
+  ]) {
+    await write(dir, '.agents/project/index.md', skillsTable(rows).join('\n'));
+    if (file === null) await fs.rm(path.join(dir, runbookFile));
+    else await write(dir, runbookFile, file);
+    const failures = await failuresFor(dir);
+    assert.match(failures, expected, rule);
+    if (absent) assert.doesNotMatch(failures, absent, rule);
+  }
 });
