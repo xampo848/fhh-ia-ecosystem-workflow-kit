@@ -9,7 +9,7 @@ Automation artifacts remain in `.agents/skills/registry.json` and `.agents/skill
 
 | Skill name | Trigger | Physical path | Cost hint |
 | --- | --- | --- | --- |
-| `add-project-pattern` | User asks to create/register project-specific pattern skills in repo overlay | `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md` | lean |
+| `add-project-pattern` | User asks to create/register a project-specific pattern or runbook skill in the project overlay | `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md` | lean |
 | `cavecrew` | User asks to delegate to cavecrew or use caveman-compressed subagents | `.agents/skills/05-caveman/cavecrew/SKILL.md` | lean |
 | `create-epic` | Large initiative needing research, appetite, phases, or multiple PRDs | `.agents/skills/01-product/create-epic/SKILL.md` | balanced |
 | `create-prd` | Feature/ticket/spec needs formal PRD before implementation | `.agents/skills/01-product/create-prd/SKILL.md` | balanced |

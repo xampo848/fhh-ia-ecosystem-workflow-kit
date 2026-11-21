@@ -50,7 +50,8 @@ Do not silently rewrite the slice plan.
 - Relevant PRD excerpts for the slice.
 - Focused discovery notes or explicit reason discovery was skipped.
 - `.agents/skills/06-patterns/index.md` as the first candidate catalog, then the
-  `Skills` table of `.agents/project/index.md` (project patterns) when it exists.
+  `Skills` table of `.agents/project/index.md` (its `Pattern` rows only; a
+  `Runbook` row is never matched) when it exists.
 - `.agents/skills/06-patterns/README.md` only when a candidate exists or
   eligibility/handoff rules are ambiguous.
 - `.agents/skills/registry.md` only after the compact index yields at least one
@@ -76,8 +77,8 @@ exact selected `SKILL.md` files.
    tests, validation, and stop conditions.
 2. Determine the technical surface touched by the slice: backend, frontend,
    contract, domain, validation, docs-only, or mixed.
-3. Scan `.agents/skills/06-patterns/index.md` and `.agents/project/index.md` for
-   candidate names, triggers, and paths. Open `.agents/skills/registry.md` and `.agents/skills/06-patterns/README.md`
+3. Scan `.agents/skills/06-patterns/index.md` and the `Pattern` rows of
+   `.agents/project/index.md` for candidate names, triggers, and paths. Open `.agents/skills/registry.md` and `.agents/skills/06-patterns/README.md`
    only when at least one candidate matches or eligibility is ambiguous.
 4. Select `required_pattern_skills` only when the slice clearly needs reusable
    procedural knowledge.
@@ -132,7 +133,7 @@ Required behavior:
 
 Do not launch the matcher as a delegate when there is nothing to match. Before
 delegating, the orchestrator runs a deterministic lookup in
-`.agents/skills/06-patterns/index.md` and `.agents/project/index.md` by the slice's surface and hazards:
+`.agents/skills/06-patterns/index.md` and the `Pattern` rows of `.agents/project/index.md` by the slice's surface and hazards:
 
 - **0 candidates:** record `matching: sin candidatos para <surface>` in the
   slice lock and continue; no delegate is launched.

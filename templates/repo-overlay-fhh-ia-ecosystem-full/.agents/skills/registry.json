@@ -420,7 +420,7 @@
       "name": "add-project-pattern",
       "class": "Standards/pattern",
       "path": ".agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md",
-      "trigger": "User asks to create/register project-specific pattern skills in repo overlay",
+      "trigger": "User asks to create/register a project-specific pattern or runbook skill in the project overlay",
       "loading_posture": "Explicit-only",
       "cost_hint": "lean",
       "key": "pattern-authoring-add-project-pattern",
