@@ -285,34 +285,37 @@ function renderBox(write, paint, title, rows) {
   write(`${paint.cyan(`+${'-'.repeat(width)}+`)}\n`);
 }
 
+const DASHBOARD_LABEL_WIDTH = 'Project workflow version'.length;
+
 function renderDashboard(write, paint, plan) {
   const totalOps = plan.operations.length;
   const runtimeLabel = plan.runtimes.join(', ');
   const { label: packageLabel } = installPackageDetails(plan.overlay);
   const packageLine = plan.mode === 'update' ? 'Update package' : 'Install package';
   const discoveredSkills = Array.isArray(plan.discoveredSkillEntries) ? plan.discoveredSkillEntries.length : 0;
+  const row = (label, value) => `${label.padEnd(DASHBOARD_LABEL_WIDTH)}: ${value}`;
   const rows = [
-    `Target         : ${plan.targetPath}`,
-    `Toolkit version: ${plan.toolkitVersion ?? 'unknown'}`,
-    `Managed target : ${plan.previousToolkitVersion ?? 'none recorded'}`,
-    `Runtimes       : ${runtimeLabel}`,
-    `${packageLine}: ${packageLabel}`,
-    `Stack pack     : ${plan.stackPack ?? 'none'}`,
-    `Local skills   : ${discoveredSkills} auto-discovered`
+    row('Target', plan.targetPath),
+    row('workflow-kit version', plan.toolkitVersion ?? 'unknown'),
+    row('Project workflow version', plan.previousToolkitVersion ?? 'none recorded'),
+    row('Runtimes', runtimeLabel),
+    row(packageLine, packageLabel),
+    row('Stack pack', plan.stackPack ?? 'none'),
+    row('Local skills', `${discoveredSkills} auto-discovered`)
   ];
 
   if (plan.mode !== 'export') {
-    rows.push('Legacy docs   : Manual migration map only');
+    rows.push(row('Legacy docs', 'Manual migration map only'));
   }
 
   rows.push(
-    `Total actions  : ${totalOps}`,
-    `Create         : ${plan.summary.create}`,
-    `No change      : ${plan.summary.unchanged}`,
-    `Merge safe     : ${plan.summary.merge_with_backup}`,
-    `Merge fast     : ${plan.summary.merge_no_backup}`,
-    `Overwrite safe : ${plan.summary.overwrite_with_backup}`,
-    `Overwrite fast : ${plan.summary.overwrite_no_backup}`
+    row('Total actions', totalOps),
+    row('Create', plan.summary.create),
+    row('No change', plan.summary.unchanged),
+    row('Merge safe', plan.summary.merge_with_backup),
+    row('Merge fast', plan.summary.merge_no_backup),
+    row('Overwrite safe', plan.summary.overwrite_with_backup),
+    row('Overwrite fast', plan.summary.overwrite_no_backup)
   );
 
   renderBox(write, paint, 'Mission control', rows);

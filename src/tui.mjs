@@ -77,23 +77,23 @@ const CAPABILITY_OPTIONS = [
 ];
 
 const CAPABILITY_SCOPE_OPTIONS = [
-  { value: 'user/global', label: 'User/global', description: 'Available across projects.' },
-  { value: 'repo/project', label: 'Repo/project', description: 'Configured in this repository only.' },
-  { value: 'hybrid', label: 'Hybrid', description: 'Installed globally and attached in this repository.' }
+  { value: 'user/global', label: 'All my projects (global)', description: 'Installed once for your user; available in every project.' },
+  { value: 'repo/project', label: 'This project only', description: 'Configured only in this repository.' },
+  { value: 'hybrid', label: 'Both (global + this project)', description: 'Installed for your user and connected in this repository.' }
 ];
 
 const CAPABILITY_INTENT_OPTIONS = [
-  { value: 'attach-only', label: 'Attach-only', description: 'Tool already available in runtime; only wire it to the flow.' },
-  { value: 'install+attach', label: 'Install + attach', description: 'Install then wire it to the neutral flow.' }
+  { value: 'attach-only', label: 'Already installed: just connect', description: 'The tool is already on this machine; only connect it to the workflow.' },
+  { value: 'install+attach', label: 'Install and connect', description: 'Install the tool, then connect it to the workflow.' }
 ];
 
 const TUI_MODE_OPTIONS = [
-  { value: 'install', label: 'Instalar workflow en este repo', description: 'Instala el workflow completo y luego ofrece capabilities opcionales.' },
-  { value: 'update', label: 'Actualizar workflow en este repo', description: 'Actualiza solo archivos gestionados, con backups y proteccion de cambios locales.' },
-  { value: 'export', label: 'Exportar workflow a una carpeta', description: 'Genera una copia del paquete del workflow en un directorio de salida.' },
-  { value: 'doctor', label: 'Auditar un repo con doctor', description: 'Valida archivos esperados, drift local y diagnosticos semanticos del workflow.' },
-  { value: 'upgrade-toolkit', label: 'Actualizar toolkit en esta maquina', description: 'Actualiza el binario global desde GitHub para luego re-ejecutar update en los repos.' },
-  { value: 'capabilities-only', label: 'Instalar solo capabilities opcionales', description: 'Revisa e instala capabilities sin tocar archivos del workflow.' }
+  { value: 'install', label: 'Instalar el workflow en un proyecto', description: 'Copia el workflow completo (skills, reglas y adaptadores) al repo que elijas. Al final ofrece herramientas opcionales.' },
+  { value: 'update', label: 'Actualizar el workflow de un proyecto', description: 'Pone en un repo la versión del workflow que trae tu workflow-kit actual. Protege tus cambios y crea backups. No actualiza workflow-kit.' },
+  { value: 'export', label: 'Exportar el workflow a una carpeta', description: 'Genera los archivos del workflow en una carpeta aparte, sin tocar ningún proyecto.' },
+  { value: 'doctor', label: 'Revisar el workflow de un proyecto (doctor)', description: 'Solo lectura: comprueba que el workflow del repo esté completo y al día.' },
+  { value: 'upgrade-toolkit', label: 'Actualizar workflow-kit (esta herramienta)', description: 'Instala en esta máquina la última versión de workflow-kit desde GitHub. No cambia ningún proyecto: después usa «Actualizar el workflow de un proyecto» en cada repo.' },
+  { value: 'capabilities-only', label: 'Instalar solo herramientas opcionales (MCP)', description: 'Instala o conecta Context7, Engram o Codebase Memory sin tocar los archivos del workflow.' }
 ];
 
 const FULL_OVERLAY = 'fhh-ia-ecosystem-full';
@@ -467,18 +467,18 @@ export async function runTui(options = {}) {
     renderStageHeader(write, paint, {
       step: 1,
       total: 6,
-      title: 'Indice de flujo',
-      subtitle: 'Elige el modo segun lo que quieras hacer en esta sesion.'
+      title: '¿Qué quieres hacer?',
+      subtitle: 'Proyecto: instalar, actualizar, exportar o revisar su workflow. Herramienta: actualizar workflow-kit en esta máquina.'
     });
 
     const mode = scriptedMode
       ? await prompter.chooseOption({
-        title: 'Selecciona una opcion',
+        title: 'Elige una opción',
         defaultIndex: 0,
         options: TUI_MODE_OPTIONS
       })
       : await prompter.chooseOption({
-        title: 'Selecciona una opcion',
+        title: 'Elige una opción',
         options: TUI_MODE_OPTIONS,
         defaultValue: 'install'
       });
@@ -491,7 +491,7 @@ export async function runTui(options = {}) {
         step: 2,
         total: 4,
         title: 'Target selection',
-        subtitle: 'Choose which repository should be audited against the expected toolkit surface.'
+        subtitle: 'Choose the project whose workflow should be checked. Nothing is written.'
       });
 
       targetPath = scriptedMode
@@ -543,8 +543,8 @@ export async function runTui(options = {}) {
       renderStageHeader(write, paint, {
         step: 2,
         total: 4,
-        title: 'Upgrade source',
-        subtitle: 'Choose which Git ref should refresh the globally installed toolkit.'
+        title: 'workflow-kit source',
+        subtitle: 'Choose the Git branch or tag to install workflow-kit from. No project is changed.'
       });
 
       const ref = scriptedMode
@@ -557,8 +557,8 @@ export async function runTui(options = {}) {
       renderStageHeader(write, paint, {
         step: 3,
         total: 4,
-        title: 'Upgrade preview',
-        subtitle: 'This updates the toolkit binary first. Repository updates happen in a second invocation.'
+        title: 'Update preview',
+        subtitle: 'This updates workflow-kit itself on this machine. Projects stay as they are until you update each one.'
       });
 
       write(`${formatUpgradePlan(upgradePlan)}\n\n`);
@@ -566,16 +566,16 @@ export async function runTui(options = {}) {
       renderStageHeader(write, paint, {
         step: 4,
         total: 4,
-        title: 'Run upgrade',
+        title: 'Update workflow-kit',
         subtitle: 'The current process will remain on the old code until you launch workflow-kit again.'
       });
 
       const shouldUpgrade = scriptedMode
-        ? await prompter.confirm('Run toolkit upgrade now? Type yes to continue [no]: ')
-        : await prompter.confirm('Run toolkit upgrade now?', false);
+        ? await prompter.confirm('Update workflow-kit on this machine now? Type yes to continue [no]: ')
+        : await prompter.confirm('Update workflow-kit on this machine now?', false);
 
       if (!shouldUpgrade) {
-        write(`${paint.copperInk('Aborted. Toolkit binary was not changed.')}\n`);
+        write(`${paint.copperInk('Aborted. workflow-kit was not changed.')}\n`);
         return { code: 0, applied: false, mode, upgradePlan };
       }
 
@@ -586,12 +586,12 @@ export async function runTui(options = {}) {
       });
 
       if (!result.ok) {
-        write(`${paint.red('Toolkit upgrade failed.')}\n`);
+        write(`${paint.red('workflow-kit update failed.')}\n`);
         return { code: 2, applied: false, mode, upgradePlan, upgradeResult: result };
       }
 
-      write(`${paint.copper('Toolkit upgrade completed.')} ${renderChip(paint, 'RESTART NEXT', 'copper')}\n`);
-      write(`${paint.dim('Next step: launch workflow-kit again and run update for each target repository.') }\n`);
+      write(`${paint.copper('workflow-kit updated.')} ${renderChip(paint, 'RESTART NEXT', 'copper')}\n`);
+      write(`${paint.dim('Next step: launch workflow-kit again and choose «Actualizar el workflow de un proyecto» in each project.') }\n`);
       return { code: 0, applied: false, mode, upgradePlan, upgradeResult: result };
     }
 
@@ -688,7 +688,7 @@ export async function runTui(options = {}) {
         total: 6,
         title: 'Target selection',
         subtitle: mode === 'update'
-          ? 'Choose which repository should be reconciled with the current toolkit surface.'
+          ? 'Choose the project whose workflow files should be updated to this workflow-kit version.'
           : mode === 'export'
             ? 'Choose where the workflow package should be exported.'
             : 'Choose where the workflow package will be installed.'
@@ -704,8 +704,8 @@ export async function runTui(options = {}) {
         subtitle: mode === 'update'
           ? 'Managed files will be updated selectively, with backups and protected skips.'
           : mode === 'export'
-            ? 'The toolkit will render the selected package into the output directory without using repo state.'
-          : 'The toolkit now installs the complete FHH IA Ecosystem package by default.'
+            ? 'workflow-kit will write the workflow files into the output folder; no project is touched.'
+          : 'workflow-kit installs the complete FHH IA Ecosystem workflow by default.'
       });
       const packageDetails = installPackageDetails(overlay);
       write(`${renderChip(paint, 'INSTALL PACKAGE', packageDetails.tone)} ${paint.dim(packageDetails.summary)}\n\n`);
@@ -735,7 +735,7 @@ export async function runTui(options = {}) {
         total: 6,
         title: 'Target selection',
         subtitle: mode === 'update'
-          ? 'Choose which repository should be reconciled with the current toolkit surface.'
+          ? 'Choose the project whose workflow files should be updated to this workflow-kit version.'
           : mode === 'export'
             ? 'Choose where the workflow package should be exported.'
             : 'Choose where the workflow package will be installed.'
@@ -750,8 +750,8 @@ export async function runTui(options = {}) {
         subtitle: mode === 'update'
           ? 'Managed files will be updated selectively, with backups and protected skips.'
           : mode === 'export'
-            ? 'The toolkit will render the selected package into the output directory without using repo state.'
-          : 'The toolkit now installs the complete FHH IA Ecosystem package by default.'
+            ? 'workflow-kit will write the workflow files into the output folder; no project is touched.'
+          : 'workflow-kit installs the complete FHH IA Ecosystem workflow by default.'
       });
       const packageDetails = installPackageDetails(overlay);
       write(`${renderChip(paint, 'INSTALL PACKAGE', packageDetails.tone)} ${paint.dim(packageDetails.summary)}\n\n`);
@@ -867,19 +867,19 @@ export async function runTui(options = {}) {
       write(`\n${paint.copperInk(`Detected ${plan.summary.skip_modified} managed file(s) with local edits.`)}\n`);
 
       const modifiedPolicy = await prompter.chooseOption({
-        title: 'How should update handle managed files with local edits?',
+        title: 'Some workflow files in this project have your own edits. What should the update do with them?',
         defaultValue: 'protect',
         defaultIndex: 0,
         options: [
           {
-            label: 'Protect local edits (recommended)',
+            label: 'Keep my edits (recommended)',
             value: 'protect',
-            description: 'Keep skip_modified behavior and do not overwrite those files.'
+            description: 'Files you edited are skipped and left as they are.'
           },
           {
-            label: 'Overwrite with backup',
+            label: 'Replace with the new version',
             value: 'overwrite',
-            description: 'Apply toolkit updates to those files and create backups first.'
+            description: 'Your edited files get the new workflow version; a backup copy is saved first.'
           }
         ]
       });
@@ -1050,7 +1050,7 @@ export async function runTui(options = {}) {
     }
 
     write(`${paint.dim(mode === 'update'
-      ? 'The target repository has been reconciled against the current managed toolkit surface.'
+      ? "The project's workflow files now match this workflow-kit version."
       : mode === 'export'
         ? 'The output directory now contains the complete FHH IA Ecosystem workflow package.'
         : 'The target repository now has the complete FHH IA Ecosystem workflow package installed.') }\n`);

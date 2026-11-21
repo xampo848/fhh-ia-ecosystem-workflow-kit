@@ -119,9 +119,10 @@ project, starting with `.agents/project-context.md`:
    - `.agents/project/backend.md` and `.agents/project/frontend.md` (or an explicit N/A decision for missing surfaces)
 5. Send one natural-language prompt in your agent runtime (for example, "Implementa una mejora pequeña con tests") and confirm routing starts from the installed workflow.
 
-## 5. Upgrade the toolkit binary before updating repos
+## 5. Update workflow-kit itself before updating projects
 
-Preview the global toolkit upgrade command:
+`upgrade` updates the `workflow-kit` tool on your machine; it never changes a
+project. Preview the command it will run:
 
 ```bash
 workflow-kit upgrade
@@ -141,7 +142,8 @@ pin a release, pass its tag (see [Versioning](versioning.md)):
 workflow-kit upgrade --ref v0.19.0-test-design --apply --yes
 ```
 
-After that, run `update` in each target repository you manage.
+After that, run `update` in each project you manage to bring its workflow to
+the new version.
 
 ## 6. Guided TUI
 
@@ -149,7 +151,22 @@ After that, run `update` in each target repository you manage.
 workflow-kit tui
 ```
 
-The TUI index offers install, update, toolkit-upgrade, and capabilities-only flows. It always shows a preview before asking whether to write. The default confirmation writes nothing.
+The first screen, `¿Qué quieres hacer?`, offers these options:
+
+| Option | What it acts on | CLI equivalent |
+| --- | --- | --- |
+| `Instalar el workflow en un proyecto` | the project you choose | `init` |
+| `Actualizar el workflow de un proyecto` | the project you choose | `update` |
+| `Exportar el workflow a una carpeta` | an output folder, no project | `export` |
+| `Revisar el workflow de un proyecto (doctor)` | the project you choose, read-only | `doctor` |
+| `Actualizar workflow-kit (esta herramienta)` | `workflow-kit` on this machine, no project | `upgrade` |
+| `Instalar solo herramientas opcionales (MCP)` | optional MCP tools, no workflow files | — |
+
+Updating the tool and updating a project are separate: after
+`Actualizar workflow-kit (esta herramienta)`, launch the TUI again and choose
+`Actualizar el workflow de un proyecto` in each project.
+
+Every flow that writes shows a preview before asking whether to write. The default confirmation writes nothing.
 It can also open an optional capability guide (Context7, Engram, codebase-memory-mcp) with source/scope/mode confirmation and official install commands.
 The install package is fixed to `Full FHH IA Ecosystem`.
 

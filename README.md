@@ -109,12 +109,12 @@ apply in both. Example prompts for each phase are in
 | Command | What it does |
 | --- | --- |
 | `init` | Plans or applies a first install of the workflow into `--target`. |
-| `update` | Refreshes only the files workflow-kit manages; protects your local edits. |
-| `upgrade` | Upgrades the globally installed `workflow-kit` itself (it checks that the ref exists and is reachable before replacing the installed version). |
+| `update` | Updates the workflow installed in a project (`--target`) to this workflow-kit version. Refreshes only the files workflow-kit manages; protects your local edits. |
+| `upgrade` | Updates `workflow-kit` itself (this tool) on your machine; it does not change any project (it checks that the ref exists and is reachable before replacing the installed version). |
 | `export` | Writes the templates to `--output` without treating it as an install. |
 | `doctor` | Checks installed files and workflow semantics; prints stable diagnostic codes. |
 | `rollback` | Undoes the last applied `init`/`update`: restores changed files from their backups, removes files that run created, and restores the previous install state. |
-| `tui` | Guided menu for install, update, upgrade, and optional capabilities. |
+| `tui` | Guided menu for every command above plus optional capabilities; see [Guided TUI](docs/quickstart.md#6-guided-tui). |
 
 `workflow-kit --help` prints the full usage. Main flags:
 
@@ -133,7 +133,9 @@ apply in both. Example prompts for each phase are in
 
 ## Updating
 
-Upgrade the tool first, then update each repository:
+Updating has two separate steps: first update `workflow-kit` itself on your
+machine (`upgrade`), then update the workflow installed in each project
+(`update`):
 
 ```bash
 workflow-kit upgrade --apply --yes

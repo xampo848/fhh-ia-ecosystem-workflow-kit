@@ -69,3 +69,14 @@ test('printHelp documents all commands', () => {
   assert.match(help, /--backup-mode required\|none/);
   assert.match(help, /--profile <runtime>=<calidad\|equilibrado\|costo>/);
 });
+
+test('printHelp says which commands act on a project and which one updates workflow-kit itself', () => {
+  const help = printHelp();
+
+  assert.match(help, /^Commands:$/m);
+  assert.match(help, /^  update +Update the workflow installed in a project/m);
+  assert.match(help, /^  upgrade +Update workflow-kit itself \(this tool\) on this machine; projects are not changed$/m);
+  for (const command of ['init', 'export', 'doctor', 'rollback', 'tui']) {
+    assert.match(help, new RegExp(`^  ${command} +\\S`, 'm'));
+  }
+});

@@ -184,7 +184,8 @@ test('tui update mode applies managed workflow updates without reinstall flow se
   assert.equal(result.applied, true);
   assert.equal(result.plan.previousToolkitVersion, null);
   assert.match(output, /Protected local edits \(skipped\):/);
-  assert.match(output, /Managed target/);
+  assert.match(output, /workflow-kit version +: /);
+  assert.match(output, /Project workflow version: none recorded/);
 });
 
 test('tui update shows the stack pack and the one-time migrations before applying', async () => {
@@ -205,7 +206,7 @@ test('tui update shows the stack pack and the one-time migrations before applyin
 
   assert.equal(result.mode, 'update');
   assert.equal(result.plan.stackPack, 'none');
-  assert.match(output, /Stack pack {5}: none/);
+  assert.match(output, /Stack pack +: none/);
   assert.match(output, /Migrations \(applied once\)/);
   assert.match(output, /No stack pack: the repository does not look like Rails \+ React/);
   await assert.rejects(fs.access(path.join(target, '.agents/project/stack.md')), { code: 'ENOENT' });
@@ -227,6 +228,8 @@ test('tui update lets users choose overwrite for managed local edits', async () 
   assert.equal(result.mode, 'update');
   assert.equal(result.applied, true);
   assert.match(output, /Detected 1 managed file\(s\) with local edits\./);
+  assert.match(output, /Keep my edits \(recommended\)/);
+  assert.match(output, /Replace with the new version/);
   assert.match(output, /Protected local edits \(skipped\): 0/);
 
   const docsContent = await fs.readFile(path.join(target, 'docs/workflow/README.md'), 'utf8');
@@ -256,6 +259,28 @@ test('tui upgrade-toolkit mode runs the global upgrade command and exits without
   assert.deepEqual(executed[0].plan.args, ['add', '-g', 'github:xampo848/fhh-ia-ecosystem-workflow-kit#main']);
   assert.equal(executed[0].plan.spec, 'github:xampo848/fhh-ia-ecosystem-workflow-kit#main');
   await assert.rejects(fs.access(path.join(target, '.agents/instructions.md')), { code: 'ENOENT' });
+});
+
+test('tui main menu tells updating workflow-kit apart from updating a project workflow', async () => {
+  let output = '';
+
+  const result = await runTui({
+    ask: scriptedAsk(['5', '', 'no']),
+    color: false,
+    write: (message) => { output += message; },
+    commandExists: async (command) => command === 'bun',
+    runUpgradeExecutor: async () => { throw new Error('upgrade must not run when the user declines'); }
+  });
+
+  assert.equal(result.mode, 'upgrade-toolkit');
+  assert.match(output, /¿Qué quieres hacer\?/);
+  assert.match(output, /Actualizar el workflow de un proyecto/);
+  assert.match(output, /Actualizar workflow-kit \(esta herramienta\)/);
+  assert.match(output, /No cambia ningún proyecto/);
+  assert.match(output, /No actualiza workflow-kit\./);
+  assert.match(output, /This updates workflow-kit itself on this machine\. Projects stay as they are/);
+  assert.match(output, /Aborted\. workflow-kit was not changed\./);
+  assert.doesNotMatch(output, /toolkit (binary|surface)/i);
 });
 
 test('tui export mode writes workflow files into the selected output directory', async () => {
