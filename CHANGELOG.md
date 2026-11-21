@@ -5,6 +5,31 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.19.1-tui-option-clarity
+
+The TUI and the CLI help now tell updating `workflow-kit` itself apart from
+updating the workflow installed in a project.
+
+- The six main-menu options say what they act on: `Instalar el workflow en un
+  proyecto`, `Actualizar el workflow de un proyecto`, `Exportar el workflow a
+  una carpeta`, `Revisar el workflow de un proyecto (doctor)`, `Actualizar
+  workflow-kit (esta herramienta)`, and `Instalar solo herramientas opcionales
+  (MCP)`. The first screen asks `¿Qué quieres hacer?`.
+- The flows use "workflow-kit" for the tool and "project workflow" for the
+  installed files instead of "toolkit" for both. The local-edits choice reads
+  `Keep my edits` / `Replace with the new version`; capability scope and mode
+  read `This project only`, `Install and connect`, and similar.
+- `Mission control` shows `workflow-kit version` and `Project workflow
+  version`. Doctor's version-mismatch hint names the `update` command to run.
+- `--help` gains a `Commands:` block with one line per command; `upgrade`
+  says it updates workflow-kit itself and changes no project.
+- `docs/quickstart.md` lists the TUI menu with its CLI equivalent, and the
+  README explains the two update steps.
+
+Commands, flags, mode ids, menu order, option values, CLI plan titles, and the
+`Refusing...` guards are unchanged, so scripts keep working. Nothing changes
+in installed projects.
+
 ## 0.19.0-test-design
 
 Agents stop writing redundant and expensive tests. The rules have one source,

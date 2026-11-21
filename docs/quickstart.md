@@ -139,7 +139,7 @@ installed version, so a mistyped ref or a network failure changes nothing. To
 pin a release, pass its tag (see [Versioning](versioning.md)):
 
 ```bash
-workflow-kit upgrade --ref v0.19.0-test-design --apply --yes
+workflow-kit upgrade --ref v0.19.1-tui-option-clarity --apply --yes
 ```
 
 After that, run `update` in each project you manage to bring its workflow to
