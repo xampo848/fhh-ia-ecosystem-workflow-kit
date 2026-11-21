@@ -1,3 +1,4 @@
+<!-- workflow-kit:managed:start -->
 # ANTIGRAVITY.md
 
 This is a thin Antigravity runtime adapter; keep it thin. `.agents/instructions.md`
@@ -51,3 +52,6 @@ Runtime notes:
 - Read `.agents/model-routing/README.md` before selecting a model or
   delegating work. Only pin or report a delegated model when the active
   Antigravity runtime exposes and confirms that capability.
+
+<!-- The kit regenerates only this block. Add project-specific notes below the end marker. -->
+<!-- workflow-kit:managed:end -->

@@ -26,7 +26,7 @@ Attach pre-existing repo skills/patterns safely by:
 
 - Repository root path.
 - User intent and preferred scope (repo/project is default).
-- Current `.agents/skills/registry.md`.
+- Current `.agents/skills/registry.md` (kit skills) and `.agents/project/index.md` (project skills) when it exists.
 - Existing local skill files (`SKILL.md`) found in the repo.
 
 ## Deterministic-first policy
@@ -72,7 +72,8 @@ Normalize each candidate as:
 
 ### 2) Compare against registry
 
-Use `.agents/skills/registry.md` as canonical source. Bucket each candidate:
+Use `.agents/skills/registry.md` (kit) and `.agents/project/index.md` (project) as
+canonical sources. Bucket each candidate:
 
 - `attached`: already registered with matching path.
 - `path-drift`: same logical name exists but path differs.
@@ -105,17 +106,12 @@ For candidate-by-candidate mode, ask exactly these fields:
 
 For each candidate approved as `attach`:
 
-1. Ensure canonical placement under `.agents/skills/**`.
-2. Add or update row in `.agents/skills/registry.md`.
-3. If candidate is a pattern skill, register under the pattern slot table.
+1. Place the skill in the project overlay:
+   `.agents/project/skills/<name>/SKILL.md` (`.agents/kit-boundary.md`).
+2. Add or update its row in the `Skills` table of `.agents/project/index.md`.
+3. Never write it under `.agents/skills/**` and never edit the kit registries
+   or indexes: those are kit files and a kit update replaces them.
 4. Keep runtime wrappers as adapters only; do not make wrappers canonical.
-5. Regenerate artifacts with:
-
-```bash
-node scripts/sync-skill-registry.mjs --write
-```
-
-6. Mirror canonical registry artifacts to overlay through the sync script output.
 
 ### 5) AI-assisted fallback (only when needed)
 
@@ -137,16 +133,15 @@ proposals.
 Run:
 
 ```bash
-node scripts/sync-skill-registry.mjs --check
-node --test test/skill-registry-sync.test.mjs test/planner.test.mjs test/workflow-contract.test.mjs
+workflow-kit doctor --target .
 ```
 
 Then run per-candidate readiness checks:
 
-1. Registry presence and exact path mapping.
-2. Frontmatter `name` parity with registry `name`.
+1. Project catalog presence (`.agents/project/index.md`) and exact path mapping.
+2. Frontmatter `name` parity with the catalog `name` and the folder name.
 3. Class/loading posture sanity:
-	- pattern skill under `.agents/skills/06-patterns/**`;
+	- project skill under `.agents/project/skills/**`;
 	- delegated entry declares owning orchestrator in runtime notes;
 	- startup-minimal only for direct-routing set.
 4. Behavioral smoke by candidate type:

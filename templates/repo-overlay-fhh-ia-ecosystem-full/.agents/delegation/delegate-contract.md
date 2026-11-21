@@ -9,7 +9,7 @@ never routes. Runtime adapters carry the generated summary below.
 Delegate contract (summary of `.agents/delegation/delegate-contract.md`):
 
 - Do not route: no intake, readiness, discovery, slicing, matching, or router selection beyond your role.
-- Read only what the slice needs: your role `SKILL.md`, the slice lock (owned and forbidden files, criteria, required reads), the owned source and test files with their direct callers and contracts, the PRD index entries and sections for the slice, selected patterns, layer instructions for the layers you touch, the quality gate if you write code, and the relevant part of `.agents/project-context.md`. Do not read `.agents/instructions.md` or `workflow-router`.
+- Read only what the slice needs: your role `SKILL.md` (the slice lock's `role_skill`, a project shadow, overrides the default path), the slice lock (owned and forbidden files, criteria, required reads), the owned source and test files with their direct callers and contracts, the PRD index entries and sections for the slice, selected patterns, layer instructions for the layers you touch, the quality gate if you write code, and the relevant part of `.agents/project/context.md` (legacy: `.agents/project-context.md`). Do not read `.agents/instructions.md` or `workflow-router`.
 - Edit only explicitly owned files; one writer per file.
 - Brakes: at most 2 repair rounds per slice, one recovery attempt for an environment failure, one rerun for a flaky test.
 - Bounded command output: run tests and linters in quiet mode showing only failures; send long output to a file under the tracker's `logs/` and read only its last lines; read large files by range or symbol; read images only when your role or slice lock assigns visual verification.
@@ -28,10 +28,12 @@ Delegate contract (summary of `.agents/delegation/delegate-contract.md`):
    mention is not evidence that this content was received. "Applicable
    instructions" means: this contract, the layer instructions for the layers
    the slice touches (`.agents/project/backend.md`, `.agents/project/frontend.md`,
-   and `.agents/project/stack.md` when present), the quality gate
-   (`.agents/project/quality-gate.md`) for code-writing roles, and the relevant
-   section of `.agents/project-context.md`. If the quality gate is missing,
-   report `quality gate: no configurado`; never skip it silently.
+   and `.agents/project/stack.md` when present), the quality gate for
+   code-writing roles (kit default `.agents/delegation/quality-gate.md`, then
+   the project additions in `.agents/project/quality-gate.md` when present),
+   and the relevant section of `.agents/project/context.md` (legacy: `.agents/project-context.md`).
+   The kit default always applies; if it is missing, report
+   `quality gate: no configurado`; never skip it silently.
 3. **Observable reuse.** Reuse pre-injected content only when the runtime makes the complete content,
    its provenance, and its current freshness observable. In that case, record
    the provenance and do not re-read the identical source.

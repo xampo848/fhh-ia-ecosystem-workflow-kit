@@ -91,7 +91,7 @@ the closure suite, and QA re-entries are focused on the repair.
 Project rules are runtime-neutral: the quality gate and the backend and
 frontend instructions live in `.agents/project/`, stack-specific rules in
 `.agents/project/stack.md`, and the fixed knowledge base in
-`.agents/project-context.md`. Runtime folders only hold generated copies.
+`.agents/project/context.md` (legacy: `.agents/project-context.md`). Runtime folders only hold generated copies.
 
 ## Recommended first documents
 

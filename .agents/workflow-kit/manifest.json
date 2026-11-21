@@ -1,89 +1,89 @@
 {
-  "schema_version": "1.0.0",
+  "$schema": "./manifest.schema.json",
+  "schema_version": "2.0.0",
   "name": "fhh-ia-ecosystem-workflow-kit",
-  "derived_artifact": false,
-  "not_an_installer": true,
-  "description": "Packaging boundary for reusing the FHH IA Ecosystem AI workflow without copying repo-specific product rules as portable core.",
-  "portable_core": [
-    ".agents/instructions.md",
-    ".agents/delegation/delegate-contract.md",
-    ".agents/skills/index.md",
-    ".agents/skills/registry.md",
-    ".agents/skills/registry.schema.json",
-    ".agents/skills/registry.json",
-    ".agents/skills/registry.cache.json",
-    ".agents/skills/00-router/workflow-router/SKILL.md",
-    ".agents/skills/00-router/workflow-router/reference/",
-    ".agents/skills/01-product/project-formation/SKILL.md",
-    ".agents/skills/01-product/create-epic/SKILL.md",
-    ".agents/skills/01-product/create-prd/SKILL.md",
-    ".agents/skills/01-product/generate-pm-ticket/SKILL.md",
-    ".agents/skills/01-product/solution-sketch/SKILL.md",
-    ".agents/skills/02-implement/implement-change/SKILL.md",
-    ".agents/skills/02-implement/implement-change/reference/",
-    ".agents/skills/02-implement/implement-prd/SKILL.md",
-    ".agents/skills/02-implement/implement-prd/reference/",
-    ".agents/capabilities/README.md",
-    ".agents/integrations/README.md",
-    ".agents/model-routing/README.md",
-    ".agents/model-routing/delegate-agent-catalog.json",
-    ".agents/memory/README.md"
+  "kit_version": "0.20.0-kit-overlay-contract",
+  "description": "Closed list of the paths the workflow kit owns in a target repository. A path belongs to the kit only when an entry below covers it; everything under project_root belongs to the project. The most specific entry wins.",
+  "contract": ".agents/kit-boundary.md",
+  "project_root": ".agents/project/",
+  "classes": {
+    "kit": "The kit owns the whole file; a kit update replaces it.",
+    "derived": "The kit generates the file from its own sources (catalogs, wrappers, rendered agents).",
+    "adapter": "The kit owns only the block between the entry's markers; text outside the block belongs to the project.",
+    "seed": "The kit creates the file once when it is missing; after that the project owns it.",
+    "state": "Install state written by the workflow-kit CLI."
+  },
+  "paths": [
+    { "path": ".agents/README.md", "class": "kit" },
+    { "path": ".agents/instructions.md", "class": "kit" },
+    { "path": ".agents/kit-boundary.md", "class": "kit" },
+    { "path": ".agents/capabilities/", "class": "kit" },
+    { "path": ".agents/delegation/", "class": "kit" },
+    { "path": ".agents/integrations/", "class": "kit" },
+    { "path": ".agents/memory/", "class": "kit" },
+    { "path": ".agents/model-routing/", "class": "kit" },
+    { "path": ".agents/skills/", "class": "kit" },
+    { "path": ".agents/skills/index.md", "class": "derived" },
+    { "path": ".agents/skills/registry.json", "class": "derived" },
+    { "path": ".agents/skills/registry.cache.json", "class": "derived" },
+    { "path": ".agents/skills/06-patterns/index.md", "class": "derived" },
+    { "path": ".agents/workflow-kit/manifest.json", "class": "kit" },
+    { "path": ".agents/workflow-kit/manifest.schema.json", "class": "kit" },
+    { "path": ".agents/workflow-kit/install-state.json", "class": "state", "generated": true },
+    { "path": ".agents/workflow-kit/diagnostics/", "class": "state", "generated": true },
+    { "path": ".agents/project-context.md", "class": "seed" },
+    { "path": ".agents/project/quality-gate.md", "class": "seed" },
+    { "path": ".agents/project/backend.md", "class": "seed" },
+    { "path": ".agents/project/frontend.md", "class": "seed" },
+    { "path": ".agents/project/paths.json", "class": "seed" },
+    { "path": ".agents/project/stack.md", "class": "seed", "generated": true },
+    { "path": "docs/workflow/", "class": "kit" },
+    { "path": "docs/README.md", "class": "adapter", "block": "workflow-kit:docs-workflow" },
+    { "path": "AGENTS.md", "class": "adapter" },
+    { "path": "CLAUDE.md", "class": "adapter" },
+    { "path": "ANTIGRAVITY.md", "class": "adapter" },
+    { "path": ".github/copilot-instructions.md", "class": "adapter" },
+    { "path": ".github/instructions/ai-workflow.instructions.md", "class": "adapter" },
+    { "path": ".github/instructions/", "class": "derived", "generated": true },
+    { "path": ".github/agents/", "class": "derived" },
+    { "path": ".claude/agents/", "class": "derived" },
+    { "path": ".claude/skills/", "class": "derived" },
+    { "path": ".codex/agents/", "class": "derived" },
+    { "path": ".codex/README.md", "class": "kit" },
+    { "path": ".antigravity/README.md", "class": "kit" }
   ],
-  "repo_overlay": [
-    ".agents/skills/06-patterns/README.md",
-    ".agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md",
-    ".agents/skills/06-patterns/authoring/pattern-skill-template.md",
-    ".agents/capabilities/registry.md",
-    ".agents/capabilities/manifests/context7.md",
-    ".agents/capabilities/manifests/engram.md",
-    ".agents/capabilities/manifests/codebase-memory-mcp.md",
-    ".agents/capabilities/manifests/impeccable.md",
-    ".agents/capabilities/manifests/caveman.md",
-    ".agents/capabilities/manifests/cavecrew.md",
-    ".agents/project-context.md",
+  "project_layout": [
+    ".agents/project/index.md",
+    ".agents/project/routing.md",
+    ".agents/project/skills/",
+    ".agents/project/extensions/",
+    ".agents/project/shadows/",
+    ".agents/project/context.md",
     ".agents/project/quality-gate.md",
     ".agents/project/backend.md",
     ".agents/project/frontend.md",
+    ".agents/project/stack.md",
     ".agents/project/paths.json"
   ],
-  "runtime_adapters": [
-    "AGENTS.md",
-    "CLAUDE.md",
-    "ANTIGRAVITY.md",
-    ".github/copilot-instructions.md",
-    ".github/instructions/ai-workflow.instructions.md",
-    ".github/agents",
-    ".codex/README.md",
-    ".codex/agents",
-    ".claude/agents",
-    ".claude/skills",
-    ".antigravity/README.md"
+  "legacy_paths": {
+    ".agents/project-context.md": ".agents/project/context.md"
+  },
+  "extension_points": {
+    "workflow-router": ".agents/project/routing.md",
+    "instructions": ".agents/project/routing.md",
+    "quality-gate": ".agents/project/quality-gate.md"
+  },
+  "not_shadowable": [
+    "workflow-router",
+    "instructions"
   ],
-  "derived_artifacts": [
-    ".agents/skills/index.md",
-    ".agents/skills/registry.md",
-    ".agents/skills/registry.json",
-    ".agents/skills/registry.cache.json",
-    ".claude/skills",
-    ".claude/agents",
-    ".codex/agents",
-    ".github/agents"
-  ],
-  "validation_commands": [
-    "workflow-kit doctor --target <repo>",
-    "npm run check:workflow (in the workflow-kit source repository)",
-    "npm run check:templates (in the workflow-kit source repository)"
-  ],
-  "excluded_from_portable_core": [
+  "excluded_from_distribution": [
     "docs/epics/",
     "docs/prd/",
     "docs/internal-documentation/"
   ],
-  "adoption_sequence": [
-    "Copy or vendor the portable core.",
-    "Create a repo overlay for local domain rules and pattern skills.",
-    "Wire runtime adapters as thin wrappers over the neutral contract.",
-    "Regenerate and validate structured registry artifacts.",
-    "Run the adoption checklist before using implement-change in the target repo."
+  "validation_commands": [
+    "workflow-kit doctor --target <repo>",
+    "npm run check:workflow (in the workflow-kit source repository)"
   ]
 }

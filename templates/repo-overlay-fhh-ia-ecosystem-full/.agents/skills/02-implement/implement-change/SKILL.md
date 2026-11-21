@@ -35,7 +35,7 @@ An N1 reached through the level pre-filter (no workflow files loaded) follows
 only the pre-filter's N1 rule in `.agents/instructions.md`; this skill and
 `level-n1.md` apply when the skill is invoked or the input is a PRD iteration.
 
-Read `.agents/project-context.md` (the project's fixed knowledge base:
+Read `.agents/project/context.md` (legacy: `.agents/project-context.md`) (the project's fixed knowledge base:
 structure, validation commands and their cost, test conventions, environment
 quirks) before exploring code when it exists and is filled in; if it still
 contains `[TODO]` placeholders, say `project context: no configurado` once and
@@ -147,12 +147,13 @@ No level, modifier, or user hurry removes these:
    (and, for an iteration, the tests listed in the PRD's section 10) run again.
    A new test sits at the rule's owning layer and extends an existing test of
    the same rule when one exists (`../implement-prd/reference/test-design-rules.md`).
-4. **Quality gate.** Code-writing work applies the project quality gate
-   (`.agents/project/quality-gate.md`) and the instructions of the layers it
-   touches (`.agents/project/backend.md`, `.agents/project/frontend.md`, and
-   `.agents/project/stack.md` when present); `.agents/project/paths.json` maps
-   these names for projects with another layout. Nothing is skipped silently:
-   if the quality gate is not configured, say `quality gate: no configurado`
+4. **Quality gate.** Code-writing work applies the quality gate (kit default
+   `.agents/delegation/quality-gate.md`, then the project additions in
+   `.agents/project/quality-gate.md` when present) and the instructions of the
+   layers it touches (`.agents/project/backend.md`, `.agents/project/frontend.md`,
+   and `.agents/project/stack.md` when present); `.agents/project/paths.json`
+   maps these names for projects with another layout. Nothing is skipped
+   silently: if the kit default is missing, say `quality gate: no configurado`
    in the trace; at N3 that is a stop, and a path the input requires that is
    missing is always a hard stop.
 5. **Stop conditions and brakes** in `../implement-prd/reference/validation-and-stop-conditions.md`
@@ -168,7 +169,7 @@ No level, modifier, or user hurry removes these:
    abstraction, an accepted risk or a level escalation, or a `high`/`critical`
    QA finding); with none, write nothing. At closure give one consolidated note
    of at most 3 points. `teaching_notes: siempre | nunca` in
-   `.agents/project-context.md` changes this default (`selectivas`), and
+   `.agents/project/context.md` (legacy: `.agents/project-context.md`) changes this default (`selectivas`), and
    "explícame" or "modo docente" turns on a note per phase for the run.
 
 ## Closure by level

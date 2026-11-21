@@ -23,13 +23,13 @@ verdicts, instead of three stages that each reread the input:
 1. **Readiness:** is the input ready? List every open question explicitly and
    ask the user before cutting slices; never assume the answer, because the
    orchestrator is reviewing an input it will implement itself.
-2. **Discovery delta:** read `.agents/project-context.md` first and explore
+2. **Discovery delta:** read `.agents/project/context.md` (legacy: `.agents/project-context.md`) first and explore
    only what is specific to the change.
 3. **Slices:** the executable slices with owner, files, and checks.
 
 Delegate one of those stages only on concrete uncertainty: more than 5
 exploratory files are needed, the area is not covered by
-`.agents/project-context.md`, or the input contradicts the code.
+`.agents/project/context.md` (legacy: `.agents/project-context.md`), or the input contradicts the code.
 
 ## Stage checklist (N2 and N3)
 
@@ -64,7 +64,7 @@ documented fallback docs and risk.
   it is the default writer only at N3.
 - When delegating, follow the join contract in `level-n3.md` (blocking
   handoffs, wait barrier, inspect the diff before another writer touches the
-  same files).
+  same files), and pass a project shadow of the role skill as `role_skill`.
 
 ## Coordination state
 
@@ -100,7 +100,7 @@ Final QA is mandatory and focused: changed files, findings, and the acceptance
 criteria touched. Escalate to fresh-context QA when a risk trigger fires.
 If the change altered patterns, validation commands, structure, or exposed an
 environment quirk, the orchestrator proposes a small diff to
-`.agents/project-context.md` in the same change. Only the orchestrator edits
+`.agents/project/context.md` (legacy: `.agents/project-context.md`) in the same change. Only the orchestrator edits
 that file, and only at closure.
 
 Closure: the N1 evidence plus coverage of the touched acceptance criteria,

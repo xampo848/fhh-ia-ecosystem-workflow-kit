@@ -83,7 +83,7 @@ Mentoring text is selective by default, so it does not become noise:
   at most 3 points replaces per-phase notes.
 - The user can ask for more ("explícame", "modo docente"), and a project can
   set `teaching_notes: selectivas | siempre | nunca` in
-  `.agents/project-context.md`.
+  `.agents/project/context.md` (legacy: `.agents/project-context.md`).
 - Notes go to the chat only; decisions already live in their own tables.
 
 ## Interaction rules

@@ -61,7 +61,7 @@ or count by hand:
   the recommended way to implement it; the user may still choose autonomous
   execution (`implement-change/reference/modifiers.md`).
 - Thresholds are defaults calibrated on real PRDs. A project may override them
-  with a `prd_size_thresholds` line in `.agents/project-context.md`.
+  with a `prd_size_thresholds` line in `.agents/project/context.md` (legacy: `.agents/project-context.md`).
 
 ## Required Artifact
 

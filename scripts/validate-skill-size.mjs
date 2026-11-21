@@ -11,7 +11,7 @@ const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 export const skillLineLimit = 200;
 const scannedRoots = ['.agents/skills', '.agents/delegation'];
 // Third-party skills keep their upstream structure so upstream updates still apply.
-const thirdPartyPrefixes = ['.agents/skills/04-crosscutting/frontend-design/', '.agents/skills/04-crosscutting/impeccable/', '.agents/skills/05-caveman/'];
+export const thirdPartyPrefixes = ['.agents/skills/04-crosscutting/frontend-design/', '.agents/skills/04-crosscutting/impeccable/', '.agents/skills/05-caveman/'];
 // Exceptions: file -> { limit, reason }. Keep this list short.
 export const sizeExceptions = {
   '.agents/skills/registry.md': { limit: 260, reason: 'generated inventory, read only for maintenance or fallback' },

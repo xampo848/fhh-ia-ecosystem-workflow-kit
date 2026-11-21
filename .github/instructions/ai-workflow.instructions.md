@@ -2,6 +2,7 @@
 applyTo: "**"
 ---
 
+<!-- workflow-kit:managed:start -->
 # AI Workflow Instructions
 
 This is a thin GitHub Copilot scoped-instructions runtime adapter; keep it thin. `.agents/instructions.md`
@@ -41,3 +42,9 @@ Runtime notes:
 - Use `.agents/model-routing/README.md` for tier, fallback, and user-control
   semantics. The Copilot model picker is the source of truth for the active
   catalog; organizational or repository policy may restrict it.
+- Code-writing or code-review work applies the kit quality gate
+  `.agents/delegation/quality-gate.md` first; `quality-gate.instructions.md`
+  holds only the project's additions to it.
+
+<!-- The kit regenerates only this block. Add project-specific notes below the end marker. -->
+<!-- workflow-kit:managed:end -->

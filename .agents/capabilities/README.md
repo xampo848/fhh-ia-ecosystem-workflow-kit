@@ -30,6 +30,9 @@ Rules:
 - The repo overlay declares local adoption.
 - Runtime wrappers stay thin.
 - A capability may be global, repo-local, or hybrid, but that scope must be explicit.
+- Physically, the portable core is the set of kit paths in
+  `.agents/workflow-kit/manifest.json`, and the repo overlay is
+  `.agents/project/**`; the contract between them is `.agents/kit-boundary.md`.
 
 ## Relationship to skills and integrations
 

@@ -35,7 +35,7 @@ is identical.
    at closure, which always runs once.
 6. **Shadow mode first.** Reuse starts in shadow mode: `decide` answers `RUN`
    and reports what it would have reused. A project switches to active reuse by
-   adding `validation_reuse: active` to `.agents/project-context.md` after 2 or
+   adding `validation_reuse: active` to `.agents/project/context.md` (legacy: `.agents/project-context.md`) after 2 or
    3 implementations whose shadow results never differed. If a defect escapes
    that a reused check would have caught, go back to shadow.
 7. **Transparency.** Section 10 lists each reused check as "reutilizado de

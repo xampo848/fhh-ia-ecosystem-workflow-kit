@@ -40,6 +40,7 @@ contract in `.agents/instructions.md` wins.
 - Shared repo-owned skill bodies live physically under `.agents/skills/**`.
 - `.claude/skills/**` holds generated Claude Code wrappers for the directly routable workflow skills; GitHub Copilot and Codex read `.agents/skills/**` directly.
 - `.github/**` and `.codex/**` remain valid runtime wrappers, but they must point back to `.agents/` and must not redefine workflow logic.
+- Kit and project ownership is defined in `.agents/kit-boundary.md` and the manifest `.agents/workflow-kit/manifest.json`. Project skills live under `.agents/project/skills/**`, are registered in `.agents/project/index.md`, and are reached through `workflow-router`: no runtime discovers that folder natively.
 
 This means canonical ownership and physical skill storage are both neutral. Runtime wrappers may keep symlinks or thin adapters for tool compatibility, but `.agents/skills/**` is the source path for active skill loading.
 
@@ -325,7 +326,9 @@ selected rather than front-loaded into every runtime entrypoint.
   this file before any N2 or N3 work; N0 and N1 follow the pre-filter without
   loading it, and delegates load `.agents/delegation/delegate-contract.md`
   instead.
-- Use `.agents/skills/index.md` as the neutral startup discovery contract.
+- Use `.agents/skills/index.md` as the neutral startup discovery contract, then
+  `.agents/project/index.md` and `.agents/project/routing.md` when they exist
+  (project catalog and routing rules; a missing file is an empty overlay).
 - Use `.agents/skills/registry.md` as the neutral full inventory, taxonomy,
   and authoring contract.
 - Apply the mandatory per-turn intake above for every new user prompt.
@@ -346,7 +349,21 @@ When the user asks how to extend the AI workflow itself (router, registry, or cu
 1. Explanation mode: describe exact files, ordering, and validation steps without editing.
 2. Execution mode: perform the edits when the user asks to apply them.
 
-For extension work, keep boundaries explicit:
+In a repository that installed the kit, extend the workflow only from the
+project overlay `.agents/project/**`, following `.agents/kit-boundary.md`:
+
+- **add** a project skill under `.agents/project/skills/<name>/SKILL.md` and
+  register it in `.agents/project/index.md` (`add-project-pattern` does both);
+- **extend** at a declared extension point, such as project routing rules in
+  `.agents/project/routing.md` (the only extension of the router and of this
+  file) or project additions in `.agents/project/quality-gate.md`;
+- **shadow** a kit leaf skill under `.agents/project/shadows/<skill>/` with its
+  `shadow.json`, only when extend is not enough.
+
+Never edit a kit file (`.agents/workflow-kit/manifest.json` lists them) to adapt
+the workflow: a kit update stops delivering fixes to an edited file. Editing the
+router, this file, or the kit catalogs is kit maintenance, done in the kit's
+source repository, where these boundaries apply:
 
 - router policy in `.agents/skills/00-router/workflow-router/SKILL.md`;
 - startup contract in `.agents/instructions.md`;
