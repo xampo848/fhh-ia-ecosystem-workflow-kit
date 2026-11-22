@@ -85,10 +85,10 @@ test('update migrates hand-written Copilot instructions to the neutral location 
   assert.deepEqual(await projectInstructionDiagnostics({ targetPath: target, runtimes: ['copilot'] }), []);
   // Generated wrappers are tracked, so doctor does not report them as locally modified.
   const doctor = await runDoctor({ targetPath: target, runtime: 'copilot' });
-  assert.equal(doctor.diagnostics.some((item) => item.code === 'managed/content-drift'), false);
+  assert.equal(doctor.diagnostics.some((item) => item.code.startsWith('boundary/')), false);
 });
 
-test('doctor reports a stale wrapper and a missing quality gate instead of skipping silently', async () => {
+test('doctor reports a stale wrapper; without project additions the wrapper is the kit default alone', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'copilot' }));
   await fs.appendFile(path.join(target, '.agents/project/quality-gate.md'), '\n9. New project rule.\n');
@@ -103,8 +103,6 @@ test('doctor reports a stale wrapper and a missing quality gate instead of skipp
   // Without project additions the wrapper is the kit default alone.
   const withoutAdditions = await buildUpdatePlan({ targetPath: target, runtime: 'copilot' });
   assert.equal(withoutAdditions.operations.find((item) => item.relativePath === '.github/instructions/quality-gate.instructions.md').content, renderCopilotWrapper('quality-gate', await read(target, '.agents/delegation/quality-gate.md')));
-  const doctor = await runDoctor({ targetPath: target, runtime: 'copilot' });
-  assert.ok(doctor.diagnostics.some((item) => item.code === 'project-instructions/quality-gate-missing'));
 });
 
 test('implementation skills never skip a missing quality gate silently', async () => {

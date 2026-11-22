@@ -121,8 +121,7 @@ export async function projectInstructionDiagnostics({ targetPath, runtimes = [] 
       }
     }
   }
-  if (inspection['quality-gate'].neutral === null && inspection['quality-gate'].migratedContent === null) {
-    diagnostics.push(warning('project-instructions/quality-gate-missing', neutralInstructionPath('quality-gate'), 'No quality gate is configured. Code-writing work reports "quality gate: no configurado" and N3 work stops until it exists. Run workflow-kit update to restore the default gate.'));
-  }
+  // No warning for a missing project quality gate: the kit default always
+  // applies and the project file only adds to it.
   return diagnostics;
 }

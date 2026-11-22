@@ -139,34 +139,12 @@ test('a protected file that already matches the new version is no longer reporte
   const updated = JSON.parse(await fs.readFile(statePath, 'utf8'));
   assert.equal(updated.files[relativePath].sha256, createHash('sha256').update(shipped).digest('hex'));
   const doctor = await runDoctor({ targetPath: target });
-  assert.equal(doctor.diagnostics.some((item) => item.code === 'managed/content-drift' && item.path === relativePath), false);
+  assert.equal(doctor.diagnostics.some((item) => item.code === 'boundary/pending-edited_kit_file' && item.path === relativePath), false);
 
   // A real local edit is still protected.
   await write(target, relativePath, `${shipped}\nedicion local\n`);
   const protectedPlan = await buildUpdatePlan({ targetPath: target });
   assert.equal(protectedPlan.operations.find((item) => item.relativePath === relativePath).operation, 'skip_modified');
-});
-
-// A project catalog can still miss a row (another layout, or a project script
-// regenerated it), and then the installed skill is invisible to the router.
-test('doctor reports installed skills that a preserved local catalog does not list', async () => {
-  const target = await makeTempRepo();
-  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
-  const code = 'skills/local-catalog-missing-skill';
-  assert.equal((await runDoctor({ targetPath: target })).diagnostics.some((item) => item.code === code), false);
-
-  const indexPath = '.agents/skills/index.md';
-  const index = await read(target, indexPath);
-  const withoutRow = index.split('\n').filter((line) => !line.includes('implement-change/SKILL.md')).join('\n');
-  assert.notEqual(withoutRow, index);
-  await write(target, indexPath, withoutRow);
-
-  const doctor = await runDoctor({ targetPath: target });
-  const finding = doctor.diagnostics.find((item) => item.code === code && item.path === indexPath);
-  assert.ok(finding, 'the stale catalog is reported');
-  assert.equal(finding.severity, 'warning');
-  assert.match(finding.message, /\.agents\/skills\/02-implement\/implement-change\/SKILL\.md/);
-  assert.equal(doctor.ok, true, 'a stale catalog is a warning, not a failure');
 });
 
 test('lineDiff reports additions, removals and context; the stack question defaults to none', () => {

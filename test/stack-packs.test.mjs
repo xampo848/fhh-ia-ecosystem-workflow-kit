@@ -124,5 +124,9 @@ test('doctor warns when the recorded stack pack file is missing', async () => {
   assert.equal(doctor.diagnostics.some((item) => item.code === 'stack-pack/missing'), false);
   await fs.rm(path.join(target, stackPath));
   doctor = await runDoctor({ targetPath: target });
-  assert.ok(doctor.diagnostics.some((item) => item.code === 'stack-pack/missing'));
+  const finding = doctor.diagnostics.find((item) => item.code === 'stack-pack/missing');
+  assert.ok(finding);
+  // A recorded seed is never recreated: update --stack cannot bring it back.
+  assert.match(finding.message, /restore \.agents\/project\/stack\.md from Git, or copy templates' rails-react pack again by hand/);
+  assert.doesNotMatch(finding.message, /--stack/);
 });

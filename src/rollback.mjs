@@ -1,13 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { applyJournalRelativePath, applyJournalSchemaVersion } from './apply.mjs';
+import { applyJournalRelativePath, readableApplyJournalVersions } from './apply.mjs';
 import { checksumOf, findSymlinkInPath, resolveInsideTarget, writeFileAtomic } from './fs-safety.mjs';
 import { installStateRelativePath, readManagedInstallState } from './planner.mjs';
 
 const backupSuffixPattern = /\.workflow-kit-backup-(\d{8}T\d{6}Z)$/;
 // 1.0.0 journals only hold `created` and `overwritten` entries; 2.0.0 adds
 // `deleted` (a retired kit file removed with a backup).
-const readableJournalVersions = new Set(['1.0.0', applyJournalSchemaVersion]);
 
 async function readIfPresent(file) {
   try {
@@ -27,7 +26,7 @@ async function readJournal(targetPath) {
   } catch {
     throw new Error(`${applyJournalRelativePath} is not valid JSON. Restore it from Git or delete it to fall back to the newest backup of each managed file.`);
   }
-  if (!readableJournalVersions.has(parsed?.schemaVersion) || !Array.isArray(parsed.files)) {
+  if (!readableApplyJournalVersions.has(parsed?.schemaVersion) || !Array.isArray(parsed.files)) {
     throw new Error(`${applyJournalRelativePath} has an unsupported format. Run rollback with the workflow-kit version that wrote it.`);
   }
   return parsed;

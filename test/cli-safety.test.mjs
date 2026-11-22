@@ -170,7 +170,7 @@ test('rollback of an update restores files, .gitignore and the previous install-
   assert.equal((await listFiles(target)).some((file) => file.includes('.workflow-kit-backup-')), false, 'used backups are removed');
 
   const doctor = await run(['doctor', '--target', target]);
-  assert.doesNotMatch(doctor.stdout, /managed\/content-drift/);
+  assert.doesNotMatch(doctor.stdout, /boundary\/pending-edited_kit_file/);
 
   const again = await run(['rollback', '--target', target, '--apply', '--yes']);
   assert.match(again.stdout, /Nothing to roll back/);

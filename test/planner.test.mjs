@@ -7,7 +7,7 @@ import { applyInstallPlan } from '../src/apply.mjs';
 import { extractManagedBlock, loadKitManifest } from '../src/kit-manifest.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan, installStateRelativePath, readManagedInstallState, selectPlanOperations } from '../src/planner.mjs';
 import manifest from '../templates/template-manifest.json' with { type: 'json' };
-import { makeTempRepo } from './helpers.mjs';
+import { hashTree, makeTempRepo } from './helpers.mjs';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const templates = path.join(root, 'templates');
@@ -271,6 +271,9 @@ test('an edited .agents/instructions.md stays pending unless --edited all=discar
     const instructions = operationFor(updatePlan, '.agents/instructions.md');
     assert.equal(instructions.operation, edited ? 'overwrite_with_backup' : 'skip_modified');
     assert.equal(instructions.reason, edited ? undefined : 'edited_kit_file');
+    // The dry run lists a pending file with the decisions that settle it.
+    const pendingLine = '- skip_modified: .agents/instructions.md (edited_kit_file): keep | discard';
+    assert.equal(formatPlan(updatePlan).split('\n').includes(pendingLine), !edited, formatPlan(updatePlan));
 
     // The block is the kit's: it is regenerated; the text around it stays byte for byte.
     const agents = operationFor(updatePlan, 'AGENTS.md');
@@ -456,6 +459,31 @@ test('selectPlanOperations allows partial apply without drifting managed state',
   assert.equal(currentInstructions, 'local override\n');
   assert.deepEqual(state.files['docs/workflow/README.md'], { sha256: sha(currentDocsReadme), class: 'kit' });
   assert.deepEqual(state.files['.agents/instructions.md'], stateBeforePartialApply.files['.agents/instructions.md']);
+});
+
+// A file that exists but cannot be read is never "nothing installed" and
+// never "the last apply finished": init and update stop before planning.
+test('init and update stop on an unusable install-state or apply journal, and write nothing', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  const journalPath = '.agents/workflow-kit/last-apply.json';
+  const journalAction = 'Check it, then run `workflow-kit rollback` (or delete it if the last apply finished), and run this command again. Nothing was written.';
+  const cases = [
+    { file: installStateRelativePath, content: '{ not json', message: /install-state\.json is not valid JSON\. Restore it from Git/ },
+    { file: installStateRelativePath, content: '[]', message: /install-state\.json does not have the expected structure\. Restore it from Git/ },
+    { file: journalPath, content: '{ not json', message: `${journalPath} cannot be read (not valid JSON). ${journalAction}` },
+    { file: journalPath, content: '{"schemaVersion":"2.0.0","completed":true}', message: `${journalPath} cannot be read (unsupported format). ${journalAction}` }
+  ];
+  for (const item of cases) {
+    const original = await read(target, item.file);
+    await write(target, item.file, item.content);
+    const before = await hashTree(target);
+    const expected = typeof item.message === 'string' ? new Error(item.message) : item.message;
+    await assert.rejects(buildInstallPlan({ targetPath: target, runtime: 'neutral' }), expected, `init: ${item.content}`);
+    await assert.rejects(buildUpdatePlan({ targetPath: target }), expected, `update: ${item.content}`);
+    assert.deepEqual(await hashTree(target), before);
+    await write(target, item.file, original);
+  }
 });
 
 test('buildUpdatePlan requires install state unless adopt-existing is enabled', async () => {

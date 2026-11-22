@@ -128,27 +128,49 @@ test('overlay drift compares the whole .agents tree in both directions', async (
     const overlayAgents = path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents');
     await fs.mkdir(path.join(root, '.agents/memory/new-area'), { recursive: true });
     await fs.writeFile(path.join(root, '.agents/memory/new-area/only-canonical.md'), '# New\n', 'utf8');
-    await fs.writeFile(path.join(overlayAgents, 'only-overlay.md'), '# Stale\n', 'utf8');
+    await fs.writeFile(path.join(overlayAgents, 'memory/only-overlay.md'), '# Stale\n', 'utf8');
     await fs.appendFile(path.join(overlayAgents, 'skills/01-product/create-prd/SKILL.md'), '\nOverlay-only edit.\n', 'utf8');
 
     const paths = (await validateOverlayDrift({ root })).map((item) => item.path);
 
     assert.ok(paths.includes('.agents/memory/new-area/only-canonical.md'), paths.join('\n'));
-    assert.ok(paths.includes('.agents/only-overlay.md'), paths.join('\n'));
+    assert.ok(paths.includes('.agents/memory/only-overlay.md'), paths.join('\n'));
     assert.ok(paths.includes('.agents/skills/01-product/create-prd/SKILL.md'), paths.join('\n'));
   });
 });
 
-test('overlay drift ignores files produced by a local install', async () => {
+// AC-13: only the manifest's kit, derived and seed paths are compared.
+test('overlay drift ignores state and project files that are not seeds, and still sees a changed kit file', async () => {
   await withOverlayDriftFixture(async (root) => {
     await fs.mkdir(path.join(root, '.agents/workflow-kit/diagnostics'), { recursive: true });
     await fs.writeFile(path.join(root, '.agents/workflow-kit/install-state.json'), '{}\n', 'utf8');
     await fs.writeFile(path.join(root, '.agents/workflow-kit/diagnostics/run.json'), '{}\n', 'utf8');
+    await fs.mkdir(path.join(root, '.agents/project/skills/own'), { recursive: true });
+    await fs.writeFile(path.join(root, '.agents/project/skills/own/SKILL.md'), '---\nname: own\n---\n', 'utf8');
+    await fs.writeFile(path.join(root, '.agents/project/index.md'), '# Project Catalog\n', 'utf8');
+    await fs.appendFile(path.join(root, '.agents/README.md'), '\nCanonical-only edit.\n', 'utf8');
 
     const paths = (await validateOverlayDrift({ root })).map((item) => item.path);
 
-    assert.equal(paths.some((item) => item.startsWith('.agents/workflow-kit/')), false, paths.join('\n'));
+    assert.deepEqual(paths, ['.agents/README.md']);
   });
+});
+
+// AC-14: update decides with the manifest; these modules keep no kit path
+// literals or ownership sets. The one exception is the documented legacy
+// 0.18 catalog list the layout migration reads.
+test('the planner, migration, doctor, apply and rollback name no kit paths or ownership sets (AC-14)', async () => {
+  const forbidden = /'\.agents\/skills\/|skillCatalogPreservePaths|skillCatalogRowPaths|protectedCustomizationPaths|project-context\.md/;
+  const hits = [];
+  for (const name of ['planner', 'migration', 'doctor', 'apply', 'rollback']) {
+    const lines = (await fs.readFile(path.join(repoRoot, 'src', `${name}.mjs`), 'utf8')).split('\n');
+    const legacyStart = name === 'migration' ? lines.findIndex((line) => line.startsWith('const legacyPreservedCatalogs = new Set([')) : -1;
+    const legacyEnd = legacyStart === -1 ? -1 : lines.findIndex((line, index) => index > legacyStart && line.startsWith(']);'));
+    lines.forEach((line, index) => {
+      if (forbidden.test(line) && !(index > legacyStart && index < legacyEnd)) hits.push(`src/${name}.mjs:${index + 1}: ${line.trim()}`);
+    });
+  }
+  assert.deepEqual(hits, []);
 });
 
 test('workflow router keeps deterministic PR comments hard trigger policy', async () => {

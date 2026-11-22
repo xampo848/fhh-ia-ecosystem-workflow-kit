@@ -85,28 +85,31 @@ const pathLike = /^[A-Za-z0-9_.@-][A-Za-z0-9_.@/-]*$/;
 
 // Checks that the project's fixed knowledge base is filled in, short, and
 // still points to paths that exist.
-async function readProjectContext(targetPath) {
-  const manifest = await loadKitManifest();
-  for (const relativePath of [projectContextPath, legacyPathFor(manifest, projectContextPath)].filter(Boolean)) {
-    try {
-      return { relativePath, content: await fs.readFile(path.join(targetPath, relativePath), 'utf8') };
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-    }
+async function readOptional(file) {
+  try {
+    return await fs.readFile(file, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
   }
-  return null;
 }
 
 export async function projectContextDiagnostics({ targetPath }) {
-  const found = await readProjectContext(targetPath);
-  if (!found) return [];
-  const { relativePath: contextPath, content } = found;
+  const legacyPath = legacyPathFor(await loadKitManifest(), projectContextPath);
+  const current = await readOptional(path.join(targetPath, projectContextPath));
+  const legacy = legacyPath ? await readOptional(path.join(targetPath, legacyPath)) : null;
+  const both = current !== null && legacy !== null
+    ? [warning('project-context/both-paths', legacyPath, `Both ${projectContextPath} and ${legacyPath} exist, and the workflow reads only ${projectContextPath}; merge them into ${projectContextPath} and delete ${legacyPath}.`)]
+    : [];
+  if (current === null && legacy === null) return [];
+  const contextPath = current !== null ? projectContextPath : legacyPath;
+  const content = current ?? legacy;
 
   if (content.includes(projectContextTemplateMarker)) {
-    return [warning('project-context/not-initialized', contextPath, 'Still the template. Generate the first version with an initial Discovery of the project (an N2 task), review it, and remove the template marker.')];
+    return [...both, warning('project-context/not-initialized', contextPath, 'Still the template. Generate the first version with an initial Discovery of the project (an N2 task), review it, and remove the template marker.')];
   }
 
-  const diagnostics = [];
+  const diagnostics = [...both];
   const lines = content.split('\n').length;
   if (lines > projectContextLineLimit) {
     diagnostics.push(warning('project-context/too-long', contextPath, `${lines} lines (limit: ${projectContextLineLimit}). Point to other documents instead of copying them.`));

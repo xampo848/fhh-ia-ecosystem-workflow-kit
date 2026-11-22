@@ -15,12 +15,12 @@ import { supportedRuntimes } from './runtime-matrix.mjs';
 
 export const layoutMigrationId = '0.22.0-kit-overlay-layout';
 export const projectIndexPath = '.agents/project/index.md';
-const skillsRoot = '.agents/skills';
+export const skillsRoot = '.agents/skills';
 const projectSkillsRoot = '.agents/project/skills';
 const projectShadowsRoot = '.agents/project/shadows';
-const shadowManifestName = 'shadow.json';
+export const shadowManifestName = 'shadow.json';
 const skillFileName = 'SKILL.md';
-const backupFileMarker = '.workflow-kit-backup-';
+export const backupFileMarker = '.workflow-kit-backup-';
 // The legacy 0.18 layout, not current ownership: the catalogs 0.18.x kept as
 // project files (merging local rows into them, so the 1.0.0 state dropped or
 // recorded them merged). Only these reach the planner as recorded and are
@@ -34,7 +34,7 @@ const legacyPreservedCatalogs = new Set([
   '.agents/skills/registry.cache.json'
 ]);
 const markdownCatalogPaths = [...legacyPreservedCatalogs].filter((relativePath) => relativePath.endsWith('.md'));
-const registryJsonPath = '.agents/skills/registry.json';
+const registryJsonPath = `${skillsRoot}/registry.json`;
 // A folder name: no separators, never "." or "..".
 const skillNamePattern = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const skillsTable = { heading: 'Skills', columns: ['Skill name', 'Class', 'Trigger', 'Physical path', 'Cost hint'] };
@@ -108,7 +108,7 @@ const skillNameOf = (content, directory) => String(readFrontmatter(content).name
 
 // What a folder of the target holds, as "/" paths: regular files, symbolic
 // links (never followed) and folders with nothing in them.
-async function walkTree(targetPath, relativeDirectory) {
+export async function walkTree(targetPath, relativeDirectory) {
   const tree = { files: [], links: [], emptyDirectories: [] };
   async function walk(current) {
     let entries;
@@ -187,7 +187,7 @@ function markdownTables(text) {
   return tables;
 }
 
-const unquote = (text) => String(text ?? '').trim().replace(/^`([^`]*)`$/, '$1').trim();
+export const unquote = (text) => String(text ?? '').trim().replace(/^`([^`]*)`$/, '$1').trim();
 const catalogColumns = { name: 'Skill name', class: 'Class', trigger: 'Trigger', path: 'Physical path', cost: 'Cost hint' };
 
 // Rows of the tables that have a "Skill name" column, mapped by header name.
@@ -369,7 +369,19 @@ function indexSection(lines, table) {
   if (!expected || tableLines.some((index) => fenced[index])) return { unexpected: true };
   let lastRow = first + 1;
   while (lastRow + 1 < end && tableCells(lines[lastRow + 1])) lastRow += 1;
-  return { heading, lastRow };
+  return { heading, first, lastRow };
+}
+
+// The rows (cells) of the Skills or Shadows table of the project index: []
+// when the section or its table is missing, null when the table is not the
+// one the project catalog format describes.
+export function projectIndexTableRows(text, heading) {
+  const table = [skillsTable, shadowsTable].find((item) => item.heading === heading);
+  const lines = text.split(/\r?\n/);
+  const section = indexSection(lines, table);
+  if (section?.unexpected) return null;
+  if (section === null || section.lastRow === -1) return [];
+  return lines.slice(section.first + 2, section.lastRow + 1).map(tableCells);
 }
 
 // The line ending of an existing index, or null when one of its tables is
@@ -490,6 +502,7 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
   const sourceRows = await projectCatalogRows({ targetPath, shippedFiles, isKitPath });
   const skillOf = (rowPath) => skills.find((skill) => rowPath.startsWith(`${skill.directory}/`));
   const indexRows = [];
+  const unwrittenRows = [];
   for (const skill of moved) {
     const skillPath = `${skill.directory}/${skillFileName}`;
     const source = sourceRows.find((row) => row.rowPath === skillPath) ?? null;
@@ -511,6 +524,7 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
     if (owner && !owner.newDirectory) continue;
     if (!owner && source.rowPath.startsWith(`${skillsRoot}/`)) {
       notes.push(`${source.name} row not moved: ${source.rowPath} is under ${skillsRoot}/ and is not an own skill`);
+      unwrittenRows.push({ name: source.name, rowPath: source.rowPath });
       continue;
     }
     // A skill folder inside a moved skill moved with it.
@@ -619,6 +633,7 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
         ...skills.filter((skill) => !skill.newDirectory).map((skill) => ({ relativePath: `${skill.directory}/`, reason: skill.reason }))
       ],
       notes,
+      unwrittenRows,
       retiredDeleted: operations.filter((item) => item.retired && item.operation === 'delete_with_backup').length,
       skillsMoved: moved.length,
       catalogRowsMoved: indexWritable ? indexRows.filter((item) => item.fromCatalog).length : 0,

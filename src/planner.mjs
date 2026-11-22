@@ -9,15 +9,15 @@ import { loadDelegateCatalog, parseProfileOption, renderDelegateAdapterForPath, 
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
 import { assertNoSymlinkWrites, resolveInsideTarget } from './fs-safety.mjs';
-import { applyJournalRelativePath } from './apply.mjs';
+import { applyJournalRelativePath, readableApplyJournalVersions } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
-import { layoutMigrationId, pendingEditReasons, prepareLayoutMigration, projectIndexUnexpected, requireMigrationBackups } from './migration.mjs';
+import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, projectIndexUnexpected, requireMigrationBackups } from './migration.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
 export const installStateRelativePath = '.agents/workflow-kit/install-state.json';
 const installStateSchemaVersion = '2.0.0';
-const legacyInstallStateSchemaVersion = '1.0.0';
+export const legacyInstallStateSchemaVersion = '1.0.0';
 const oneTimeLegacyDocsMapPath = 'docs/workflow/migration/legacy-docs-map.md';
 // The only planned path without a manifest class: it stays user-owned and the
 // kit only appends the manifest's ignore entries to it.
@@ -103,34 +103,40 @@ export async function selectedTemplateFiles({ runtimes = ['neutral'], overlay = 
   return [...deduped.values()].sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 }
 
-// An apply that stopped halfway left a journal with `completed: false`; it is
-// the only way back, and the next apply would replace it. A journal that is
-// not JSON is rollback's concern, not a reason to stop here.
-async function assertLastApplyFinished(targetPath) {
+// What the apply journal says about the last init or update: null when there
+// is none or it finished; `unusable` when it exists but cannot be read (the
+// next apply would replace the only way back); `incomplete` when the run
+// stopped halfway. Shared by the init/update gate and doctor.
+
+export async function lastApplyProblem(targetPath) {
   const raw = await readOptional(path.join(targetPath, applyJournalRelativePath));
-  if (raw === null) return;
+  if (raw === null) return null;
   let journal;
   try {
     journal = JSON.parse(raw);
   } catch {
-    return;
+    return { kind: 'unusable', reason: 'not valid JSON' };
   }
-  if (journal?.completed === false) {
-    throw new Error(`The last workflow-kit apply did not finish (${journal.appliedAt ?? 'unknown date'}). Run \`workflow-kit rollback --apply --yes\` first, then run this command again. Nothing was written.`);
+  if (journal === null || typeof journal !== 'object' || !readableApplyJournalVersions.has(journal.schemaVersion) || !Array.isArray(journal.files)) {
+    return { kind: 'unusable', reason: 'unsupported format' };
   }
+  return journal.completed === false ? { kind: 'incomplete', appliedAt: journal.appliedAt ?? 'unknown date' } : null;
+}
+
+export const unusableJournalMessage = (reason) => `${applyJournalRelativePath} cannot be read (${reason}). Check it, then run \`workflow-kit rollback\` (or delete it if the last apply finished)`;
+export const incompleteApplyMessage = (appliedAt) => `The last workflow-kit apply did not finish (${appliedAt}). Run \`workflow-kit rollback --apply --yes\` first`;
+
+async function assertLastApplyFinished(targetPath) {
+  const problem = await lastApplyProblem(targetPath);
+  if (problem?.kind === 'unusable') throw new Error(`${unusableJournalMessage(problem.reason)}, and run this command again. Nothing was written.`);
+  if (problem?.kind === 'incomplete') throw new Error(`${incompleteApplyMessage(problem.appliedAt)}, then run this command again. Nothing was written.`);
 }
 
 // init plans as if nothing were installed: over a 1.0.0 state it would
 // replace the project content that only the layout migration of update moves.
-async function assertNotLegacyInstall(targetPath) {
-  const raw = await readOptional(path.join(targetPath, installStateRelativePath));
-  if (raw === null) return;
-  let state;
-  try {
-    state = JSON.parse(raw);
-  } catch {
-    return;
-  }
+// A state that exists but cannot be used stops init the same way it stops update.
+async function assertNotLegacyInstall(targetPath, manifest) {
+  const state = await readInstallState(path.join(targetPath, installStateRelativePath), manifest);
   if (state?.schemaVersion === legacyInstallStateSchemaVersion) {
     throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run \`workflow-kit update\` to migrate this repository; init would replace project content. Nothing was written.`);
   }
@@ -139,11 +145,11 @@ async function assertNotLegacyInstall(targetPath) {
 export async function buildInstallPlan(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   await assertLastApplyFinished(targetPath);
-  await assertNotLegacyInstall(targetPath);
+  const manifest = options.manifest ?? await loadKitManifest();
+  await assertNotLegacyInstall(targetPath, manifest);
   const runtimes = parseRuntimeList(options.runtime ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
-  const manifest = options.manifest ?? await loadKitManifest();
   const files = await selectedTemplateFiles({ runtimes, overlay });
   const catalog = await loadDelegateCatalog();
   const modelProfiles = resolveModelProfiles({ catalog, runtimes, requested: parseProfileOption(options.profile) });
@@ -263,8 +269,9 @@ export async function buildUpdatePlan(options = {}) {
     migratedInstructions,
     layoutMigration
   });
-  // Per-row and per-skill notes print under the layout migration's summary.
-  if (layoutMigration) migrations.find((item) => item.id === layoutMigrationId).notes = layoutMigration.notes;
+  // Per-row and per-skill notes print under the layout migration's summary;
+  // the catalog rows it does not write are listed by doctor.
+  if (layoutMigration) Object.assign(migrations.find((item) => item.id === layoutMigrationId), { notes: layoutMigration.notes, unwrittenRows: layoutMigration.unwrittenRows });
 
   const nextInstallState = buildNextInstallState({
     previousState: existingState,
@@ -450,7 +457,6 @@ async function finalizeOperations({ targetPath, manifest, operations, previousFi
 // backup. Shipped means any runtime's template, so switching runtimes never
 // deletes the files of the runtime left out.
 const retirableClasses = new Set(['kit', 'derived']);
-const backupFileMarker = '.workflow-kit-backup-';
 // The native call returns the letter case stored on disk.
 const realpathNative = promisify(realpathCallback.native);
 
@@ -704,8 +710,12 @@ export function formatPlan(plan) {
   }
   lines.push('Operations:');
 
+  // A pending file lists the decisions that settle it, as the migration lines
+  // do; under a layout migration those lines already list them.
+  const migrationListsPending = (plan.migrations ?? []).some((migration) => migration.id === layoutMigrationId);
   for (const item of plan.operations) {
-    const note = item.retired ? ` (no longer shipped${item.operation === 'skip_modified' ? '; edited, kept' : ''})` : '';
+    let note = item.retired ? ` (no longer shipped${item.operation === 'skip_modified' ? '; edited, kept' : ''})` : '';
+    if (item.decisions && !migrationListsPending) note = ` (${item.reason}): ${item.decisions.join(' | ')}`;
     lines.push(`- ${item.operation}: ${item.relativePath}${note}`);
   }
 
@@ -741,12 +751,16 @@ async function readInstallState(stateFilePath, manifest) {
   }
   const legacy = parsed.schemaVersion === legacyInstallStateSchemaVersion;
   const files = {};
+  const ignoredKeys = [];
   for (const [rawPath, entry] of Object.entries(parsed.files)) {
     // Keys come from the repository: installs before 0.17.0 on Windows wrote
     // "\". A key that is absolute or steps through "." or ".." names no file
-    // the kit installed, so it is ignored.
+    // the kit installed, so it is ignored (doctor lists it).
     const relativePath = rawPath.replaceAll('\\', '/');
-    if (relativePath.startsWith('/') || relativePath.split('/').some((segment) => ['', '.', '..'].includes(segment))) continue;
+    if (relativePath.startsWith('/') || relativePath.split('/').some((segment) => ['', '.', '..'].includes(segment))) {
+      ignoredKeys.push(rawPath);
+      continue;
+    }
     if (relativePath !== rawPath && Object.hasOwn(parsed.files, relativePath)) continue;
     if (legacy && typeof entry === 'string') {
       files[relativePath] = { sha256: entry, class: classifyPath(manifest, relativePath)?.class ?? null };
@@ -768,7 +782,8 @@ async function readInstallState(stateFilePath, manifest) {
       overlay: normalizeOverlay(parsed.overlay ?? 'fhh-ia-ecosystem-full'),
       modelProfiles: parsed.modelProfiles && typeof parsed.modelProfiles === 'object' ? parsed.modelProfiles : {},
       stackPack: typeof parsed.stackPack === 'string' ? parsed.stackPack : undefined,
-      files
+      files,
+      ignoredKeys
     };
   } catch (error) {
     throw unusable(`names something this CLI version does not support (${error.message})`);

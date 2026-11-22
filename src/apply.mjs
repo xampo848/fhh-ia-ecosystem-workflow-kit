@@ -7,6 +7,8 @@ import { assertNoSymlinkWrites, checksumOf, findSymlinkInPath, writeFileAtomic }
 // remove created files and put the previous install-state back.
 export const applyJournalRelativePath = '.agents/workflow-kit/last-apply.json';
 export const applyJournalSchemaVersion = '2.0.0';
+// Journal versions this CLI can read back (rollback, and the init/update gate).
+export const readableApplyJournalVersions = new Set(['1.0.0', applyJournalSchemaVersion]);
 
 // A retired kit file is removed only after a copy is kept next to it, even
 // with --backup-mode none: the delete is what rollback has to undo.
