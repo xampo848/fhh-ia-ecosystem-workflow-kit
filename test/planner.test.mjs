@@ -304,8 +304,8 @@ test('buildUpdatePlan supports no-backup write operations', async () => {
 });
 
 // A 1.0.0 state recorded each file whole. It is read (doctor and the layout
-// migration need it); update stops on it (test below). Its unmarked adapters
-// are covered by the migration tests.
+// migration need it); update plans it only through the migration (test below
+// and migration.test.mjs), which also covers its unmarked adapters.
 test('a 1.0.0 state is read with each entry classified; an unknown schema asks to upgrade the CLI', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude,codex' }));
@@ -364,15 +364,17 @@ test('with a 2.0.0 state no operation modifies anything under .agents/project/ (
   }
 });
 
-// Review of phase 1: until the migration exists, a 1.0.0 state must not reach
-// the class planner. That state recorded merged catalogs as unedited, so a
+// Review of phase 1: a 1.0.0 state reaches the class planner only through the
+// layout migration. That state recorded merged catalogs as unedited, so a
 // plain update would replace a registry holding the project's own skills.
-test('update stops on a 1.0.0 state before planning any write', async () => {
+test('a 1.0.0 state with an auto-registered local skill keeps that skill when registry.json is replaced', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
   const registryPath = '.agents/skills/registry.json';
+  const skillPath = '.agents/skills/06-patterns/local/retry-policy/SKILL.md';
+  await write(target, skillPath, '---\nname: retry-policy\ndescription: Description the registry entry overrides.\n---\n');
   const registry = JSON.parse(await read(target, registryPath));
-  registry.pattern_skills.push({ name: 'retry-policy', path: '.agents/skills/06-patterns/local/retry-policy/SKILL.md' });
+  registry.pattern_skills.push({ name: 'retry-policy', path: skillPath, trigger: 'Retry calls to external services.' });
   const merged = `${JSON.stringify(registry, null, 2)}\n`;
   await write(target, registryPath, merged);
   const state = await readState(target);
@@ -380,7 +382,11 @@ test('update stops on a 1.0.0 state before planning any write', async () => {
   files[registryPath] = sha(merged);
   await writeState(target, { ...state, schemaVersion: '1.0.0', files });
 
-  await assert.rejects(buildUpdatePlan({ targetPath: target, backupMode: 'none' }), /install-state 1\.0\.0[\s\S]*Nothing was written/);
+  const plan = await buildUpdatePlan({ targetPath: target, backupMode: 'none' });
+
+  assert.equal(operationFor(plan, registryPath).operation, 'overwrite_with_backup');
+  assert.match(operationFor(plan, '.agents/project/index.md').content, /^\| `retry-policy` \| Pattern \| Retry calls to external services\. \| `\.agents\/project\/skills\/retry-policy\/SKILL\.md` \| lean \|$/m);
+  assert.equal(operationFor(plan, '.agents/project/skills/retry-policy/SKILL.md').operation, 'create');
 });
 
 // Review of phase 1: no plan replaces content without a backup unless that

@@ -11,6 +11,7 @@ import { describeMigrations } from './plan-insight.mjs';
 import { assertNoSymlinkWrites, resolveInsideTarget } from './fs-safety.mjs';
 import { applyJournalRelativePath } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
+import { prepareLayoutMigration, requireMigrationBackups } from './migration.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
@@ -165,12 +166,6 @@ export async function buildUpdatePlan(options = {}) {
   if (!existingState && !options.adoptExisting) {
     throw new Error('No install state found. Run `workflow-kit update --adopt-existing --runtime <list>` first to bootstrap a safe baseline.');
   }
-  // A 1.0.0 state recorded merged catalogs and preserved files as if the kit
-  // owned them, so the class planner would replace project content. Only the
-  // layout migration may read it.
-  if (existingState?.schemaVersion === legacyInstallStateSchemaVersion) {
-    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}, the layout before the kit and project overlay split. This workflow-kit build cannot migrate it yet, and updating it in place could replace project content. Nothing was written.`);
-  }
   const runtimes = parseRuntimeList(options.runtime ?? existingState?.runtimes?.join(',') ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? existingState?.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
@@ -189,30 +184,39 @@ export async function buildUpdatePlan(options = {}) {
   // the repository looks like Rails + React; anywhere else they would be wrong.
   const stackPack = normalizeStackPack(options.stack ?? existingState?.stackPack ?? await detectStackPack(targetPath));
   const previousFiles = existingState?.files ?? {};
+  // A 1.0.0 state recorded merged catalogs and preserved files as if the kit
+  // owned them, so it reaches the class planner only through the layout
+  // migration, which decides what the planner sees as recorded.
+  const migration = existingState?.schemaVersion === legacyInstallStateSchemaVersion
+    ? await prepareLayoutMigration({ targetPath, manifest, previousFiles, files })
+    : null;
 
   const operations = await planTemplateFiles({
     targetPath,
     files,
     manifest,
     mode: existingState ? 'update' : 'adopt',
-    previousFiles,
+    previousFiles: migration?.plannerFiles ?? previousFiles,
     backupMode,
     overwriteModified: Boolean(options.overwriteModified),
     catalog,
     modelProfiles,
-    migratedInstructions
+    migratedInstructions: { ...migratedInstructions, ...migration?.seedContents }
   });
+  if (migration) await migration.completeOperations(operations);
   operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
   operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode }));
   operations.push(...await buildStackPackOperations({ targetPath, stackPack, previousFiles }));
   const retired = existingState ? await planRetiredFiles({ targetPath, manifest, previousFiles, operations }) : { operations: [], missing: [] };
   operations.push(...retired.operations);
   await finalizeOperations({ targetPath, manifest, operations, previousFiles });
+  if (migration) requireMigrationBackups(operations);
+  const droppedStatePaths = [...retired.missing, ...(migration?.droppedPaths ?? [])];
 
   const nextInstallState = buildNextInstallState({
     previousState: existingState,
     operations,
-    droppedPaths: retired.missing,
+    droppedPaths: droppedStatePaths,
     runtimes,
     overlay,
     modelProfiles,
@@ -232,7 +236,8 @@ export async function buildUpdatePlan(options = {}) {
       requestedProfiles: parseProfileOption(options.profile),
       stackPack,
       stackRequested: options.stack !== undefined,
-      migratedInstructions
+      migratedInstructions,
+      layoutMigration: migration?.describe(operations)
     }),
     nextInstallState,
     toolkitVersion: options.toolkitVersion ?? null,
@@ -245,7 +250,7 @@ export async function buildUpdatePlan(options = {}) {
     summary: summarizeOperations(operations),
     backupMode,
     previousStateFiles: { ...previousFiles },
-    droppedStatePaths: retired.missing
+    droppedStatePaths
   };
 }
 
@@ -475,7 +480,9 @@ function managedBlockChecksum(content, blockName) {
 
 export function selectPlanOperations(plan, selectedRelativePaths = []) {
   const selected = new Set(selectedRelativePaths);
-  const operations = plan.operations.filter((item) => selected.has(item.relativePath));
+  // The layout migration is applied whole: deselecting part of it would leave
+  // catalog rows or the context pointing at files that moved.
+  const operations = plan.operations.filter((item) => item.migration || selected.has(item.relativePath));
 
   const nextInstallState = buildNextInstallState({
     previousState: { files: { ...(plan.previousStateFiles ?? {}) } },
@@ -535,7 +542,10 @@ export function formatPlan(plan) {
 
   if ((plan.migrations ?? []).length > 0) {
     lines.push('Migrations (applied once, idempotent):');
-    for (const migration of plan.migrations) lines.push(`- ${migration.id}: ${migration.summary}`);
+    for (const migration of plan.migrations) {
+      lines.push(`- ${migration.id}: ${migration.summary}`);
+      for (const item of migration.pending ?? []) lines.push(`  - pending ${item.relativePath} (${item.reason})`);
+    }
   }
   lines.push('Operations:');
 
@@ -627,17 +637,22 @@ function buildNextInstallState({ previousState, operations, droppedPaths = [], r
   for (const relativePath of droppedPaths) delete files[relativePath];
 
   for (const item of operations) {
+    // A deleted file (retired, or moved by the layout migration) leaves the state.
+    if (item.operation === 'delete_with_backup') {
+      delete files[item.relativePath];
+      continue;
+    }
     if (item.retired) {
-      if (item.operation === 'delete_with_backup') delete files[item.relativePath];
-      else files[item.relativePath] = { ...files[item.relativePath], retired: true };
+      files[item.relativePath] = { ...files[item.relativePath], retired: true };
       continue;
     }
     // .gitignore has no class and stays user-owned; skipped files keep what
     // the previous state recorded.
     if (!item.class || item.class === 'state') continue;
     if (item.operation === 'skip_unmanaged' || item.operation === 'skip_modified') continue;
+    // A seed the kit wrote: created, or reset by the layout migration.
     if (item.class === 'seed') {
-      if (item.operation === 'create') files[item.relativePath] = { class: 'seed' };
+      files[item.relativePath] = { class: 'seed' };
       continue;
     }
     files[item.relativePath] = { sha256: item.stateChecksum, class: item.class };
