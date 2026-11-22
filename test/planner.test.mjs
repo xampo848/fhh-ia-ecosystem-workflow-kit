@@ -380,9 +380,13 @@ test('a file that differs from its recorded hash is never replaced without a bac
   await write(target, kitFile, '# Our own instructions\n');
   await write(target, catalog, '# Our own catalog\n');
 
+  // init runs only where no install state exists.
+  const state = await readState(target);
+  await fs.rm(path.join(target, installStateRelativePath));
   const init = await buildInstallPlan({ targetPath: target, runtime: 'claude', backupMode: 'none' });
   assert.equal(operationFor(init, kitFile).operation, 'overwrite_with_backup');
   assert.equal(operationFor(init, catalog).operation, 'overwrite_with_backup');
+  await writeState(target, state);
 
   const claude = await read(target, 'CLAUDE.md');
   const { block } = extractManagedBlock(claude, 'workflow-kit:managed');
@@ -477,6 +481,20 @@ test('buildUpdatePlan requires install state unless adopt-existing is enabled', 
 
 // P4: kit files a version no longer ships. The fixture is a skill an older
 // version installed: the file on disk plus its record in a 2.0.0 state.
+// Final review 4: init plans as if nothing were installed. Over a 2.0.0 install
+// it would reset the recorded runtimes, stack and profiles and replace pending
+// edited files, so it stops and points to update.
+test('init over a 2.0.0 install stops before planning and points to update', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nOwn rule.\n');
+  const before = await hashTree(target);
+
+  await assert.rejects(buildInstallPlan({ targetPath: target, runtime: 'neutral' }), new Error(`${installStateRelativePath} already records an install (runtimes: claude). Run \`workflow-kit update\` instead (\`workflow-kit update --runtime <list>\` to change the runtimes); init would reset the recorded runtimes, stack and profiles and replace pending edited files. Nothing was written.`));
+
+  assert.deepEqual(await hashTree(target), before);
+});
+
 const retiredSkill = '.agents/skills/04-crosscutting/retired-skill/SKILL.md';
 async function installWithRetired(target, records, runtime = 'neutral') {
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime }));

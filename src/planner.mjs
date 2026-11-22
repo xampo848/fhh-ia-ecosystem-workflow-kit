@@ -133,12 +133,17 @@ async function assertLastApplyFinished(targetPath) {
 }
 
 // init plans as if nothing were installed: over a 1.0.0 state it would
-// replace the project content that only the layout migration of update moves.
-// A state that exists but cannot be used stops init the same way it stops update.
-async function assertNotLegacyInstall(targetPath, manifest) {
+// replace the project content that only the layout migration of update moves;
+// over a 2.0.0 state it would reset the recorded runtimes, stack and profiles
+// and replace pending edited files. A state that exists but cannot be used
+// stops init the same way it stops update.
+async function assertNoInstallState(targetPath, manifest) {
   const state = await readInstallState(path.join(targetPath, installStateRelativePath), manifest);
   if (state?.schemaVersion === legacyInstallStateSchemaVersion) {
     throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run \`workflow-kit update\` to migrate this repository; init would replace project content. Nothing was written.`);
+  }
+  if (state) {
+    throw new Error(`${installStateRelativePath} already records an install (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}). Run \`workflow-kit update\` instead (\`workflow-kit update --runtime <list>\` to change the runtimes); init would reset the recorded runtimes, stack and profiles and replace pending edited files. Nothing was written.`);
   }
 }
 
@@ -146,7 +151,7 @@ export async function buildInstallPlan(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   await assertLastApplyFinished(targetPath);
   const manifest = options.manifest ?? await loadKitManifest();
-  await assertNotLegacyInstall(targetPath, manifest);
+  await assertNoInstallState(targetPath, manifest);
   const runtimes = parseRuntimeList(options.runtime ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
