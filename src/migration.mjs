@@ -17,6 +17,8 @@ export const layoutMigrationId = '0.22.0-kit-overlay-layout';
 export const projectIndexPath = '.agents/project/index.md';
 const skillsRoot = '.agents/skills';
 const projectSkillsRoot = '.agents/project/skills';
+const projectShadowsRoot = '.agents/project/shadows';
+const shadowManifestName = 'shadow.json';
 const skillFileName = 'SKILL.md';
 const backupFileMarker = '.workflow-kit-backup-';
 // Catalogs 0.18.1 preserved as project files after merging local rows into
@@ -26,8 +28,10 @@ const markdownCatalogPaths = [...catalogPaths].filter((relativePath) => relative
 const registryJsonPath = '.agents/skills/registry.json';
 // A folder name: no separators, never "." or "..".
 const skillNamePattern = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-const skillsTableHeader = ['| Skill name | Class | Trigger | Physical path | Cost hint |', '| --- | --- | --- | --- | --- |'];
-const pendingEditReasons = new Set(['edited_kit_file', 'unmarked_adapter']);
+const skillsTable = { heading: 'Skills', header: ['| Skill name | Class | Trigger | Physical path | Cost hint |', '| --- | --- | --- | --- | --- |'] };
+const shadowsTable = { heading: 'Shadows', header: ['| Kit skill | Shadow directory |', '| --- | --- |'] };
+// Pending files an --edited decision can settle (PRD 2.4).
+export const pendingEditReasons = new Set(['edited_kit_file', 'unmarked_adapter']);
 const noBackupUpgrade = { overwrite_no_backup: 'overwrite_with_backup', merge_no_backup: 'merge_with_backup' };
 
 async function readBufferOptional(file) {
@@ -175,38 +179,34 @@ function skillRow(skill, trigger) {
   return `| \`${skill.name}\` | Pattern | ${cell(trigger)} | \`${skill.newDirectory}/${skillFileName}\` | lean |`;
 }
 
-// Appends rows to the Skills table, adding the section or the table header
-// when missing. Existing rows are never changed.
-function appendSkillRows(content, rows) {
+const shadowRow = (shadow) => `| \`${shadow.skill}\` | \`${shadow.directory}/\` |`;
+
+// Appends rows to a table of the project index, adding the section or the
+// table header when missing. Existing rows are never changed.
+function appendTableRows(content, table, rows) {
+  if (rows.length === 0) return content;
   const lines = content.split('\n');
-  const heading = lines.findIndex((line) => /^##\s+Skills\s*$/.test(line));
+  const heading = lines.findIndex((line) => new RegExp(`^##\\s+${table.heading}\\s*$`).test(line));
   if (heading === -1) {
     const separator = content.length === 0 || content.endsWith('\n') ? '' : '\n';
-    return `${content}${separator}\n## Skills\n\n${[...skillsTableHeader, ...rows].join('\n')}\n`;
+    return `${content}${separator}\n## ${table.heading}\n\n${[...table.header, ...rows].join('\n')}\n`;
   }
   let end = lines.findIndex((line, index) => index > heading && /^#{1,2}\s/.test(line));
   if (end === -1) end = lines.length;
   let lastRow = -1;
   for (let index = heading + 1; index < end; index += 1) if (lines[index].trimStart().startsWith('|')) lastRow = index;
-  if (lastRow === -1) lines.splice(heading + 1, 0, '', ...skillsTableHeader, ...rows);
+  if (lastRow === -1) lines.splice(heading + 1, 0, '', ...table.header, ...rows);
   else lines.splice(lastRow + 1, 0, ...rows);
   return lines.join('\n');
 }
 
-function newProjectIndex(rows) {
-  return [
-    '# Project Catalog',
-    '',
-    'Skills, extensions and shadows that belong to this project. Format:',
-    '`.agents/kit-boundary.md`, "Project catalog format".',
-    '',
-    '## Skills',
-    '',
-    ...skillsTableHeader,
-    ...rows,
-    ''
-  ].join('\n');
-}
+const newProjectIndexIntro = [
+  '# Project Catalog',
+  '',
+  'Skills, extensions and shadows that belong to this project. Format:',
+  '`.agents/kit-boundary.md`, "Project catalog format".',
+  ''
+].join('\n');
 
 const migrationOperation = (targetPath, relativePath, fields) => ({
   relativePath,
@@ -227,7 +227,7 @@ const deleteOperation = (targetPath, relativePath, content) => migrationOperatio
 // Reads what the migration needs before the class planner runs. Returns the
 // planner inputs (`plannerFiles`, `seedContents`), the state paths to drop,
 // and the steps that complete the plan.
-export async function prepareLayoutMigration({ targetPath, manifest, previousFiles, files }) {
+export async function prepareLayoutMigration({ targetPath, manifest, previousFiles, previousToolkitVersion, files }) {
   const shippedFiles = await selectedTemplateFiles({ runtimes: supportedRuntimes });
   const shippedPaths = new Set(shippedFiles.map((file) => file.relativePath));
 
@@ -272,17 +272,45 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
   const catalogRows = moved.filter((skill) => catalog.has(`${skill.directory}/${skillFileName}`));
   const existingIndex = await readBufferOptional(path.join(targetPath, projectIndexPath));
   const indexText = existingIndex?.toString('utf8') ?? '';
-  const rows = moved
-    .map((skill) => {
-      const skillPath = `${skill.directory}/${skillFileName}`;
-      const trigger = catalog.get(skillPath) || readFrontmatter(skill.contents[skillPath]).description || `Project skill moved from ${skill.directory}/.`;
-      return { skill, row: skillRow(skill, trigger) };
-    })
-    .filter(({ skill }) => !indexText.includes(`\`${skill.newDirectory}/${skillFileName}\``));
+  // A row whose path the index already lists is not added again.
+  const newRows = (rows) => rows.filter(({ listedPath }) => !indexText.includes(`\`${listedPath}\``)).map(({ row }) => row);
+  const skillRows = newRows(moved.map((skill) => {
+    const skillPath = `${skill.directory}/${skillFileName}`;
+    const trigger = catalog.get(skillPath) || readFrontmatter(skill.contents[skillPath]).description || `Project skill moved from ${skill.directory}/.`;
+    return { listedPath: `${skill.newDirectory}/${skillFileName}`, row: skillRow(skill, trigger) };
+  }));
+  let indexRowsAdded = 0;
+
+  // shadow (PRD 2.4): only the SKILL.md of a kit leaf skill that the manifest
+  // lets be shadowed and that has no shadow yet. Returns what the shadow
+  // needs, or null when the decision does not apply to the pending file.
+  async function shadowFor(item) {
+    const directory = path.posix.dirname(item.relativePath);
+    if (!item.relativePath.startsWith(`${skillsRoot}/`) || path.posix.basename(item.relativePath) !== skillFileName) return null;
+    const isInnerSkill = (relativePath) => relativePath.startsWith(`${directory}/`) && relativePath !== item.relativePath && path.posix.basename(relativePath) === skillFileName;
+    if ([...shippedPaths].some(isInnerSkill)) return null;
+    const skill = skillNameOf(await fs.readFile(item.sourcePath, 'utf8'), directory);
+    if (!skillNamePattern.test(skill) || manifest.not_shadowable.includes(skill)) return null;
+    const shadowDirectory = `${projectShadowsRoot}/${skill}`;
+    if (await pathExists(path.join(targetPath, shadowDirectory))) return null;
+    // The shadow is the edited file byte for byte, written as text.
+    const edited = await fs.readFile(item.targetFile);
+    if (!Buffer.from(edited.toString('utf8'), 'utf8').equals(edited)) return null;
+    return { skill, directory: shadowDirectory, kitPath: item.relativePath, content: edited.toString('utf8'), baseSha256: item.recordedChecksum };
+  }
+
+  // The shadow files; the replaced kit file is the caller's operation.
+  function shadowOperations(shadow) {
+    const shadowManifest = { skill: shadow.skill, kit_path: shadow.kitPath, base_sha256: shadow.baseSha256, kit_version: previousToolkitVersion ?? null };
+    return [
+      migrationOperation(targetPath, `${shadow.directory}/${skillFileName}`, { operation: 'create', content: shadow.content }),
+      migrationOperation(targetPath, `${shadow.directory}/${shadowManifestName}`, { operation: 'create', content: `${JSON.stringify(shadowManifest, null, 2)}\n` })
+    ];
+  }
 
   // Called right after the class planner, before anything reads the planned
   // content of other files (the Copilot wrappers read the quality gate).
-  async function completeOperations(operations) {
+  async function completeOperations(operations, shadows = []) {
     for (const item of operations) {
       // 5. A seed still equal to a default the kit shipped is reset; any other
       // existing seed stays the project's.
@@ -307,10 +335,12 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
         operations.push(migrationOperation(targetPath, newPath, { operation: 'create', content }));
       }
     }
-    if (rows.length > 0) {
-      operations.push(migrationOperation(targetPath, projectIndexPath, existingIndex === null
-        ? { operation: 'create', content: newProjectIndex(rows.map((item) => item.row)) }
-        : { operation: 'merge_with_backup', content: appendSkillRows(indexText, rows.map((item) => item.row)) }));
+    // One index operation for the moved skills and the new shadows.
+    const shadowRows = newRows(shadows.map((shadow) => ({ listedPath: `${shadow.directory}/`, row: shadowRow(shadow) })));
+    indexRowsAdded = skillRows.length + shadowRows.length;
+    if (indexRowsAdded > 0) {
+      const content = appendTableRows(appendTableRows(existingIndex === null ? newProjectIndexIntro : indexText, skillsTable, skillRows), shadowsTable, shadowRows);
+      operations.push(migrationOperation(targetPath, projectIndexPath, existingIndex === null ? { operation: 'create', content } : { operation: 'merge_with_backup', content }));
     }
   }
 
@@ -323,13 +353,13 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
       kitUpdated: kitUpdated.length,
       catalogsReplaced: kitUpdated.filter((item) => takenOver.has(item.relativePath) || catalogPaths.has(item.relativePath)).length,
       pending: [
-        ...operations.filter((item) => item.operation === 'skip_modified' && pendingEditReasons.has(item.reason)).map((item) => ({ relativePath: item.relativePath, reason: item.reason })),
+        ...operations.filter((item) => item.operation === 'skip_modified' && pendingEditReasons.has(item.reason)).map((item) => ({ relativePath: item.relativePath, reason: item.reason, decisions: item.decisions })),
         ...skills.filter((skill) => !skill.newDirectory).map((skill) => ({ relativePath: `${skill.directory}/`, reason: skill.reason }))
       ],
       retiredDeleted: operations.filter((item) => item.retired && item.operation === 'delete_with_backup').length,
       skillsMoved: moved.length,
       catalogRowsMoved: catalogRows.length,
-      projectIndexRows: rows.length,
+      projectIndexRows: indexRowsAdded,
       contextMoved: contextMoves.map(({ legacyPath, currentPath }) => ({ from: legacyPath, to: currentPath })),
       seedsReset: operations.filter((item) => item.superseded).map((item) => item.relativePath)
     };
@@ -340,6 +370,8 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
     seedContents,
     // A legacy path never enters the 2.0.0 state, moved or not.
     droppedPaths: Object.keys(manifest.legacy_paths).filter((legacyPath) => Object.hasOwn(previousFiles, legacyPath)),
+    shadowFor,
+    shadowOperations,
     completeOperations,
     describe
   };

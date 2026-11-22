@@ -797,11 +797,12 @@ export async function runTui(options = {}) {
       });
     }
 
-    let overwriteModified = false;
+    // Replace all is --edited all=discard.
+    let edited;
     let backupMode = 'required';
     let adoptExistingAnswer;
 
-    const buildPlan = async ({ overwriteModified: overwriteModifiedValue = false, backupMode: backupModeValue = 'required' } = {}) => {
+    const buildPlan = async ({ edited: editedValue, backupMode: backupModeValue = 'required' } = {}) => {
       if (mode === 'update') {
         try {
           return await buildUpdatePlan({
@@ -809,7 +810,7 @@ export async function runTui(options = {}) {
             runtime,
             overlay,
             stack,
-            overwriteModified: overwriteModifiedValue,
+            edited: editedValue,
             backupMode: backupModeValue,
             toolkitVersion: currentToolkitMetadata().version
           });
@@ -832,7 +833,7 @@ export async function runTui(options = {}) {
             overlay,
             stack,
             adoptExisting: true,
-            overwriteModified: overwriteModifiedValue,
+            edited: editedValue,
             backupMode: backupModeValue,
             toolkitVersion: currentToolkitMetadata().version
           });
@@ -857,7 +858,7 @@ export async function runTui(options = {}) {
       paint,
       label: 'Building plan',
       enabled: animate
-    }, () => buildPlan({ overwriteModified, backupMode }));
+    }, () => buildPlan({ edited, backupMode }));
 
     if (mode === 'update' && plan.summary.skip_modified > 0) {
       write(`\n${paint.copperInk(`Detected ${plan.summary.skip_modified} managed file(s) with local edits.`)}\n`);
@@ -880,14 +881,15 @@ export async function runTui(options = {}) {
         ]
       });
 
-      if (modifiedPolicy === 'overwrite') {
-        overwriteModified = true;
+      // Edited files no longer shipped have no decision: they stay as they are.
+      if (modifiedPolicy === 'overwrite' && plan.operations.some((item) => item.decisions)) {
+        edited = { all: 'discard' };
         plan = await withSpinner({
           write,
           paint,
           label: 'Rebuilding plan with overwrite for modified files',
           enabled: animate
-        }, () => buildPlan({ overwriteModified, backupMode }));
+        }, () => buildPlan({ edited, backupMode }));
       }
     }
 
@@ -917,7 +919,7 @@ export async function runTui(options = {}) {
           paint,
           label: `Rebuilding plan with backup mode: ${backupMode}`,
           enabled: animate
-        }, () => buildPlan({ overwriteModified, backupMode }));
+        }, () => buildPlan({ edited, backupMode }));
       }
 
       const writableOperations = plan.operations.filter((item) => isWriteOperation(item));

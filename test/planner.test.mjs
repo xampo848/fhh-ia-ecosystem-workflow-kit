@@ -258,7 +258,7 @@ test('buildUpdatePlan skips local edits and unmanaged files while keeping manage
   assert.equal(updatePlan.summary.skip_unmanaged > 0, true);
 });
 
-test('an edited .agents/instructions.md stays pending unless overwriteModified; an edited adapter keeps its own text', async () => {
+test('an edited .agents/instructions.md stays pending unless --edited all=discard; an edited adapter keeps its own text', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'codex,copilot', toolkitVersion: '0.6.0-test' }));
   await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nlocal instruction customization\n');
@@ -266,11 +266,11 @@ test('an edited .agents/instructions.md stays pending unless overwriteModified; 
   const editedAgents = `Intro del equipo\n\n${installedAgents.replace('# AI Agent Bootstrap', '# AI Agent Bootstrap (edited)')}\nNota del equipo\n`;
   await write(target, 'AGENTS.md', editedAgents);
 
-  for (const overwriteModified of [false, true]) {
-    const updatePlan = await buildUpdatePlan({ targetPath: target, toolkitVersion: '0.7.0-test', overwriteModified });
+  for (const edited of [undefined, { all: 'discard' }]) {
+    const updatePlan = await buildUpdatePlan({ targetPath: target, toolkitVersion: '0.7.0-test', edited });
     const instructions = operationFor(updatePlan, '.agents/instructions.md');
-    assert.equal(instructions.operation, overwriteModified ? 'overwrite_with_backup' : 'skip_modified');
-    assert.equal(instructions.reason, overwriteModified ? undefined : 'edited_kit_file');
+    assert.equal(instructions.operation, edited ? 'overwrite_with_backup' : 'skip_modified');
+    assert.equal(instructions.reason, edited ? undefined : 'edited_kit_file');
 
     // The block is the kit's: it is regenerated; the text around it stays byte for byte.
     const agents = operationFor(updatePlan, 'AGENTS.md');
@@ -355,9 +355,11 @@ test('with a 2.0.0 state no operation modifies anything under .agents/project/ (
   const projectFiles = (await fs.readdir(path.join(target, '.agents/project'))).map((name) => `.agents/project/${name}`);
   for (const relativePath of projectFiles) await fs.appendFile(path.join(target, relativePath), '\nedited by the project\n');
   await write(target, '.agents/project/skills/own/SKILL.md', '---\nname: own\n---\n');
+  // A pending kit file, so that discarding every edit has something to do.
+  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nedited by the project\n');
 
-  for (const overwriteModified of [false, true]) {
-    const plan = await buildUpdatePlan({ targetPath: target, overwriteModified });
+  for (const edited of [undefined, { all: 'discard' }]) {
+    const plan = await buildUpdatePlan({ targetPath: target, edited });
     const projectOperations = plan.operations.filter((item) => item.relativePath.startsWith('.agents/project/'));
     assert.ok(projectOperations.length >= projectFiles.length - 1);
     assert.deepEqual(projectOperations.filter((item) => item.operation !== 'skip_unmanaged').map((item) => `${item.operation}:${item.relativePath}`), []);
@@ -391,7 +393,7 @@ test('a 1.0.0 state with an auto-registered local skill keeps that skill when re
 
 // Review of phase 1: no plan replaces content without a backup unless that
 // content matches what the kit recorded (here: init ignores the state, adopt
-// records nothing yet, an edit forced with overwriteModified).
+// records nothing yet; a discarded edit is covered in migration.test.mjs).
 test('a file that differs from its recorded hash is never replaced without a backup', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
@@ -403,9 +405,6 @@ test('a file that differs from its recorded hash is never replaced without a bac
   const init = await buildInstallPlan({ targetPath: target, runtime: 'claude', backupMode: 'none' });
   assert.equal(operationFor(init, kitFile).operation, 'overwrite_with_backup');
   assert.equal(operationFor(init, catalog).operation, 'overwrite_with_backup');
-
-  const forced = await buildUpdatePlan({ targetPath: target, backupMode: 'none', overwriteModified: true });
-  assert.equal(operationFor(forced, kitFile).operation, 'overwrite_with_backup');
 
   const claude = await read(target, 'CLAUDE.md');
   const { block } = extractManagedBlock(claude, 'workflow-kit:managed');
@@ -443,7 +442,7 @@ test('selectPlanOperations allows partial apply without drifting managed state',
     targetPath: target,
     runtime: 'codex',
     toolkitVersion: '0.7.0-test',
-    overwriteModified: true
+    edited: { all: 'discard' }
   });
 
   const selected = selectPlanOperations(updatePlan, ['docs/workflow/README.md']);

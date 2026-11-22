@@ -1,5 +1,5 @@
 // Layout migration from install-state 1.0.0 (PRD manifest-updater 2.3, AC-7,
-// AC-8, AC-10). Every test starts from a real 0.18.1 install (fixture
+// AC-8, AC-10) and the decisions on edited files (2.4, AC-9). Every test starts from a real 0.18.1 install (fixture
 // legacy-0.18.1); the planner rules shared with a 2.0.0 state live in
 // planner.test.mjs.
 import assert from 'node:assert/strict';
@@ -8,7 +8,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { applyInstallPlan } from '../src/apply.mjs';
-import { loadKitManifest } from '../src/kit-manifest.mjs';
+import { extractManagedBlock, loadKitManifest } from '../src/kit-manifest.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan, installStateRelativePath, selectPlanOperations } from '../src/planner.mjs';
 import { applyRollbackPlan, buildRollbackPlan } from '../src/rollback.mjs';
 import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
@@ -20,6 +20,11 @@ const migrationId = '0.22.0-kit-overlay-layout';
 const projectIndexPath = '.agents/project/index.md';
 const catalogPaths = ['.agents/skills/index.md', '.agents/skills/registry.md', '.agents/skills/06-patterns/index.md', '.agents/skills/registry.json'];
 const nonWriting = new Set(['unchanged', 'skip_unmanaged', 'skip_modified', 'adopt_existing']);
+const instructionsPath = '.agents/instructions.md';
+// A kit leaf skill the manifest lets be shadowed.
+const leafSkill = { path: '.agents/skills/02-implement/validation-runner/SKILL.md', name: 'validation-runner' };
+const shadowDirectory = `.agents/project/shadows/${leafSkill.name}`;
+const claudeTemplate = path.join(root, 'templates/runtime-adapters/claude/CLAUDE.md');
 
 const sha = (content) => createHash('sha256').update(content).digest('hex');
 const read = (target, relativePath) => fs.readFile(path.join(target, relativePath), 'utf8');
@@ -31,6 +36,16 @@ async function write(target, relativePath, content) {
   await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.writeFile(file, content);
 }
+
+const appendTo = (target, relativePath, text) => fs.appendFile(path.join(target, relativePath), text);
+
+// assert.rejects matcher for a decision the planner refuses.
+const invalidDecision = (relativePath, decision, validDecisions) => (error) => {
+  assert.equal(error.code, 'INVALID_EDITED_DECISION');
+  assert.deepEqual({ relativePath: error.relativePath, decision: error.decision, validDecisions: error.validDecisions }, { relativePath, decision, validDecisions });
+  assert.ok(error.message.includes(`${relativePath}=${decision}`) && error.message.includes(`Valid decisions: ${validDecisions.join(' | ') || 'none'}.`), error.message);
+  return true;
+};
 
 async function legacyRepo(options) {
   const target = await makeTempRepo();
@@ -52,9 +67,9 @@ async function hashTree(target) {
   return hashes;
 }
 
-test('the dry-run lists the migration groups with counts and every pending file, and writes nothing (AC-7)', async () => {
+test('the dry-run lists the migration groups with counts and every pending file with its valid decisions, and writes nothing (AC-7)', async () => {
   const { target } = await legacyRepo();
-  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nLocal edit.\n');
+  for (const relativePath of [instructionsPath, leafSkill.path, 'CLAUDE.md']) await appendTo(target, relativePath, '\nLocal edit.\n');
   const before = await hashTree(target);
 
   const plan = await buildUpdatePlan({ targetPath: target });
@@ -63,7 +78,7 @@ test('the dry-run lists the migration groups with counts and every pending file,
   const migration = layoutMigration(plan);
   assert.ok(migration, 'the layout migration is part of the plan');
   for (const group of [
-    /edited files pending 1 \(\.agents\/instructions\.md\)/,
+    /edited files pending 3 \(\.agents\/instructions\.md, \.agents\/skills\/02-implement\/validation-runner\/SKILL\.md, CLAUDE\.md\)/,
     /retired deleted 1;/,
     /own skills moved to \.agents\/project\/skills\/ 1;/,
     /catalog rows moved to \.agents\/project\/index\.md 1 \(rows added 1\)/,
@@ -71,8 +86,19 @@ test('the dry-run lists the migration groups with counts and every pending file,
     /context moved: \.agents\/project-context\.md -> \.agents\/project\/context\.md/,
     /superseded seeds reset 1\./
   ]) assert.match(migration.summary, group);
-  assert.deepEqual(migration.pending, [{ relativePath: '.agents/instructions.md', reason: 'edited_kit_file' }]);
-  assert.match(formatPlan(plan), new RegExp(`^- ${migrationId}: .*\\n  - pending \\.agents/instructions\\.md \\(edited_kit_file\\)$`, 'm'));
+  assert.deepEqual(migration.pending, [
+    { relativePath: instructionsPath, reason: 'edited_kit_file', decisions: ['keep', 'discard'] },
+    { relativePath: leafSkill.path, reason: 'edited_kit_file', decisions: ['keep', 'discard', 'shadow'] },
+    { relativePath: 'CLAUDE.md', reason: 'unmarked_adapter', decisions: ['keep', 'discard', 'split'] }
+  ]);
+  const pendingLines = [
+    `  - pending ${instructionsPath} (edited_kit_file): keep | discard`,
+    `  - pending ${leafSkill.path} (edited_kit_file): keep | discard | shadow`,
+    '  - pending CLAUDE.md (unmarked_adapter): keep | discard | split'
+  ];
+  const lines = formatPlan(plan).split('\n');
+  const header = lines.findIndex((line) => line.startsWith(`- ${migrationId}: `));
+  assert.deepEqual(lines.slice(header + 1, header + 4), pendingLines);
 });
 
 test('applying the migration moves project content to the overlay and keeps a backup of every write, also with backupMode none (AC-8)', async () => {
@@ -282,14 +308,144 @@ test('rollback after the migration restores the 0.18.1 tree byte for byte and th
   assert.deepEqual(await hashTree(target), before);
 });
 
-// A 2.0.0 state never runs migration code: legacy files are not moved.
-test('with a 2.0.0 state no layout migration is planned', async () => {
+// A 2.0.0 state never runs migration code: legacy files are not moved, and
+// no shadow is made, since update never writes the overlay (CR-F2-01).
+test('with a 2.0.0 state no layout migration is planned and shadow is not a valid decision', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
   await write(target, '.agents/skills/06-patterns/local/own/SKILL.md', '---\nname: own\n---\n');
+  await appendTo(target, leafSkill.path, '\nOwn step.\n');
 
   const plan = await buildUpdatePlan({ targetPath: target });
 
   assert.equal(layoutMigration(plan), undefined);
   assert.deepEqual(plan.operations.filter((item) => item.migration || item.relativePath.startsWith('.agents/skills/06-patterns/local/')), []);
+  assert.deepEqual(operationFor(plan, leafSkill.path).decisions, ['keep', 'discard']);
+  await assert.rejects(buildUpdatePlan({ targetPath: target, edited: { [leafSkill.path]: 'shadow' } }), invalidDecision(leafSkill.path, 'shadow', ['keep', 'discard']));
+});
+
+// Decisions on edited files (PRD 2.4, AC-9).
+test('deciding shadow, split and discard writes each file with a backup, also with backupMode none, and a second update writes nothing', async () => {
+  const { target, legacy } = await legacyRepo();
+  const recordedSkillHash = JSON.parse(await read(target, installStateRelativePath)).files[leafSkill.path];
+  const editedSkill = `${await read(target, leafSkill.path)}\n## Paso propio\n\nRevisar la señal antes de cerrar.\n`;
+  await write(target, leafSkill.path, editedSkill);
+  await appendTo(target, 'CLAUDE.md', '\nNota del equipo.\n');
+  await appendTo(target, instructionsPath, '\nLocal edit.\n');
+
+  const plan = await buildUpdatePlan({ targetPath: target, backupMode: 'none', edited: { [leafSkill.path]: 'shadow', 'CLAUDE.md': 'split', [instructionsPath]: 'discard' } });
+
+  assert.deepEqual(layoutMigration(plan).pending, []);
+  // The shadow is part of the migration, which is applied whole; one index
+  // operation lists the moved skill and the shadow.
+  assert.deepEqual(plan.operations.filter((item) => item.migration && (item.relativePath === leafSkill.path || item.relativePath.startsWith(`${shadowDirectory}/`))).map((item) => item.relativePath).sort(), [`${shadowDirectory}/SKILL.md`, `${shadowDirectory}/shadow.json`, leafSkill.path].sort());
+  assert.equal(plan.operations.filter((item) => item.relativePath === projectIndexPath).length, 1);
+  const applied = await applyInstallPlan(plan);
+  for (const relativePath of [leafSkill.path, 'CLAUDE.md', instructionsPath]) {
+    assert.ok(applied.find((item) => item.relativePath === relativePath)?.backupPath, `${relativePath} keeps a backup`);
+  }
+
+  // shadow: the edit byte for byte, its base the hash the 1.0.0 state recorded.
+  assert.ok((await fs.readFile(path.join(target, shadowDirectory, 'SKILL.md'))).equals(Buffer.from(editedSkill)));
+  assert.deepEqual(JSON.parse(await read(target, `${shadowDirectory}/shadow.json`)), { skill: leafSkill.name, kit_path: leafSkill.path, base_sha256: recordedSkillHash, kit_version: legacy.toolkitVersion });
+  const index = await read(target, projectIndexPath);
+  assert.match(index, /^## Shadows\n\n\| Kit skill \| Shadow directory \|\n\| --- \| --- \|\n\| `validation-runner` \| `\.agents\/project\/shadows\/validation-runner\/` \|\n$/m);
+  assert.match(index, new RegExp(`^\\| \`${legacy.localSkill.name}\` \\| Pattern \\|`, 'm'));
+  assert.equal(await read(target, leafSkill.path), await fs.readFile(path.join(overlayTemplates, leafSkill.path), 'utf8'));
+  // split: the block first, the team's note below its end marker.
+  const claude = await read(target, 'CLAUDE.md');
+  assert.match(claude, /^<!-- workflow-kit:managed:start -->\n[\s\S]*<!-- workflow-kit:managed:end -->\n\nNota del equipo\.\n$/);
+  // The adapter is recorded by its new block.
+  const state = JSON.parse(await read(target, installStateRelativePath));
+  assert.deepEqual(state.files['CLAUDE.md'], { sha256: sha(extractManagedBlock(claude, 'workflow-kit:managed').block), class: 'adapter' });
+  // discard: the kit version.
+  assert.equal(await read(target, instructionsPath), await fs.readFile(path.join(overlayTemplates, instructionsPath), 'utf8'));
+
+  const again = await buildUpdatePlan({ targetPath: target });
+  assert.equal(again.summary.skip_modified, 0);
+  assert.deepEqual(again.operations.filter((item) => !nonWriting.has(item.operation)).map((item) => `${item.operation}:${item.relativePath}`), []);
+});
+
+test('split puts the new block where the template places it and keeps only the own lines (UC-6)', async () => {
+  const { target } = await legacyRepo();
+  const legacyClaude = await read(target, 'CLAUDE.md');
+  const template = await fs.readFile(claudeTemplate, 'utf8');
+  const { block } = extractManagedBlock(template, 'workflow-kit:managed');
+  const cases = [
+    // Lines of the old kit text are in the new block; blank runs collapse.
+    { name: 'notes around the old kit text', content: `Intro del equipo\n\n\n${legacyClaude}\n\n  \nNota del equipo.\n\n`, expected: `${block}\n\nIntro del equipo\n\nNota del equipo.\n` },
+    { name: 'a kit line removed and nothing own', content: legacyClaude.replace(/^.*\n/, ''), expected: template }
+  ];
+  for (const item of cases) {
+    await write(target, 'CLAUDE.md', item.content);
+
+    const plan = await buildUpdatePlan({ targetPath: target, edited: { 'CLAUDE.md': 'split' } });
+
+    const claude = operationFor(plan, 'CLAUDE.md');
+    assert.equal(claude.operation, 'overwrite_with_backup', item.name);
+    assert.equal(claude.content, item.expected, item.name);
+  }
+});
+
+// A script that always passes --edited all=discard must keep working on a
+// repository with nothing pending.
+test('all= with no pending edited file plans normally', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+  const plan = await buildUpdatePlan({ targetPath: target, edited: { all: 'discard' } });
+  assert.equal(plan.summary.skip_modified, 0);
+});
+
+test('all= decides every pending file where its decision is valid; a named path keeps its own decision', async () => {
+  const { target } = await legacyRepo();
+  for (const relativePath of [instructionsPath, leafSkill.path, 'CLAUDE.md']) await appendTo(target, relativePath, '\nLocal edit.\n');
+  const kitVersion = { [instructionsPath]: await fs.readFile(path.join(overlayTemplates, instructionsPath), 'utf8'), 'CLAUDE.md': await fs.readFile(claudeTemplate, 'utf8') };
+  const cases = [
+    { edited: { all: 'discard' }, decided: [instructionsPath, leafSkill.path, 'CLAUDE.md'] },
+    { edited: { all: 'discard', [leafSkill.path]: 'keep' }, decided: [instructionsPath, 'CLAUDE.md'] },
+    { edited: { all: 'split' }, decided: ['CLAUDE.md'] }
+  ];
+  for (const item of cases) {
+    const plan = await buildUpdatePlan({ targetPath: target, edited: item.edited });
+
+    const pendingPaths = [instructionsPath, leafSkill.path, 'CLAUDE.md'].filter((relativePath) => !item.decided.includes(relativePath));
+    for (const relativePath of item.decided) assert.equal(operationFor(plan, relativePath).operation, 'overwrite_with_backup', `${relativePath} ${JSON.stringify(item.edited)}`);
+    assert.deepEqual(layoutMigration(plan).pending.map((entry) => entry.relativePath), pendingPaths, JSON.stringify(item.edited));
+    if (item.edited.all === 'discard') {
+      for (const [relativePath, content] of Object.entries(kitVersion)) assert.equal(operationFor(plan, relativePath).content, content, relativePath);
+    }
+  }
+});
+
+// Edge case Permisos: workflow-router and instructions never get a shadow.
+test('a decision that does not apply stops the plan before anything is written', async () => {
+  const { target } = await legacyRepo();
+  const router = '.agents/skills/00-router/workflow-router/SKILL.md';
+  const nonLeaf = '.agents/skills/01-product/project-formation/SKILL.md';
+  const notText = '.agents/skills/02-implement/codebase-discovery/SKILL.md';
+  const notSkillFile = '.agents/skills/02-implement/validation-runner/agents/openai.yaml';
+  // A runtime wrapper, not the kit skill itself.
+  const wrapper = '.claude/skills/create-epic/SKILL.md';
+  for (const relativePath of [router, nonLeaf, instructionsPath, leafSkill.path, notSkillFile, wrapper]) await appendTo(target, relativePath, '\nLocal edit.\n');
+  await appendTo(target, notText, Buffer.from([0xff, 0xfe, 0x0a]));
+  await write(target, `${shadowDirectory}/notes.md`, 'A shadow already started by hand.\n');
+  const before = await hashTree(target);
+  const kitFileDecisions = ['keep', 'discard'];
+  const cases = [
+    { edited: { [router]: 'shadow' }, rejected: [router, 'shadow', kitFileDecisions] },
+    { edited: { [nonLeaf]: 'shadow' }, rejected: [nonLeaf, 'shadow', kitFileDecisions] },
+    { edited: { [instructionsPath]: 'shadow' }, rejected: [instructionsPath, 'shadow', kitFileDecisions] },
+    { edited: { [notSkillFile]: 'shadow' }, rejected: [notSkillFile, 'shadow', kitFileDecisions] },
+    { edited: { [wrapper]: 'shadow' }, rejected: [wrapper, 'shadow', kitFileDecisions] },
+    { edited: { [leafSkill.path]: 'shadow' }, rejected: [leafSkill.path, 'shadow', kitFileDecisions] },
+    { edited: { [notText]: 'shadow' }, rejected: [notText, 'shadow', kitFileDecisions] },
+    { edited: { [instructionsPath]: 'split' }, rejected: [instructionsPath, 'split', kitFileDecisions] },
+    { edited: { 'docs/workflow/README.md': 'discard' }, rejected: ['docs/workflow/README.md', 'discard', []] },
+    { edited: { [instructionsPath]: 'merge' }, rejected: [instructionsPath, 'merge', ['keep', 'discard', 'shadow', 'split']] },
+    { edited: { [instructionsPath]: 'discard', all: 'shadow' }, rejected: ['all', 'shadow', kitFileDecisions] }
+  ];
+  for (const item of cases) {
+    await assert.rejects(buildUpdatePlan({ targetPath: target, edited: item.edited }), invalidDecision(...item.rejected), JSON.stringify(item.edited));
+  }
+  assert.deepEqual(await hashTree(target), before);
 });

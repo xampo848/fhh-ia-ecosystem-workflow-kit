@@ -11,7 +11,7 @@ import { describeMigrations } from './plan-insight.mjs';
 import { assertNoSymlinkWrites, resolveInsideTarget } from './fs-safety.mjs';
 import { applyJournalRelativePath } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
-import { prepareLayoutMigration, requireMigrationBackups } from './migration.mjs';
+import { pendingEditReasons, prepareLayoutMigration, requireMigrationBackups } from './migration.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
@@ -188,7 +188,7 @@ export async function buildUpdatePlan(options = {}) {
   // owned them, so it reaches the class planner only through the layout
   // migration, which decides what the planner sees as recorded.
   const migration = existingState?.schemaVersion === legacyInstallStateSchemaVersion
-    ? await prepareLayoutMigration({ targetPath, manifest, previousFiles, files })
+    ? await prepareLayoutMigration({ targetPath, manifest, previousFiles, previousToolkitVersion: existingState.toolkitVersion, files })
     : null;
 
   const operations = await planTemplateFiles({
@@ -198,12 +198,14 @@ export async function buildUpdatePlan(options = {}) {
     mode: existingState ? 'update' : 'adopt',
     previousFiles: migration?.plannerFiles ?? previousFiles,
     backupMode,
-    overwriteModified: Boolean(options.overwriteModified),
     catalog,
     modelProfiles,
     migratedInstructions: { ...migratedInstructions, ...migration?.seedContents }
   });
-  if (migration) await migration.completeOperations(operations);
+  // Before anything reads the planned content of other files (the Copilot
+  // wrappers read the quality gate) and before the project index is planned.
+  const shadows = await planEditedDecisions({ operations, edited: options.edited ?? {}, manifest, migration });
+  if (migration) await migration.completeOperations(operations, shadows);
   operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
   operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode }));
   operations.push(...await buildStackPackOperations({ targetPath, stackPack, previousFiles }));
@@ -264,8 +266,102 @@ function classifyOrThrow(manifest, relativePath) {
   return entry;
 }
 
+// Decisions on a pending edited file (PRD manifest-updater 2.4): keep leaves
+// it pending; discard takes the kit version; shadow (layout migration only)
+// moves the edit to a project shadow of a kit leaf skill; split keeps the own
+// lines of an unmarked adapter next to a new block. Every decided write keeps
+// a backup, whatever the backup mode.
+export const editedDecisions = Object.freeze(['keep', 'discard', 'shadow', 'split']);
+const editedAllKey = 'all';
+
+function invalidEditedDecision(relativePath, decision, validDecisions, problem) {
+  const valid = validDecisions.length > 0 ? validDecisions.join(' | ') : 'none';
+  const error = new Error(`Invalid --edited ${relativePath}=${decision}: ${problem}. Valid decisions: ${valid}. Nothing was written.`);
+  return Object.assign(error, { code: 'INVALID_EDITED_DECISION', relativePath, decision, validDecisions });
+}
+
+// Path -> decision for the pending files. A named path wins over `all`, which
+// takes every pending file where its decision is valid and leaves the rest
+// pending. Anything that cannot be honored throws before a write is planned.
+function chooseEditedDecisions(validByPath, edited) {
+  const chosen = new Map();
+  for (const [relativePath, decision] of Object.entries(edited)) {
+    if (!editedDecisions.includes(decision)) throw invalidEditedDecision(relativePath, decision, editedDecisions, 'unknown decision');
+    if (relativePath === editedAllKey) continue;
+    const valid = validByPath.get(relativePath);
+    if (!valid) throw invalidEditedDecision(relativePath, decision, [], 'the file is not a pending edited file');
+    if (!valid.includes(decision)) throw invalidEditedDecision(relativePath, decision, valid, `${decision} does not apply to this file`);
+    chosen.set(relativePath, decision);
+  }
+  // With nothing pending, `all` has nothing to decide: not an error, so a
+  // script can always pass it.
+  if (Object.hasOwn(edited, editedAllKey) && validByPath.size > 0) {
+    const decision = edited[editedAllKey];
+    const targets = [...validByPath].filter(([, valid]) => valid.includes(decision)).map(([relativePath]) => relativePath);
+    if (targets.length === 0) {
+      const validForSome = editedDecisions.filter((name) => [...validByPath.values()].some((valid) => valid.includes(name)));
+      throw invalidEditedDecision(editedAllKey, decision, validForSome, 'it applies to no pending edited file');
+    }
+    for (const relativePath of targets) if (!chosen.has(relativePath)) chosen.set(relativePath, decision);
+  }
+  return chosen;
+}
+
+// Applies the chosen decisions to the pending operations; the ones left
+// pending carry their valid decisions for the dry run. Returns the shadows
+// the project index has to list.
+async function planEditedDecisions({ operations, edited, manifest, migration }) {
+  const pending = operations.filter((item) => item.operation === 'skip_modified' && pendingEditReasons.has(item.reason));
+  const validByPath = new Map();
+  const shadowTargets = new Map();
+  for (const item of pending) {
+    const shadow = migration ? await migration.shadowFor(item) : null;
+    if (shadow) shadowTargets.set(item.relativePath, shadow);
+    const applies = { keep: true, discard: true, shadow: Boolean(shadow), split: item.reason === 'unmarked_adapter' };
+    validByPath.set(item.relativePath, editedDecisions.filter((decision) => applies[decision]));
+  }
+  const chosen = chooseEditedDecisions(validByPath, edited);
+  const shadows = [];
+  for (const item of pending) {
+    const decision = chosen.get(item.relativePath) ?? 'keep';
+    if (decision === 'keep') {
+      item.decisions = validByPath.get(item.relativePath);
+      continue;
+    }
+    if (decision === 'split') {
+      const blockName = classifyPath(manifest, item.relativePath)?.block ?? defaultBlockName;
+      item.content = splitUnmarkedAdapter(await fs.readFile(item.targetFile, 'utf8'), item.content, blockName);
+    }
+    if (decision === 'shadow') {
+      const shadow = shadowTargets.get(item.relativePath);
+      shadows.push(shadow);
+      operations.push(...migration.shadowOperations(shadow));
+      item.migration = true;
+    }
+    delete item.reason;
+    Object.assign(item, { operation: 'overwrite_with_backup', stateChecksum: recordedChecksumOf(manifest, item.relativePath, item.class, item.content) });
+  }
+  return shadows;
+}
+
+// split: the new block where the template places it, plus the file's own
+// lines (those not in the new block), in their order, blank runs collapsed.
+function splitUnmarkedAdapter(existingContent, templateContent, blockName) {
+  const blockLines = new Set(extractManagedBlock(templateContent, blockName).block.split('\n').map((line) => line.trim()));
+  const own = [];
+  for (const line of existingContent.split('\n')) {
+    const text = line.trim();
+    // A leading or repeated blank line, or a line the new block already has.
+    if (text === '' && (own.length === 0 || own.at(-1).trim() === '')) continue;
+    if (text !== '' && blockLines.has(text)) continue;
+    own.push(line);
+  }
+  while (own.length > 0 && own.at(-1).trim() === '') own.pop();
+  return own.length === 0 ? templateContent : insertManagedBlock(`${own.join('\n')}\n`, templateContent, blockName);
+}
+
 // No plan replaces content without a backup unless that content matches what
-// the kit recorded for it: init (no state), adopt, a forced edit, or a block
+// the kit recorded for it: init (no state), adopt, a decided edit, or a block
 // edited by hand always keep a backup, whatever the backup mode.
 async function requireBackupForUnrecordedContent({ targetPath, manifest, operations, previousFiles }) {
   for (const item of operations) {
@@ -400,8 +496,8 @@ const classPlanners = {
 };
 
 // kit and derived: the kit owns the whole file. A file changed since the
-// recorded install is a local edit and is only replaced on request.
-function planOwnedFile({ base, templateContent, existingContent, recorded, mode, backupMode, overwriteModified, catalog, modelProfiles }) {
+// recorded install is a local edit and is only replaced by an --edited decision.
+function planOwnedFile({ base, templateContent, existingContent, recorded, mode, backupMode, catalog, modelProfiles }) {
   const content = renderDelegateAdapterForPath(base.relativePath, catalog, modelProfiles)?.content ?? templateContent;
   const plan = (operation, extra = {}) => ({ ...base, operation, content, stateChecksum: computeChecksum(content), ...extra });
   if (existingContent === null) return plan('create');
@@ -416,7 +512,6 @@ function planOwnedFile({ base, templateContent, existingContent, recorded, mode,
   if (mode === 'adopt') return plan('adopt_existing', { existingChecksum });
   if (!recorded?.sha256) return plan('skip_unmanaged');
   if (recorded.sha256 === existingChecksum) return plan(overwriteOperation(backupMode), { recordedChecksum: recorded.sha256 });
-  if (overwriteModified) return plan(overwriteOperation(backupMode), { existingChecksum, recordedChecksum: recorded.sha256 });
   return plan('skip_modified', { existingChecksum, recordedChecksum: recorded.sha256, reason: 'edited_kit_file' });
 }
 
@@ -544,7 +639,7 @@ export function formatPlan(plan) {
     lines.push('Migrations (applied once, idempotent):');
     for (const migration of plan.migrations) {
       lines.push(`- ${migration.id}: ${migration.summary}`);
-      for (const item of migration.pending ?? []) lines.push(`  - pending ${item.relativePath} (${item.reason})`);
+      for (const item of migration.pending ?? []) lines.push(`  - pending ${item.relativePath} (${item.reason})${item.decisions ? `: ${item.decisions.join(' | ')}` : ''}`);
     }
   }
   lines.push('Operations:');
