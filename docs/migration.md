@@ -170,12 +170,15 @@ Things the migration does not do:
   with kit files or with a file that is not UTF-8 text; a legacy context that
   is not UTF-8 or is a folder; a kit file the old state never recorded.
 - **An index the migration cannot extend stops it.** When
-  `.agents/project/index.md` already exists and its `## Skills` or
-  `## Shadows` table does not have the header from `.agents/kit-boundary.md`
-  (or the section appears twice, sits inside a code block or an HTML comment,
-  or the file mixes line endings), and the migration has own catalog rows to
-  move or a shadow candidate, `update` stops before writing anything. Fix the
-  table header and run `update` again; the kit catalogs are only replaced
+  `.agents/project/index.md` already exists and the first visible table under
+  its `## Skills` or `## Shadows` heading does not have the header from
+  `.agents/kit-boundary.md` (or the heading appears twice, the heading itself
+  sits inside a code block or an HTML comment, or the file mixes line
+  endings), and the migration has own catalog rows to move or a shadow
+  candidate, `update` stops before writing anything. Fix that and run
+  `update` again. A visible heading whose only table is commented out or in a
+  code block is not a stop: the migration writes a new visible table under the
+  heading and leaves the hidden one as it is; the kit catalogs are only replaced
   together with the index that takes their own rows. A row counts as already
   listed only when a row of that table names its path; prose that mentions
   the path does not.

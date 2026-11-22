@@ -254,6 +254,10 @@ test('moved skills join an existing project index as new rows, never changing th
     { name: 'no Skills section', index: '# Mine\n\nNotes.\n', expected: `# Mine\n\nNotes.\n\n## Skills\n\n${header}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n` },
     { name: 'a Skills table', index: `## Skills\n\n${header}\n${ownRow}\n\n## Shadows\n`, expected: `## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n\n## Shadows\n` },
     { name: 'a Skills heading without a table', index: '## Skills\n\nNone yet.\n', expected: `## Skills\n\n${header}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n\nNone yet.\n` },
+    // Round 6 (S2): a visible heading whose only table is hidden (commented
+    // out or in a code fence) gets a new visible table; the hidden one stays.
+    { name: 'a visible heading with only a commented-out table', index: `## Skills\n\n<!--\n${header}\n-->\n`, expected: `## Skills\n\n${header}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n\n<!--\n${header}\n-->\n` },
+    { name: 'a visible heading with only a fenced table', index: `## Skills\n\n\`\`\`markdown\n${header}\n\`\`\`\n`, expected: `## Skills\n\n${header}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n\n\`\`\`markdown\n${header}\n\`\`\`\n` },
     { name: 'a row for the new path already', index: `## Skills\n\n${header}\n${retryRow}\n`, expected: `## Skills\n\n${header}\n${retryRow}\n${bareRow}\n${foldedRow}\n${handbookRow}\n` },
     { name: 'CRLF line endings', index: crlf(`## Skills\n\n${header}\n${ownRow}\n`), expected: crlf(`## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n`) },
     // Round 4 (N1): only a row of the Skills table lists a path; prose that
@@ -284,10 +288,10 @@ test('an index whose tables the migration cannot extend stops the whole migratio
   const skillsHeader = '| Skill name | Class | Trigger | Physical path | Cost hint |\n| --- | --- | --- | --- | --- |';
   const indexes = [
     { name: 'a 3-column Skills table', index: '## Skills\n\n| Skill | Trigger | Path |\n| --- | --- | --- |\n| `release-handbook` | Handbook | `docs/handbook.md` |\n' },
-    { name: 'a Skills table inside a code fence', index: `# Catalog\n\n\`\`\`markdown\n## Skills\n\n${skillsHeader}\n\`\`\`\n` },
+    { name: 'a whole Skills section (heading included) inside a code fence', index: `# Catalog\n\n\`\`\`markdown\n## Skills\n\n${skillsHeader}\n\`\`\`\n` },
     { name: 'a 3-column Shadows table', index: `## Skills\n\n${skillsHeader}\n\n## Shadows\n\n| Kit skill | Shadow directory | Notes |\n| --- | --- | --- |\n` },
     // Round 4 (N1): rows would land inside the comment, or in a second section.
-    { name: 'a Skills table inside an HTML comment', index: `# Catalog\n\n<!--\n## Skills\n\n${skillsHeader}\n-->\n` },
+    { name: 'a whole Skills section (heading included) inside an HTML comment', index: `# Catalog\n\n<!--\n## Skills\n\n${skillsHeader}\n-->\n` },
     { name: 'mixed line endings', index: `# Catalog\r\n\n## Skills\n\n${skillsHeader}\n` }
   ];
   const repos = [

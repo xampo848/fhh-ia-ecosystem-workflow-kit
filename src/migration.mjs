@@ -51,7 +51,7 @@ export const pendingEditReasons = new Set(['edited_kit_file', 'unmarked_adapter'
 // take them, the whole migration stops before anything is written.
 export const projectIndexUnexpectedCode = 'PROJECT_INDEX_UNEXPECTED';
 export function projectIndexUnexpectedError(what) {
-  const error = new Error(`${projectIndexPath} has a ## Skills or ## Shadows table the layout migration cannot extend (not the header of the project catalog format in .agents/kit-boundary.md, a section named twice, inside a code block or an HTML comment, or mixed line endings), so it cannot add ${what} to it. Fix that and run workflow-kit update again. Nothing was written.`);
+  const error = new Error(`${projectIndexPath} has a ## Skills or ## Shadows table the layout migration cannot extend (its first visible table under the heading lacks the header of the project catalog format in .agents/kit-boundary.md, the heading appears twice or itself sits inside a code block or an HTML comment, or the file mixes line endings), so it cannot add ${what} to it. Fix that and run workflow-kit update again. Nothing was written.`);
   return Object.assign(error, { code: projectIndexUnexpectedCode });
 }
 const noBackupUpgrade = { overwrite_no_backup: 'overwrite_with_backup', merge_no_backup: 'merge_with_backup' };
