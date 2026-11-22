@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { constants as fsConstants } from 'node:fs';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import packageJson from '../package.json' with { type: 'json' };
@@ -234,16 +235,25 @@ export async function runDoctor(options = {}) {
   const shippedPaths = new Set((await selectedTemplateFiles({ runtimes: supportedRuntimes })).map((file) => file.relativePath));
   const missing = [];
   const present = [];
+  // A path doctor cannot read (a file where a folder should be, a folder
+  // where a file should be, no permission) is a finding, never a crash.
+  const unreadable = new Map();
+  const unreadableFinding = (relativePath, code) => error('managed/path-unreadable', relativePath, `Cannot read ${relativePath} (${code}): a file stands where a folder of this path should be, a folder where a file should be, or it is not readable. Fix it and run doctor again.`);
+  // One finding per blocking path: nothing below a path already reported.
+  const addUnreadable = (relativePath, code) => {
+    if ([...unreadable.keys()].some((known) => relativePath === known || relativePath.startsWith(`${known}/`))) return;
+    unreadable.set(relativePath, unreadableFinding(relativePath, code));
+  };
 
   for (const file of files) {
     const targetFile = path.join(targetPath, file.relativePath);
     try {
-      await fs.access(targetFile);
-      present.push(file.relativePath);
-    } catch (accessError) {
+      if ((await fs.stat(targetFile)).isDirectory()) addUnreadable(file.relativePath, 'EISDIR');
+      else present.push(file.relativePath);
+    } catch (statError) {
       // ENOTDIR: a file stands where a folder of the path should be.
-      if (accessError.code !== 'ENOENT' && accessError.code !== 'ENOTDIR') throw accessError;
-      missing.push(file.relativePath);
+      if (statError.code === 'ENOENT' || statError.code === 'ENOTDIR') missing.push(file.relativePath);
+      else addUnreadable(await firstUnreadableFolder(targetPath, file.relativePath), statError.code ?? 'unknown');
     }
   }
 
@@ -251,13 +261,16 @@ export async function runDoctor(options = {}) {
   const modelProfiles = resolveModelProfiles({ catalog, runtimes, stored: storedState?.modelProfiles });
   // A path doctor cannot read (a file where a folder should be, no
   // permission) is a finding of the check that met it, never a crash.
+  // A check that meets such a path reports it; a read error without a path
+  // (EISDIR) is the path the presence check above already names.
   const guarded = async (check) => {
     try {
       return await check();
     } catch (fsError) {
-      if (typeof fsError?.code !== 'string' || typeof fsError.path !== 'string') throw fsError;
-      const relativePath = path.relative(targetPath, fsError.path).split(path.sep).join('/');
-      return [error('managed/path-unreadable', relativePath, `Cannot read ${relativePath} (${fsError.code}): a file stands where a folder of this path should be, a folder where a file should be, or it is not readable. Fix it and run doctor again.`)];
+      if (typeof fsError?.code !== 'string' || !/^E[A-Z]+$/.test(fsError.code)) throw fsError;
+      if (typeof fsError.path === 'string') addUnreadable(path.relative(targetPath, fsError.path).split(path.sep).join('/'), fsError.code);
+      else if (unreadable.size === 0) addUnreadable('.', fsError.code);
+      return [];
     }
   };
   const checks = await Promise.all([
@@ -275,6 +288,7 @@ export async function runDoctor(options = {}) {
   ].map(guarded));
   const diagnostics = [
     ...checks.flat(),
+    ...unreadable.values(),
     ...stateDiagnostics(storedState),
     ...managedVersionDiagnostics(storedState),
     ...journalDiagnostics(journalProblem),
@@ -294,6 +308,21 @@ export async function runDoctor(options = {}) {
     missing,
     diagnostics
   };
+}
+
+// The first folder of relativePath doctor may not list or enter, or the path
+// itself when every folder is open.
+async function firstUnreadableFolder(targetPath, relativePath) {
+  const segments = relativePath.split('/');
+  for (let length = 1; length < segments.length; length += 1) {
+    const folder = segments.slice(0, length).join('/');
+    try {
+      await fs.access(path.join(targetPath, folder), fsConstants.R_OK | fsConstants.X_OK);
+    } catch {
+      return folder;
+    }
+  }
+  return relativePath;
 }
 
 // A seed the kit created is never recreated, so update --stack cannot bring

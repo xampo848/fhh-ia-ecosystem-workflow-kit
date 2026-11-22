@@ -185,17 +185,40 @@ test('doctor reports an unusable or unfinished apply journal as an error with th
   assertFindings(await runDoctor({ targetPath: target }), [['managed/apply-journal-unusable', journalPath, /cannot be read \(EISDIR\)/, 'error']]);
 });
 
-// Final review 7: a file where the kit expects a folder is reported, never a crash.
-test('doctor reports a .agents/project that is a file as a finding instead of crashing', async () => {
-  const target = await makeTempRepo();
-  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
-  await fs.rm(path.join(target, '.agents/project'), { recursive: true });
-  await write(target, '.agents/project', 'not a folder\n');
-
-  const result = await runDoctor({ targetPath: target });
-
-  assert.equal(result.ok, false);
-  assertFindings(result, [['managed/path-unreadable', '.agents/project/context.md', /ENOTDIR.*a file stands where a folder of this path should be/, 'error']]);
+// Final review 7 and round 4 (N3): a path doctor cannot read is reported,
+// never a crash: a file where the kit expects a folder, a folder where it
+// expects a file, a folder without permission.
+test('doctor reports a path it cannot read as a finding instead of crashing', async () => {
+  const cases = [
+    { name: '.agents/project as a file', path: '.agents/project/context.md', message: /ENOTDIR.*a file stands where a folder of this path should be/, break: async (target) => {
+      await fs.rm(path.join(target, '.agents/project'), { recursive: true });
+      await write(target, '.agents/project', 'not a folder\n');
+    } },
+    { name: 'CLAUDE.md as a folder', path: 'CLAUDE.md', message: /EISDIR/, break: async (target) => {
+      await fs.rm(path.join(target, 'CLAUDE.md'));
+      await fs.mkdir(path.join(target, 'CLAUDE.md'));
+    } },
+    { name: 'the project context as a folder', path: '.agents/project/context.md', message: /EISDIR/, break: async (target) => {
+      await fs.rm(path.join(target, '.agents/project/context.md'));
+      await fs.mkdir(path.join(target, '.agents/project/context.md'));
+    } },
+    // Permission bits do not stop root.
+    ...(process.getuid?.() === 0 ? [] : [{ name: '.claude/agents without permission', path: '.claude/agents', message: /EACCES/, break: async (target) => {
+      await fs.chmod(path.join(target, '.claude/agents'), 0o000);
+    } }])
+  ];
+  for (const item of cases) {
+    const target = await makeTempRepo();
+    await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+    await item.break(target);
+    try {
+      const result = await runDoctor({ targetPath: target });
+      assert.equal(result.ok, false, item.name);
+      assertFindings(result, [['managed/path-unreadable', item.path, item.message, 'error']]);
+    } finally {
+      await fs.chmod(path.join(target, '.claude/agents'), 0o755).catch(() => {});
+    }
+  }
 });
 
 test('doctor warns when target was last applied with a different toolkit version', async () => {
