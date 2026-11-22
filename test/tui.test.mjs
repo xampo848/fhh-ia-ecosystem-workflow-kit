@@ -244,6 +244,24 @@ test('tui update shows the stack pack and the one-time migrations before applyin
   await assert.rejects(fs.access(path.join(target, '.agents/project/stack.md')), { code: 'ENOENT' });
 });
 
+// Round 4 (N8): install over an existing install stops right after the
+// target is chosen, before any question it would ignore.
+test('tui install over an installed repository stops before asking anything else and points to update', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'codex' }));
+  let output = '';
+
+  const result = await runTui({
+    ask: scriptedAsk(['1', target, '', '', '', '', 'yes']),
+    color: false,
+    write: (message) => { output += message; }
+  });
+
+  assert.deepEqual({ code: result.code, applied: result.applied }, { code: 1, applied: false });
+  assert.match(output, /already records an install \(runtimes: codex\)\. Choose Update/);
+  assert.doesNotMatch(output, /Select one or more runtimes/);
+});
+
 test('tui update keeps every edited file pending when the user keeps the default', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'codex' }));

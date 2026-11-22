@@ -520,6 +520,22 @@ async function collectCapabilitiesFlow({
   return { capabilitySelections, shouldAutoInstallCapabilities };
 }
 
+// Install plans as if nothing were installed, and init stops over an
+// existing install: say so right after the target is chosen, before asking
+// about runtimes, profile or stack. An unusable state is left to the planner.
+async function stopInstallOverExistingInstall({ mode, targetPath, write, paint }) {
+  if (mode !== 'install') return false;
+  let state = null;
+  try {
+    state = await readManagedInstallState(targetPath);
+  } catch {
+    return false;
+  }
+  if (!state) return false;
+  write(`${paint.copperInk(`.agents/workflow-kit/install-state.json already records an install (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}). Choose Update to bring it to this version (or run workflow-kit update; --runtime, --stack and --profile change those choices). Install would reset them. Nothing was written.`)}\n`);
+  return true;
+}
+
 export async function runTui(options = {}) {
   const write = options.write ?? ((message) => process.stdout.write(message));
   const colorEnabled = options.color === false ? false : supportsColor();
@@ -772,6 +788,7 @@ export async function runTui(options = {}) {
 
       targetPath = await prompter.promptText(mode === 'export' ? 'Output path [.]: ' : 'Target path [.]: ', '.');
       write('\n');
+      if (await stopInstallOverExistingInstall({ mode, targetPath, write, paint })) return { code: 1, applied: false, mode };
 
       renderStageHeader(write, paint, {
         step: 3,
@@ -818,6 +835,7 @@ export async function runTui(options = {}) {
       });
 
       targetPath = await prompter.promptText(mode === 'export' ? 'Output path' : 'Target path', '.');
+      if (await stopInstallOverExistingInstall({ mode, targetPath, write, paint })) return { code: 1, applied: false, mode };
 
       renderStageHeader(write, paint, {
         step: 3,

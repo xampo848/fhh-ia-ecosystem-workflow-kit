@@ -146,7 +146,7 @@ async function assertNoInstallState(targetPath, manifest) {
     throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run \`workflow-kit update\` to migrate this repository; init would replace project content. Nothing was written.`);
   }
   if (state) {
-    throw new Error(`${installStateRelativePath} already records an install (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}). Run \`workflow-kit update\` instead (\`workflow-kit update --runtime <list>\` to change the runtimes); init would reset the recorded runtimes, stack and profiles and replace pending edited files. Nothing was written.`);
+    throw new Error(`${installStateRelativePath} already records an install (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}). Run \`workflow-kit update\` instead (with \`--runtime <list>\`, \`--stack\` or \`--profile\` to change those choices); init would reset the recorded runtimes, stack and profiles and replace pending edited files. Nothing was written.`);
   }
 }
 

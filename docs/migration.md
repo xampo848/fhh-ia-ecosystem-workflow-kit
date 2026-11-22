@@ -144,9 +144,10 @@ migration when you may want to roll back.
 Things the migration does not do:
 
 - **`init` does not migrate.** `init` over any existing install (`1.0.0` or
-  `2.0.0`) stops and asks you to run `update` (`update --runtime <list>` to
-  change the runtimes), so the recorded runtimes, stack, profiles and pending
-  files are never reset.
+  `2.0.0`) stops and asks you to run `update` (with `--runtime <list>`,
+  `--stack` or `--profile` to change those choices), so the recorded
+  runtimes, stack, profiles and pending files are never reset. The TUI Install
+  stops the same way right after you choose the target.
 - **An unfinished apply blocks the next one.** If an apply stops halfway (a
   permission error, a full disk), `init` and `update` stop with "The last
   workflow-kit apply did not finish" until you run `workflow-kit rollback

@@ -220,7 +220,8 @@ would build and names what is pending and how to resolve it.
 Things to know:
 
 - `init` never runs over an existing install: on a `1.0.0` or `2.0.0` install
-  it stops and asks for `update` (`update --runtime <list>` to change runtimes).
+  it stops and asks for `update` (with `--runtime`, `--stack` or
+  `--profile` to change those choices; the TUI Install stops the same way).
 - After an apply that stopped halfway, `init` and `update` refuse to run until
   `rollback` undoes it, so its journal is never overwritten.
 - Empty folders inside an own skill are not recreated by the migration.
