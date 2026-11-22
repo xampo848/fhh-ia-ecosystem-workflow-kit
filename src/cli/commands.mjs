@@ -82,7 +82,7 @@ export async function runExportCommand(options, { stdout, stderr }) {
     return 2;
   }
 
-  const plan = await buildInstallPlan({ ...options, ensureWorkspaceIgnore: false, recordJournal: false, toolkitVersion: packageJson.version });
+  const plan = await buildInstallPlan({ ...options, export: true, ensureWorkspaceIgnore: false, recordJournal: false, toolkitVersion: packageJson.version });
   stdout.write(`${options.apply ? 'Export apply plan' : 'Export dry-run plan'}\n${formatPlan(plan)}\n`);
 
   if (!options.apply) return 0;

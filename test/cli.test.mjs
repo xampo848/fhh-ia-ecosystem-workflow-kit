@@ -95,6 +95,12 @@ test('export --apply --yes writes selected templates', async () => {
   await fs.access(path.join(target, '.agents/instructions.md'));
   await fs.access(path.join(target, 'AGENTS.md'));
   await fs.access(path.join(target, '.agents/skills/06-patterns/README.md'));
+
+  // Round 4 (N2): exporting again to the same folder works; only init stops
+  // over an existing install.
+  const again = createMemoryIo();
+  assert.equal(await runCli(['export', '--output', target, '--runtime', 'codex', '--apply', '--yes'], again), 0, again.output.stderr);
+  assert.match(again.output.stdout, /Exported files:/);
 });
 
 test('update apply requires --yes', async () => {

@@ -154,7 +154,9 @@ export async function buildInstallPlan(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   await assertLastApplyFinished(targetPath);
   const manifest = options.manifest ?? await loadKitManifest();
-  await assertNoInstallState(targetPath, manifest);
+  // An export writes a copy of the kit, not an install someone maintains:
+  // exporting again to the same folder only refreshes that copy.
+  if (!options.export) await assertNoInstallState(targetPath, manifest);
   const runtimes = parseRuntimeList(options.runtime ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');

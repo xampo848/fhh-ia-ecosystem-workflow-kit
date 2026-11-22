@@ -917,6 +917,7 @@ export async function runTui(options = {}) {
         overlay,
         profile,
         stack,
+        export: mode === 'export',
         ensureWorkspaceIgnore: mode !== 'export',
         recordJournal: mode !== 'export',
         backupMode: backupModeValue,
