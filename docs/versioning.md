@@ -74,6 +74,10 @@ the release checklist.
 
 ## Release gates
 
+After assigning the version, run `node scripts/build-plugin.mjs --write`: the
+plugin manifests carry the package version, so `check:workflow` fails until
+they are regenerated.
+
 Every version must pass (CI runs the same set; there `check:templates` runs
 inside `check:workflow`):
 

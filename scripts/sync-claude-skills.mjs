@@ -29,8 +29,25 @@ export const claudeSkillKeys = [
   'engineering-mentor'
 ];
 
+// The frontmatter description every wrapper of a workflow skill uses
+// (shared with scripts/build-plugin.mjs).
+export function claudeSkillDescription(entry) {
+  return String(entry.trigger).replace(/\s+/g, ' ').replace(/"/g, "'").trim();
+}
+
+// Registry entries of claudeSkillKeys, in that order.
+export async function claudeSkillEntries({ root = packageRoot } = {}) {
+  const registry = JSON.parse(await fs.readFile(path.join(root, '.agents/skills/registry.json'), 'utf8'));
+  const entries = [...(registry.skills ?? []), ...(registry.pattern_skills ?? [])];
+  return claudeSkillKeys.map((key) => {
+    const entry = entries.find((item) => item.key === key);
+    if (!entry) throw new Error(`Skill "${key}" is not in .agents/skills/registry.json.`);
+    return entry;
+  });
+}
+
 function renderClaudeSkill(entry) {
-  const description = String(entry.trigger).replace(/\s+/g, ' ').replace(/"/g, "'").trim();
+  const description = claudeSkillDescription(entry);
   return `---
 name: ${entry.name}
 description: "${description}"
@@ -48,12 +65,8 @@ It is never invoked automatically: freeform requests keep going through the leve
 }
 
 export async function expectedClaudeSkills({ root = packageRoot } = {}) {
-  const registry = JSON.parse(await fs.readFile(path.join(root, '.agents/skills/registry.json'), 'utf8'));
-  const entries = [...(registry.skills ?? []), ...(registry.pattern_skills ?? [])];
   const outputs = new Map();
-  for (const key of claudeSkillKeys) {
-    const entry = entries.find((item) => item.key === key);
-    if (!entry) throw new Error(`Skill "${key}" is not in .agents/skills/registry.json.`);
+  for (const entry of await claudeSkillEntries({ root })) {
     const content = renderClaudeSkill(entry);
     const relativePath = `.claude/skills/${entry.name}/SKILL.md`;
     outputs.set(relativePath, content);
@@ -91,7 +104,7 @@ async function findOrphanedClaudeSkills({ root, expected }) {
   return failures;
 }
 
-async function listFiles(root, directory) {
+export async function listFiles(root, directory) {
   let entries;
   try {
     entries = await fs.readdir(path.join(root, directory), { withFileTypes: true });

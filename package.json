@@ -16,7 +16,7 @@
   "scripts": {
     "check": "node scripts/validate-scaffold.mjs",
     "check:templates": "node scripts/validate-template-packs.mjs",
-    "check:workflow": "node scripts/sync-skill-registry.mjs --check && node scripts/sync-delegate-runtime-adapters.mjs --check && node scripts/sync-level-prefilter.mjs && node scripts/sync-claude-skills.mjs && node scripts/validate-delegate-contract.mjs && node scripts/validate-neutral-paths.mjs && node scripts/validate-stack-neutrality.mjs && node scripts/validate-skill-size.mjs && node scripts/validate-kit-boundary.mjs && node scripts/validate-template-packs.mjs",
+    "check:workflow": "node scripts/sync-skill-registry.mjs --check && node scripts/sync-delegate-runtime-adapters.mjs --check && node scripts/sync-level-prefilter.mjs && node scripts/sync-claude-skills.mjs && node scripts/build-plugin.mjs && node scripts/validate-delegate-contract.mjs && node scripts/validate-neutral-paths.mjs && node scripts/validate-stack-neutrality.mjs && node scripts/validate-skill-size.mjs && node scripts/validate-kit-boundary.mjs && node scripts/validate-template-packs.mjs",
     "check:release": "node scripts/validate-release-readiness.mjs",
     "check:docs": "node scripts/validate-docs.mjs",
     "check:legal": "node scripts/validate-legal-readiness.mjs",
@@ -38,6 +38,8 @@
     "NOTICE",
     "THIRD_PARTY_NOTICES.md",
     "CONTRIBUTING.md",
+    "plugin.json",
+    ".claude-plugin/",
     "bin/",
     "docs/",
     "src/",

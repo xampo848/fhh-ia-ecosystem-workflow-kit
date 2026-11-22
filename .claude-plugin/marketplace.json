@@ -1,0 +1,17 @@
+{
+  "name": "fhh-ia-ecosystem",
+  "owner": {
+    "name": "fhh-ia-ecosystem"
+  },
+  "metadata": {
+    "description": "Marketplace of the fhh workflow kit plugin.",
+    "version": "0.22.0-manifest-updater"
+  },
+  "plugins": [
+    {
+      "name": "fhh",
+      "source": "./",
+      "description": "Workflow kit: routed workflow skills and delegates that run from the plugin while each repository keeps its own project overlay."
+    }
+  ]
+}
