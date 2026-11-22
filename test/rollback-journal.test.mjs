@@ -262,3 +262,16 @@ test('rollback without a journal on a migrated 2.0.0 repository keeps a copy of 
   // A second rollback restores nothing: the copies it kept are not backups to restore.
   assert.deepEqual((await buildRollbackPlan({ targetPath: target })).operations, []);
 });
+
+// Round 4 (N6): a journal this version wrote but whose entries rollback cannot
+// act on says how to fix it, not to use another version.
+test('rollback refuses a journal with malformed entries and says to fix it by hand', async () => {
+  const target = await makeTempRepo();
+  const entries = [[null], [{ relativePath: '../../outside.txt', action: 'created', backup: null, writtenChecksum: null }]];
+  for (const files of entries) {
+    await write(target, applyJournalRelativePath, JSON.stringify({ schemaVersion: '2.0.0', completed: true, files }));
+    await assert.rejects(buildRollbackPlan({ targetPath: target }), /last-apply\.json has entries rollback cannot act on\. Fix it by hand \(Git does not track it\)\. Nothing was changed\./);
+  }
+  await write(target, applyJournalRelativePath, JSON.stringify({ schemaVersion: '9.0.0', files: [] }));
+  await assert.rejects(buildRollbackPlan({ targetPath: target }), /Run rollback with the workflow-kit version that wrote it/);
+});

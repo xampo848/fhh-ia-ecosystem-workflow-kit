@@ -9,7 +9,7 @@ import { loadDelegateCatalog, parseProfileOption, renderDelegateAdapterForPath, 
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
 import { assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
-import { applyJournalRelativePath, isUsableApplyJournal } from './apply.mjs';
+import { applyJournalProblem, applyJournalRelativePath } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, projectIndexPath, requireMigrationBackups } from './migration.mjs';
 
@@ -122,7 +122,7 @@ export async function lastApplyProblem(targetPath) {
   } catch {
     return { kind: 'unusable', reason: 'not valid JSON' };
   }
-  if (!isUsableApplyJournal(journal)) return { kind: 'unusable', reason: 'unsupported format' };
+  if (applyJournalProblem(journal)) return { kind: 'unusable', reason: 'unsupported format' };
   return journal.completed === false ? { kind: 'incomplete', appliedAt: journal.appliedAt ?? 'unknown date' } : null;
 }
 

@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { applyJournalRelativePath, freeBackupStamp, isUsableApplyJournal } from './apply.mjs';
+import { applyJournalProblem, applyJournalRelativePath, freeBackupStamp } from './apply.mjs';
 import { checksumOf, findSymlinkInPath, resolveInsideTarget, writeFileAtomic } from './fs-safety.mjs';
 import { installStateRelativePath, readManagedInstallState } from './planner.mjs';
 
@@ -33,8 +33,12 @@ async function readJournal(targetPath) {
   } catch {
     throw new Error(`${applyJournalRelativePath} is not valid JSON, so rollback cannot tell what the last apply wrote. Fix the file by hand; Git does not track it. Nothing was changed.`);
   }
-  if (!isUsableApplyJournal(parsed)) {
+  const problem = applyJournalProblem(parsed);
+  if (problem === 'version') {
     throw new Error(`${applyJournalRelativePath} has an unsupported format. Run rollback with the workflow-kit version that wrote it.`);
+  }
+  if (problem === 'entries') {
+    throw new Error(`${applyJournalRelativePath} has entries rollback cannot act on. Fix it by hand (Git does not track it). Nothing was changed.`);
   }
   return parsed;
 }

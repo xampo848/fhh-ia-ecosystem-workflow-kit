@@ -11,14 +11,18 @@ export const applyJournalSchemaVersion = '2.0.0';
 export const readableApplyJournalVersions = new Set(['1.0.0', applyJournalSchemaVersion]);
 const journalActions = new Set(['created', 'overwritten', 'deleted']);
 const stringOrNull = (value) => value === null || typeof value === 'string';
+// A journal path stays inside the target: relative, without a `..` segment.
+const insideTarget = (value) => typeof value === 'string' && value !== '' && !/^([\\/]|[A-Za-z]:)/.test(value) && !value.split(/[\\/]+/).includes('..');
 
-// Whether rollback can trust a parsed journal: a version it reads and files
-// entries it can act on. Shared by rollback and the init/update gate.
-export function isUsableApplyJournal(journal) {
-  if (journal === null || typeof journal !== 'object' || !readableApplyJournalVersions.has(journal.schemaVersion) || !Array.isArray(journal.files)) return false;
-  return journal.files.every((entry) => entry !== null && typeof entry === 'object'
-    && typeof entry.relativePath === 'string' && entry.relativePath !== ''
-    && journalActions.has(entry.action) && stringOrNull(entry.backup ?? null) && stringOrNull(entry.writtenChecksum ?? null));
+// Why rollback cannot trust a parsed journal: `version` (a format this CLI
+// does not read), `entries` (files entries it cannot act on), or null.
+// Shared by rollback and the init/update gate.
+export function applyJournalProblem(journal) {
+  if (journal === null || typeof journal !== 'object' || !readableApplyJournalVersions.has(journal.schemaVersion)) return 'version';
+  const usable = Array.isArray(journal.files) && journal.files.every((entry) => entry !== null && typeof entry === 'object'
+    && insideTarget(entry.relativePath) && journalActions.has(entry.action)
+    && (entry.backup == null || insideTarget(entry.backup)) && stringOrNull(entry.writtenChecksum ?? null));
+  return usable ? null : 'entries';
 }
 
 // A retired kit file is removed only after a copy is kept next to it, even
