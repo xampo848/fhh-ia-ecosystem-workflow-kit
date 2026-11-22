@@ -2,13 +2,13 @@ import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isSupportedRuntime, runtimeTemplatePaths } from './runtime-matrix.mjs';
+import { isSupportedRuntime, runtimeTemplatePaths, supportedRuntimes } from './runtime-matrix.mjs';
 import { loadDelegateCatalog, parseProfileOption, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
-import { assertNoSymlinkWrites } from './fs-safety.mjs';
+import { assertNoSymlinkWrites, resolveInsideTarget } from './fs-safety.mjs';
 import { applyJournalRelativePath } from './apply.mjs';
-import { classifyPath, defaultBlockName, extractManagedBlock, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
+import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
@@ -197,11 +197,14 @@ export async function buildUpdatePlan(options = {}) {
   operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
   operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode }));
   operations.push(...await buildStackPackOperations({ targetPath, stackPack, previousFiles }));
+  const retired = existingState ? await planRetiredFiles({ targetPath, manifest, previousFiles, operations }) : { operations: [], missing: [] };
+  operations.push(...retired.operations);
   await finalizeOperations({ targetPath, manifest, operations });
 
   const nextInstallState = buildNextInstallState({
     previousState: existingState,
     operations,
+    droppedPaths: retired.missing,
     runtimes,
     overlay,
     modelProfiles,
@@ -233,7 +236,8 @@ export async function buildUpdatePlan(options = {}) {
     operations,
     summary: summarizeOperations(operations),
     backupMode,
-    previousStateFiles: { ...previousFiles }
+    previousStateFiles: { ...previousFiles },
+    droppedStatePaths: retired.missing
   };
 }
 
@@ -247,12 +251,54 @@ function classifyOrThrow(manifest, relativePath) {
   return entry;
 }
 
+// Retired operations already carry their class, which may be null.
 async function finalizeOperations({ targetPath, manifest, operations }) {
   for (const item of operations) {
-    if (!item.class && item.relativePath !== gitignorePath) item.class = classifyOrThrow(manifest, item.relativePath).class;
+    if (item.class === undefined && item.relativePath !== gitignorePath) item.class = classifyOrThrow(manifest, item.relativePath).class;
   }
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
   await assertNoSymlinkWrites(targetPath, operations);
+}
+
+// P4: a file the previous state records that this CLI version no longer ships.
+// Only kit-owned content can retire: never an adapter, a seed, state, a
+// generated file, the project overlay, a path the migration moves, or a
+// backup. Shipped means any runtime's template, so switching runtimes never
+// deletes the files of the runtime left out.
+const retirableClasses = new Set(['kit', 'derived', null]);
+const backupFileMarker = '.workflow-kit-backup-';
+
+function isRetirable(manifest, relativePath) {
+  if (relativePath.includes(backupFileMarker) || isProjectPath(manifest, relativePath)) return false;
+  if (Object.hasOwn(manifest.legacy_paths, relativePath)) return false;
+  const entry = classifyPath(manifest, relativePath);
+  return !entry?.generated && retirableClasses.has(entry?.class ?? null);
+}
+
+// Unedited: deleted with a backup whatever the backup mode. Edited: kept and
+// flagged in the next state. Missing: only its record goes away.
+async function planRetiredFiles({ targetPath, manifest, previousFiles, operations }) {
+  const planned = new Set(operations.map((item) => item.relativePath));
+  const shipped = new Set((await selectedTemplateFiles({ runtimes: supportedRuntimes })).map((file) => file.relativePath));
+  const retired = { operations: [], missing: [] };
+  for (const [relativePath, recorded] of Object.entries(previousFiles)) {
+    if (planned.has(relativePath) || shipped.has(relativePath) || !isRetirable(manifest, relativePath)) continue;
+    const targetFile = resolveInsideTarget(targetPath, relativePath);
+    const existingContent = await readOptional(targetFile);
+    if (existingContent === null) {
+      retired.missing.push(relativePath);
+      continue;
+    }
+    const base = { relativePath, targetFile, sourcePath: null, class: classifyPath(manifest, relativePath)?.class ?? null, retired: true };
+    const existingChecksum = computeChecksum(existingContent);
+    if (recorded.sha256 && recorded.sha256 === existingChecksum) {
+      retired.operations.push({ ...base, operation: 'delete_with_backup', content: null, recordedChecksum: recorded.sha256 });
+    } else {
+      // The content is the file itself: the update brings no change to show.
+      retired.operations.push({ ...base, operation: 'skip_modified', content: existingContent, existingChecksum, recordedChecksum: recorded.sha256 ?? null, reason: 'retired_edited' });
+    }
+  }
+  return retired;
 }
 
 async function readOptional(file) {
@@ -388,6 +434,7 @@ export function selectPlanOperations(plan, selectedRelativePaths = []) {
   const nextInstallState = buildNextInstallState({
     previousState: { files: { ...(plan.previousStateFiles ?? {}) } },
     operations,
+    droppedPaths: plan.droppedStatePaths,
     runtimes: plan.runtimes,
     overlay: plan.overlay,
     modelProfiles: plan.modelProfiles,
@@ -417,7 +464,8 @@ export function summarizeOperations(operations) {
     overwrite_no_backup: 0,
     skip_modified: 0,
     skip_unmanaged: 0,
-    adopt_existing: 0
+    adopt_existing: 0,
+    delete_with_backup: 0
   };
 
   for (const item of operations) {
@@ -446,10 +494,11 @@ export function formatPlan(plan) {
   lines.push('Operations:');
 
   for (const item of plan.operations) {
-    lines.push(`- ${item.operation}: ${item.relativePath}`);
+    const note = item.retired ? ` (no longer shipped${item.operation === 'skip_modified' ? '; edited, kept' : ''})` : '';
+    lines.push(`- ${item.operation}: ${item.relativePath}${note}`);
   }
 
-  lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, merge_with_backup=${plan.summary.merge_with_backup}, merge_no_backup=${plan.summary.merge_no_backup}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, overwrite_no_backup=${plan.summary.overwrite_no_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}`);
+  lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, merge_with_backup=${plan.summary.merge_with_backup}, merge_no_backup=${plan.summary.merge_no_backup}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, overwrite_no_backup=${plan.summary.overwrite_no_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}, delete_with_backup=${plan.summary.delete_with_backup}`);
   return lines.join('\n');
 }
 
@@ -515,14 +564,22 @@ function formatModelProfiles(modelProfiles = {}) {
 }
 
 // install-state 2.0.0: kit and derived files record the hash of the file,
-// adapters the hash of their block, seeds only that the kit created them.
-function buildNextInstallState({ previousState, operations, runtimes, overlay, modelProfiles, stackPack, toolkitVersion }) {
+// adapters the hash of their block, seeds only that the kit created them. A
+// retired file that was deleted or is gone leaves the state; one kept because
+// it was edited stays with `retired: true` so doctor can name it.
+function buildNextInstallState({ previousState, operations, droppedPaths = [], runtimes, overlay, modelProfiles, stackPack, toolkitVersion }) {
   const files = {};
   for (const [relativePath, entry] of Object.entries(previousState?.files ?? {})) {
     files[relativePath] = entry.class === 'seed' ? { class: 'seed' } : { ...entry };
   }
+  for (const relativePath of droppedPaths) delete files[relativePath];
 
   for (const item of operations) {
+    if (item.retired) {
+      if (item.operation === 'delete_with_backup') delete files[item.relativePath];
+      else files[item.relativePath] = { ...files[item.relativePath], retired: true };
+      continue;
+    }
     // .gitignore has no class and stays user-owned; skipped files keep what
     // the previous state recorded.
     if (!item.class || item.class === 'state') continue;

@@ -5,7 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { extractManagedBlock, loadKitManifest } from '../src/kit-manifest.mjs';
-import { buildInstallPlan, buildUpdatePlan, installStateRelativePath, readManagedInstallState, selectPlanOperations } from '../src/planner.mjs';
+import { buildInstallPlan, buildUpdatePlan, formatPlan, installStateRelativePath, readManagedInstallState, selectPlanOperations } from '../src/planner.mjs';
 import manifest from '../templates/template-manifest.json' with { type: 'json' };
 import { makeTempRepo } from './helpers.mjs';
 
@@ -411,4 +411,129 @@ test('buildUpdatePlan requires install state unless adopt-existing is enabled', 
   const adoptPlan = await buildUpdatePlan({ targetPath: target, runtime: 'codex', overlay: 'fhh-ia-ecosystem-full', adoptExisting: true });
   assert.equal(adoptPlan.hadExistingState, false);
   assert.equal(adoptPlan.operations.some((item) => item.operation === 'create'), true);
+});
+
+// P4: kit files a version no longer ships. The fixture is a skill an older
+// version installed: the file on disk plus its record in a 2.0.0 state.
+const retiredSkill = '.agents/skills/04-crosscutting/retired-skill/SKILL.md';
+async function installWithRetired(target, records, runtime = 'neutral') {
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime }));
+  const state = await readState(target);
+  for (const { relativePath, content, recorded = content, entry } of records) {
+    if (content !== null) await write(target, relativePath, content);
+    state.files[relativePath] = entry ?? { sha256: sha(recorded), class: 'kit' };
+  }
+  await writeState(target, state);
+  return state;
+}
+
+test('update deletes an unedited retired kit file with a backup, also with backupMode none (AC-4)', async () => {
+  const target = await makeTempRepo();
+  const content = '---\nname: retired-skill\n---\nOld body \u00e1\n';
+  await installWithRetired(target, [{ relativePath: retiredSkill, content }]);
+
+  for (const backupMode of ['required', 'none']) {
+    const plan = await buildUpdatePlan({ targetPath: target, backupMode });
+    const item = operationFor(plan, retiredSkill);
+    assert.equal(item.operation, 'delete_with_backup', backupMode);
+    assert.equal(item.class, 'kit', backupMode);
+    assert.equal(plan.summary.delete_with_backup, 1, backupMode);
+    assert.equal(retiredSkill in plan.nextInstallState.files, false, backupMode);
+    assert.match(formatPlan(plan), /- delete_with_backup: \.agents\/skills\/04-crosscutting\/retired-skill\/SKILL\.md \(no longer shipped\)/);
+    assert.match(formatPlan(plan), /delete_with_backup=1$/);
+    if (backupMode === 'none') await applyInstallPlan(plan);
+  }
+
+  await assert.rejects(fs.access(path.join(target, retiredSkill)), { code: 'ENOENT' });
+  const directory = path.dirname(path.join(target, retiredSkill));
+  const backups = (await fs.readdir(directory)).filter((name) => name.startsWith('SKILL.md.workflow-kit-backup-'));
+  assert.equal(backups.length, 1, 'the backup stays next to the deleted file');
+  assert.equal(await fs.readFile(path.join(directory, backups[0]), 'utf8'), content);
+  assert.equal(retiredSkill in (await readState(target)).files, false);
+});
+
+test('an edited retired file is kept and flagged in the state; a missing one only leaves the state (AC-4)', async () => {
+  const target = await makeTempRepo();
+  const missing = '.agents/skills/04-crosscutting/gone-skill/SKILL.md';
+  await installWithRetired(target, [
+    { relativePath: retiredSkill, content: 'edited by the team\n', recorded: 'as the kit shipped it\n' },
+    { relativePath: missing, content: null, recorded: 'deleted by the team\n' }
+  ]);
+
+  const plan = await buildUpdatePlan({ targetPath: target });
+  const edited = operationFor(plan, retiredSkill);
+  assert.equal(edited.operation, 'skip_modified');
+  assert.equal(edited.reason, 'retired_edited');
+  assert.equal(operationFor(plan, missing), undefined);
+  assert.match(formatPlan(plan), /- skip_modified: \.agents\/skills\/04-crosscutting\/retired-skill\/SKILL\.md \(no longer shipped; edited, kept\)/);
+
+  await applyInstallPlan(plan);
+  assert.equal(await read(target, retiredSkill), 'edited by the team\n');
+  const state = await readState(target);
+  assert.deepEqual(state.files[retiredSkill], { sha256: sha('as the kit shipped it\n'), class: 'kit', retired: true });
+  assert.equal(missing in state.files, false);
+});
+
+test('deselecting a retired delete keeps the file and its record', async () => {
+  const target = await makeTempRepo();
+  const missing = '.agents/skills/04-crosscutting/gone-skill/SKILL.md';
+  await installWithRetired(target, [
+    { relativePath: retiredSkill, content: 'kit body\n' },
+    { relativePath: missing, content: null, recorded: 'gone\n' }
+  ]);
+  const plan = await buildUpdatePlan({ targetPath: target });
+
+  const selected = selectPlanOperations(plan, plan.operations.map((item) => item.relativePath).filter((relativePath) => relativePath !== retiredSkill));
+  await applyInstallPlan(selected);
+
+  assert.equal(await read(target, retiredSkill), 'kit body\n');
+  const state = await readState(target);
+  assert.deepEqual(state.files[retiredSkill], { sha256: sha('kit body\n'), class: 'kit' });
+  assert.equal(missing in state.files, false, 'a missing file needs no operation to leave the state');
+});
+
+test('never retired: other runtimes, seeds, adapters, the project overlay, generated, legacy and backup paths (AC-4)', async () => {
+  const target = await makeTempRepo();
+  const kitManifest = await loadKitManifest();
+  const testManifest = { ...kitManifest, paths: [...kitManifest.paths, { path: 'OLD-ADAPTER.md', class: 'adapter' }, { path: '.agents/old-seed.md', class: 'seed' }] };
+  const kept = [
+    'OLD-ADAPTER.md',
+    '.agents/old-seed.md',
+    '.agents/project/notes.md',
+    'docs/workflow/migration/legacy-docs-map.md',
+    '.github/instructions/old.instructions.md',
+    '.agents/project-context.md',
+    `${retiredSkill}.workflow-kit-backup-20260101T000000Z`
+  ];
+  const installed = await installWithRetired(target, kept.map((relativePath) => ({ relativePath, content: `content of ${relativePath}\n` })), 'claude');
+  const claudeFiles = Object.keys(installed.files).filter((relativePath) => relativePath.startsWith('.claude/'));
+  assert.ok(claudeFiles.length > 0);
+
+  // Leaving claude out of this run must not delete its files.
+  const plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral', manifest: testManifest });
+
+  assert.deepEqual(plan.operations.filter((item) => item.retired).map((item) => item.relativePath), []);
+  for (const relativePath of [...kept, ...claudeFiles]) {
+    assert.ok(relativePath in plan.nextInstallState.files, relativePath);
+    assert.equal(await fs.access(path.join(target, relativePath)).then(() => true), true, relativePath);
+  }
+});
+
+test('a retired path outside the target or behind a symbolic link is refused before writing', async () => {
+  const parent = await makeTempRepo();
+  const target = path.join(parent, 'repo');
+  await fs.mkdir(target);
+  await fs.writeFile(path.join(parent, 'victim.txt'), 'keep me\n', 'utf8');
+  await installWithRetired(target, [{ relativePath: '../victim.txt', content: null, recorded: 'keep me\n' }]);
+  await assert.rejects(buildUpdatePlan({ targetPath: target }), /outside the target: \.\.\/victim\.txt/);
+
+  const linkedTarget = await makeTempRepo();
+  const elsewhere = await makeTempRepo();
+  await fs.writeFile(path.join(elsewhere, 'SKILL.md'), 'kit body\n', 'utf8');
+  await installWithRetired(linkedTarget, [{ relativePath: '.agents/skills/04-crosscutting/linked/SKILL.md', content: null, recorded: 'kit body\n' }]);
+  await fs.symlink(elsewhere, path.join(linkedTarget, '.agents/skills/04-crosscutting/linked'));
+
+  await assert.rejects(buildUpdatePlan({ targetPath: linkedTarget }), /Refusing to write or delete through symbolic links[\s\S]*linked/);
+  assert.equal(await fs.readFile(path.join(elsewhere, 'SKILL.md'), 'utf8'), 'kit body\n');
+  assert.equal(await fs.readFile(path.join(parent, 'victim.txt'), 'utf8'), 'keep me\n');
 });

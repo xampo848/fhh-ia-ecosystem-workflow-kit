@@ -54,7 +54,9 @@ export const writingOperations = new Set([
   'overwrite_with_backup',
   'overwrite_no_backup',
   'merge_with_backup',
-  'merge_no_backup'
+  'merge_no_backup',
+  // A delete through a link would remove a file somewhere else.
+  'delete_with_backup'
 ]);
 
 // Fails the whole plan when a write would go through a symbolic link: the
@@ -72,7 +74,7 @@ export async function assertNoSymlinkWrites(targetPath, operations) {
 
   const links = [...new Set(offending.map((item) => item.link))].sort();
   throw new Error([
-    `Refusing to write through symbolic links in the target (${offending.length} file(s) affected):`,
+    `Refusing to write or delete through symbolic links in the target (${offending.length} file(s) affected):`,
     ...links.map((link) => `- ${link}`),
     'Replace each link with a real file or directory, or leave that runtime out with --runtime, then run again.'
   ].join('\n'));

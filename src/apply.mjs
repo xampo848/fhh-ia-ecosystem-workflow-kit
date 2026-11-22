@@ -1,12 +1,16 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { assertNoSymlinkWrites, checksumOf, writeFileAtomic } from './fs-safety.mjs';
+import { assertNoSymlinkWrites, checksumOf, findSymlinkInPath, writeFileAtomic } from './fs-safety.mjs';
 
 // Record of the last apply that wrote something. `workflow-kit rollback` reads
-// it to undo exactly that run: restore backups, remove created files and put
-// the previous install-state back.
+// it to undo exactly that run: restore backups (deleted files included),
+// remove created files and put the previous install-state back.
 export const applyJournalRelativePath = '.agents/workflow-kit/last-apply.json';
-export const applyJournalSchemaVersion = '1.0.0';
+export const applyJournalSchemaVersion = '2.0.0';
+
+// A retired kit file is removed only after a copy is kept next to it, even
+// with --backup-mode none: the delete is what rollback has to undo.
+const deleteOperations = new Set(['delete_with_backup']);
 
 function timestamp(date = new Date()) {
   return date.toISOString().replace(/[-:]/g, '').replace(/\..+$/, 'Z');
@@ -51,17 +55,20 @@ export async function applyInstallPlan(plan) {
   const writeWithoutBackupOperations = new Set(['create', 'overwrite_no_backup', 'merge_no_backup']);
   const nonWriteOperations = new Set(['unchanged', 'skip_modified', 'skip_unmanaged', 'adopt_existing']);
 
+  const knownOperations = [nonWriteOperations, writeWithBackupOperations, writeWithoutBackupOperations, deleteOperations];
   for (const item of plan.operations) {
-    if (!nonWriteOperations.has(item.operation) && !writeWithBackupOperations.has(item.operation) && !writeWithoutBackupOperations.has(item.operation)) {
+    if (!knownOperations.some((operations) => operations.has(item.operation))) {
       throw new Error(`Unsupported operation: ${item.operation}`);
     }
   }
 
   // The plan was checked when it was built; the repository may have changed
   // since, so check again right before writing.
-  if (plan.targetPath) await assertNoSymlinkWrites(plan.targetPath, plan.operations);
+  if (plan.targetPath) {
+    await assertNoSymlinkWrites(plan.targetPath, plan.operations);
+  }
 
-  const backupStamp = await freeBackupStamp(plan.operations, writeWithBackupOperations);
+  const backupStamp = await freeBackupStamp(plan.operations, new Set([...writeWithBackupOperations, ...deleteOperations]));
   const previousStateRaw = plan.stateFilePath ? await readIfPresent(plan.stateFilePath) : null;
   const journalFiles = [];
   let stateWritten = false;
@@ -72,6 +79,16 @@ export async function applyInstallPlan(plan) {
     for (const item of plan.operations) {
       if (nonWriteOperations.has(item.operation)) {
         applied.push({ ...item, applied: false });
+        continue;
+      }
+
+      if (deleteOperations.has(item.operation)) {
+        // The backup stays next to the deleted file, so its directory stays.
+        const backupPath = `${item.targetFile}.workflow-kit-backup-${backupStamp}`;
+        await fs.copyFile(item.targetFile, backupPath);
+        await fs.rm(item.targetFile);
+        applied.push({ ...item, applied: true, backupPath });
+        journalFiles.push({ relativePath: item.relativePath, action: 'deleted', backup: plan.targetPath ? toRelative(backupPath) : null, writtenChecksum: null });
         continue;
       }
 

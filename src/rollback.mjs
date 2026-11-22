@@ -5,6 +5,9 @@ import { checksumOf, findSymlinkInPath, resolveInsideTarget, writeFileAtomic } f
 import { installStateRelativePath, readManagedInstallState } from './planner.mjs';
 
 const backupSuffixPattern = /\.workflow-kit-backup-(\d{8}T\d{6}Z)$/;
+// 1.0.0 journals only hold `created` and `overwritten` entries; 2.0.0 adds
+// `deleted` (a retired kit file removed with a backup).
+const readableJournalVersions = new Set(['1.0.0', applyJournalSchemaVersion]);
 
 async function readIfPresent(file) {
   try {
@@ -24,7 +27,7 @@ async function readJournal(targetPath) {
   } catch {
     throw new Error(`${applyJournalRelativePath} is not valid JSON. Restore it from Git or delete it to fall back to the newest backup of each managed file.`);
   }
-  if (parsed?.schemaVersion !== applyJournalSchemaVersion || !Array.isArray(parsed.files)) {
+  if (!readableJournalVersions.has(parsed?.schemaVersion) || !Array.isArray(parsed.files)) {
     throw new Error(`${applyJournalRelativePath} has an unsupported format. Run rollback with the workflow-kit version that wrote it.`);
   }
   return parsed;
@@ -48,8 +51,10 @@ export async function buildRollbackPlan(options = {}) {
   for (const entry of journal.files) {
     const targetFile = await safeTargetFile(targetPath, entry.relativePath);
     const current = await readIfPresent(targetFile);
-    const editedSinceApply = current !== null && checksumOf(current) !== entry.writtenChecksum;
-    const base = { relativePath: entry.relativePath, targetFile };
+    const deleted = entry.action === 'deleted';
+    // A deleted path that exists again was recreated after the apply.
+    const editedSinceApply = current !== null && (deleted || checksumOf(current) !== entry.writtenChecksum);
+    const base = { relativePath: entry.relativePath, targetFile, ...(deleted ? { deleted: true } : {}) };
 
     if (editedSinceApply) {
       operations.push({ ...base, action: 'keep_modified' });
@@ -148,9 +153,9 @@ export function formatRollbackPlan(plan) {
   }
 
   const lines = plan.operations.map((item) => {
-    if (item.action === 'restore') return `restore ${item.relativePath} <- ${path.basename(item.backupPath)}`;
+    if (item.action === 'restore') return `restore ${item.relativePath} <- ${path.basename(item.backupPath)}${item.deleted ? ' (deleted by the last apply)' : ''}`;
     if (item.action === 'remove') return `remove ${item.relativePath} (created by the last apply)`;
-    if (item.action === 'keep_modified') return `keep ${item.relativePath} (edited after the last apply; not touched)`;
+    if (item.action === 'keep_modified') return `keep ${item.relativePath} (${item.deleted ? 'recreated' : 'edited'} after the last apply; not touched)`;
     return `cannot restore ${item.relativePath} (${item.reason})`;
   });
   const scope = plan.source === 'journal'

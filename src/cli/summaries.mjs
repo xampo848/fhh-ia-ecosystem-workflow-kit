@@ -1,6 +1,7 @@
+// A delete is not a write: it has its own line in the update summary.
 function countApplied(applied) {
   return {
-    writeCount: applied.filter((item) => item.applied).length,
+    writeCount: applied.filter((item) => item.applied && item.operation !== 'delete_with_backup').length,
     backupCount: applied.filter((item) => item.backupPath).length
   };
 }
@@ -20,6 +21,7 @@ export function formatUpdateApplySummary(applied) {
   const modifiedSkips = applied.filter((item) => item.operation === 'skip_modified').length;
   const unmanagedSkips = applied.filter((item) => item.operation === 'skip_unmanaged').length;
   const adopted = applied.filter((item) => item.operation === 'adopt_existing').length;
+  const retiredDeleted = applied.filter((item) => item.applied && item.operation === 'delete_with_backup').length;
 
-  return `Updated writes: ${writeCount}\nBackups created: ${backupCount}\nProtected local edits (skipped): ${modifiedSkips}\nUnmanaged files (skipped): ${unmanagedSkips}\nAdopted baseline files: ${adopted}\n`;
+  return `Updated writes: ${writeCount}\nBackups created: ${backupCount}\nProtected local edits (skipped): ${modifiedSkips}\nUnmanaged files (skipped): ${unmanagedSkips}\nAdopted baseline files: ${adopted}\nRetired files deleted (backup kept): ${retiredDeleted}\n`;
 }
