@@ -258,6 +258,10 @@ test('moved skills join an existing project index as new rows, never changing th
     { name: 'CRLF line endings', index: crlf(`## Skills\n\n${header}\n${ownRow}\n`), expected: crlf(`## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n`) },
     // Round 4 (N1): only a row of the Skills table lists a path; prose that
     // names it does not.
+    // Round 5 (R3): inline code does not open a comment, and a valid table
+    // stays extensible whatever follows it in its section.
+    { name: 'prose with an inline <!--', index: `Adapters use \`<!--\` markers.\n\n## Skills\n\n${header}\n${ownRow}\n`, expected: `Adapters use \`<!--\` markers.\n\n## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n` },
+    { name: 'old rows commented out after the table', index: `## Skills\n\n${header}\n${ownRow}\n<!--\n| \`old\` | Pattern | t | \`old/SKILL.md\` | lean |\n-->\n`, expected: `## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n<!--\n| \`old\` | Pattern | t | \`old/SKILL.md\` | lean |\n-->\n` },
     { name: 'prose naming the new paths', index: `Notes on \`.agents/project/skills/retry-policy/SKILL.md\` and \`docs/release-handbook.md\`.\n\n## Skills\n\n${header}\n${ownRow}\n`, expected: `Notes on \`.agents/project/skills/retry-policy/SKILL.md\` and \`docs/release-handbook.md\`.\n\n## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n` }
   ];
   for (const item of cases) {

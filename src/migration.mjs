@@ -183,8 +183,10 @@ function hiddenLines(lines) {
   return lines.map((line, index) => {
     if (fenced[index]) return true;
     const wasInComment = inComment;
-    const open = line.lastIndexOf('<!--');
-    const close = line.lastIndexOf('-->');
+    // Inline code (`<!--`) shows the marker; it opens nothing.
+    const text = line.replace(/(`+)[\s\S]*?\1/g, '');
+    const open = text.lastIndexOf('<!--');
+    const close = text.lastIndexOf('-->');
     if (open !== -1 && open > close) inComment = true;
     else if (close !== -1) inComment = false;
     return wasInComment || inComment;
@@ -383,15 +385,16 @@ function indexSection(lines, table) {
   const heading = headings[0];
   let end = lines.findIndex((line, index) => index > heading && !fenced[index] && /^#{1,2}\s/.test(line));
   if (end === -1) end = lines.length;
+  // Rows hidden after the table (old rows commented out) are not its rows.
   const tableLines = [];
-  for (let index = heading + 1; index < end; index += 1) if (lines[index].trimStart().startsWith('|')) tableLines.push(index);
+  for (let index = heading + 1; index < end; index += 1) if (!fenced[index] && lines[index].trimStart().startsWith('|')) tableLines.push(index);
   if (tableLines.length === 0) return { heading, lastRow: -1 };
   const [first] = tableLines;
   const header = tableCells(lines[first]);
   const expected = header.length === table.columns.length && header.every((text, index) => text === table.columns[index]) && isSeparatorRow(tableCells(lines[first + 1] ?? ''));
-  if (!expected || tableLines.some((index) => fenced[index])) return { unexpected: true };
+  if (!expected) return { unexpected: true };
   let lastRow = first + 1;
-  while (lastRow + 1 < end && tableCells(lines[lastRow + 1])) lastRow += 1;
+  while (lastRow + 1 < end && !fenced[lastRow + 1] && tableCells(lines[lastRow + 1])) lastRow += 1;
   return { heading, first, lastRow };
 }
 

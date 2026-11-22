@@ -122,7 +122,8 @@ test('doctor warns about outdated or invalid shadows and a project context kept 
     missing: null
   };
   const rows = Object.keys(shadows).map((name) => `| \`${name}\` | \`.agents/project/shadows/${name}/\` |`);
-  await write(target, '.agents/project/index.md', `# Project Catalog\n\n## Shadows\n\n| Kit skill | Shadow directory |\n| --- | --- |\n${rows.join('\n')}\n`);
+  // Round 5 (R3): an inline `<!--` in prose does not hide the table.
+  await write(target, '.agents/project/index.md', `# Project Catalog\n\nAdapters use \`<!--\` markers.\n\n## Shadows\n\n| Kit skill | Shadow directory |\n| --- | --- |\n${rows.join('\n')}\n`);
   for (const [name, manifest] of Object.entries(shadows)) {
     await write(target, `.agents/project/shadows/${name}/SKILL.md`, '---\nname: shadow\n---\n');
     if (manifest !== null) await write(target, `.agents/project/shadows/${name}/shadow.json`, typeof manifest === 'string' ? manifest : JSON.stringify(manifest));
