@@ -23,6 +23,6 @@ Do not run GitHub repository creation, package publication, release uploads, tag
 ## Versioning
 
 Versions follow [Versioning](versioning.md). The current version is the one in
-`package.json` (`0.21.0-project-runbooks` at the time of writing); its notes are
+`package.json` (`0.22.0-manifest-updater` at the time of writing); its notes are
 in `CHANGELOG.md`. Each released version has a `v<version>` tag; the list is
 in [Versioning](versioning.md).

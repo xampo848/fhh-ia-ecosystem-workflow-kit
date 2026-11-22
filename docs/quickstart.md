@@ -139,7 +139,7 @@ installed version, so a mistyped ref or a network failure changes nothing. To
 pin a release, pass its tag (see [Versioning](versioning.md)):
 
 ```bash
-workflow-kit upgrade --ref v0.21.0-project-runbooks --apply --yes
+workflow-kit upgrade --ref v0.22.0-manifest-updater --apply --yes
 ```
 
 After that, run `update` in each project you manage to bring its workflow to

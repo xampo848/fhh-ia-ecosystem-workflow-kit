@@ -5,6 +5,105 @@ paths may change between versions; every change below is applied by
 `workflow-kit update` without deleting or moving files in your repository.
 Migration details are in `docs/migration.md`.
 
+## 0.22.0-manifest-updater
+
+`workflow-kit update` now follows the kit manifest: it replaces what the kit
+owns, never touches the project overlay `.agents/project/`, deletes the kit
+files a version stops shipping, and migrates repositories installed before
+this version to the kit/project overlay layout once, with a dry run, backups,
+and rollback. This is the updater and migration phase (F2) of the kit/project
+overlay epic.
+
+- Update by manifest: every path takes its class from
+  `.agents/workflow-kit/manifest.json` (`kit`, `derived`, `adapter`, `seed`,
+  `state`), and `src/` keeps no hand-written list of kit paths. Kit and
+  derived files are replaced when unedited; an edited one stays pending, and
+  so does your own file at a kit path the install never recorded
+  (`unrecorded_kit_file`, for example `.codex/README.md` when you add the
+  Codex runtime). Adapters get only their `workflow-kit:managed` block
+  regenerated, so your text outside the markers is never changed. Seeds are
+  created once. The skill catalogs belong to the kit and are replaced whole;
+  project rows live in `.agents/project/index.md`. The manifest is now
+  installed in the target.
+- install-state `2.0.0`: `{ sha256, class }` per path and `mode: "repo"`; an
+  adapter records the hash of its block. A `1.0.0` state is still read.
+- Retired files: a kit file that no runtime of the new version ships is
+  deleted when unedited, always with a backup next to it; an edited one stays
+  and `doctor` names it. The apply journal moves to `2.0.0` with a `deleted`
+  action, and `rollback` restores deleted files.
+- Backups: no write replaces content without a backup unless that content
+  matches the hash the kit recorded, whatever `--backup-mode` says. Every
+  write planned without a backup is checked again right before it happens: a
+  file that changed or appeared since the plan is kept as a backup first.
+- Layout migration from `1.0.0` (id `0.22.0-kit-overlay-layout`): own skills
+  under `.agents/skills/` move to `.agents/project/skills/<name>/` (file modes
+  kept) with a row in `.agents/project/index.md`; own catalog rows move there
+  with your trigger and cost; `.agents/project-context.md` moves to
+  `.agents/project/context.md`; an unedited 0.18/0.19 project quality gate
+  becomes the project-additions stub. Every write keeps a backup, the
+  migration is one block in a partial selection, a second update writes
+  nothing, and `rollback` restores the previous tree and the `1.0.0` state.
+  Items it cannot move safely (a symbolic link, a name collision, a file that
+  is not UTF-8 text) stay pending. When `.agents/project/index.md` already
+  exists with a `## Skills` or `## Shadows` table the migration cannot extend,
+  the migration stops before writing anything and names the fix, so own rows
+  never end up only in backups.
+- `--edited <path>=keep|discard|shadow|split` (and `all=`) decides each
+  pending file: `discard` takes the kit version, `shadow` (only while
+  migrating, for a leaf skill) keeps your version in
+  `.agents/project/shadows/<skill>/` with its `shadow.json`, `split` keeps
+  your own text outside the new block of an unmarked adapter. Every decision
+  keeps a backup; an invalid one exits 2 before writing. `keep` is not
+  remembered: the file stays as it is, and every `update` and `doctor` list it
+  again until you choose another decision.
+- `init` stops over an existing install (`1.0.0` or `2.0.0`) and points to
+  `update` (with `--runtime`, `--stack` or `--profile` to change those
+  choices), so recorded choices and pending files are never reset. The TUI
+  Install stops the same way right after you choose the target. `init` and
+  `update` also stop before planning when a file stands where they need a
+  folder, or a folder where they write a file.
+- `export` records `mode: "export"` in the exported `install-state.json` and
+  refreshes only a folder an export wrote. Over an install (`1.0.0` or
+  `2.0.0`) it stops before writing anything. An export written before
+  `0.22.0` recorded `mode: "repo"`, so it is not refreshed in place: export to
+  an empty folder, or remove its `.agents/workflow-kit/install-state.json`
+  and export again.
+- `rollback` without its journal restores the newest backup of each managed
+  file and first keeps the current content as a
+  `.workflow-kit-backup-<timestamp>-before-rollback` copy, which no rollback
+  restores; running it again restores nothing more. It names the copies and
+  advises a dry-run `update` with a decision per pending file.
+- TUI: with edited files it offers keep my edits, replace all with the kit
+  version, or decide file by file (only the valid decisions, with a short
+  diff). Replace all splits an unmarked adapter where `split` applies and
+  leaves it pending where it does not (for example Windows line endings). The
+  preview groups the layout migration with its pending items.
+- `doctor`: new `managed/legacy-layout`, `managed/apply-incomplete`,
+  `managed/apply-journal-unusable`, `managed/path-unreadable` (a path it
+  cannot read, instead of a crash), `boundary/pending-<reason>` (one per
+  pending reason, with the command that resolves it),
+  `boundary/adapter-block-edited`, `boundary/shadow-outdated`,
+  `boundary/shadow-invalid`, `boundary/ignored-state-key`,
+  `boundary/unowned-path` and `project-context/both-paths`.
+  `skills/unregistered-file` is now a warning in a target repository and
+  points to the project overlay. Retired: `managed/content-drift`,
+  `skills/local-catalog-missing-skill` and
+  `project-instructions/quality-gate-missing`. `stack-pack/missing` now asks
+  to restore the file from Git. The kit repository's overlay drift check
+  compares only manifest paths.
+- Docs: `docs/migration.md` (flow, groups, decisions, rollback without a
+  journal, export) and `docs/troubleshooting.md` (every `doctor` code with its
+  action).
+
+Upgrade: run `workflow-kit update --target <repo>` without `--apply` first and
+read the migration and its pending files; add `--diff` to see the content.
+If an apply stops halfway, `init` and `update` refuse to run until
+`workflow-kit rollback --apply --yes` undoes it. Decide pending files in the
+same apply as the migration if you may want to roll back, since `rollback`
+undoes only the last apply. CLIs older than this version cannot read a
+`2.0.0` install-state; upgrade the CLI on every machine that updates the
+repository.
+
 ## 0.21.0-project-runbooks
 
 A project can now keep its operational procedures (promoting a build to an
