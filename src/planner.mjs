@@ -253,9 +253,6 @@ export async function buildUpdatePlan(options = {}) {
     modelProfiles,
     migratedInstructions: { ...migratedInstructions, ...migration?.seedContents }
   });
-  // Before anything reads the planned content of other files (the Copilot
-  // wrappers read the quality gate) and before the project index is planned.
-  if (migration) await migration.markUnrecordedKitFiles(operations);
   const shadows = await planEditedDecisions({ operations, edited: options.edited ?? {}, manifest, migration });
   if (migration) await migration.completeOperations(operations, shadows);
   operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
@@ -584,7 +581,9 @@ function planOwnedFile({ base, templateContent, existingContent, recorded, mode,
   // A file that differs from this version when adopting is a customization,
   // not a baseline: record the kit checksum so later updates see it as edited.
   if (mode === 'adopt') return plan('adopt_existing', { existingChecksum });
-  if (!recorded?.sha256) return plan('skip_unmanaged');
+  // Never recorded (a path this update ships for the first time, or that a
+  // 1.0.0 state left out): someone's own text, pending like an edit.
+  if (!recorded?.sha256) return plan('skip_modified', { existingChecksum, recordedChecksum: null, reason: 'unrecorded_kit_file' });
   if (recorded.sha256 === existingChecksum) return plan(overwriteOperation(backupMode), { recordedChecksum: recorded.sha256 });
   return plan('skip_modified', { existingChecksum, recordedChecksum: recorded.sha256, reason: 'edited_kit_file' });
 }

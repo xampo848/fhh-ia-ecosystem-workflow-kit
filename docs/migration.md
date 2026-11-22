@@ -74,7 +74,9 @@ Behavior on update (since `0.22.0`, by the class each path has in
 
 1. Kit and derived files are replaced when they still match what the last
    apply wrote; an edited one stays pending (`skip_modified`) until you decide
-   it with `--edited`.
+   it with `--edited`. So does your own file at a kit path the install never
+   recorded (for example `.codex/README.md` when you add the Codex runtime):
+   `unrecorded_kit_file`, with `keep` or `discard`.
 2. Adapters (`CLAUDE.md`, `AGENTS.md`, `ANTIGRAVITY.md`, the Copilot
    instructions, the block of `docs/README.md`) get only their
    `workflow-kit:managed` block regenerated; your text outside the markers is

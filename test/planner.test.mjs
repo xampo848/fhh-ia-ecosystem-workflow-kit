@@ -234,28 +234,18 @@ test('update by class: kit and derived files are created, kept, replaced or left
   assert.equal(operationFor(plan, '.agents/skills/index.md').content, shippedIndex);
 });
 
-test('buildUpdatePlan skips local edits and unmanaged files while keeping managed unchanged', async () => {
+// An unrecorded kit file is covered by "an own file at a kit path the 2.0.0
+// state never recorded is pending until decided".
+test('buildUpdatePlan skips a local edit to a managed adapter', async () => {
   const target = await makeTempRepo();
   const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex', toolkitVersion: '0.6.0-test' });
   await applyInstallPlan(installPlan);
-
-  const managedModified = path.join(target, 'AGENTS.md');
-  await fs.writeFile(managedModified, 'local override\n', 'utf8');
-
-  const unmanagedPath = path.join(target, '.agents/instructions.md');
-  await fs.writeFile(unmanagedPath, 'local unmanaged override\n', 'utf8');
-
-  const statePath = path.join(target, installStateRelativePath);
-  const state = JSON.parse(await fs.readFile(statePath, 'utf8'));
-  delete state.files['.agents/instructions.md'];
-  await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+  await fs.writeFile(path.join(target, 'AGENTS.md'), 'local override\n', 'utf8');
 
   const updatePlan = await buildUpdatePlan({ targetPath: target, runtime: 'codex', toolkitVersion: '0.7.0-test' });
 
   assert.equal(updatePlan.operations.find((item) => item.relativePath === 'AGENTS.md').operation, 'skip_modified');
-  assert.equal(updatePlan.operations.find((item) => item.relativePath === '.agents/instructions.md').operation, 'skip_unmanaged');
   assert.equal(updatePlan.summary.skip_modified > 0, true);
-  assert.equal(updatePlan.summary.skip_unmanaged > 0, true);
 });
 
 test('an edited .agents/instructions.md stays pending unless --edited all=discard; an edited adapter keeps its own text', async () => {
@@ -495,6 +485,25 @@ test('init over a 2.0.0 install stops before planning and points to update', asy
   await assert.rejects(buildInstallPlan({ targetPath: target, runtime: 'neutral' }), new Error(`${installStateRelativePath} already records an install (runtimes: claude). Run \`workflow-kit update\` instead (\`workflow-kit update --runtime <list>\` to change the runtimes); init would reset the recorded runtimes, stack and profiles and replace pending edited files. Nothing was written.`));
 
   assert.deepEqual(await hashTree(target), before);
+});
+
+// Final review 8: an own file at a kit path this install never recorded (here,
+// one the runtime added by this update ships) is pending like an edited one,
+// with keep | discard, never skipped for good.
+test('an own file at a kit path the 2.0.0 state never recorded is pending until decided', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  const codexReadme = '.codex/README.md';
+  await write(target, codexReadme, '# Our own Codex notes\n');
+
+  const plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral,codex' });
+
+  assert.deepEqual(
+    (({ operation, reason, decisions }) => ({ operation, reason, decisions }))(operationFor(plan, codexReadme)),
+    { operation: 'skip_modified', reason: 'unrecorded_kit_file', decisions: ['keep', 'discard'] }
+  );
+  const discarded = await buildUpdatePlan({ targetPath: target, runtime: 'neutral,codex', edited: { [codexReadme]: 'discard' } });
+  assert.equal(operationFor(discarded, codexReadme).operation, 'overwrite_with_backup');
 });
 
 const retiredSkill = '.agents/skills/04-crosscutting/retired-skill/SKILL.md';

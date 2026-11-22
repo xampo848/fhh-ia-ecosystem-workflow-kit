@@ -449,7 +449,8 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
   // 3. Catalogs are derived (A1): the 1.0.0 state dropped the ones 0.18
   // preserved, so the planner gets their current content as recorded and
   // plans a replace. The project rows they held are moved first (2). Any
-  // other unrecorded kit file is someone's own text (markUnrecordedKitFiles).
+  // other unrecorded kit file is someone's own text: the class planner
+  // leaves it pending (unrecorded_kit_file).
   const plannerFiles = { ...previousFiles };
   for (const file of files) {
     if (Object.hasOwn(previousFiles, file.relativePath) || !legacyPreservedCatalogs.has(file.relativePath)) continue;
@@ -577,17 +578,6 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
     ];
   }
 
-  // Called right after the class planner, before the --edited decisions: a
-  // kit or derived file the 1.0.0 state does not record and that differs
-  // from this version is pending like an edited one (keep | discard).
-  async function markUnrecordedKitFiles(operations) {
-    for (const item of operations) {
-      if (item.operation !== 'skip_unmanaged' || !['kit', 'derived'].includes(item.class) || Object.hasOwn(plannerFiles, item.relativePath)) continue;
-      const existingChecksum = checksumOf(await fs.readFile(item.targetFile, 'utf8'));
-      Object.assign(item, { operation: 'skip_modified', reason: 'unrecorded_kit_file', existingChecksum, recordedChecksum: null });
-    }
-  }
-
   // Called right after the --edited decisions, before anything reads the
   // planned content of other files (the Copilot wrappers read the quality gate).
   async function completeOperations(operations, shadows = []) {
@@ -657,7 +647,6 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
     droppedPaths: Object.keys(manifest.legacy_paths).filter((legacyPath) => Object.hasOwn(previousFiles, legacyPath)),
     shadowFor,
     shadowOperations,
-    markUnrecordedKitFiles,
     completeOperations,
     describe
   };
