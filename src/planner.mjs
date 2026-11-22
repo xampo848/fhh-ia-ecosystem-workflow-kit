@@ -4,51 +4,23 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isSupportedRuntime, runtimeTemplatePaths } from './runtime-matrix.mjs';
 import { loadDelegateCatalog, parseProfileOption, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
-import { inspectProjectInstructions, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
+import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
 import { assertNoSymlinkWrites } from './fs-safety.mjs';
 import { applyJournalRelativePath } from './apply.mjs';
+import { classifyPath, defaultBlockName, extractManagedBlock, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
 export const installStateRelativePath = '.agents/workflow-kit/install-state.json';
-const installStateSchemaVersion = '1.0.0';
-const skillRegistryJsonPath = '.agents/skills/registry.json';
-// Project-owned once created: the installer writes them only when missing.
-const skillCatalogPreservePaths = new Set([
-  '.agents/project/context.md',
-  '.agents/project/quality-gate.md',
-  '.agents/project/backend.md',
-  '.agents/project/frontend.md',
-  '.agents/project/paths.json',
-  '.agents/skills/index.md',
-  '.agents/skills/06-patterns/index.md',
-  '.agents/skills/registry.md',
-  '.agents/skills/registry.cache.json'
-]);
-// Project-owned catalogs that still receive the rows of skills a later version
-// ships: the router finds skills through them, so a missing row hides an
-// installed skill. Existing rows are never changed or removed.
-const skillCatalogRowPaths = new Set([
-  '.agents/skills/index.md',
-  '.agents/skills/06-patterns/index.md',
-  '.agents/skills/registry.md'
-]);
-const catalogRowPattern = /^\|\s*`([^`]+)`\s*\|/;
-const catalogHeadingPattern = /^#{1,6}\s/;
-const catalogSkillPathPattern = /\.agents\/skills\/[A-Za-z0-9/_-]+\/SKILL\.md/;
-const protectedCustomizationPaths = new Set([
-  '.agents/instructions.md',
-  'AGENTS.md',
-  'CLAUDE.md',
-  'ANTIGRAVITY.md',
-  '.github/copilot-instructions.md',
-  '.github/instructions/ai-workflow.instructions.md'
-]);
-const docsReadmePath = 'docs/README.md';
-const docsWorkflowMarkerStart = '<!-- workflow-kit:docs-workflow:start -->';
-const docsWorkflowMarkerEnd = '<!-- workflow-kit:docs-workflow:end -->';
+const installStateSchemaVersion = '2.0.0';
+const legacyInstallStateSchemaVersion = '1.0.0';
 const oneTimeLegacyDocsMapPath = 'docs/workflow/migration/legacy-docs-map.md';
+// The only planned path without a manifest class: it stays user-owned and the
+// kit only appends the manifest's ignore entries to it.
+const gitignorePath = '.gitignore';
+// Operations that leave the file as it is on disk.
+const nonWritingOperations = new Set(['skip_unmanaged', 'skip_modified', 'unchanged', 'adopt_existing']);
 
 const backupModes = new Set(['required', 'none']);
 
@@ -60,17 +32,8 @@ function normalizeBackupMode(value = 'required') {
   return mode;
 }
 
-function writeOperationForResolution(strategy, backupMode) {
-  if (strategy === 'merged' || strategy === 'catalog_rows') {
-    return backupMode === 'none' ? 'merge_no_backup' : 'merge_with_backup';
-  }
-
-  return backupMode === 'none' ? 'overwrite_no_backup' : 'overwrite_with_backup';
-}
-
-function isProtectedCustomizationPath(relativePath) {
-  return protectedCustomizationPaths.has(relativePath);
-}
+const overwriteOperation = (backupMode) => (backupMode === 'none' ? 'overwrite_no_backup' : 'overwrite_with_backup');
+const mergeOperation = (backupMode) => (backupMode === 'none' ? 'merge_no_backup' : 'merge_with_backup');
 
 export function parseRuntimeList(value = 'neutral') {
   const runtimes = new Set(String(value).split(',').map((item) => item.trim()).filter(Boolean));
@@ -103,11 +66,10 @@ async function collectTemplateFiles(templateRelativePath) {
       if (entry.isDirectory()) {
         await walk(absolutePath);
       } else if (entry.isFile()) {
-        // Plan paths always use "/": the protected-path sets, the registry
-        // and install-state keys are written that way on every platform.
+        // Plan paths always use "/": manifest entries and install-state keys
+        // are written that way on every platform.
         const relativePath = path.relative(root, absolutePath).split(path.sep).join('/');
         if (relativePath === 'README.md') continue;
-        if (relativePath.startsWith('.agents/workflow-kit/')) continue;
         files.push({
           sourcePath: absolutePath,
           relativePath
@@ -143,77 +105,25 @@ export async function buildInstallPlan(options = {}) {
   const runtimes = parseRuntimeList(options.runtime ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
+  const manifest = options.manifest ?? await loadKitManifest();
   const files = await selectedTemplateFiles({ runtimes, overlay });
-  const shippedPaths = new Set(files.map((file) => file.relativePath));
-  const discoveredSkillEntries = await collectDiscoveredLocalSkillEntries(targetPath);
   const catalog = await loadDelegateCatalog();
   const modelProfiles = resolveModelProfiles({ catalog, runtimes, requested: parseProfileOption(options.profile) });
   const instructionInspection = await inspectProjectInstructions({ targetPath });
   const migratedInstructions = migratedInstructionContents(instructionInspection);
   const stackPack = normalizeStackPack(options.stack);
-  const operations = [];
+  const previousFiles = {};
 
-  for (const file of files) {
-    const targetFile = path.resolve(targetPath, file.relativePath);
-    const relativeTarget = path.relative(targetPath, targetFile);
-
-    if (relativeTarget.startsWith('..') || path.isAbsolute(relativeTarget)) {
-      throw new Error(`Refusing to plan write outside target: ${file.relativePath}`);
-    }
-
-    const content = await fs.readFile(file.sourcePath, 'utf8');
-    const sourceChecksum = computeChecksum(content);
-    let operation = 'create';
-    let existingContent = null;
-
-    try {
-      existingContent = await fs.readFile(targetFile, 'utf8');
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-    }
-
-    const resolution = resolvePlannedContent({
-      relativePath: file.relativePath,
-      templateContent: content,
-      existingContent,
-      discoveredSkillEntries,
-      catalog,
-      modelProfiles,
-      migratedInstructions,
-      shippedPaths
-    });
-
-    if (existingContent !== null) {
-      if (resolution.strategy === 'preserve_existing') {
-        operation = 'skip_unmanaged';
-      } else if (existingContent === resolution.content) {
-        operation = 'unchanged';
-      } else {
-        operation = writeOperationForResolution(resolution.strategy, backupMode);
-      }
-    }
-
-    operations.push({
-      operation,
-      relativePath: file.relativePath,
-      targetFile,
-      sourcePath: file.sourcePath,
-      content: resolution.content,
-      sourceChecksum,
-      plannedChecksum: computeChecksum(resolution.content),
-      ...(resolution.strategy === 'catalog_rows' ? { dropFromState: true } : {})
-    });
-  }
-
-  operations.push(...await buildOneTimeDocsMigrationOperations({ targetPath }));
+  const operations = await planTemplateFiles({
+    targetPath, files, manifest, mode: 'init', previousFiles, backupMode, catalog, modelProfiles, migratedInstructions
+  });
+  operations.push(...await buildOneTimeDocsMigrationOperations({ targetPath, previousFiles }));
   if (options.ensureWorkspaceIgnore !== false) {
-    operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode }));
+    operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
   }
   operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode }));
-  operations.push(...await buildStackPackOperations({ targetPath, stackPack }));
-
-  operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
-  await assertNoSymlinkWrites(targetPath, operations);
+  operations.push(...await buildStackPackOperations({ targetPath, stackPack, previousFiles }));
+  await finalizeOperations({ targetPath, manifest, operations });
 
   const nextInstallState = buildNextInstallState({
     previousState: null,
@@ -238,7 +148,6 @@ export async function buildInstallPlan(options = {}) {
     overlay,
     modelProfiles,
     stackPack,
-    discoveredSkillEntries,
     operations,
     summary: summarizeOperations(operations),
     backupMode,
@@ -249,13 +158,15 @@ export async function buildInstallPlan(options = {}) {
 export async function buildUpdatePlan(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   const stateFilePath = path.join(targetPath, installStateRelativePath);
-  const existingState = await readInstallState(stateFilePath);
+  const manifest = options.manifest ?? await loadKitManifest();
+  const existingState = await readInstallState(stateFilePath, manifest);
+  if (!existingState && !options.adoptExisting) {
+    throw new Error('No install state found. Run `workflow-kit update --adopt-existing --runtime <list>` first to bootstrap a safe baseline.');
+  }
   const runtimes = parseRuntimeList(options.runtime ?? existingState?.runtimes?.join(',') ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? existingState?.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
   const files = await selectedTemplateFiles({ runtimes, overlay });
-  const shippedPaths = new Set(files.map((file) => file.relativePath));
-  const discoveredSkillEntries = await collectDiscoveredLocalSkillEntries(targetPath);
   const catalog = await loadDelegateCatalog();
   const modelProfiles = resolveModelProfiles({
     catalog,
@@ -269,182 +180,24 @@ export async function buildUpdatePlan(options = {}) {
   // skills. Without a recorded or requested choice, keep those rules only when
   // the repository looks like Rails + React; anywhere else they would be wrong.
   const stackPack = normalizeStackPack(options.stack ?? existingState?.stackPack ?? await detectStackPack(targetPath));
-  const previousHashes = new Map(Object.entries(existingState?.files ?? {}));
-  const operations = [];
+  const previousFiles = existingState?.files ?? {};
 
-  if (!existingState && !options.adoptExisting) {
-    throw new Error('No install state found. Run `workflow-kit update --adopt-existing --runtime <list>` first to bootstrap a safe baseline.');
-  }
-
-  for (const file of files) {
-    const targetFile = path.resolve(targetPath, file.relativePath);
-    const relativeTarget = path.relative(targetPath, targetFile);
-
-    if (relativeTarget.startsWith('..') || path.isAbsolute(relativeTarget)) {
-      throw new Error(`Refusing to plan write outside target: ${file.relativePath}`);
-    }
-
-    const content = await fs.readFile(file.sourcePath, 'utf8');
-    const sourceChecksum = computeChecksum(content);
-    const recordedChecksum = previousHashes.get(file.relativePath);
-
-    let existingContent = null;
-    try {
-      existingContent = await fs.readFile(targetFile, 'utf8');
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-    }
-
-    const resolution = resolvePlannedContent({
-      relativePath: file.relativePath,
-      templateContent: content,
-      existingContent,
-      discoveredSkillEntries,
-      catalog,
-      modelProfiles,
-      migratedInstructions,
-      shippedPaths
-    });
-
-    if (existingContent === null) {
-      operations.push({
-        operation: 'create',
-        relativePath: file.relativePath,
-        targetFile,
-        sourcePath: file.sourcePath,
-        content: resolution.content,
-        sourceChecksum,
-        plannedChecksum: computeChecksum(resolution.content)
-      });
-      continue;
-    }
-
-    if (resolution.strategy === 'catalog_rows') {
-      operations.push({
-        operation: writeOperationForResolution('merged', backupMode),
-        relativePath: file.relativePath,
-        targetFile,
-        sourcePath: file.sourcePath,
-        content: resolution.content,
-        sourceChecksum,
-        plannedChecksum: computeChecksum(resolution.content),
-        dropFromState: true
-      });
-      continue;
-    }
-
-    if (resolution.strategy === 'preserve_existing') {
-      operations.push({
-        operation: 'skip_unmanaged',
-        relativePath: file.relativePath,
-        targetFile,
-        sourcePath: file.sourcePath,
-        content: resolution.content,
-        sourceChecksum,
-        plannedChecksum: computeChecksum(resolution.content),
-        dropFromState: true
-      });
-      continue;
-    }
-
-    if (!existingState && options.adoptExisting) {
-      operations.push({
-        operation: 'adopt_existing',
-        relativePath: file.relativePath,
-        targetFile,
-        sourcePath: file.sourcePath,
-        content: resolution.content,
-        sourceChecksum,
-        // A hand-written instruction file that differs from the toolkit
-        // version is a customization, not a baseline: record the toolkit
-        // checksum so later updates see it as modified and keep skipping it.
-        existingChecksum: isProtectedCustomizationPath(file.relativePath) && existingContent !== resolution.content
-          ? computeChecksum(resolution.content)
-          : computeChecksum(existingContent),
-        plannedChecksum: computeChecksum(resolution.content)
-      });
-      continue;
-    }
-
-    if (recordedChecksum) {
-      const existingChecksum = computeChecksum(existingContent);
-      // Content that already equals what this version would write is not a
-      // local edit, whatever the state recorded: someone took the new version
-      // by hand. Recording it ends the protection instead of keeping the file
-      // marked as modified forever.
-      if (existingContent === resolution.content) {
-        operations.push({
-          operation: 'unchanged',
-          relativePath: file.relativePath,
-          targetFile,
-          sourcePath: file.sourcePath,
-          content: resolution.content,
-          sourceChecksum,
-          plannedChecksum: computeChecksum(resolution.content)
-        });
-      } else if (existingChecksum !== recordedChecksum) {
-        const overwriteOperation = writeOperationForResolution(resolution.strategy, backupMode);
-        const shouldAutoMerge = resolution.strategy === 'merged';
-        const isProtectedCustomization = isProtectedCustomizationPath(file.relativePath);
-
-        operations.push({
-          operation: shouldAutoMerge
-            ? overwriteOperation
-            : (isProtectedCustomization ? 'skip_modified' : (options.overwriteModified ? overwriteOperation : 'skip_modified')),
-          relativePath: file.relativePath,
-          targetFile,
-          sourcePath: file.sourcePath,
-          content: resolution.content,
-          sourceChecksum,
-          existingChecksum,
-          recordedChecksum,
-          plannedChecksum: computeChecksum(resolution.content),
-          reason: isProtectedCustomization ? 'protected_customization' : undefined
-        });
-      } else {
-        operations.push({
-          operation: writeOperationForResolution(resolution.strategy, backupMode),
-          relativePath: file.relativePath,
-          targetFile,
-          sourcePath: file.sourcePath,
-          content: resolution.content,
-          sourceChecksum,
-          recordedChecksum,
-          plannedChecksum: computeChecksum(resolution.content)
-        });
-      }
-      continue;
-    }
-
-    if (existingContent === resolution.content) {
-      operations.push({
-        operation: 'unchanged',
-        relativePath: file.relativePath,
-        targetFile,
-        sourcePath: file.sourcePath,
-        content: resolution.content,
-        sourceChecksum,
-        plannedChecksum: computeChecksum(resolution.content)
-      });
-    } else {
-      operations.push({
-        operation: 'skip_unmanaged',
-        relativePath: file.relativePath,
-        targetFile,
-        sourcePath: file.sourcePath,
-        content: resolution.content,
-        sourceChecksum,
-        plannedChecksum: computeChecksum(resolution.content)
-      });
-    }
-  }
-
-  operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode }));
+  const operations = await planTemplateFiles({
+    targetPath,
+    files,
+    manifest,
+    mode: existingState ? 'update' : 'adopt',
+    previousFiles,
+    backupMode,
+    overwriteModified: Boolean(options.overwriteModified),
+    catalog,
+    modelProfiles,
+    migratedInstructions
+  });
+  operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
   operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode }));
-  operations.push(...await buildStackPackOperations({ targetPath, stackPack }));
-
-  operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
-  await assertNoSymlinkWrites(targetPath, operations);
+  operations.push(...await buildStackPackOperations({ targetPath, stackPack, previousFiles }));
+  await finalizeOperations({ targetPath, manifest, operations });
 
   const nextInstallState = buildNextInstallState({
     previousState: existingState,
@@ -477,12 +230,155 @@ export async function buildUpdatePlan(options = {}) {
     overlay,
     modelProfiles,
     stackPack,
-    discoveredSkillEntries,
     operations,
     summary: summarizeOperations(operations),
     backupMode,
-    previousStateFiles: { ...(existingState?.files ?? {}) }
+    previousStateFiles: { ...previousFiles }
   };
+}
+
+// Every planned path takes its class from the manifest. A path the manifest
+// does not cover is a kit bug: stop before anything is written.
+function classifyOrThrow(manifest, relativePath) {
+  const entry = classifyPath(manifest, relativePath);
+  if (!entry) {
+    throw new Error(`The kit manifest has no entry for the planned path ${relativePath}. Nothing was written; report this workflow-kit bug.`);
+  }
+  return entry;
+}
+
+async function finalizeOperations({ targetPath, manifest, operations }) {
+  for (const item of operations) {
+    if (!item.class && item.relativePath !== gitignorePath) item.class = classifyOrThrow(manifest, item.relativePath).class;
+  }
+  operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+  await assertNoSymlinkWrites(targetPath, operations);
+}
+
+async function readOptional(file) {
+  try {
+    return await fs.readFile(file, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+// mode: 'init' (no state consulted), 'update' (state present) or 'adopt'
+// (update without a state, bootstrapping a baseline).
+async function planTemplateFiles(context) {
+  const operations = [];
+  for (const file of context.files) {
+    const entry = classifyOrThrow(context.manifest, file.relativePath);
+    if (entry.class === 'state') continue;
+    const targetFile = path.resolve(context.targetPath, file.relativePath);
+    const relativeTarget = path.relative(context.targetPath, targetFile);
+    if (relativeTarget.startsWith('..') || path.isAbsolute(relativeTarget)) {
+      throw new Error(`Refusing to plan write outside target: ${file.relativePath}`);
+    }
+
+    const templateContent = await fs.readFile(file.sourcePath, 'utf8');
+    const planned = classPlanners[entry.class]({
+      ...context,
+      entry,
+      templateContent,
+      existingContent: await readOptional(targetFile),
+      recorded: context.previousFiles[file.relativePath] ?? null,
+      base: {
+        relativePath: file.relativePath,
+        targetFile,
+        sourcePath: file.sourcePath,
+        class: entry.class,
+        sourceChecksum: computeChecksum(templateContent)
+      }
+    });
+    if (planned) operations.push(planned);
+  }
+  return operations;
+}
+
+const classPlanners = {
+  kit: planOwnedFile,
+  derived: planOwnedFile,
+  adapter: planAdapter,
+  seed: planSeed
+};
+
+// kit and derived: the kit owns the whole file. A file changed since the
+// recorded install is a local edit and is only replaced on request.
+function planOwnedFile({ base, templateContent, existingContent, recorded, mode, backupMode, overwriteModified, catalog, modelProfiles }) {
+  const content = renderDelegateAdapterForPath(base.relativePath, catalog, modelProfiles)?.content ?? templateContent;
+  const plan = (operation, extra = {}) => ({ ...base, operation, content, stateChecksum: computeChecksum(content), ...extra });
+  if (existingContent === null) return plan('create');
+  // Content that already equals what this version would write is not a local
+  // edit, whatever the state recorded: someone took the new version by hand.
+  if (existingContent === content) return plan('unchanged');
+  if (mode === 'init') return plan(overwriteOperation(backupMode));
+
+  const existingChecksum = computeChecksum(existingContent);
+  if (mode === 'adopt') return plan('adopt_existing', { stateChecksum: existingChecksum });
+  if (!recorded?.sha256) return plan('skip_unmanaged');
+  if (recorded.sha256 === existingChecksum) return plan(overwriteOperation(backupMode), { recordedChecksum: recorded.sha256 });
+  if (overwriteModified) return plan(overwriteOperation(backupMode), { existingChecksum, recordedChecksum: recorded.sha256 });
+  return plan('skip_modified', { existingChecksum, recordedChecksum: recorded.sha256, reason: 'edited_kit_file' });
+}
+
+// adapter: the kit owns only its block; the text outside it is the project's.
+function planAdapter({ base, entry, templateContent, existingContent, recorded, backupMode }) {
+  const blockName = entry.block ?? defaultBlockName;
+  const plan = (operation, content, extra = {}) => ({ ...base, operation, content, stateChecksum: managedBlockChecksum(content, blockName), ...extra });
+  if (existingContent === null) return plan('create', templateContent);
+
+  const replaced = replaceManagedBlock(existingContent, templateContent, blockName);
+  if (replaced !== null) return plan(replaced === existingContent ? 'unchanged' : overwriteOperation(backupMode), replaced);
+
+  // No single valid block. A file the kit wrote before it had markers is
+  // recognized by its recorded whole-file hash; anything else recorded is a
+  // local edit the migration has to decide on.
+  if (recorded?.sha256) {
+    const existingChecksum = computeChecksum(existingContent);
+    if (recorded.sha256 === existingChecksum) return plan(overwriteOperation(backupMode), templateContent, { recordedChecksum: recorded.sha256 });
+    return { ...base, operation: 'skip_modified', content: templateContent, existingChecksum, recordedChecksum: recorded.sha256, reason: 'unmarked_adapter' };
+  }
+  // A lone or repeated marker cannot be paired safely with a new block.
+  if (extractManagedBlock(existingContent, blockName).error !== 'missing') {
+    return { ...base, operation: 'skip_unmanaged', content: templateContent, reason: 'invalid_managed_block' };
+  }
+  if (!existingContent.trim()) return plan(overwriteOperation(backupMode), templateContent);
+  // A file the project wrote before the kit arrived keeps its text; the block
+  // goes where the template places it.
+  return plan(mergeOperation(backupMode), insertManagedBlock(existingContent, templateContent, blockName));
+}
+
+function insertManagedBlock(existingContent, templateContent, blockName) {
+  const { block } = extractManagedBlock(templateContent, blockName);
+  if (templateContent.startsWith(block)) return `${block}\n\n${existingContent}`;
+  const separator = existingContent.endsWith('\n') ? '' : '\n';
+  return `${existingContent}${separator}\n${block}\n`;
+}
+
+// seed: created once; after that the project owns it. A seed the kit created
+// and the project deleted is never recreated. Hand-written Copilot
+// instructions become the seed's first content instead of the template.
+function planSeed({ base, templateContent, existingContent, recorded, migratedInstructions }) {
+  if (existingContent !== null) return { ...base, operation: 'skip_unmanaged', content: existingContent, reason: 'project_owned' };
+  const migrated = migratedInstructions[base.relativePath];
+  if (typeof migrated === 'string') return { ...base, operation: 'create', content: migrated };
+  if (recorded?.class === 'seed') return null;
+  return { ...base, operation: 'create', content: templateContent };
+}
+
+// Checksum install-state records for a file of a given class: the managed
+// block for an adapter (null when it has no valid block), the whole file for
+// kit and derived files.
+export function recordedChecksumOf(manifest, relativePath, fileClass, content) {
+  if (fileClass !== 'adapter') return computeChecksum(content);
+  return managedBlockChecksum(content, classifyPath(manifest, relativePath)?.block ?? defaultBlockName);
+}
+
+function managedBlockChecksum(content, blockName) {
+  const extracted = extractManagedBlock(content, blockName);
+  return extracted.error ? null : computeChecksum(extracted.block);
 }
 
 export function selectPlanOperations(plan, selectedRelativePaths = []) {
@@ -507,8 +403,8 @@ export function selectPlanOperations(plan, selectedRelativePaths = []) {
   };
 }
 
-export async function readManagedInstallState(targetPath = process.cwd()) {
-  return readInstallState(path.join(path.resolve(targetPath), installStateRelativePath));
+export async function readManagedInstallState(targetPath = process.cwd(), { manifest } = {}) {
+  return readInstallState(path.join(path.resolve(targetPath), installStateRelativePath), manifest ?? await loadKitManifest());
 }
 
 export function summarizeOperations(operations) {
@@ -561,14 +457,12 @@ function computeChecksum(content) {
   return crypto.createHash('sha256').update(content, 'utf8').digest('hex');
 }
 
-async function readInstallState(stateFilePath) {
-  let raw;
-  try {
-    raw = await fs.readFile(stateFilePath, 'utf8');
-  } catch (error) {
-    if (error.code === 'ENOENT') return null;
-    throw error;
-  }
+// Reads a 2.0.0 state, or a 1.0.0 state converted to the same file entries.
+// A converted state keeps schemaVersion 1.0.0 so the caller can tell that its
+// adapter hashes cover the whole file and that it still needs the migration.
+async function readInstallState(stateFilePath, manifest) {
+  const raw = await readOptional(stateFilePath);
+  if (raw === null) return null;
 
   // A state file that exists but cannot be used is not "no install": treating
   // it as missing would send the user to --adopt-existing over a real install.
@@ -579,11 +473,22 @@ async function readInstallState(stateFilePath) {
   } catch {
     throw unusable('is not valid JSON');
   }
-  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed) || typeof parsed.files !== 'object' || parsed.files === null) {
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed) || typeof parsed.files !== 'object' || parsed.files === null || Array.isArray(parsed.files)) {
     throw unusable('does not have the expected structure');
   }
-  if (parsed.schemaVersion !== installStateSchemaVersion) {
-    throw unusable(`uses schema ${parsed.schemaVersion ?? 'unknown'}, and this CLI reads ${installStateSchemaVersion}`);
+  if (![legacyInstallStateSchemaVersion, installStateSchemaVersion].includes(parsed.schemaVersion)) {
+    throw unusable(`uses schema ${parsed.schemaVersion ?? 'unknown'}, and this CLI reads ${legacyInstallStateSchemaVersion} and ${installStateSchemaVersion}`);
+  }
+  const legacy = parsed.schemaVersion === legacyInstallStateSchemaVersion;
+  const files = {};
+  for (const [relativePath, entry] of Object.entries(parsed.files)) {
+    if (legacy && typeof entry === 'string') {
+      files[relativePath] = { sha256: entry, class: classifyPath(manifest, relativePath)?.class ?? null };
+    } else if (!legacy && entry !== null && typeof entry === 'object' && !Array.isArray(entry)) {
+      files[relativePath] = entry;
+    } else {
+      throw unusable('does not have the expected structure');
+    }
   }
 
   try {
@@ -592,11 +497,12 @@ async function readInstallState(stateFilePath) {
       managedBy: parsed.managedBy,
       toolkitVersion: parsed.toolkitVersion,
       generatedAt: parsed.generatedAt,
+      mode: parsed.mode ?? 'repo',
       runtimes: Array.isArray(parsed.runtimes) ? parseRuntimeList(parsed.runtimes.join(',')) : ['neutral'],
       overlay: normalizeOverlay(parsed.overlay ?? 'fhh-ia-ecosystem-full'),
       modelProfiles: parsed.modelProfiles && typeof parsed.modelProfiles === 'object' ? parsed.modelProfiles : {},
       stackPack: typeof parsed.stackPack === 'string' ? parsed.stackPack : undefined,
-      files: parsed.files
+      files
     };
   } catch (error) {
     throw unusable(`names something this CLI version does not support (${error.message})`);
@@ -608,36 +514,24 @@ function formatModelProfiles(modelProfiles = {}) {
   return entries.length > 0 ? entries.map(([runtime, profile]) => `${runtime}=${profile}`).join(',') : 'none (no runtime with delegate agents)';
 }
 
+// install-state 2.0.0: kit and derived files record the hash of the file,
+// adapters the hash of their block, seeds only that the kit created them.
 function buildNextInstallState({ previousState, operations, runtimes, overlay, modelProfiles, stackPack, toolkitVersion }) {
-  const files = { ...(previousState?.files ?? {}) };
+  const files = {};
+  for (const [relativePath, entry] of Object.entries(previousState?.files ?? {})) {
+    files[relativePath] = entry.class === 'seed' ? { class: 'seed' } : { ...entry };
+  }
 
   for (const item of operations) {
-    // Project-owned files the kit only adds rows to never enter the state.
-    if (item.dropFromState) {
-      delete files[item.relativePath];
+    // .gitignore has no class and stays user-owned; skipped files keep what
+    // the previous state recorded.
+    if (!item.class || item.class === 'state') continue;
+    if (item.operation === 'skip_unmanaged' || item.operation === 'skip_modified') continue;
+    if (item.class === 'seed') {
+      if (item.operation === 'create') files[item.relativePath] = { class: 'seed' };
       continue;
     }
-
-    if (item.operation === 'skip_unmanaged') continue;
-
-    if (item.operation === 'skip_modified') {
-      if (item.recordedChecksum) files[item.relativePath] = item.recordedChecksum;
-      continue;
-    }
-
-    if (item.operation === 'adopt_existing') {
-      files[item.relativePath] = item.existingChecksum;
-      continue;
-    }
-
-    if (item.plannedChecksum) {
-      files[item.relativePath] = item.plannedChecksum;
-      continue;
-    }
-
-    if (item.sourceChecksum) {
-      files[item.relativePath] = item.sourceChecksum;
-    }
+    files[item.relativePath] = { sha256: item.stateChecksum, class: item.class };
   }
 
   return {
@@ -645,345 +539,13 @@ function buildNextInstallState({ previousState, operations, runtimes, overlay, m
     managedBy: 'fhh-ia-ecosystem-workflow-kit',
     toolkitVersion: toolkitVersion ?? null,
     generatedAt: new Date().toISOString(),
+    mode: 'repo',
     runtimes,
     overlay,
     modelProfiles: { ...(previousState?.modelProfiles ?? {}), ...(modelProfiles ?? {}) },
     stackPack: stackPack ?? previousState?.stackPack ?? 'none',
     files
   };
-}
-
-function catalogRows(lines) {
-  const rows = [];
-  let heading = null;
-  lines.forEach((line, index) => {
-    if (catalogHeadingPattern.test(line)) {
-      heading = line.trim();
-      return;
-    }
-    const match = line.match(catalogRowPattern);
-    if (match) rows.push({ heading, name: match[1], index, line });
-  });
-  return rows;
-}
-
-// Adds each shipped row whose skill path the project catalog does not mention,
-// inside the table under the same heading: after the row that precedes it in
-// the kit catalog, else before the row that follows it, else at the table end.
-// A catalog without that heading or table is left alone (doctor still warns).
-function addMissingCatalogRows({ existingContent, templateContent, shippedPaths }) {
-  const lines = existingContent.split('\n');
-  const templateRows = catalogRows(templateContent.split('\n'));
-  let added = false;
-
-  for (const [position, row] of templateRows.entries()) {
-    const skillPath = row.line.match(catalogSkillPathPattern)?.[0];
-    if (!skillPath || !shippedPaths.has(skillPath) || lines.some((line) => line.includes(skillPath))) continue;
-
-    // A row with the same name under another path is the project's choice.
-    const section = catalogRows(lines).filter((candidate) => candidate.heading === row.heading);
-    if (section.length === 0 || section.some((candidate) => candidate.name === row.name)) continue;
-    const sameSection = templateRows.filter((candidate) => candidate.heading === row.heading);
-    const indexInSection = sameSection.indexOf(templateRows[position]);
-    const find = (name) => section.find((candidate) => candidate.name === name);
-    const before = sameSection.slice(0, indexInSection).reverse().map((candidate) => find(candidate.name)).find(Boolean);
-    const after = sameSection.slice(indexInSection + 1).map((candidate) => find(candidate.name)).find(Boolean);
-    const insertAt = before ? before.index + 1 : after ? after.index : section.at(-1).index + 1;
-    lines.splice(insertAt, 0, row.line);
-    added = true;
-  }
-
-  return added ? lines.join('\n') : existingContent;
-}
-
-function resolvePlannedContent({ relativePath, templateContent, existingContent, discoveredSkillEntries = [], catalog, modelProfiles = {}, migratedInstructions = {}, shippedPaths = new Set() }) {
-  // First install of the neutral layout over hand-written Copilot instructions:
-  // the project's own rules become the neutral file instead of the template.
-  if (existingContent === null && typeof migratedInstructions[relativePath] === 'string') {
-    return { strategy: 'template', content: migratedInstructions[relativePath] };
-  }
-
-  if (catalog) {
-    const delegateAdapter = renderDelegateAdapterForPath(relativePath, catalog, modelProfiles);
-    if (delegateAdapter) return { strategy: 'template', content: delegateAdapter.content };
-  }
-
-  if (relativePath === skillRegistryJsonPath) {
-    return {
-      strategy: 'merged',
-      content: mergeSkillRegistryJson({ existingContent, templateContent, discoveredSkillEntries })
-    };
-  }
-
-  if (existingContent === null) {
-    return { strategy: 'template', content: templateContent };
-  }
-
-  if (relativePath === docsReadmePath) {
-    return {
-      strategy: 'merged',
-      content: mergeDocsReadme({ existingContent, templateContent })
-    };
-  }
-
-  if (skillCatalogRowPaths.has(relativePath)) {
-    const content = addMissingCatalogRows({ existingContent, templateContent, shippedPaths });
-    if (content !== existingContent) return { strategy: 'catalog_rows', content };
-  }
-
-  if (skillCatalogPreservePaths.has(relativePath)) {
-    return { strategy: 'preserve_existing', content: existingContent };
-  }
-
-  return { strategy: 'template', content: templateContent };
-}
-
-function mergeSkillRegistryJson({ existingContent, templateContent, discoveredSkillEntries = [] }) {
-  let existing = {};
-  let incoming;
-
-  try {
-    incoming = JSON.parse(templateContent);
-  } catch {
-    return templateContent;
-  }
-
-  if (existingContent !== null) {
-    try {
-      existing = JSON.parse(existingContent);
-    } catch {
-      existing = {};
-    }
-    if (existing === null || typeof existing !== 'object' || Array.isArray(existing)) existing = {};
-  }
-
-  // An auto-registered local skill whose SKILL.md was deleted would stay in
-  // the registry forever and doctor would report a missing file on every run.
-  const onDisk = new Set(discoveredSkillEntries.map((entry) => entry.path));
-  const stillPresent = (entries) => normalizeRegistryEntries(entries).filter((entry) => !(
-    typeof entry.runtime_notes === 'string'
-    && entry.runtime_notes.startsWith('Auto-discovered')
-    && typeof entry.path === 'string'
-    && !onDisk.has(entry.path)
-  ));
-
-  const merged = {
-    ...incoming,
-    ...existing,
-    schema_version: existing.schema_version ?? incoming.schema_version ?? '1.0.0',
-    canonical_source: existing.canonical_source ?? incoming.canonical_source ?? '.agents/skills/registry.md',
-    skills: addDiscoveredEntries(
-      mergeRegistryEntries(stillPresent(existing.skills), incoming.skills),
-      discoveredSkillEntries.filter((entry) => entry.class !== 'Standards/pattern')
-    ),
-    pattern_skills: addDiscoveredEntries(
-      mergeRegistryEntries(stillPresent(existing.pattern_skills), incoming.pattern_skills),
-      discoveredSkillEntries.filter((entry) => entry.class === 'Standards/pattern')
-    )
-  };
-
-  return `${JSON.stringify(merged, null, 2)}\n`;
-}
-
-function isAutoDiscoveredEntry(entry) {
-  return typeof entry.runtime_notes === 'string' && entry.runtime_notes.startsWith('Auto-discovered');
-}
-
-// A skill found on disk only fills a gap. An entry the kit ships or the
-// project wrote for the same path or key keeps its name, trigger and posture;
-// only an entry an earlier update discovered is refreshed from the SKILL.md.
-function addDiscoveredEntries(entries, discoveredEntries) {
-  const result = [...entries];
-  for (const discovered of discoveredEntries) {
-    const key = registryEntryIdentity(discovered);
-    const position = result.findIndex((entry) => registryEntryPath(entry) === discovered.path || registryEntryIdentity(entry) === key);
-    if (position === -1) {
-      result.push(discovered);
-    } else if (isAutoDiscoveredEntry(result[position])) {
-      result[position] = discovered;
-    }
-  }
-  return result;
-}
-
-function mergeRegistryEntries(existingEntries, incomingEntries) {
-  const normalizedIncoming = normalizeRegistryEntries(incomingEntries);
-  const incomingKeys = new Set(normalizedIncoming.map((entry) => registryEntryIdentity(entry)));
-  // A skill file is registered once: an incoming entry for a path replaces any
-  // existing entry for the same path, even when an older update stored it under
-  // a different key (for example an auto-discovered built-in pattern skill).
-  const incomingPaths = new Set(normalizedIncoming.map(registryEntryPath).filter(Boolean));
-  const merged = [];
-  const seen = new Set();
-  const seenPaths = new Set();
-
-  for (const entry of normalizeRegistryEntries(existingEntries)) {
-    const key = registryEntryIdentity(entry);
-    const entryPath = registryEntryPath(entry);
-    if (incomingKeys.has(key) || seen.has(key)) continue;
-    if (entryPath && (incomingPaths.has(entryPath) || seenPaths.has(entryPath))) continue;
-    seen.add(key);
-    if (entryPath) seenPaths.add(entryPath);
-    merged.push(entry);
-  }
-
-  for (const entry of normalizedIncoming) {
-    const key = registryEntryIdentity(entry);
-    const entryPath = registryEntryPath(entry);
-    if (seen.has(key) || (entryPath && seenPaths.has(entryPath))) continue;
-    seen.add(key);
-    if (entryPath) seenPaths.add(entryPath);
-    merged.push(entry);
-  }
-
-  return merged;
-}
-
-function registryEntryPath(entry) {
-  return typeof entry.path === 'string' && entry.path.length > 0 ? entry.path : null;
-}
-
-function normalizeRegistryEntries(entries) {
-  if (!Array.isArray(entries)) return [];
-  return entries.filter((entry) => entry && typeof entry === 'object');
-}
-
-function registryEntryIdentity(entry) {
-  if (entry.key && typeof entry.key === 'string') return `key:${entry.key}`;
-  if (entry.name && typeof entry.name === 'string') return `name:${entry.name}`;
-  if (entry.path && typeof entry.path === 'string') return `path:${entry.path}`;
-  return `raw:${JSON.stringify(entry)}`;
-}
-
-async function collectDiscoveredLocalSkillEntries(targetPath) {
-  const root = path.join(targetPath, '.agents', 'skills');
-  const discovered = [];
-
-  async function walk(current) {
-    let entries;
-    try {
-      entries = await fs.readdir(current, { withFileTypes: true });
-    } catch (error) {
-      if (error.code === 'ENOENT') return;
-      throw error;
-    }
-
-    for (const entry of entries) {
-      const absolutePath = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        await walk(absolutePath);
-        continue;
-      }
-
-      if (!entry.isFile() || entry.name !== 'SKILL.md') continue;
-      const relativePath = path.relative(targetPath, absolutePath).split(path.sep).join('/');
-      const content = await fs.readFile(absolutePath, 'utf8');
-      discovered.push(buildDiscoveredSkillEntry({ relativePath, content }));
-    }
-  }
-
-  await walk(root);
-  return discovered;
-}
-
-function buildDiscoveredSkillEntry({ relativePath, content }) {
-  const frontmatter = parseSkillFrontmatter(content);
-  const rawName = frontmatter.name || skillNameFromPath(relativePath);
-  const name = String(rawName).trim();
-  const skillClass = classifyDiscoveredSkill(relativePath);
-  const description = String(frontmatter.description || '').trim();
-
-  return {
-    name,
-    class: skillClass,
-    path: relativePath,
-    trigger: description || `Discovered local project skill at ${relativePath}; load when explicitly requested.`,
-    loading_posture: defaultLoadingPostureForClass(skillClass),
-    key: slugifySkillKey(name),
-    runtime_notes: 'Auto-discovered from the target repository during workflow-kit install/update.'
-  };
-}
-
-function parseSkillFrontmatter(content) {
-  const match = String(content).replace(/\r\n/g, '\n').match(/^---\n([\s\S]*?)\n---\n/);
-  if (!match) return {};
-
-  const frontmatter = {};
-  for (const line of match[1].split('\n')) {
-    if (!line || /^\s/.test(line)) continue;
-    const separator = line.indexOf(':');
-    if (separator < 0) continue;
-    const key = line.slice(0, separator).trim();
-    const value = line.slice(separator + 1).trim().replace(/^['"]|['"]$/g, '');
-    if (!key) continue;
-    frontmatter[key] = value;
-  }
-
-  return frontmatter;
-}
-
-function skillNameFromPath(relativePath) {
-  const withoutSuffix = relativePath.replace(/\/SKILL\.md$/, '');
-  const segments = withoutSuffix.split('/');
-  return segments[segments.length - 1] || 'local-skill';
-}
-
-function classifyDiscoveredSkill(relativePath) {
-  if (relativePath.includes('/06-patterns/')) return 'Standards/pattern';
-  if (relativePath.includes('/03-quality/')) return 'Quality/validation';
-  if (relativePath.includes('/04-crosscutting/')) return 'Cross-cutting overlay';
-  if (relativePath.includes('/05-caveman/')) return 'Mode/helper';
-  if (relativePath.includes('/02-implement/')) return 'Delegate-only implementation';
-  return 'Workflow';
-}
-
-function defaultLoadingPostureForClass(skillClass) {
-  if (skillClass === 'Delegate-only implementation') return 'Delegated-only';
-  if (skillClass === 'Quality/validation' || skillClass === 'Standards/pattern') return 'Just-in-time';
-  if (skillClass === 'Cross-cutting overlay') return 'Overlay';
-  if (skillClass === 'Mode/helper') return 'Helper/mode';
-  return 'Explicit-only';
-}
-
-function slugifySkillKey(name) {
-  return String(name)
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '') || 'local-skill';
-}
-
-function mergeDocsReadme({ existingContent, templateContent }) {
-  if (!existingContent.trim()) return templateContent;
-
-  const block = extractDocsWorkflowBlock(templateContent);
-  if (!block) return `${existingContent.trimEnd()}\n\n${templateContent.trim()}\n`;
-
-  const start = existingContent.indexOf(docsWorkflowMarkerStart);
-  const end = existingContent.indexOf(docsWorkflowMarkerEnd);
-
-  if (start >= 0 && end >= start) {
-    const afterEnd = end + docsWorkflowMarkerEnd.length;
-    const before = existingContent.slice(0, start).trimEnd();
-    const after = existingContent.slice(afterEnd).trimStart();
-    const pieces = [before, block.trim()];
-    if (after) pieces.push(after);
-    return `${pieces.filter(Boolean).join('\n\n').trimEnd()}\n`;
-  }
-
-  // A marker without its pair (hand edit) is dropped before appending, so the
-  // next merge cannot pair it with the new block and swallow the text between.
-  const withoutOrphans = existingContent
-    .split(docsWorkflowMarkerStart).join('')
-    .split(docsWorkflowMarkerEnd).join('');
-  return `${withoutOrphans.trimEnd()}\n\n${block.trim()}\n`;
-}
-
-function extractDocsWorkflowBlock(content) {
-  const start = content.indexOf(docsWorkflowMarkerStart);
-  const end = content.indexOf(docsWorkflowMarkerEnd);
-  if (start < 0 || end < start) return null;
-  return content.slice(start, end + docsWorkflowMarkerEnd.length);
 }
 
 // Stack packs hold the framework rules that are no longer part of the neutral
@@ -1025,15 +587,11 @@ export async function detectStackPack(targetPath) {
   return 'none';
 }
 
-async function buildStackPackOperations({ targetPath, stackPack }) {
-  if (stackPack === 'none') return [];
+// Generated seed: created when missing and not created before.
+async function buildStackPackOperations({ targetPath, stackPack, previousFiles }) {
+  if (stackPack === 'none' || previousFiles[stackRulesPath]?.class === 'seed') return [];
   const targetFile = path.join(targetPath, stackRulesPath);
-  try {
-    await fs.access(targetFile);
-    return [];
-  } catch (error) {
-    if (error.code !== 'ENOENT') throw error;
-  }
+  if (await readOptional(targetFile) !== null) return [];
   const content = await fs.readFile(path.join(templatesRoot, 'stack-packs', stackPack, 'stack.md'), 'utf8');
   return [{ operation: 'create', relativePath: stackRulesPath, targetFile, sourcePath: null, content }];
 }
@@ -1047,111 +605,84 @@ function migratedInstructionContents(inspection) {
 }
 
 // Copilot loads instructions from .github/instructions/. Generate those files
-// from the neutral ones as they will be after this plan is applied.
+// from the kit default and the neutral files as they will be after this plan
+// is applied.
 function projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode }) {
   if (!runtimes.includes('copilot')) return [];
+  const contentAfterPlan = (relativePath, current) => {
+    const planned = operations.find((item) => item.relativePath === relativePath);
+    return planned && !nonWritingOperations.has(planned.operation) ? planned.content : current;
+  };
   const neutralContents = {};
   for (const name of projectInstructionNames) {
-    const planned = operations.find((item) => item.relativePath === neutralInstructionPath(name));
-    const willWrite = planned && !['skip_unmanaged', 'skip_modified', 'unchanged', 'adopt_existing'].includes(planned.operation);
-    neutralContents[name] = willWrite ? planned.content : instructionInspection[name].neutral;
+    neutralContents[name] = contentAfterPlan(neutralInstructionPath(name), instructionInspection[name].neutral);
   }
+  const kitQualityGate = contentAfterPlan(kitQualityGatePath, instructionInspection['quality-gate'].kitDefault);
   // Record the generated content so install-state tracks these files and
   // doctor flags a hand edit instead of an old template checksum.
-  return planCopilotWrappers({ targetPath, inspection: instructionInspection, neutralContents, backupMode })
-    .map((operation) => ({ ...operation, plannedChecksum: computeChecksum(operation.content) }));
+  return planCopilotWrappers({ targetPath, inspection: instructionInspection, neutralContents, kitQualityGate, backupMode })
+    .map((operation) => ({ ...operation, stateChecksum: computeChecksum(operation.content) }));
 }
 
-// Local state the kit writes in the target repository must be ignored by Git:
-// the AI workspace (.ai-work/) and the rollback journal of the last apply,
-// which only makes sense on the machine that ran it (a teammate running
-// rollback from a committed copy would undo someone else's update). Missing
-// entries are appended once; .gitignore stays user-owned, so the operation
-// carries no checksum and never enters install-state.
+// Local state the kit writes in the target repository must be ignored by Git
+// (the manifest's ignore_entries: the AI workspace and the rollback journal of
+// the last apply, which only makes sense on the machine that ran it). Missing
+// entries are appended once; .gitignore stays user-owned, so the operation has
+// no class and never enters install-state.
 export const workspaceDirectory = '.ai-work';
-const workspaceIgnoreEntry = `${workspaceDirectory}/`;
 
-function gitignoreEntries(content) {
-  return String(content).split(/\r?\n/).map((line) => line.trim().replace(/^\//, ''));
+const normalizeIgnoreLine = (line) => line.trim().replace(/^\//, '').replace(/\/$/, '');
+
+function gitignoreHasEntry(content, entry) {
+  const wanted = normalizeIgnoreLine(entry);
+  return String(content).split(/\r?\n/).some((line) => normalizeIgnoreLine(line) === wanted);
 }
 
 export function gitignoreHasWorkspaceEntry(content) {
-  return gitignoreEntries(content).some((entry) => entry === workspaceIgnoreEntry || entry === workspaceDirectory);
+  return gitignoreHasEntry(content, workspaceDirectory);
 }
 
 export function gitignoreHasApplyJournalEntry(content) {
-  return gitignoreEntries(content).includes(applyJournalRelativePath);
+  return gitignoreHasEntry(content, applyJournalRelativePath);
 }
 
-const localStateIgnoreBlocks = [
-  {
-    id: 'workspace',
-    present: gitignoreHasWorkspaceEntry,
-    block: `# AI workflow workspace (temporary coordination state)\n${workspaceIgnoreEntry}\n`
-  },
-  {
-    id: 'apply-journal',
-    present: gitignoreHasApplyJournalEntry,
-    block: `# workflow-kit rollback journal (local to the machine that ran the last apply)\n/${applyJournalRelativePath}\n`
-  }
-];
-
-async function buildWorkspaceIgnoreOperations({ targetPath, backupMode }) {
-  const targetFile = path.join(targetPath, '.gitignore');
-  let existing = null;
-  try {
-    existing = await fs.readFile(targetFile, 'utf8');
-  } catch (error) {
-    if (error.code !== 'ENOENT') throw error;
-  }
-
-  const missing = localStateIgnoreBlocks.filter((item) => !item.present(existing ?? ''));
-  if (missing.length === 0) return [];
-  const blocks = missing.map((item) => item.block).join('\n');
-  const ignoredEntries = missing.map((item) => item.id);
+async function buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }) {
+  const targetFile = path.join(targetPath, gitignorePath);
+  const existing = await readOptional(targetFile);
+  const ignoredEntries = manifest.ignore_entries.filter((entry) => !gitignoreHasEntry(existing ?? '', entry));
+  if (ignoredEntries.length === 0) return [];
+  const block = `# workflow-kit local state (stays on this machine)\n${ignoredEntries.join('\n')}\n`;
 
   if (existing === null) {
-    return [{ operation: 'create', relativePath: '.gitignore', targetFile, sourcePath: null, content: blocks, ignoredEntries }];
+    return [{ operation: 'create', relativePath: gitignorePath, targetFile, sourcePath: null, content: block, ignoredEntries }];
   }
 
   const separator = existing.length === 0 || existing.endsWith('\n') ? '' : '\n';
   return [{
-    operation: backupMode === 'none' ? 'merge_no_backup' : 'merge_with_backup',
-    relativePath: '.gitignore',
+    operation: mergeOperation(backupMode),
+    relativePath: gitignorePath,
     targetFile,
     sourcePath: null,
-    content: `${existing}${separator}\n${blocks}`,
+    content: `${existing}${separator}\n${block}`,
     ignoredEntries
   }];
 }
 
-async function buildOneTimeDocsMigrationOperations({ targetPath }) {
-  const docsRoot = path.join(targetPath, 'docs');
+// Generated seed: written once at init when legacy docs exist, never again.
+async function buildOneTimeDocsMigrationOperations({ targetPath, previousFiles }) {
   const migrationMapTarget = path.join(targetPath, oneTimeLegacyDocsMapPath);
-  const operations = [];
+  if (previousFiles[oneTimeLegacyDocsMapPath]?.class === 'seed' || await readOptional(migrationMapTarget) !== null) return [];
 
-  try {
-    await fs.access(migrationMapTarget);
-    return operations;
-  } catch (error) {
-    if (error.code !== 'ENOENT') throw error;
-  }
+  const legacyDocs = await collectLegacyDocsForMigration({ docsRoot: path.join(targetPath, 'docs') });
+  if (legacyDocs.length === 0) return [];
 
-  const legacyDocs = await collectLegacyDocsForMigration({ docsRoot });
-  if (legacyDocs.length === 0) return operations;
-
-  const content = renderLegacyDocsMigrationMap(legacyDocs);
-  operations.push({
+  return [{
     operation: 'create',
     relativePath: oneTimeLegacyDocsMapPath,
     targetFile: migrationMapTarget,
     sourcePath: null,
-    content,
-    sourceChecksum: computeChecksum(content),
-    plannedChecksum: computeChecksum(content)
-  });
-
-  return operations;
+    content: renderLegacyDocsMigrationMap(legacyDocs)
+  }];
 }
 
 

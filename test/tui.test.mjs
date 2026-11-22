@@ -28,7 +28,6 @@ test('tui previews plan and default decline writes nothing', async () => {
   assert.match(output, /FHH IA Ecosystem/);
   assert.match(output, /Full FHH IA Ecosystem flow selected \(recommended\)\./);
   assert.match(output, /Mission control/);
-  assert.match(output, /Local skills\s+: 0 auto-discovered/);
   assert.match(output, /Legacy docs are not moved automatically/);
   assert.match(output, /Aborted\. No files were written\./);
   await assert.rejects(fs.access(path.join(target, '.agents/instructions.md')), { code: 'ENOENT' });

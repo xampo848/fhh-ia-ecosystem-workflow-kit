@@ -23,9 +23,10 @@ test('workflow skills name neutral paths only', async () => {
   assert.deepEqual(result.failures, []);
 });
 
-test('the kit quality gate wrapper is generated from the neutral file', async () => {
-  const neutral = await read(root, '.agents/project/quality-gate.md');
-  assert.equal(await read(root, '.github/instructions/quality-gate.instructions.md'), renderCopilotWrapper('quality-gate', neutral));
+test('the kit quality gate wrapper is generated from the kit default and the project additions', async () => {
+  const kitDefault = await read(root, '.agents/delegation/quality-gate.md');
+  const additions = await read(root, '.agents/project/quality-gate.md');
+  assert.equal(await read(root, '.github/instructions/quality-gate.instructions.md'), renderCopilotWrapper('quality-gate', `${kitDefault.trimEnd()}\n\n${additions}`));
   const parsed = splitWrapper(renderCopilotWrapper('backend', '# Backend\n', 'applyTo: "backend/**"'));
   assert.deepEqual(parsed, { frontmatter: 'applyTo: "backend/**"', body: '# Backend\n', generated: true });
 });
@@ -41,7 +42,12 @@ test('fresh install: neutral quality gate for every runtime, Copilot wrapper onl
   await applyInstallPlan(await buildInstallPlan({ targetPath: withCopilot, runtime: 'copilot' }));
   const wrapper = await read(withCopilot, '.github/instructions/quality-gate.instructions.md');
   assert.match(wrapper, /^---\napplyTo: "\*\*"\n---\n/);
-  assert.match(wrapper, /Generated from \.agents\/project\/quality-gate\.md/);
+  assert.match(wrapper, /Generated from \.agents\/delegation\/quality-gate\.md and \.agents\/project\/quality-gate\.md/);
+  // Copilot reads one file: the kit default first, then the project additions.
+  const kitDefault = await read(withCopilot, '.agents/delegation/quality-gate.md');
+  const additions = await read(withCopilot, '.agents/project/quality-gate.md');
+  assert.equal(wrapper, renderCopilotWrapper('quality-gate', `${kitDefault.trimEnd()}\n\n${additions}`));
+  assert.equal(splitWrapper(wrapper).generated, true);
   // Template placeholders for backend/frontend do not get a wrapper.
   await assert.rejects(fs.access(path.join(withCopilot, '.github/instructions/backend.instructions.md')));
 });
@@ -94,6 +100,9 @@ test('doctor reports a stale wrapper and a missing quality gate instead of skipp
 
   await fs.rm(path.join(target, '.agents/project/quality-gate.md'));
   await fs.rm(path.join(target, '.github/instructions/quality-gate.instructions.md'));
+  // Without project additions the wrapper is the kit default alone.
+  const withoutAdditions = await buildUpdatePlan({ targetPath: target, runtime: 'copilot' });
+  assert.equal(withoutAdditions.operations.find((item) => item.relativePath === '.github/instructions/quality-gate.instructions.md').content, renderCopilotWrapper('quality-gate', await read(target, '.agents/delegation/quality-gate.md')));
   const doctor = await runDoctor({ targetPath: target, runtime: 'copilot' });
   assert.ok(doctor.diagnostics.some((item) => item.code === 'project-instructions/quality-gate-missing'));
 });

@@ -52,12 +52,18 @@ test('doctor reports locally modified managed files as warnings', async () => {
   const installIo = createMemoryIo();
   const doctorIo = createMemoryIo();
   await runCli(['init', '--target', target, '--runtime', 'antigravity', '--apply', '--yes'], installIo);
+  // An adapter is tracked by its managed block: text after the block is the project's.
   await fs.appendFile(path.join(target, 'ANTIGRAVITY.md'), '\nlocal rule\n', 'utf8');
+  const outside = createMemoryIo();
+  await runCli(['doctor', '--target', target, '--runtime', 'antigravity'], outside);
+  assert.doesNotMatch(outside.output.stdout, /\[managed\/content-drift\]/);
+  const adapter = await fs.readFile(path.join(target, 'ANTIGRAVITY.md'), 'utf8');
+  await fs.writeFile(path.join(target, 'ANTIGRAVITY.md'), adapter.replace('# ANTIGRAVITY.md', '# ANTIGRAVITY.md\n\nlocal rule inside the block'), 'utf8');
 
   const code = await runCli(['doctor', '--target', target, '--runtime', 'antigravity'], doctorIo);
 
   assert.equal(code, 0);
-  assert.match(doctorIo.output.stdout, /\[managed\/content-drift\]/);
+  assert.match(doctorIo.output.stdout, /\[managed\/content-drift\] ANTIGRAVITY\.md/);
   assert.match(doctorIo.output.stdout, /warning/i);
 });
 

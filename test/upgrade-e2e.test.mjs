@@ -25,7 +25,8 @@ const ownClaudeNote = '\n# Nota del equipo: usar siempre la rama develop.\n';
 // Turns a fresh install into the shape a repository had before the roadmap:
 // no neutral project files, no delegate contract, PRD-local _meta, hand-written
 // Copilot instructions, agents that inherit the model, a customized adapter,
-// and an install-state without profiles or stack pack.
+// and a 1.0.0 install-state (one whole hash per file) without profiles or
+// stack pack.
 async function downgradeToLegacyLayout(target, runtimes) {
   for (const relativePath of ['.agents/project', '.agents/delegation', '.agents/project-context.md', '.agents/skills/02-implement/implement-change', '.claude/skills', '.gitignore']) {
     await fs.rm(path.join(target, relativePath), { recursive: true, force: true });
@@ -50,13 +51,16 @@ async function downgradeToLegacyLayout(target, runtimes) {
   // what install-state recorded: it is managed and unmodified, not a local edit.
   if (runtimes.includes('claude')) {
     const legacyAgent = await fs.readFile(path.join(target, '.claude/agents/turbo-backend.md'), 'utf8');
-    state.files['.claude/agents/turbo-backend.md'] = createHash('sha256').update(legacyAgent).digest('hex');
+    state.files['.claude/agents/turbo-backend.md'] = { sha256: createHash('sha256').update(legacyAgent).digest('hex') };
   }
   delete state.modelProfiles;
   delete state.stackPack;
+  delete state.mode;
+  state.schemaVersion = '1.0.0';
   state.toolkitVersion = '0.7.40-contextual-model-selection';
-  for (const key of Object.keys(state.files)) {
-    if (key.startsWith('.agents/project') || key.startsWith('.agents/delegation') || key.startsWith('.claude/skills') || key.includes('implement-change')) delete state.files[key];
+  for (const [key, entry] of Object.entries(state.files)) {
+    if (!entry.sha256 || key.startsWith('.agents/project') || key.startsWith('.agents/delegation') || key.startsWith('.claude/skills') || key.includes('implement-change')) delete state.files[key];
+    else state.files[key] = entry.sha256;
   }
   await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
 }
@@ -99,7 +103,8 @@ for (const runtime of ['claude', 'codex', 'copilot', 'antigravity', 'claude,code
       assert.ok((await read(target, '.github/instructions/backend.instructions.md')).includes(ownBackendRules), 'untouched without Copilot');
     }
     if (runtimes.includes('claude')) {
-      assert.ok((await read(target, 'CLAUDE.md')).endsWith(ownClaudeNote), 'customized adapter is protected');
+      // The block is regenerated (the pre-filter comes back); the team note after it stays.
+      assert.ok((await read(target, 'CLAUDE.md')).endsWith(ownClaudeNote), 'text outside the managed block is kept');
       assert.match(await read(target, '.claude/agents/turbo-backend.md'), /^model: opus$/m);
       assert.ok(await exists(target, '.claude/skills/implement-change/SKILL.md'));
     }
@@ -110,7 +115,7 @@ for (const runtime of ['claude', 'codex', 'copilot', 'antigravity', 'claude,code
     const warningCodes = new Set(doctor.diagnostics.map((item) => item.code));
     assert.ok(warningCodes.has('workspace/legacy-meta'));
     assert.ok(warningCodes.has('project-context/not-initialized'));
-    if (runtimes.includes('claude')) assert.ok(warningCodes.has('adapter/missing-level-prefilter'), 'the protected adapter is reported, not overwritten');
+    assert.equal(warningCodes.has('adapter/missing-level-prefilter'), false, 'the regenerated block carries the pre-filter');
 
     // Idempotent: a second update writes nothing and carries no migration.
     const again = await buildUpdatePlan({ targetPath: target });
@@ -120,7 +125,7 @@ for (const runtime of ['claude', 'codex', 'copilot', 'antigravity', 'claude,code
   });
 }
 
-test('update --diff shows what would change, including a protected local edit', async () => {
+test('update --diff shows what would change, keeping the text outside the managed block', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
   await downgradeToLegacyLayout(target, ['claude']);
@@ -128,8 +133,9 @@ test('update --diff shows what would change, including a protected local edit', 
   const io = createMemoryIo();
   assert.equal(await runCli(['update', '--target', target, '--diff'], io), 0);
   assert.match(io.output.stdout, /Diff of files that would change:/);
-  assert.match(io.output.stdout, /--- skip_modified: CLAUDE\.md/);
-  assert.match(io.output.stdout, /^- # Nota del equipo: usar siempre la rama develop\.$/m);
+  assert.match(io.output.stdout, /--- overwrite_with_backup: CLAUDE\.md/);
+  assert.match(io.output.stdout, /^\+ <!-- workflow-kit:level-prefilter:start -->$/m);
+  assert.doesNotMatch(io.output.stdout, /^- # Nota del equipo: usar siempre la rama develop\.$/m);
   assert.match(io.output.stdout, /--- overwrite_with_backup: \.claude\/agents\/turbo-backend\.md/);
   assert.match(io.output.stdout, /^- model: inherit$/m);
   assert.match(io.output.stdout, /^\+ model: opus$/m);
@@ -151,7 +157,7 @@ test('a protected file that already matches the new version is no longer reporte
   const statePath = path.join(target, installStateRelativePath);
   const state = JSON.parse(await fs.readFile(statePath, 'utf8'));
   // The state remembers an older shipped version; the file holds the new one.
-  state.files[relativePath] = createHash('sha256').update('older shipped version\n').digest('hex');
+  state.files[relativePath] = { sha256: createHash('sha256').update('older shipped version\n').digest('hex'), class: 'kit' };
   await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
 
   const plan = await buildUpdatePlan({ targetPath: target });
@@ -159,7 +165,7 @@ test('a protected file that already matches the new version is no longer reporte
   await applyInstallPlan(plan);
 
   const updated = JSON.parse(await fs.readFile(statePath, 'utf8'));
-  assert.equal(updated.files[relativePath], createHash('sha256').update(shipped).digest('hex'));
+  assert.equal(updated.files[relativePath].sha256, createHash('sha256').update(shipped).digest('hex'));
   const doctor = await runDoctor({ targetPath: target });
   assert.equal(doctor.diagnostics.some((item) => item.code === 'managed/content-drift' && item.path === relativePath), false);
 

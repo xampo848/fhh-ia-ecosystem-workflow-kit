@@ -1,13 +1,29 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { applyInstallPlan } from '../src/apply.mjs';
-import { buildInstallPlan, buildUpdatePlan, installStateRelativePath, selectPlanOperations } from '../src/planner.mjs';
+import { extractManagedBlock, loadKitManifest } from '../src/kit-manifest.mjs';
+import { buildInstallPlan, buildUpdatePlan, installStateRelativePath, readManagedInstallState, selectPlanOperations } from '../src/planner.mjs';
 import manifest from '../templates/template-manifest.json' with { type: 'json' };
 import { makeTempRepo } from './helpers.mjs';
 
-test('buildInstallPlan creates full workflow and selected adapter operations', async () => {
+const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const templates = path.join(root, 'templates');
+const sha = (content) => createHash('sha256').update(content, 'utf8').digest('hex');
+const read = (target, relativePath) => fs.readFile(path.join(target, relativePath), 'utf8');
+const readState = async (target) => JSON.parse(await read(target, installStateRelativePath));
+const writeState = (target, state) => fs.writeFile(path.join(target, installStateRelativePath), `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+const operationFor = (plan, relativePath) => plan.operations.find((item) => item.relativePath === relativePath);
+const blockOf = (content, name = 'workflow-kit:managed') => extractManagedBlock(content, name).block;
+async function write(target, relativePath, content) {
+  const file = path.join(target, relativePath);
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, content, 'utf8');
+}
+
+test('buildInstallPlan creates full workflow and selected adapter operations, each with its manifest class', async () => {
   const target = await makeTempRepo();
   const plan = await buildInstallPlan({ targetPath: target, runtime: 'codex,copilot', overlay: 'fhh-ia-ecosystem-full' });
 
@@ -16,11 +32,32 @@ test('buildInstallPlan creates full workflow and selected adapter operations', a
   assert.ok(plan.operations.some((item) => item.relativePath === 'AGENTS.md'));
   assert.ok(plan.operations.some((item) => item.relativePath === '.github/copilot-instructions.md'));
   assert.ok(plan.operations.some((item) => item.relativePath === '.agents/skills/06-patterns/README.md'));
-  assert.equal(plan.operations.some((item) => item.relativePath.startsWith('.agents/workflow-kit/')), false);
   const uniquePaths = new Set(plan.operations.map((item) => item.relativePath));
   assert.equal(uniquePaths.size, plan.operations.length);
   assert.equal(plan.operations.some((item) => item.relativePath === 'README.md'), false);
   assert.ok(plan.operations.some((item) => item.relativePath === 'docs/workflow/README.md'));
+
+  // AC-1: every planned path carries its class; only .gitignore has none.
+  assert.deepEqual(plan.operations.filter((item) => !item.class).map((item) => item.relativePath), ['.gitignore']);
+  assert.equal(operationFor(plan, '.agents/workflow-kit/manifest.json').class, 'kit');
+  assert.equal(operationFor(plan, '.agents/workflow-kit/manifest.schema.json').class, 'kit');
+  assert.equal(operationFor(plan, installStateRelativePath), undefined, 'state paths are never planned');
+  assert.equal(operationFor(plan, 'AGENTS.md').class, 'adapter');
+  assert.equal(operationFor(plan, '.agents/project/quality-gate.md').class, 'seed');
+  assert.equal(operationFor(plan, '.github/instructions/quality-gate.instructions.md').class, 'derived');
+  assert.equal(plan.discoveredSkillEntries, undefined);
+});
+
+test('a planned path without a manifest entry stops the plan before writing and names the path', async () => {
+  const target = await makeTempRepo();
+  const kitManifest = await loadKitManifest();
+  const withoutDocs = { ...kitManifest, paths: kitManifest.paths.filter((entry) => entry.path !== 'docs/workflow/') };
+
+  await assert.rejects(
+    buildInstallPlan({ targetPath: target, runtime: 'neutral', manifest: withoutDocs }),
+    /no entry for the planned path docs\/workflow\/[^ ]+\.md/
+  );
+  assert.deepEqual(await fs.readdir(target), []);
 });
 
 test('codex and copilot share one AGENTS.md bootstrap without collisions', async () => {
@@ -33,129 +70,40 @@ test('codex and copilot share one AGENTS.md bootstrap without collisions', async
   }
 });
 
-test('buildInstallPlan marks identical files unchanged and changed files as backup overwrite', async () => {
+test('buildInstallPlan marks identical kit files unchanged and different ones as backup overwrite', async () => {
   const target = await makeTempRepo();
   let plan = await buildInstallPlan({ targetPath: target, runtime: 'codex' });
-  const instructions = plan.operations.find((item) => item.relativePath === '.agents/instructions.md');
-  await fs.mkdir(path.dirname(instructions.targetFile), { recursive: true });
-  await fs.writeFile(instructions.targetFile, instructions.content, 'utf8');
-  await fs.writeFile(path.join(target, 'AGENTS.md'), 'custom existing adapter\n', 'utf8');
+  await write(target, '.agents/instructions.md', operationFor(plan, '.agents/instructions.md').content);
+  await write(target, '.agents/README.md', 'older kit readme\n');
 
   plan = await buildInstallPlan({ targetPath: target, runtime: 'codex' });
 
-  assert.equal(plan.operations.find((item) => item.relativePath === '.agents/instructions.md').operation, 'unchanged');
-  assert.equal(plan.operations.find((item) => item.relativePath === 'AGENTS.md').operation, 'overwrite_with_backup');
+  assert.equal(operationFor(plan, '.agents/instructions.md').operation, 'unchanged');
+  assert.equal(operationFor(plan, '.agents/README.md').operation, 'overwrite_with_backup');
 });
 
-test('buildInstallPlan merges existing skills registry and preserves local skill docs artifacts', async () => {
+test('init keeps a project-written adapter and inserts the kit block where the template places it', async () => {
   const target = await makeTempRepo();
-  const existingRegistry = {
-    schema_version: '1.0.0',
-    skills: [
-      {
-        name: 'custom-skill',
-        class: 'Workflow',
-        path: '.agents/skills/custom/SKILL.md',
-        trigger: 'Custom trigger',
-        loading_posture: 'Explicit-only',
-        key: 'custom-skill'
-      }
-    ],
-    pattern_skills: []
-  };
+  const claudeBlock = blockOf(await fs.readFile(path.join(templates, 'runtime-adapters/claude/CLAUDE.md'), 'utf8'));
+  const docsBlock = blockOf(await fs.readFile(path.join(templates, 'repo-overlay-fhh-ia-ecosystem-full/docs/README.md'), 'utf8'), 'workflow-kit:docs-workflow');
+  const cases = [
+    // The CLAUDE.md template starts with its block: the block goes first.
+    { relativePath: 'CLAUDE.md', own: '# Reglas del equipo\n', expected: `${claudeBlock}\n\n# Reglas del equipo\n` },
+    // The docs hub template has text before its block: the block goes last.
+    { relativePath: 'docs/README.md', own: '# Project Docs\n\nGeneral project documentation.', expected: `# Project Docs\n\nGeneral project documentation.\n\n${docsBlock}\n` }
+  ];
+  for (const item of cases) await write(target, item.relativePath, item.own);
 
-  await fs.mkdir(path.join(target, '.agents/skills'), { recursive: true });
-  await fs.writeFile(path.join(target, '.agents/skills/registry.json'), `${JSON.stringify(existingRegistry, null, 2)}\n`, 'utf8');
-  await fs.writeFile(path.join(target, '.agents/skills/index.md'), '# Existing index\n', 'utf8');
-  await fs.mkdir(path.join(target, '.agents/skills/06-patterns'), { recursive: true });
-  await fs.writeFile(path.join(target, '.agents/skills/06-patterns/index.md'), '# Existing pattern index\n', 'utf8');
-  await fs.writeFile(path.join(target, '.agents/skills/registry.md'), '# Existing registry\n', 'utf8');
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'claude' });
+  for (const item of cases) {
+    const operation = operationFor(plan, item.relativePath);
+    assert.equal(operation.operation, 'merge_with_backup', item.relativePath);
+    assert.equal(operation.content, item.expected, item.relativePath);
+  }
 
-  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
-
-  const registryOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/registry.json');
-  const indexOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/index.md');
-  const patternsIndexOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/06-patterns/index.md');
-  const markdownRegistryOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/registry.md');
-
-  assert.equal(registryOperation.operation, 'merge_with_backup');
-  const mergedRegistry = JSON.parse(registryOperation.content);
-  assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'custom-skill'), true);
-  assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'workflow-router'), true);
-  assert.equal(indexOperation.operation, 'skip_unmanaged');
-  assert.equal(patternsIndexOperation.operation, 'skip_unmanaged');
-  assert.equal(markdownRegistryOperation.operation, 'skip_unmanaged');
-});
-
-test('buildInstallPlan refreshes built-in registry entries while preserving custom ones', async () => {
-  const target = await makeTempRepo();
-  const existingRegistry = {
-    schema_version: '1.0.0',
-    canonical_source: '.agents/skills/registry.md',
-    skills: [
-      {
-        name: 'workflow-router',
-        class: 'Workflow',
-        path: '.agents/skills/00-router/workflow-router/SKILL.md',
-        trigger: 'Outdated trigger text',
-        loading_posture: 'Explicit-only',
-        key: 'workflow-router',
-        runtime_notes: 'Outdated runtime note.'
-      },
-      {
-        name: 'custom-skill',
-        class: 'Workflow',
-        path: '.agents/skills/custom/SKILL.md',
-        trigger: 'Custom trigger',
-        loading_posture: 'Explicit-only',
-        key: 'custom-skill'
-      }
-    ],
-    pattern_skills: []
-  };
-
-  await fs.mkdir(path.join(target, '.agents/skills'), { recursive: true });
-  await fs.writeFile(path.join(target, '.agents/skills/registry.json'), `${JSON.stringify(existingRegistry, null, 2)}\n`, 'utf8');
-
-  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
-  const registryOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/registry.json');
-  const mergedRegistry = JSON.parse(registryOperation.content);
-  const workflowRouter = mergedRegistry.skills.find((entry) => entry.key === 'workflow-router');
-
-  assert.equal(workflowRouter.trigger.includes('Outdated trigger text'), false);
-  assert.equal(workflowRouter.loading_posture, 'Startup-minimal');
-  assert.match(workflowRouter.runtime_notes, /level pre-filter runs every prompt/);
-  assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'custom-skill'), true);
-});
-
-test('buildInstallPlan auto-discovers local skills from the target repository and registers them', async () => {
-  const target = await makeTempRepo();
-  const localSkillPath = path.join(target, '.agents/skills/local/my-project-skill/SKILL.md');
-
-  await fs.mkdir(path.dirname(localSkillPath), { recursive: true });
-  await fs.writeFile(localSkillPath, `---\nname: my-project-skill\ndescription: Project-specific custom workflow\n---\n\n# My Skill\n`, 'utf8');
-
-  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
-  const registryOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/registry.json');
-  const mergedRegistry = JSON.parse(registryOperation.content);
-
-  assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'my-project-skill'), true);
-  assert.equal(mergedRegistry.skills.some((entry) => entry.path === '.agents/skills/local/my-project-skill/SKILL.md'), true);
-});
-
-test('buildInstallPlan appends workflow docs hub section into existing docs README', async () => {
-  const target = await makeTempRepo();
-  const existing = '# Project Docs\n\nGeneral project documentation.\n';
-
-  await fs.mkdir(path.join(target, 'docs'), { recursive: true });
-  await fs.writeFile(path.join(target, 'docs/README.md'), existing, 'utf8');
-
-  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
-  const docsReadmeOperation = plan.operations.find((item) => item.relativePath === 'docs/README.md');
-
-  assert.equal(docsReadmeOperation.operation, 'merge_with_backup');
-  assert.equal(docsReadmeOperation.content.includes('workflow-kit:docs-workflow:start'), true);
-  assert.equal(docsReadmeOperation.content.startsWith('# Project Docs'), true);
+  await applyInstallPlan(plan);
+  const again = await buildUpdatePlan({ targetPath: target });
+  for (const item of cases) assert.equal(operationFor(again, item.relativePath).operation, 'unchanged', item.relativePath);
 });
 
 test('buildInstallPlan generates one-time legacy docs migration map when legacy docs exist', async () => {
@@ -169,6 +117,7 @@ test('buildInstallPlan generates one-time legacy docs migration map when legacy 
 
   assert.ok(migrationMapOperation);
   assert.equal(migrationMapOperation.operation, 'create');
+  assert.equal(migrationMapOperation.class, 'seed');
   assert.equal(migrationMapOperation.content.includes('docs/backend/api-guidelines.md'), true);
   assert.equal(migrationMapOperation.content.includes('docs/workflow/standards/imported-backend/api-guidelines.md'), true);
   assert.equal(migrationMapOperation.content.includes('docs/architecture.md'), true);
@@ -195,7 +144,6 @@ test('buildInstallPlan defaults to complete fhh-ia-ecosystem overlay without dup
 
   assert.equal(uniquePaths.size, plan.operations.length);
   assert.ok(plan.operations.some((item) => item.relativePath === '.agents/skills/01-product/create-epic/SKILL.md'));
-  assert.equal(plan.operations.some((item) => item.relativePath.startsWith('.agents/workflow-kit/')), false);
 });
 
 
@@ -224,7 +172,6 @@ test('buildInstallPlan includes complete fhh-ia-ecosystem overlay when requested
   assert.ok(planned.has('.agents/skills/04-crosscutting/impeccable/SKILL.md'));
   assert.ok(planned.has('.agents/skills/04-crosscutting/pr-comments-resolution/SKILL.md'));
   assert.ok(planned.has('.agents/skills/05-caveman/cavecrew/SKILL.md'));
-  assert.equal([...planned].some((relativePath) => relativePath.startsWith('.agents/workflow-kit/')), false);
   assert.ok(planned.has('.agents/capabilities/manifests/context7.md'));
 
   const fullPack = manifest.packs.find((item) => item.id === 'repo-overlay-fhh-ia-ecosystem-full');
@@ -232,6 +179,59 @@ test('buildInstallPlan includes complete fhh-ia-ecosystem overlay when requested
   for (const requiredFile of fullPack.required_files) {
     assert.ok(planned.has(requiredFile), `missing planned file ${fullPack.id}:${requiredFile}`);
   }
+});
+
+test('install-state is written as 2.0.0 with a hash per class (AC-3)', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude', toolkitVersion: '0.6.0-test' }));
+  const state = await readState(target);
+
+  assert.equal(state.schemaVersion, '2.0.0');
+  assert.equal(state.mode, 'repo');
+  assert.deepEqual(Object.keys(state).sort(), ['files', 'generatedAt', 'managedBy', 'mode', 'modelProfiles', 'overlay', 'runtimes', 'schemaVersion', 'stackPack', 'toolkitVersion']);
+  assert.deepEqual(state.files['.agents/instructions.md'], { sha256: sha(await read(target, '.agents/instructions.md')), class: 'kit' });
+  assert.deepEqual(state.files['.agents/skills/index.md'], { sha256: sha(await read(target, '.agents/skills/index.md')), class: 'derived' });
+  assert.deepEqual(state.files['CLAUDE.md'], { sha256: sha(blockOf(await read(target, 'CLAUDE.md'))), class: 'adapter' });
+  assert.deepEqual(state.files['.agents/project/quality-gate.md'], { class: 'seed' });
+  assert.equal(state.files['.agents/workflow-kit/manifest.json'].class, 'kit');
+  assert.equal(installStateRelativePath in state.files, false);
+  assert.equal('.gitignore' in state.files, false);
+  for (const [relativePath, entry] of Object.entries(state.files)) {
+    assert.equal(typeof entry.sha256 === 'string', entry.class !== 'seed', relativePath);
+  }
+});
+
+test('update by class: kit and derived files are created, kept, replaced or left pending (AC-2)', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral', toolkitVersion: '0.6.0-test' }));
+  const state = await readState(target);
+  // Unedited files of an older version: the record matches the file on disk.
+  const olderInstructions = 'older kit instructions\n';
+  const olderIndex = '# Skills index\n\n| Skill name | Trigger | Physical path | Cost hint |\n| --- | --- | --- | --- |\n| `zz-project-skill` | Project row | `.agents/project/skills/zz/SKILL.md` | lean |\n';
+  await write(target, '.agents/instructions.md', olderInstructions);
+  await write(target, '.agents/skills/index.md', olderIndex);
+  state.files['.agents/instructions.md'] = { sha256: sha(olderInstructions), class: 'kit' };
+  state.files['.agents/skills/index.md'] = { sha256: sha(olderIndex), class: 'derived' };
+  await writeState(target, state);
+  await fs.rm(path.join(target, '.agents/README.md'));
+  await fs.appendFile(path.join(target, '.agents/skills/registry.json'), '\n');
+
+  const plan = await buildUpdatePlan({ targetPath: target, toolkitVersion: '0.7.0-test' });
+  const expected = [
+    ['.agents/README.md', 'create', undefined],
+    ['.agents/kit-boundary.md', 'unchanged', undefined],
+    ['.agents/instructions.md', 'overwrite_with_backup', undefined],
+    ['.agents/skills/index.md', 'overwrite_with_backup', undefined],
+    ['.agents/skills/registry.json', 'skip_modified', 'edited_kit_file']
+  ];
+  for (const [relativePath, operation, reason] of expected) {
+    const item = operationFor(plan, relativePath);
+    assert.equal(item.operation, operation, relativePath);
+    assert.equal(item.reason, reason, relativePath);
+  }
+  // A derived catalog is the template whole: rows of the project are not merged.
+  const shippedIndex = await fs.readFile(path.join(templates, 'repo-overlay-fhh-ia-ecosystem-full/.agents/skills/index.md'), 'utf8');
+  assert.equal(operationFor(plan, '.agents/skills/index.md').content, shippedIndex);
 });
 
 test('buildUpdatePlan skips local edits and unmanaged files while keeping managed unchanged', async () => {
@@ -258,25 +258,25 @@ test('buildUpdatePlan skips local edits and unmanaged files while keeping manage
   assert.equal(updatePlan.summary.skip_unmanaged > 0, true);
 });
 
-test('buildUpdatePlan can overwrite managed local edits when explicitly requested', async () => {
+test('an edited .agents/instructions.md stays pending unless overwriteModified; an edited adapter keeps its own text', async () => {
   const target = await makeTempRepo();
-  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex', toolkitVersion: '0.6.0-test' });
-  await applyInstallPlan(installPlan);
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'codex,copilot', toolkitVersion: '0.6.0-test' }));
+  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nlocal instruction customization\n');
+  const installedAgents = await read(target, 'AGENTS.md');
+  const editedAgents = `Intro del equipo\n\n${installedAgents.replace('# AI Agent Bootstrap', '# AI Agent Bootstrap (edited)')}\nNota del equipo\n`;
+  await write(target, 'AGENTS.md', editedAgents);
 
-  const managedModified = path.join(target, 'docs/workflow/README.md');
-  await fs.writeFile(managedModified, 'local override\n', 'utf8');
+  for (const overwriteModified of [false, true]) {
+    const updatePlan = await buildUpdatePlan({ targetPath: target, toolkitVersion: '0.7.0-test', overwriteModified });
+    const instructions = operationFor(updatePlan, '.agents/instructions.md');
+    assert.equal(instructions.operation, overwriteModified ? 'overwrite_with_backup' : 'skip_modified');
+    assert.equal(instructions.reason, overwriteModified ? undefined : 'edited_kit_file');
 
-  const updatePlan = await buildUpdatePlan({
-    targetPath: target,
-    runtime: 'codex',
-    toolkitVersion: '0.7.0-test',
-    overwriteModified: true
-  });
-
-  const docsOperation = updatePlan.operations.find((item) => item.relativePath === 'docs/workflow/README.md');
-  assert.equal(docsOperation.operation, 'overwrite_with_backup');
-  assert.equal(updatePlan.summary.skip_modified, 0);
-  assert.equal(updatePlan.summary.overwrite_with_backup > 0, true);
+    // The block is the kit's: it is regenerated; the text around it stays byte for byte.
+    const agents = operationFor(updatePlan, 'AGENTS.md');
+    assert.equal(agents.operation, 'overwrite_with_backup');
+    assert.equal(agents.content, `Intro del equipo\n\n${installedAgents}\nNota del equipo\n`);
+  }
 });
 
 test('buildUpdatePlan supports no-backup write operations', async () => {
@@ -300,56 +300,75 @@ test('buildUpdatePlan supports no-backup write operations', async () => {
   assert.equal(updatePlan.summary.overwrite_no_backup > 0, true);
 });
 
-test('buildUpdatePlan preserves protected instruction customizations even with overwriteModified', async () => {
+// A 1.0.0 state recorded each file whole, so an adapter the kit wrote before
+// it had markers is recognized by that hash.
+test('a 1.0.0 state is still read; an unmarked adapter takes the template only when its recorded hash matches', async () => {
   const target = await makeTempRepo();
-  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex,copilot', toolkitVersion: '0.6.0-test' });
-  await applyInstallPlan(installPlan);
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude,codex' }));
+  const state = await readState(target);
+  const files = Object.fromEntries(Object.entries(state.files).filter(([, entry]) => entry.sha256).map(([key, entry]) => [key, entry.sha256]));
+  const oldKitClaude = 'old kit adapter without markers\n';
+  await write(target, 'CLAUDE.md', oldKitClaude);
+  await write(target, 'AGENTS.md', 'team-edited adapter without markers\n');
+  files['CLAUDE.md'] = sha(oldKitClaude);
+  files['AGENTS.md'] = sha('the kit version the team edited\n');
+  await writeState(target, { ...state, schemaVersion: '1.0.0', files });
 
-  await fs.writeFile(path.join(target, 'AGENTS.md'), 'local instruction customization\n', 'utf8');
+  const legacy = await readManagedInstallState(target);
+  assert.equal(legacy.schemaVersion, '1.0.0');
+  assert.deepEqual(legacy.files['CLAUDE.md'], { sha256: sha(oldKitClaude), class: 'adapter' });
 
-  const updatePlan = await buildUpdatePlan({
-    targetPath: target,
-    runtime: 'codex,copilot',
-    toolkitVersion: '0.7.0-test',
-    overwriteModified: true
-  });
+  const plan = await buildUpdatePlan({ targetPath: target });
+  const claude = operationFor(plan, 'CLAUDE.md');
+  assert.equal(claude.operation, 'overwrite_with_backup');
+  assert.equal(claude.content, await fs.readFile(path.join(templates, 'runtime-adapters/claude/CLAUDE.md'), 'utf8'));
+  const agents = operationFor(plan, 'AGENTS.md');
+  assert.equal(agents.operation, 'skip_modified');
+  assert.equal(agents.reason, 'unmarked_adapter');
 
-  const agentsOperation = updatePlan.operations.find((item) => item.relativePath === 'AGENTS.md');
-  assert.equal(agentsOperation.operation, 'skip_modified');
-  assert.equal(agentsOperation.reason, 'protected_customization');
+  await writeState(target, { ...state, schemaVersion: '3.0.0' });
+  await assert.rejects(buildUpdatePlan({ targetPath: target }), /uses schema 3\.0\.0.*upgrade the CLI/);
 });
 
-test('buildUpdatePlan auto-merges modified registry.json and preserves user-added entries', async () => {
+test('update by class: a seed is created once and never written again (AC-2)', async () => {
   const target = await makeTempRepo();
-  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'neutral', toolkitVersion: '0.6.0-test' });
-  await applyInstallPlan(installPlan);
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  const state = await readState(target);
+  // Never created by the kit here: created now.
+  await fs.rm(path.join(target, '.agents/project/frontend.md'));
+  delete state.files['.agents/project/frontend.md'];
+  await writeState(target, state);
+  // Created by the kit and deleted by the project: stays deleted.
+  await fs.rm(path.join(target, '.agents/project/context.md'));
+  // Edited by the project: untouched.
+  await fs.appendFile(path.join(target, '.agents/project/backend.md'), '\n- Regla propia.\n');
 
-  const registryPath = path.join(target, '.agents/skills/registry.json');
-  const registry = JSON.parse(await fs.readFile(registryPath, 'utf8'));
-  const workflowRouter = registry.skills.find((entry) => entry.key === 'workflow-router');
-  workflowRouter.trigger = 'Outdated trigger text';
-  registry.skills.push({
-    name: 'custom-skill',
-    class: 'Workflow',
-    path: '.agents/skills/custom/SKILL.md',
-    trigger: 'Custom trigger',
-    loading_posture: 'Explicit-only',
-    key: 'custom-skill'
-  });
-  await fs.writeFile(registryPath, `${JSON.stringify(registry, null, 2)}\n`, 'utf8');
+  const plan = await buildUpdatePlan({ targetPath: target });
+  assert.equal(operationFor(plan, '.agents/project/frontend.md').operation, 'create');
+  assert.equal(operationFor(plan, '.agents/project/context.md'), undefined);
+  const backend = operationFor(plan, '.agents/project/backend.md');
+  assert.equal(backend.operation, 'skip_unmanaged');
+  assert.equal(backend.reason, 'project_owned');
 
-  const updatePlan = await buildUpdatePlan({
-    targetPath: target,
-    runtime: 'neutral',
-    toolkitVersion: '0.7.0-test'
-  });
+  await applyInstallPlan(plan);
+  const next = await readState(target);
+  assert.deepEqual(next.files['.agents/project/frontend.md'], { class: 'seed' });
+  assert.deepEqual(next.files['.agents/project/context.md'], { class: 'seed' }, 'the record keeps the seed from coming back');
+});
 
-  const registryOperation = updatePlan.operations.find((item) => item.relativePath === '.agents/skills/registry.json');
-  assert.equal(registryOperation.operation, 'merge_with_backup');
+test('with a 2.0.0 state no operation modifies anything under .agents/project/ (AC-6)', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'copilot', stack: 'rails-react' }));
+  const projectFiles = (await fs.readdir(path.join(target, '.agents/project'))).map((name) => `.agents/project/${name}`);
+  for (const relativePath of projectFiles) await fs.appendFile(path.join(target, relativePath), '\nedited by the project\n');
+  await write(target, '.agents/project/skills/own/SKILL.md', '---\nname: own\n---\n');
 
-  const mergedRegistry = JSON.parse(registryOperation.content);
-  assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'custom-skill'), true);
-  assert.equal(mergedRegistry.skills.some((entry) => entry.key === 'workflow-router' && entry.trigger === 'Outdated trigger text'), false);
+  for (const overwriteModified of [false, true]) {
+    const plan = await buildUpdatePlan({ targetPath: target, overwriteModified });
+    const projectOperations = plan.operations.filter((item) => item.relativePath.startsWith('.agents/project/'));
+    assert.ok(projectOperations.length >= projectFiles.length - 1);
+    assert.deepEqual(projectOperations.filter((item) => item.operation !== 'skip_unmanaged').map((item) => `${item.operation}:${item.relativePath}`), []);
+  }
 });
 
 test('selectPlanOperations allows partial apply without drifting managed state', async () => {
@@ -377,27 +396,8 @@ test('selectPlanOperations allows partial apply without drifting managed state',
 
   assert.notEqual(currentDocsReadme, 'local override\n');
   assert.equal(currentInstructions, 'local override\n');
-  assert.equal(typeof state.files['docs/workflow/README.md'], 'string');
-  assert.equal(state.files['.agents/instructions.md'], stateBeforePartialApply.files['.agents/instructions.md']);
-});
-
-test('buildUpdatePlan can unmanage preserved skill catalog docs while keeping registry.json managed', async () => {
-  const target = await makeTempRepo();
-  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'neutral', toolkitVersion: '0.6.0-test' });
-  await applyInstallPlan(installPlan);
-
-  await fs.writeFile(path.join(target, '.agents/skills/index.md'), '# Local skill index\n', 'utf8');
-
-  const updatePlan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral', toolkitVersion: '0.7.0-test' });
-  const indexOperation = updatePlan.operations.find((item) => item.relativePath === '.agents/skills/index.md');
-
-  assert.equal(indexOperation.operation, 'skip_unmanaged');
-  assert.equal(indexOperation.dropFromState, true);
-
-  await applyInstallPlan(updatePlan);
-  const state = JSON.parse(await fs.readFile(path.join(target, installStateRelativePath), 'utf8'));
-  assert.equal(Object.prototype.hasOwnProperty.call(state.files, '.agents/skills/index.md'), false);
-  assert.equal(Object.prototype.hasOwnProperty.call(state.files, '.agents/skills/registry.json'), true);
+  assert.deepEqual(state.files['docs/workflow/README.md'], { sha256: sha(currentDocsReadme), class: 'kit' });
+  assert.deepEqual(state.files['.agents/instructions.md'], stateBeforePartialApply.files['.agents/instructions.md']);
 });
 
 test('buildUpdatePlan requires install state unless adopt-existing is enabled', async () => {
@@ -411,127 +411,4 @@ test('buildUpdatePlan requires install state unless adopt-existing is enabled', 
   const adoptPlan = await buildUpdatePlan({ targetPath: target, runtime: 'codex', overlay: 'fhh-ia-ecosystem-full', adoptExisting: true });
   assert.equal(adoptPlan.hadExistingState, false);
   assert.equal(adoptPlan.operations.some((item) => item.operation === 'create'), true);
-});
-
-test('buildUpdatePlan keeps one registry entry per skill path and heals earlier duplicates', async () => {
-  const target = await makeTempRepo();
-  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
-
-  const registryPath = path.join(target, '.agents/skills/registry.json');
-  const installed = JSON.parse(await fs.readFile(registryPath, 'utf8'));
-  const builtInPattern = installed.pattern_skills.find((entry) => entry.path.endsWith('add-project-pattern/SKILL.md'));
-  assert.ok(builtInPattern, 'the built-in add-project-pattern skill must be registered');
-  // Simulate a registry damaged by an older update: same path, different key.
-  installed.pattern_skills.push({ ...builtInPattern, key: 'add-project-pattern' });
-  await fs.writeFile(registryPath, `${JSON.stringify(installed, null, 2)}\n`, 'utf8');
-
-  for (let round = 0; round < 2; round += 1) {
-    const plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral' });
-    const operation = plan.operations.find((item) => item.relativePath === '.agents/skills/registry.json');
-    const merged = JSON.parse(operation.content);
-    for (const section of ['skills', 'pattern_skills']) {
-      const paths = merged[section].map((entry) => entry.path);
-      assert.equal(new Set(paths).size, paths.length, `${section} must not repeat a skill path (round ${round + 1})`);
-    }
-    assert.equal(merged.pattern_skills.find((entry) => entry.path === builtInPattern.path).key, builtInPattern.key);
-    await applyInstallPlan(plan);
-  }
-});
-
-test('buildUpdatePlan adds rows of newly shipped skills to project-owned catalogs without taking them over', async () => {
-  const target = await makeTempRepo();
-  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral', toolkitVersion: '0.6.0-test' }));
-
-  // A catalog written before implement-change shipped, plus one project row.
-  const customRow = '| `zz-project-skill` | Project trigger | `.agents/skills/local/zz-project-skill/SKILL.md` | lean |';
-  const indexPath = path.join(target, '.agents/skills/index.md');
-  const shippedIndex = await fs.readFile(indexPath, 'utf8');
-  const implementChangeRow = shippedIndex.split('\n').find((line) => line.startsWith('| `implement-change`'));
-  assert.ok(implementChangeRow, 'the shipped index lists implement-change');
-  const olderIndex = shippedIndex
-    .split('\n')
-    .filter((line) => line !== implementChangeRow)
-    .join('\n')
-    .replace(/(\| `workflow-router` [^\n]*)/, `$1\n${customRow}`);
-  await fs.writeFile(indexPath, olderIndex, 'utf8');
-
-  const registryMdPath = path.join(target, '.agents/skills/registry.md');
-  const shippedRegistryMd = await fs.readFile(registryMdPath, 'utf8');
-  await fs.writeFile(registryMdPath, shippedRegistryMd.split('\n').filter((line) => !line.startsWith('| `implement-change`')).join('\n'), 'utf8');
-
-  const plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral', toolkitVersion: '0.7.0-test' });
-  const indexOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/index.md');
-  assert.equal(indexOperation.operation, 'merge_with_backup');
-  const lines = indexOperation.content.split('\n');
-  assert.ok(lines.includes(implementChangeRow), 'the missing kit row is added');
-  assert.ok(lines.includes(customRow), 'project rows are kept');
-  assert.equal(lines.indexOf(implementChangeRow) + 1, lines.findIndex((line) => line.startsWith('| `implement-prd`')), 'the row lands in name order inside its table');
-
-  const registryMdOperation = plan.operations.find((item) => item.relativePath === '.agents/skills/registry.md');
-  assert.equal(registryMdOperation.operation, 'merge_with_backup');
-  assert.equal(registryMdOperation.content, shippedRegistryMd, 'the row returns to its original place in the inventory');
-
-  await applyInstallPlan(plan);
-  const state = JSON.parse(await fs.readFile(path.join(target, installStateRelativePath), 'utf8'));
-  assert.equal('.agents/skills/index.md' in state.files, false, 'the catalog stays project-owned');
-  assert.equal('.agents/skills/registry.md' in state.files, false, 'the catalog stays project-owned');
-
-  const again = await buildUpdatePlan({ targetPath: target, runtime: 'neutral', toolkitVersion: '0.7.0-test' });
-  assert.equal(again.operations.find((item) => item.relativePath === '.agents/skills/index.md').operation, 'skip_unmanaged');
-});
-
-test('buildInstallPlan keeps a curated registry entry when the skill frontmatter uses another name', async () => {
-  const target = await makeTempRepo();
-  const skillPath = '.agents/skills/01-product/create-investigation-report/SKILL.md';
-  await fs.mkdir(path.join(target, path.dirname(skillPath)), { recursive: true });
-  await fs.writeFile(path.join(target, skillPath), '---\nname: investigation-report\ndescription: Generic description\n---\n\n# Skill\n', 'utf8');
-  await fs.writeFile(path.join(target, '.agents/skills/registry.json'), `${JSON.stringify({
-    schema_version: '1.0.0',
-    skills: [{
-      name: 'create-investigation-report',
-      class: 'Workflow',
-      path: skillPath,
-      trigger: 'Curated trigger',
-      loading_posture: 'Explicit-only',
-      key: 'create-investigation-report'
-    }],
-    pattern_skills: []
-  }, null, 2)}\n`, 'utf8');
-
-  const plan = await buildInstallPlan({ targetPath: target, runtime: 'neutral' });
-  const merged = JSON.parse(plan.operations.find((item) => item.relativePath === '.agents/skills/registry.json').content);
-  const entries = merged.skills.filter((entry) => entry.path === skillPath);
-  assert.equal(entries.length, 1);
-  assert.equal(entries[0].key, 'create-investigation-report');
-  assert.equal(entries[0].trigger, 'Curated trigger');
-});
-
-test('buildUpdatePlan refreshes an auto-discovered registry entry when its skill changes', async () => {
-  const target = await makeTempRepo();
-  const skillPath = '.agents/skills/local/renamed-skill/SKILL.md';
-  await fs.mkdir(path.join(target, path.dirname(skillPath)), { recursive: true });
-  await fs.writeFile(path.join(target, skillPath), '---\nname: old-name\ndescription: Old\n---\n', 'utf8');
-  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
-
-  await fs.writeFile(path.join(target, skillPath), '---\nname: new-name\ndescription: New\n---\n', 'utf8');
-  const plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral' });
-  const merged = JSON.parse(plan.operations.find((item) => item.relativePath === '.agents/skills/registry.json').content);
-  const entries = merged.skills.filter((entry) => entry.path === skillPath);
-  assert.deepEqual(entries.map((entry) => entry.key), ['new-name']);
-});
-
-test('buildUpdatePlan leaves a catalog alone when it lists the skill under another path or has no matching table', async () => {
-  const target = await makeTempRepo();
-  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
-  const indexPath = path.join(target, '.agents/skills/index.md');
-  const shipped = await fs.readFile(indexPath, 'utf8');
-
-  const moved = shipped.replace('.agents/skills/02-implement/implement-change/SKILL.md', '.agents/skills/local/implement-change/SKILL.md');
-  await fs.writeFile(indexPath, moved, 'utf8');
-  let plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral' });
-  assert.equal(plan.operations.find((item) => item.relativePath === '.agents/skills/index.md').operation, 'skip_unmanaged');
-
-  await fs.writeFile(indexPath, '# Our skills\n\n- implement-prd\n', 'utf8');
-  plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral' });
-  assert.equal(plan.operations.find((item) => item.relativePath === '.agents/skills/index.md').operation, 'skip_unmanaged');
 });

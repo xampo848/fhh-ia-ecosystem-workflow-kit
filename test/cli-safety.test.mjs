@@ -152,7 +152,7 @@ test('rollback of an update restores files, .gitignore and the previous install-
   const state = JSON.parse(stateBefore);
   await fs.writeFile(path.join(target, skill), 'old skill body\n', 'utf8');
   const { createHash } = await import('node:crypto');
-  state.files[skill] = createHash('sha256').update('old skill body\n', 'utf8').digest('hex');
+  state.files[skill] = { sha256: createHash('sha256').update('old skill body\n', 'utf8').digest('hex'), class: 'kit' };
   const olderState = `${JSON.stringify(state, null, 2)}\n`;
   await fs.writeFile(path.join(target, statePath), olderState, 'utf8');
   await fs.writeFile(path.join(target, '.gitignore'), 'node_modules/\n', 'utf8');
@@ -205,7 +205,7 @@ test('rollback rejects install-state keys that point outside the target', async 
   assert.equal(await fs.readFile(path.join(parent, 'victim.txt'), 'utf8'), 'keep me\n');
 });
 
-test('adopt-existing keeps a customized instruction file protected on later updates', async () => {
+test('adopt-existing keeps the text of a customized adapter on later updates', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
   await fs.rm(path.join(target, statePath));
@@ -215,8 +215,9 @@ test('adopt-existing keeps a customized instruction file protected on later upda
   await applyInstallPlan(await buildUpdatePlan({ targetPath: target, runtime: 'claude', adoptExisting: true }));
   const next = await buildUpdatePlan({ targetPath: target });
 
-  assert.equal(next.operations.find((item) => item.relativePath === 'CLAUDE.md').operation, 'skip_modified');
-  assert.equal(await fs.readFile(path.join(target, 'CLAUDE.md'), 'utf8'), '# Our own Claude rules\n');
+  // The kit owns only its block; the team's text stays outside it and the next update has nothing to write.
+  assert.equal(next.operations.find((item) => item.relativePath === 'CLAUDE.md').operation, 'unchanged');
+  assert.ok((await fs.readFile(path.join(target, 'CLAUDE.md'), 'utf8')).endsWith('<!-- workflow-kit:managed:end -->\n\n# Our own Claude rules\n'));
 });
 
 test('an unusable install-state is reported, never treated as a missing install', async () => {
@@ -236,26 +237,6 @@ test('an unusable install-state is reported, never treated as a missing install'
     assert.equal(doctor.code, 1);
     assert.match(doctor.stdout, /managed\/install-state-unusable/);
   }
-});
-
-test('a deleted local skill leaves the registry on the next update', async () => {
-  const target = await makeTempRepo();
-  const localSkill = path.join(target, '.agents/skills/06-patterns/local/retry-policy');
-  await fs.mkdir(localSkill, { recursive: true });
-  await fs.writeFile(path.join(localSkill, 'SKILL.md'), '---\r\nname: retry-policy\r\ndescription: Local retry rules\r\n---\r\n\r\nBody\r\n', 'utf8');
-  await run(['init', '--target', target, '--apply', '--yes']);
-  const registryPath = path.join(target, '.agents/skills/registry.json');
-  const registered = JSON.parse(await fs.readFile(registryPath, 'utf8'));
-  const entry = registered.pattern_skills.find((item) => item.path.endsWith('retry-policy/SKILL.md'));
-  assert.equal(entry.name, 'retry-policy', 'CRLF frontmatter is parsed');
-
-  await fs.rm(localSkill, { recursive: true });
-  await run(['update', '--target', target, '--apply', '--yes']);
-
-  const after = JSON.parse(await fs.readFile(registryPath, 'utf8'));
-  assert.equal(after.pattern_skills.some((item) => item.path.endsWith('retry-policy/SKILL.md')), false);
-  const doctor = await run(['doctor', '--target', target]);
-  assert.doesNotMatch(doctor.stdout, /skills\/missing-file/);
 });
 
 test('a registry.json that is not an object does not crash the plan', async () => {

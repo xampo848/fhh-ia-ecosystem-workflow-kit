@@ -2,6 +2,8 @@
 // (roadmap D-33): which structural migrations it carries and, on request, the
 // line diff of every file it would change.
 import fs from 'node:fs/promises';
+import { applyJournalRelativePath } from './apply.mjs';
+import { workspaceDirectory } from './planner.mjs';
 import { neutralInstructionPath, projectInstructionNames } from './project-instructions.mjs';
 
 // Migrations are derived from the plan itself, so they are idempotent: once a
@@ -12,11 +14,12 @@ export function describeMigrations({ operations, existingState, modelProfiles = 
   const writes = ['create', 'merge_with_backup', 'merge_no_backup', 'overwrite_with_backup', 'overwrite_no_backup'];
 
   const ignored = operations.find((item) => item.relativePath === '.gitignore' && writes.includes(item.operation))?.ignoredEntries ?? [];
-  if (ignored.includes('workspace')) {
-    migrations.push({ id: '0.11.0-ai-workspace', summary: 'Add .ai-work/ (temporary AI state) to .gitignore.' });
+  // The ignored entries are the manifest's lines that .gitignore was missing.
+  if (ignored.includes(`${workspaceDirectory}/`)) {
+    migrations.push({ id: '0.11.0-ai-workspace', summary: `Add ${workspaceDirectory}/ (temporary AI state) to .gitignore.` });
   }
-  if (ignored.includes('apply-journal')) {
-    migrations.push({ id: '0.17.2-apply-journal-ignored', summary: 'Add .agents/workflow-kit/last-apply.json (local rollback journal) to .gitignore. If it was committed before, run: git rm --cached .agents/workflow-kit/last-apply.json' });
+  if (ignored.includes(`/${applyJournalRelativePath}`)) {
+    migrations.push({ id: '0.17.2-apply-journal-ignored', summary: `Add ${applyJournalRelativePath} (local rollback journal) to .gitignore. If it was committed before, run: git rm --cached ${applyJournalRelativePath}` });
   }
   const defaultedRuntimes = existingState
     ? Object.keys(modelProfiles).filter((runtime) => !existingState.modelProfiles?.[runtime] && !requestedProfiles[runtime])

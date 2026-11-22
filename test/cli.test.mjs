@@ -132,7 +132,7 @@ test('update skips locally modified managed files', async () => {
   assert.equal(current, 'local custom adapter\n');
 });
 
-test('update adopt-existing bootstraps state without overwriting existing files', async () => {
+test('update adopt-existing bootstraps state and keeps the text of an existing adapter', async () => {
   const target = await makeTempRepo();
   await fs.writeFile(path.join(target, 'AGENTS.md'), 'legacy adapter content\n', 'utf8');
   const io = createMemoryIo();
@@ -151,9 +151,10 @@ test('update adopt-existing bootstraps state without overwriting existing files'
   ], io);
 
   assert.equal(code, 0);
-  assert.match(io.output.stdout, /Adopted baseline files: 1/);
+  // The adapter had no kit block: the block is added and the project's text stays after it.
   const current = await fs.readFile(path.join(target, 'AGENTS.md'), 'utf8');
-  assert.equal(current, 'legacy adapter content\n');
+  assert.match(current, /^<!-- workflow-kit:managed:start -->/);
+  assert.ok(current.endsWith('<!-- workflow-kit:managed:end -->\n\nlegacy adapter content\n'));
   await fs.access(path.join(target, '.agents/workflow-kit/install-state.json'));
 });
 

@@ -2,7 +2,8 @@ import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import packageJson from '../package.json' with { type: 'json' };
-import { selectedTemplateFiles, parseRuntimeList, normalizeOverlay, readManagedInstallState } from './planner.mjs';
+import { selectedTemplateFiles, parseRuntimeList, normalizeOverlay, readManagedInstallState, recordedChecksumOf } from './planner.mjs';
+import { loadKitManifest } from './kit-manifest.mjs';
 import { validateWorkflowContract } from './workflow-contract/index.mjs';
 import { loadDelegateCatalog, modelSettingLine, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
 import { projectContextDiagnostics, workspaceDiagnostics } from './workspace-diagnostics.mjs';
@@ -19,11 +20,16 @@ async function managedDriftDiagnostics(targetPath, state) {
   }
 
   const diagnostics = [];
-  for (const [relativePath, expected] of Object.entries(state.files ?? {})) {
+  const manifest = await loadKitManifest();
+  // A 1.0.0 state hashed every file whole; seeds carry no hash to compare.
+  const legacyState = state.schemaVersion === '1.0.0';
+  for (const [relativePath, entry] of Object.entries(state.files ?? {})) {
+    if (!entry.sha256 || entry.class === 'seed') continue;
     try {
       // State keys come from the repository: never read outside the target.
       const content = await fs.readFile(resolveInsideTarget(targetPath, relativePath), 'utf8');
-      if (checksum(content) !== expected) {
+      const actual = legacyState ? checksum(content) : recordedChecksumOf(manifest, relativePath, entry.class, content);
+      if (actual !== entry.sha256) {
         diagnostics.push({
           code: 'managed/content-drift',
           path: relativePath,

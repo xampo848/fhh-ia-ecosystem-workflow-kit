@@ -292,7 +292,6 @@ function renderDashboard(write, paint, plan) {
   const runtimeLabel = plan.runtimes.join(', ');
   const { label: packageLabel } = installPackageDetails(plan.overlay);
   const packageLine = plan.mode === 'update' ? 'Update package' : 'Install package';
-  const discoveredSkills = Array.isArray(plan.discoveredSkillEntries) ? plan.discoveredSkillEntries.length : 0;
   const row = (label, value) => `${label.padEnd(DASHBOARD_LABEL_WIDTH)}: ${value}`;
   const rows = [
     row('Target', plan.targetPath),
@@ -300,8 +299,7 @@ function renderDashboard(write, paint, plan) {
     row('Project workflow version', plan.previousToolkitVersion ?? 'none recorded'),
     row('Runtimes', runtimeLabel),
     row(packageLine, packageLabel),
-    row('Stack pack', plan.stackPack ?? 'none'),
-    row('Local skills', `${discoveredSkills} auto-discovered`)
+    row('Stack pack', plan.stackPack ?? 'none')
   ];
 
   if (plan.mode !== 'export') {
