@@ -119,11 +119,12 @@ La raíz del plugin es la raíz del repo del kit, así que el plugin usa el árb
 La skill `kit-root` es la única que el modelo puede cargar por su cuenta. Su cuerpo da:
 - la raíz del kit (`${CLAUDE_PLUGIN_ROOT}`; si la variable aparece sin expandir, la raíz es la carpeta dos niveles arriba de ese `SKILL.md`);
 - la regla de rutas de 2.2;
+- que `.agents/project/` bajo la raíz del kit se ignora: el overlay del proyecto es el del repo;
 - el nombre de los delegados en modo plugin (`fhh:<slug>`, salvo que exista un agente del proyecto con ese slug);
 - la instrucción de pasar `Kit root: <ruta absoluta>` en el brief de cada delegación;
 - el siguiente paso: leer `<kit root>/.agents/instructions.md`.
 
-**Archivos**. Existentes que este PRD edita: `src/runtime-matrix.mjs`, `src/model-profiles.mjs`, `src/planner.mjs`, `src/doctor.mjs`, `src/cli/args.mjs`, `src/cli/commands.mjs`, `src/tui.mjs`, `src/tui/model.mjs`, `scripts/sync-claude-skills.mjs`, `scripts/sync-delegate-runtime-adapters.mjs`, `package.json` (`files` y `check:workflow`; la versión no), `docs/README.md`, `docs/quickstart.md`, `docs/github-install.md`, `docs/workflow/cross-runtime-capability-matrix.md`. Nuevos: `scripts/build-plugin.mjs`, `src/plugin-mode.mjs`, las rutas generadas de la tabla, `test/plugin-build.test.mjs`, `test/plugin-mode.test.mjs`, `test/plugin-mode-doctor.test.mjs`, `test/plugin-mode-tui.test.mjs`. Ningún archivo de test existente se modifica.
+**Archivos**. Existentes que este PRD edita: `src/runtime-matrix.mjs`, `src/model-profiles.mjs`, `src/planner.mjs`, `src/doctor.mjs`, `src/cli/args.mjs`, `src/cli/commands.mjs`, `src/tui.mjs`, `src/tui/model.mjs`, `scripts/sync-claude-skills.mjs`, `scripts/sync-delegate-runtime-adapters.mjs`, `package.json` (`files` y `check:workflow`; la versión no), `docs/README.md`, `docs/quickstart.md`, `docs/github-install.md`, `docs/workflow/cross-runtime-capability-matrix.md`, y `docs/versioning.md` (solo el paso de release que regenera el plugin; autorizado por el orquestador). Nuevos: `scripts/build-plugin.mjs`, `src/plugin-mode.mjs`, las rutas generadas de la tabla, `test/plugin-build.test.mjs`, `test/plugin-mode.test.mjs`, `test/plugin-mode-doctor.test.mjs`, `test/plugin-mode-tui.test.mjs`. Ningún archivo de test existente se modifica.
 
 ### 2.2 Regla de Negocio: resolución de rutas en modo plugin
 
@@ -188,7 +189,8 @@ Aparte, del proyecto: 5 seeds (6 con stack pack) y `.gitignore`. Un perfil disti
 | T13 | Ninguno | `update --adopt-existing --mode plugin` | Se detiene: `workflow-kit update --adopt-existing --runtime <lista>` primero, luego `workflow-kit update --mode plugin` |
 | T14 | `plugin` | `update --runtime` con un runtime sin plugin | Se detiene: nombra `workflow-kit update --mode repo --runtime <lista>` |
 | T15 | Cualquiera | `--mode` con otro valor, o en `doctor`, `rollback`, `upgrade`, `tui` | Se detiene: valores `repo` y `plugin`; el flag aplica a `init` y `update` |
-| T16 | `plugin` tras un cambio de modo | `rollback` | Restaura los archivos y el state anterior |
+| T16 | `plugin` tras un cambio de modo o un `update` normal | `rollback` | Restaura los archivos y el state anterior; tras un `update` normal el state restaurado sigue `plugin` |
+| T17 | `plugin` | `export --output <ese repo>` | Se detiene (compuerta actual de F2): el árbol queda idéntico y el mensaje nombra exportar a otra carpeta |
 
 **T7, repo → plugin**:
 - Todo archivo `kit` o `derived` que el state registra y el plan de plugin no escribe se trata como retirado. Para eso, en modo plugin la lista de archivos vivos de `planRetiredFiles` es solo la del plan.
@@ -216,9 +218,13 @@ En modo plugin, `doctor` espera solo los archivos del plan de plugin, valida los
 | `mode/plugin-not-declared` | warning | State `plugin` y falta la declaración en el archivo de settings de un runtime, o el archivo no es JSON válido | `workflow-kit update --apply --yes`, o el fragmento a mano |
 | `mode/plugin-not-installed` | warning | Claude: `claude plugin list --json` no lista el ID | `claude plugin install fhh@fhh-ia-ecosystem --scope project` |
 | `mode/plugin-version-mismatch` | warning | Claude: la versión instalada no es la del CLI | `claude plugin update fhh@fhh-ia-ecosystem` |
-| `mode/plugin-install-unverified` | warning | No se pudo comprobar: no hay `claude` en el PATH o falló la lectura; siempre para Copilot | `copilot plugin list` y `copilot plugin install fhh@fhh-ia-ecosystem` (o el de Claude) |
+| `mode/plugin-install-unverified` | warning | Claude: no se pudo comprobar (no hay `claude` en el PATH, no respondió en el tiempo máximo, salida que no es JSON o código de salida distinto de 0) | `claude plugin list` y `claude plugin install fhh@fhh-ia-ecosystem --scope project` |
 
-La lectura de plugins instalados es una función inyectable (`inspectInstalledPlugins`); los tests siempre pasan un doble. La salida de `doctor` agrega la línea `Install mode: plugin` solo en modo plugin, y la de los planes igual, para que la salida del modo repo no cambie.
+Binario externo: `doctor` ejecuta `claude plugin list --json` solo cuando el state es `plugin` y el runtime `claude` está elegido; nunca en modo repo. Espera como máximo 5 segundos. Binario ausente, cuelgue, salida que no es JSON o código distinto de 0 terminan en `mode/plugin-install-unverified`; ninguno hace fallar ni colgar a `doctor`. La lectura es una función inyectable (`inspectInstalledPlugins`, con su ejecutor de comandos también inyectable); los tests siempre pasan un doble.
+
+Copilot: no hay una forma documentada de leer sus plugins instalados, así que `doctor` no emite un diagnóstico. Imprime una línea informativa con `copilot plugin list` y `copilot plugin install fhh@fhh-ia-ecosystem`.
+
+La salida de `doctor` agrega la línea `Install mode: plugin` solo en modo plugin, y la de los planes igual, para que la salida del modo repo no cambie.
 
 ### 2.6 Regla de Negocio: TUI
 
@@ -232,23 +238,23 @@ En modo guionado no pregunta (igual que la pregunta de stack). `update` por TUI 
 | --- | --- | --- | --- | --- |
 | AC-1 | El árbol del kit en `main` | `node scripts/build-plugin.mjs --write` y luego sin flag | Genera exactamente las rutas de 2.1 (3 manifiestos, 12 skills, 13 + 13 agentes); la segunda corrida no cambia nada; sin `--write` falla ante drift, un archivo faltante o un generado huérfano; corre dentro de `check:workflow` | `test/plugin-build.test.mjs`; `npm run check:workflow` |
 | AC-2 | Los manifiestos generados | Se validan | `plugin.json` tiene solo campos del esquema Agent Plugins 1.0, el `$schema` exacto y `name: "fhh"`; el marketplace tiene `name`, `owner.name` y un plugin con `source: "./"`; las tres versiones son la de `package.json` | `test/plugin-build.test.mjs`; `claude plugin validate .` en el smoke |
-| AC-3 | Los componentes generados | Se inspeccionan | Ningún generado queda bajo `.agents/` ni `templates/`; cada wrapper apunta a un `SKILL.md` que `registry.json` lista y que existe; cada agente nombra una `shared_skill_path` que existe; `kit-root` contiene la regla de rutas y el nombre `fhh:<slug>` | `test/plugin-build.test.mjs` |
+| AC-3 | Los componentes generados | Se inspeccionan | Ningún generado queda bajo `.agents/` ni `templates/`; cada wrapper apunta a un `SKILL.md` que `registry.json` lista y que existe; cada agente nombra una `shared_skill_path` que existe; `kit-root` contiene la regla de rutas, la exclusión de `.agents/project/` bajo la raíz del kit y el nombre `fhh:<slug>` | `test/plugin-build.test.mjs` |
 | AC-4 | Los generadores existentes | `sync-claude-skills` y `sync-delegate-runtime-adapters` en modo check | Sus salidas del modo repo son byte a byte las de `558e9fb` (no se regenera ningún archivo existente) | `npm run check:workflow`; `git diff --stat` sin cambios en `.claude/`, `.github/agents/`, `.codex/`, `templates/runtime-adapters/` |
 | AC-5 | Un repo vacío | `init --mode plugin --runtime claude` (dry run y apply) | El plan tiene 3 archivos del kit (≤ 5), los 5 seeds y `.gitignore`; ninguna operación en una ruta `kit` o `derived`; el state queda con `mode: "plugin"`. Con `copilot`: 6. Con los dos: 8 | `test/plugin-mode.test.mjs` (conteo por clase) |
 | AC-6 | Un repo con `CLAUDE.md` propio sin marcadores, y otro vacío | `init --mode plugin` | El bloque gestionado es el de la plantilla más `workflow-kit:kit-location` (plugin, `fhh:kit-root`, regla de rutas, comando si no está instalado); el texto propio queda fuera de los marcadores; `validateAdapterContracts` no reporta nada | `test/plugin-mode.test.mjs` |
 | AC-7 | Settings ausente; con otras claves; ya declarado; JSON inválido | `init` o `update` en modo plugin | `create`; `merge_with_backup` que conserva las otras claves; `unchanged`; `skip_unmanaged` sin tocar el archivo y con el fragmento en la salida | `test/plugin-mode.test.mjs` |
 | AC-8 | Cualquier repo | `--mode` inválido; `--mode plugin` con runtime sin plugin; `export --mode`; `doctor --mode` | Se detiene sin escribir; el mensaje nombra el comando siguiente (T3, T12, T14, T15) | `test/plugin-mode.test.mjs` |
-| AC-9 | Un install en modo plugin con overlay editado y texto propio en el adaptador | `update` dos veces; y un plan filtrado con `selectPlanOperations` | El state conserva `mode: "plugin"`; la segunda corrida no escribe; nada bajo `.agents/project/**` ni fuera de los marcadores cambia; el plan filtrado conserva `mode: "plugin"` | `test/plugin-mode.test.mjs` |
+| AC-9 | Un install en modo plugin con overlay editado y texto propio en el adaptador | `update` dos veces; un plan filtrado con `selectPlanOperations`; y `rollback` de un `update` que escribió | El state conserva `mode: "plugin"`; la segunda corrida no escribe; nada bajo `.agents/project/**` ni fuera de los marcadores cambia; el plan filtrado conserva `mode: "plugin"`; tras el rollback el state en disco sigue `plugin` | `test/plugin-mode.test.mjs` |
 | AC-10 | Un install plugin con Claude | `update --profile claude=costo`; luego `--profile claude=calidad` | Primero crea 13 `.claude/agents/*.md` variante plugin con el modelo del perfil; luego los borra con backup; `modelProfiles` queda registrado | `test/plugin-mode.test.mjs` |
 | AC-11 | Un install en modo repo sin archivos editados | `update --mode plugin --apply --yes`; luego `rollback --apply --yes` | Borra con backup cada archivo `kit` o `derived` registrado, cambia el bloque, escribe la declaración y deja state `plugin`; el rollback restaura todos los archivos y el state `repo` | `test/plugin-mode.test.mjs` |
 | AC-12 | Un install en modo repo con un archivo del kit editado | `update --mode plugin`; luego con `--edited <ruta>=discard`; y con `=keep` | Se detiene sin escribir y lista el archivo y los comandos; con `discard` continúa y deja backup del editado; `keep` se rechaza | `test/plugin-mode.test.mjs` |
 | AC-13 | Un install en modo plugin (con otras claves en settings) | `update --mode repo --apply --yes` | Crea el árbol del kit, el bloque queda sin `kit-location`, de settings salen solo las claves del kit, state `repo`; `doctor` queda en ok | `test/plugin-mode.test.mjs` |
-| AC-14 | States 2.0.0, 1.0.0, `export` y ninguno; y un install con el último apply incompleto | T4, T5, T10, T11, T13; y `update --mode plugin` con el apply incompleto | Cada uno se detiene sin escribir; el test ejecuta el comando que el mensaje nombra y ese comando termina sin error | `test/plugin-mode.test.mjs` |
+| AC-14 | States 2.0.0, 1.0.0, `export` y ninguno; un install con el último apply incompleto; y un install en modo plugin como destino de `export` | T4, T5, T10, T11, T13, T17; y `update --mode plugin` con el apply incompleto | Cada uno se detiene sin escribir (en T17 el árbol queda idéntico por hash); el test ejecuta el comando que el mensaje nombra y ese comando termina sin error | `test/plugin-mode.test.mjs` |
 | AC-15 | State `plugin` con un archivo del kit en el repo; state `repo` con el plugin declarado | `doctor` | `mode/repo-and-plugin` (error), `Doctor: failed`, y el mensaje nombra el comando | `test/plugin-mode-doctor.test.mjs` |
-| AC-16 | State `plugin`; el doble de `inspectInstalledPlugins` devuelve: sin el plugin, otra versión, error | `doctor` | `mode/plugin-not-installed`, `mode/plugin-version-mismatch`, `mode/plugin-install-unverified` como warnings con su comando; `mode/plugin-not-declared` si falta la declaración; el doble no recibe ninguna llamada de instalación | `test/plugin-mode-doctor.test.mjs` |
+| AC-16 | State `plugin`; el doble de `inspectInstalledPlugins` devuelve: sin el plugin, otra versión; y el ejecutor doble: binario ausente, cuelgue más allá del tiempo máximo, salida que no es JSON, código distinto de 0 | `doctor` | `mode/plugin-not-installed` y `mode/plugin-version-mismatch` como warnings con su comando; los cuatro fallos del binario terminan en `mode/plugin-install-unverified` y `doctor` no falla ni se cuelga; `mode/plugin-not-declared` si falta la declaración; Copilot recibe una línea informativa, no un diagnóstico; ningún doble recibe una llamada de instalación | `test/plugin-mode-doctor.test.mjs` |
 | AC-17 | Un install plugin sano con un shadow cuyo `base_sha256` no coincide | `doctor` | Sin archivos faltantes del árbol del kit; `Doctor: ok`; `boundary/shadow-outdated` para ese shadow | `test/plugin-mode-doctor.test.mjs` |
-| AC-18 | TUI interactivo, runtime `claude` | Elegir plugin, deseleccionar una operación y aplicar; luego `update` por TUI | Pregunta el modo solo si todos los runtimes admiten plugin; el state queda `plugin` tras la selección parcial y tras el update; la salida final trae el comando de instalación | `test/plugin-mode-tui.test.mjs` |
-| AC-19 | La suite de `558e9fb` | `npm test` | Los 420 tests existentes pasan sin modificar ningún archivo de test existente; `test/upgrade-e2e.test.mjs` en verde | `npm test`; `git diff --stat main -- test/` muestra solo archivos nuevos |
+| AC-18 | TUI interactivo, runtime `claude` | Elegir plugin, deseleccionar una operación y aplicar; luego `update` por TUI con selección parcial | Pregunta el modo solo si todos los runtimes admiten plugin; el `install-state.json` en disco tiene `mode: "plugin"` tras cada uno de los dos apply; la salida final trae el comando de instalación | `test/plugin-mode-tui.test.mjs` |
+| AC-19 | La suite de `558e9fb` | `npm test`; y `doctor` sobre un install en modo repo con el ejecutor doble | Los 420 tests existentes pasan sin modificar ningún archivo de test existente; `test/upgrade-e2e.test.mjs` en verde; en modo repo `doctor` no ejecuta ningún binario externo (el doble registra cero llamadas) | `npm test`; `git diff --stat main -- test/` muestra solo archivos nuevos; `test/plugin-mode-doctor.test.mjs` |
 | AC-20 | Docs y un repo de prueba en modo plugin | `npm run check:docs`; smoke en Claude Code y en Copilot | Los 4 docs explican el modo plugin, el comando por persona, la postura de obligatoriedad y las transiciones; la matriz marca lo no verificado; el smoke registra: skills `fhh:*` cargan, `kit-root` da la raíz, un trabajo N2 llega al router, un runbook del overlay se lee, no hay skills duplicadas. Lo que no se pueda ejecutar queda como no verificado con sus pasos | `npm run check:docs`; sección 10 |
 
 ### 2.8 Casos de Uso
@@ -273,11 +279,11 @@ Framework: `node --test`, repos temporales como en `test/planner.test.mjs`.
 | Unidad | Build: salidas, idempotencia, drift, huérfanos, esquema de los manifiestos, variantes de agentes y wrappers | UC-1 | AC-1 a AC-3 | `node --test test/plugin-build.test.mjs` |
 | Contrato | Los generadores del modo repo no cambian | UC-1, UC-7 | AC-4 | `npm run check:workflow` |
 | Integracion | Plan de plugin por clase, conteo, adaptador, settings, flags, update, perfil | UC-2, UC-3 | AC-5 a AC-10 | `node --test test/plugin-mode.test.mjs` |
-| Integracion (apply real en repo temporal) | Transiciones T4 a T16, con apply y rollback; cada parada ejecuta el comando que nombra | UC-4 | AC-11 a AC-14 | `node --test test/plugin-mode.test.mjs` |
+| Integracion (apply real en repo temporal) | Transiciones T4 a T17, con apply y rollback; cada parada ejecuta el comando que nombra | UC-4 | AC-11 a AC-14 | `node --test test/plugin-mode.test.mjs` |
 | Integracion | Doctor de modos con el doble de `inspectInstalledPlugins` | UC-5 | AC-15 a AC-17 | `node --test test/plugin-mode-doctor.test.mjs` |
 | Integracion | TUI: pregunta de modo, selección parcial, update | UC-6 | AC-18 | `node --test test/plugin-mode-tui.test.mjs` |
 | Regresion | Modo repo y migración 0.18 intactos | UC-7 | AC-19 | `npm test` |
-| Smoke manual | El runtime carga el plugin y resuelve rutas | UC-8 | AC-20, supuestos S3 a S7 | Pasos de P1-S3 y P3-S2 |
+| Smoke manual | El runtime carga el plugin y resuelve rutas | UC-8 | AC-20, supuestos S3 a S7 | Pasos de P1-S2 y P3-S2 |
 
 Cada test nuevo falla antes del cambio que lo satisface (se registra la corrida roja en el tracker de `implement-change`).
 
@@ -290,7 +296,7 @@ Cada test nuevo falla antes del cambio que lo satisface (se registra la corrida 
 | Limites | Dos runtimes a la vez (8 archivos); settings con `enabledPlugins` en `false` o con otro marketplace | UC-2 | `src/plugin-mode.mjs` | AC-5, AC-7 | Pending |
 | Limites | Perfil distinto del default: 3 + 13 archivos; volver al default los retira | UC-3 | planner | AC-10 | Pending |
 | Errores | Settings con JSON inválido o que no es un objeto | UC-2 | `src/plugin-mode.mjs` | AC-7, AC-16 | Pending |
-| Errores | `claude` no está en el PATH, o su salida no es JSON | UC-5 | `src/plugin-mode.mjs` (`inspectInstalledPlugins`) | AC-16 | Pending |
+| Errores | `claude` no está en el PATH, se cuelga, sale con código distinto de 0 o su salida no es JSON | UC-5 | `src/plugin-mode.mjs` (`inspectInstalledPlugins`) | AC-16 | Pending |
 | Permisos/tenancy | No aplica tenancy: es un CLI local sin usuarios. La regla equivalente, "nunca instalar sin confirmación", se prueba en la entrada de `doctor` | UC-5 | `src/doctor.mjs` | AC-16 | Pending |
 | Concurrencia/orden | Cambio de modo con el último apply incompleto | UC-4 | planner (`assertLastApplyFinished`) | AC-14 | Pending |
 | Concurrencia/orden | Un archivo del kit se edita entre el plan y el apply del cambio a plugin: el apply lo conserva y `doctor` lo reporta | UC-4, UC-5 | `src/apply.mjs` (existente), `src/doctor.mjs` | AC-15 | Pending |
@@ -315,12 +321,12 @@ Fuentes consultadas el 2026-11-22. Lo que corrige al evidence pack de la épica 
 | S2 | Claude Code: `.claude-plugin/plugin.json`, `skills/`, `agents/`; el plugin se copia a una caché y lo que está fuera de su raíz no se copia; `${CLAUDE_PLUGIN_ROOT}` se sustituye en cuerpos de skills y agentes; `CLAUDE.md` del plugin no se carga; agentes con `model`, nombrados `<plugin>:<name>` | Documentación | verificado | `code.claude.com/docs/en/plugins-reference`, `plugins/components`, `plugins/loading` | — |
 | S3 | Un marketplace con `source: "./"` es válido y `claude plugin list --json` devuelve `id`, `version`, `scope`, `enabled`, `installPath` | Prueba exploratoria local (solo lectura) | verificado | `claude plugin validate` sobre un plugin de prueba; Claude Code 2.1.142 | — |
 | S4 | Claude: `enabledPlugins` en el repo habilita pero no descarga; cada persona corre `claude plugin install <id> --scope project` una vez por clon; solo managed settings obligan | Documentación | verificado | `discover-plugins`, `plugins/loading` | — |
-| S5 | Claude: una skill de plugin y una del proyecto con el mismo nombre conviven (`/x` y `/fhh:x`) | Documentación | asumido | No está documentado (corrige "cargan las dos" del evidence pack) | Solo afecta al caso de modos mezclados, que ya es error (AC-15). P1-S3 lo observa |
+| S5 | Claude: una skill de plugin y una del proyecto con el mismo nombre conviven (`/x` y `/fhh:x`) | Documentación | asumido | No está documentado (corrige "cargan las dos" del evidence pack) | Solo afecta al caso de modos mezclados, que ya es error (AC-15). P1-S2 lo observa |
 | S6 | Copilot CLI: un `plugin.json` de Agent Plugins gana sobre `.claude-plugin/plugin.json`; ante el mismo nombre gana la skill del proyecto o personal y la del plugin se ignora; agentes en `com.github.copilot/agents/*.agent.md`; `.github/copilot/settings.json` con las mismas dos claves no hace obligatorio el plugin | Documentación | verificado | `docs.github.com` (`cli-plugin-reference`, `about-cli-plugins`, `configuring-agent-settings`) | — |
-| S7 | VS Code Copilot: qué formato elige con dos manifiestos, la precedencia ante nombres repetidos y si resuelve la raíz del plugin en el cuerpo de una skill | Documentación | asumido | No está documentado | P1-S3 lo observa. Si la skill `kit-root` no puede dar la raíz en Copilot, condición de parada de P1-S3 |
+| S7 | VS Code Copilot: qué formato elige con dos manifiestos, la precedencia ante nombres repetidos y si resuelve la raíz del plugin en el cuerpo de una skill | Documentación | asumido | No está documentado | P1-S2 lo observa. Si la skill `kit-root` no puede dar la raíz en Copilot, condición de parada de P1-S2 |
 | S8 | El agente cloud de Copilot carga plugins | Documentación | asumido (fuera del piloto, D4) | Se configura con el mismo archivo, no está en la lista GA y no se documenta qué componentes carga | Sin efecto en los AC: la matriz lo marca "sin verificar" |
 | S9 | `copilot plugin install fhh@fhh-ia-ecosystem` funciona con el marketplace declarado en el repo | Documentación | asumido | La forma `plugin@marketplace` está documentada; la resolución desde settings del repo no | P3-S2 lo observa; si falla, los mensajes usan `copilot plugin install <owner/repo>` |
-| S10 | El modelo aplica la regla de rutas al leer archivos del kit que nombran `.agents/...` | Diseño | asumido | — | Es el riesgo central del piloto. P1-S3 es su compuerta, con condición de parada |
+| S10 | El modelo aplica la regla de rutas al leer archivos del kit que nombran `.agents/...` | Diseño | asumido | — | Es el riesgo central del piloto. P1-S2 es su compuerta, antes de generar agentes, con condición de parada y plan B (hook de inicio de sesión que inyecta la raíz del kit) |
 
 ### 2.13 Que queda obsoleto
 
@@ -467,23 +473,23 @@ flowchart TD
 
 ### Fase 1 - Build del plugin
 
-**Objetivo**: el repo del kit es un plugin `fhh` válido, generado y verificado, y su supuesto central está comprobado antes de tocar el instalador.
+**Objetivo**: el repo del kit es un plugin `fhh` válido, generado y verificado. Su supuesto central (la regla de rutas) se comprueba apenas existen los manifiestos y las skills, antes de generar agentes y de tocar el instalador.
 
 **Slices ejecutables**:
 
 | ID | Outcome | Depends on | Scope / likely files | Acceptance criteria | Use cases | Tests | Edge cases | Validation | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P1-S1 | El build genera y verifica los 3 manifiestos y las 12 skills | none | `scripts/build-plugin.mjs`, `scripts/sync-claude-skills.mjs` (exporta el renderer con variante), `package.json` (`files`, `check:workflow`), generados `plugin.json`, `.claude-plugin/*`, `skills/**` | AC-1, AC-2, AC-3 (skills), AC-4 | UC-1 | `test/plugin-build.test.mjs` | Versión sin regenerar | `node --test test/plugin-build.test.mjs && npm run check:workflow` | Test rojo antes, verde después; salida del check |
-| P1-S2 | El build genera los 13 + 13 agentes en variante plugin | P1-S1 | `src/model-profiles.mjs` (parámetro `kitLocation`), `scripts/sync-delegate-runtime-adapters.mjs` (solo si hace falta exportar algo), `scripts/build-plugin.mjs`, generados `agents/**`, `com.github.copilot/agents/**` | AC-1, AC-3 (agentes), AC-4 | UC-1 | `test/plugin-build.test.mjs` | — | `node --test test/plugin-build.test.mjs test/model-profiles.test.mjs && npm run check:workflow` | Diff vacío en los agentes del modo repo |
-| P1-S3 | Smoke temprano: el runtime carga el plugin desde la carpeta local y `kit-root` da la raíz | P1-S2 | Sin código. `claude plugin validate .`; una sesión con `claude --plugin-dir <checkout>` en un repo de prueba (no cambia la configuración del usuario); en Copilot, instalación local solo con aprobación del usuario | AC-2, AC-20 (parcial) | UC-8 | Smoke manual | S5, S7, S10 | Pasos registrados en el tracker | Resultado por supuesto: verificado o no verificado |
+| P1-S1 | El build genera y verifica los 3 manifiestos y las 12 skills | none | `scripts/build-plugin.mjs`, `scripts/sync-claude-skills.mjs` (exporta el renderer con variante), `package.json` (`files`, `check:workflow`), `docs/versioning.md` (paso de release), generados `plugin.json`, `.claude-plugin/*`, `skills/**` | AC-1, AC-2, AC-3 (skills), AC-4 | UC-1 | `test/plugin-build.test.mjs` | Versión sin regenerar | `node --test test/plugin-build.test.mjs && npm run check:workflow` | Test rojo antes, verde después; salida del check |
+| P1-S2 | Smoke temprano de la regla de rutas: el runtime carga el plugin desde la carpeta local, `kit-root` da la raíz y el agente lee un archivo del kit a partir de ella | P1-S1 | Sin código de producto. `claude plugin validate .`; una sesión con `claude --plugin-dir <checkout>` en un repo de prueba con el bloque `kit-location` escrito a mano (no cambia la configuración del usuario); en Copilot, instalación local solo con aprobación del usuario | AC-2, AC-20 (parcial) | UC-8 | Smoke manual | S5, S7, S10 | Pasos registrados en el tracker | Resultado por supuesto: verificado o no verificado |
+| P1-S3 | El build genera los 13 + 13 agentes en variante plugin | P1-S2 | `src/model-profiles.mjs` (parámetro `kitLocation`), `scripts/sync-delegate-runtime-adapters.mjs` (solo si hace falta exportar algo), `scripts/build-plugin.mjs`, generados `agents/**`, `com.github.copilot/agents/**` | AC-1, AC-3 (agentes), AC-4 | UC-1 | `test/plugin-build.test.mjs` | — | `node --test test/plugin-build.test.mjs test/model-profiles.test.mjs && npm run check:workflow` | Diff vacío en los agentes del modo repo |
 
 **Out of scope de la fase**: `--mode`, planner, doctor.
 
 **Slice stop conditions**:
 
 - `claude plugin validate .` rechaza los manifiestos, o un validador fuera de la lista de archivos de 2.1 falla por las carpetas nuevas de la raíz: parar y avisar al orquestador.
-- P1-S3: si el agente no logra leer un archivo del kit a partir de `kit-root` en Claude Code, parar y replantear la regla de rutas con el usuario antes de la Fase 2. Si falla solo en Copilot, parar y preguntar al usuario si Copilot sigue en el piloto.
-- P1-S3 necesita que el usuario autorice la sesión de prueba; sin esa autorización queda como no verificado y el usuario decide si la Fase 2 empieza.
+- P1-S2: si el agente no logra leer un archivo del kit a partir de `kit-root` en Claude Code, parar antes de P1-S3 y proponer al usuario el plan B como enmienda del PRD: un hook de inicio de sesión del plugin que inyecta la raíz del kit y la regla de rutas en cada sesión (solo Claude Code). Si falla solo en Copilot, parar y preguntar al usuario si Copilot sigue en el piloto.
+- P1-S2 necesita que el usuario autorice la sesión de prueba; sin esa autorización queda como no verificado y el usuario decide si el trabajo sigue.
 
 **Definition of Done**:
 
@@ -501,11 +507,12 @@ flowchart TD
 
 | ID | Outcome | Depends on | Scope / likely files | Acceptance criteria | Use cases | Tests | Edge cases | Validation | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P2-S1 | `init --mode plugin` planifica y aplica el plan de 2.3 | P1-S2 | `src/cli/args.mjs` (`--mode`), `src/runtime-matrix.mjs`, `src/plugin-mode.mjs` (identidad, adaptador, settings), `src/planner.mjs` (`buildInstallPlan`, selección de archivos, operaciones sin clase), `src/cli/commands.mjs` (línea de modo y comando siguiente) | AC-5, AC-6, AC-7, AC-8 | UC-2 | `test/plugin-mode.test.mjs` | Datos vacíos; límites de settings; JSON inválido | `node --test test/plugin-mode.test.mjs && npm test` | Conteo del plan en el test |
-| P2-S2 | `update` conserva el modo plugin, es idempotente y aplica el perfil | P2-S1 | `src/planner.mjs` (`buildUpdatePlan`, modo resuelto, agentes de perfil, retirados con lista de vivos por modo) | AC-9, AC-10 | UC-3 | `test/plugin-mode.test.mjs` | Perfil distinto del default | `node --test test/plugin-mode.test.mjs && npm test` | Segundo update sin escrituras |
-| P2-S3 | Transiciones T4 a T16 | P2-S2 | `src/planner.mjs` (cambio repo → plugin todo o nada, `discard` de retirados editados, plugin → repo, paradas), `src/plugin-mode.mjs` (quitar la declaración) | AC-11, AC-12, AC-13, AC-14 | UC-4 | `test/plugin-mode.test.mjs` | Concurrencia/orden; rollback | `node --test test/plugin-mode.test.mjs test/upgrade-e2e.test.mjs && npm test` | Apply y rollback reales en repo temporal |
-| P2-S4 | `doctor` de modos | P2-S3 | `src/doctor.mjs`, `src/plugin-mode.mjs` (`inspectInstalledPlugins`) | AC-15, AC-16, AC-17 | UC-5 | `test/plugin-mode-doctor.test.mjs` | `claude` ausente; versión distinta; archivo editado entre plan y apply | `node --test test/plugin-mode-doctor.test.mjs test/doctor.test.mjs && npm test` | Códigos `mode/*` en el test |
-| P2-S5 | El TUI pregunta el modo al instalar | P2-S1 | `src/tui/model.mjs` (`installModeQuestion`), `src/tui.mjs` | AC-18 | UC-6 | `test/plugin-mode-tui.test.mjs` | Selección parcial | `node --test test/plugin-mode-tui.test.mjs test/tui.test.mjs && npm test` | State `plugin` tras selección parcial |
+| P2-S1 | `init --mode plugin` planifica y aplica el plan de 2.3 | P1-S3 | `src/cli/args.mjs` (`--mode`), `src/runtime-matrix.mjs`, `src/plugin-mode.mjs` (identidad, adaptador, settings), `src/planner.mjs` (`buildInstallPlan`, selección de archivos, operaciones sin clase), `src/cli/commands.mjs` (línea de modo y comando siguiente) | AC-5, AC-6, AC-7, AC-8 | UC-2 | `test/plugin-mode.test.mjs` | Datos vacíos; límites de settings; JSON inválido | `node --test test/plugin-mode.test.mjs && npm test` | Conteo del plan en el test |
+| P2-S2 | `update` conserva el modo plugin, es idempotente, aplica el perfil y su rollback deja el state `plugin` | P2-S1 | `src/planner.mjs` (`buildUpdatePlan`, modo resuelto, agentes de perfil, retirados con lista de vivos por modo) | AC-9, AC-10 | UC-3 | `test/plugin-mode.test.mjs` | Perfil distinto del default | `node --test test/plugin-mode.test.mjs && npm test` | Segundo update sin escrituras; state en disco tras el rollback |
+| P2-S3 | Cambio repo → plugin (T7), todo o nada, y su rollback (T16) | P2-S2 | `src/planner.mjs` (retirados del árbol del kit, parada con archivos editados, `discard` de retirados editados) | AC-11, AC-12 | UC-4 | `test/plugin-mode.test.mjs` | Rollback del cambio; archivo editado | `node --test test/plugin-mode.test.mjs test/upgrade-e2e.test.mjs && npm test` | Apply y rollback reales en repo temporal |
+| P2-S4 | Cambio plugin → repo (T9) y paradas T4, T5, T10, T11, T13 y T17 | P2-S3 | `src/planner.mjs` (plugin → repo, paradas de transición), `src/plugin-mode.mjs` (quitar la declaración) | AC-13, AC-14 | UC-4 | `test/plugin-mode.test.mjs` | Concurrencia/orden; rollback | `node --test test/plugin-mode.test.mjs test/upgrade-e2e.test.mjs && npm test` | Cada parada ejecuta el comando que nombra |
+| P2-S5 | `doctor` de modos, con el binario externo acotado | P2-S4 | `src/doctor.mjs`, `src/plugin-mode.mjs` (`inspectInstalledPlugins` y su ejecutor con tiempo máximo) | AC-15, AC-16, AC-17, AC-19 (sin binario en modo repo) | UC-5, UC-7 | `test/plugin-mode-doctor.test.mjs` | `claude` ausente, cuelgue, salida inválida; versión distinta; archivo editado entre plan y apply | `node --test test/plugin-mode-doctor.test.mjs test/doctor.test.mjs && npm test` | Códigos `mode/*` en el test |
+| P2-S6 | El TUI pregunta el modo al instalar | P2-S1 | `src/tui/model.mjs` (`installModeQuestion`), `src/tui.mjs` | AC-18 | UC-6 | `test/plugin-mode-tui.test.mjs` | Selección parcial | `node --test test/plugin-mode-tui.test.mjs test/tui.test.mjs && npm test` | State `plugin` en disco tras selección parcial, en install y en update |
 
 **Out of scope de la fase**: `src/apply.mjs`, `src/rollback.mjs`, `src/migration.mjs`, `src/workflow-contract/*`, `src/cli/summaries.mjs` y cualquier archivo de test existente.
 
@@ -531,8 +538,8 @@ flowchart TD
 
 | ID | Outcome | Depends on | Scope / likely files | Acceptance criteria | Use cases | Tests | Edge cases | Validation | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P3-S1 | Los 4 docs explican el modo plugin | P2-S5 | `docs/README.md`, `docs/quickstart.md`, `docs/github-install.md`, `docs/workflow/cross-runtime-capability-matrix.md` | AC-20 (docs) | UC-2, UC-4, UC-5 | — | — | `npm run check:docs && npm run check:legal` | Salida de los checks |
-| P3-S2 | Smoke final en Claude Code y Copilot, y evidencia en la sección 10 | P3-S1 | Sin código de producto. Repo de prueba con `init --mode plugin`; Claude Code con `--plugin-dir`; Copilot CLI y VS Code con instalación local, que ejecuta o autoriza el usuario | AC-20 (smoke) | UC-8 | Smoke manual | S7, S9 | Lista de comprobación de AC-20 | Resultado por punto, o "no verificado" con los pasos |
+| P3-S1 | Los 4 docs explican el modo plugin | P2-S6 | `docs/README.md`, `docs/quickstart.md`, `docs/github-install.md`, `docs/workflow/cross-runtime-capability-matrix.md` | AC-20 (docs) | UC-2, UC-4, UC-5 | — | — | `npm run check:docs && npm run check:legal` | Salida de los checks |
+| P3-S2 | Smoke final en Claude Code y Copilot, y evidencia en la sección 10 | P3-S1 | Sin código de producto. Repo de prueba con `init --mode plugin`; Claude Code con `--plugin-dir`, incluida una delegación a un agente `fhh:<slug>`; Copilot CLI y VS Code con instalación local, que ejecuta o autoriza el usuario | AC-20 (smoke) | UC-8 | Smoke manual | S7, S9 | Lista de comprobación de AC-20 | Resultado por punto, o "no verificado" con los pasos |
 
 **Slice stop conditions**:
 
@@ -570,6 +577,9 @@ flowchart TD
 | D7 | Versión del schema del state | Sigue 2.0.0 (agente). Descartado: 2.1.0 para que un CLI 0.22.0 se detenga | Riesgo R3 |
 | D8 | Raíz del plugin | La raíz del repo del kit (agente). Descartado: carpeta generada con skills aplanadas | Sin copia del árbol; wrappers por skill |
 | D9 | Adaptador en modo plugin | Plantilla del modo repo más bloque `kit-location` (agente). Descartado: plantillas nuevas | Sin cambios en `templates/**` |
+| D10 | Dividir el PRD (dos señales de tamaño: 11 slices, más de 600 líneas) | No: un solo PRD, ejecutado fase por fase con pausa de revisión y cierre parcial de la sección 10 (usuario) | Respeta "un PRD por fase" de la épica |
+| D11 | Cuándo se prueba la regla de rutas | Apenas existen manifiestos y skills (P1-S2), antes de los agentes; plan B: hook de inicio de sesión (usuario, a propuesta del agente) | Orden de la Fase 1 |
+| D12 | Aviso de instalación en Copilot | Línea informativa, no un diagnóstico (usuario, a propuesta del agente) | Sin ruido en cada corrida de `doctor` |
 
 ---
 
@@ -588,8 +598,8 @@ _(Vacio = PRD listo para implementar)_
 
 | # | Riesgo | Probabilidad | Impacto | Mitigacion |
 | --- | --- | --- | --- | --- |
-| R1 | El modelo no aplica la regla de rutas y busca `.agents/instructions.md` en el repo | Media | Alto | P1-S3 es compuerta antes de la Fase 2; el bloque `kit-location` y `kit-root` repiten la regla; condición de parada |
-| R2 | Copilot en VS Code se comporta distinto de lo documentado para Copilot CLI | Media | Medio | S7 se observa en P1-S3 y P3-S2; lo no verificado queda escrito en la matriz |
+| R1 | El modelo no aplica la regla de rutas y busca `.agents/instructions.md` en el repo | Media | Alto | P1-S2 es compuerta antes de generar agentes y de la Fase 2; el bloque `kit-location` y `kit-root` repiten la regla; plan B: hook de inicio de sesión que inyecta la raíz del kit |
+| R2 | Copilot en VS Code se comporta distinto de lo documentado para Copilot CLI | Media | Medio | S7 se observa en P1-S2 y P3-S2; lo no verificado queda escrito en la matriz |
 | R3 | Un CLI 0.22.0 corre `update` sobre un state `plugin` y reinstala el árbol | Baja | Medio | `doctor` reporta `mode/repo-and-plugin`; `update --mode plugin` lo repara; docs: actualizar el CLI primero |
 | R4 | El cambio de modo borra un archivo que el usuario quería | Baja | Alto | Solo se borra lo que coincide con el hash registrado; lo editado exige `discard`; backup y rollback en todos los casos |
 | R5 | La versión del plugin queda vieja tras subir la versión del paquete | Media | Bajo | El check del build falla; el orquestador corre `node scripts/build-plugin.mjs --write` después de asignar la versión |
@@ -617,10 +627,10 @@ _(Vacio = PRD listo para implementar)_
 
 | Acceptance criterion | Caso de uso | Phase / slice | Test evidence | Edge case(s) | Validation evidence | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| AC-1 | UC-1 | P1-S1, P1-S2 | `test/plugin-build.test.mjs` | Versión sin regenerar | `npm run check:workflow` | Pending |
-| AC-2 | UC-1 | P1-S1, P1-S3 | `test/plugin-build.test.mjs` | — | `claude plugin validate .` | Pending |
-| AC-3 | UC-1 | P1-S1, P1-S2 | `test/plugin-build.test.mjs` | — | `node --test test/plugin-build.test.mjs` | Pending |
-| AC-4 | UC-1 | P1-S1, P1-S2 | Checks existentes | — | `npm run check:workflow` | Pending |
+| AC-1 | UC-1 | P1-S1, P1-S3 | `test/plugin-build.test.mjs` | Versión sin regenerar | `npm run check:workflow` | Pending |
+| AC-2 | UC-1 | P1-S1, P1-S2 | `test/plugin-build.test.mjs` | — | `claude plugin validate .` | Pending |
+| AC-3 | UC-1 | P1-S1, P1-S3 | `test/plugin-build.test.mjs` | — | `node --test test/plugin-build.test.mjs` | Pending |
+| AC-4 | UC-1 | P1-S1, P1-S3 | Checks existentes | — | `npm run check:workflow` | Pending |
 | AC-5 | UC-2 | P2-S1 | `test/plugin-mode.test.mjs` | Datos vacíos; dos runtimes | `node --test test/plugin-mode.test.mjs` | Pending |
 | AC-6 | UC-2, UC-8 | P2-S1 | `test/plugin-mode.test.mjs` | — | Igual | Pending |
 | AC-7 | UC-2 | P2-S1 | `test/plugin-mode.test.mjs` | Settings inválido o con otras claves | Igual | Pending |
@@ -629,14 +639,14 @@ _(Vacio = PRD listo para implementar)_
 | AC-10 | UC-3 | P2-S2 | `test/plugin-mode.test.mjs` | Perfil distinto del default | Igual | Pending |
 | AC-11 | UC-4 | P2-S3 | `test/plugin-mode.test.mjs` | Rollback del cambio | Igual | Pending |
 | AC-12 | UC-4 | P2-S3 | `test/plugin-mode.test.mjs` | — | Igual | Pending |
-| AC-13 | UC-4 | P2-S3 | `test/plugin-mode.test.mjs` | Rollback del cambio | Igual | Pending |
-| AC-14 | UC-4 | P2-S3 | `test/plugin-mode.test.mjs` | Apply incompleto; state 1.0.0 | Igual | Pending |
-| AC-15 | UC-5 | P2-S4 | `test/plugin-mode-doctor.test.mjs` | Archivo editado entre plan y apply | `node --test test/plugin-mode-doctor.test.mjs` | Pending |
-| AC-16 | UC-5 | P2-S4 | `test/plugin-mode-doctor.test.mjs` | `claude` ausente; versión distinta; no instalar | Igual | Pending |
-| AC-17 | UC-5 | P2-S4 | `test/plugin-mode-doctor.test.mjs` | — | Igual | Pending |
-| AC-18 | UC-6 | P2-S5 | `test/plugin-mode-tui.test.mjs` | Selección parcial | `node --test test/plugin-mode-tui.test.mjs` | Pending |
-| AC-19 | UC-7 | P2-S1 a P2-S5 | Suite existente | — | `npm test` | Pending |
-| AC-20 | UC-8 | P1-S3, P3-S1, P3-S2 | Smoke manual | S5, S7, S9, S10 | `npm run check:docs`; sección 10 | Pending |
+| AC-13 | UC-4 | P2-S4 | `test/plugin-mode.test.mjs` | Rollback del cambio | Igual | Pending |
+| AC-14 | UC-4 | P2-S4 | `test/plugin-mode.test.mjs` | Apply incompleto; state 1.0.0; export sobre un install plugin | Igual | Pending |
+| AC-15 | UC-5 | P2-S5 | `test/plugin-mode-doctor.test.mjs` | Archivo editado entre plan y apply | `node --test test/plugin-mode-doctor.test.mjs` | Pending |
+| AC-16 | UC-5 | P2-S5 | `test/plugin-mode-doctor.test.mjs` | `claude` ausente; versión distinta; no instalar | Igual | Pending |
+| AC-17 | UC-5 | P2-S5 | `test/plugin-mode-doctor.test.mjs` | — | Igual | Pending |
+| AC-18 | UC-6 | P2-S6 | `test/plugin-mode-tui.test.mjs` | Selección parcial | `node --test test/plugin-mode-tui.test.mjs` | Pending |
+| AC-19 | UC-7 | P2-S1 a P2-S6 | Suite existente | — | `npm test` | Pending |
+| AC-20 | UC-8 | P1-S2, P3-S1, P3-S2 | Smoke manual | S5, S7, S9, S10 | `npm run check:docs`; sección 10 | Pending |
 
 ---
 
