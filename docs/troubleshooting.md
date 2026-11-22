@@ -42,8 +42,12 @@ Common cases:
   the wording of an older version.
 - `managed/install-state-unusable`: `install-state.json` is corrupt or was
   written by a newer CLI. Restore it from Git or upgrade the CLI.
-- `skills/unregistered-file`: register the skill in
-  `.agents/skills/registry.md`, then regenerate structured artifacts.
+- `skills/unregistered-file` (warning): a `SKILL.md` under `.agents/skills/`
+  that the kit registry does not list, so it is not kit content. If a
+  `boundary/*` finding names it or its folder, follow that; otherwise move the
+  skill to `.agents/project/skills/<name>/` with a row in
+  `.agents/project/index.md`. Do not register it in `.agents/skills/registry.md`:
+  that is a kit file, and editing it leaves it pending.
 - `boundary/*`: a kit file you edited, an own file inside a kit folder, or a
   shadow to review. See "Doctor reports `boundary/*` or `managed/*` findings"
   below. These are warnings, never an automatic overwrite.

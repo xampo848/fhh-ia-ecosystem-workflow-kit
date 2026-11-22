@@ -98,10 +98,16 @@ test('doctor lists what update leaves pending and what is neither kit nor projec
     ['boundary/pending-retired_edited', retired, /the kit no longer ships it; delete it or keep it as project content outside the kit folders/],
     ['boundary/adapter-block-edited', 'CLAUDE.md', /next update restores the block.*move your text outside the markers/],
     ['boundary/unowned-path', own, /neither kit nor project; move it to \.agents\/project\/ \(skills go to \.agents\/project\/skills\/<name>\/ with a row in \.agents\/project\/index\.md\)/],
-    ...['/etc/hosts', 'docs/../outside.md', 'docs//double.md'].map((key) => ['boundary/ignored-state-key', installStateRelativePath, new RegExp(`^Key "${key.replaceAll('.', '\\.')}" .*remove it from install-state\\.json`)])
+    ...['/etc/hosts', 'docs/../outside.md', 'docs//double.md'].map((key) => ['boundary/ignored-state-key', installStateRelativePath, new RegExp(`^Key "${key.replaceAll('.', '\\.')}" .*remove it from install-state\\.json`)]),
+    // Final review 3: a SKILL.md the kit registry does not list is not kit
+    // content; registering it in the kit catalog would make it a pending edit.
+    ...[retired, own].map((skillPath) => ['skills/unregistered-file', skillPath, /not kit content.*boundary\/\* finding.*\.agents\/project\/skills\/<name>\/ with a row in \.agents\/project\/index\.md/])
   ]);
   const unexpected = result.diagnostics.filter((item) => item.code === 'managed/content-drift' || item.path === 'docs/README.md' || item.path.includes('workflow-kit-backup'));
   assert.deepEqual(unexpected, []);
+  // Everything above is a warning: doctor passes.
+  assert.deepEqual(result.diagnostics.filter((item) => item.severity === 'error'), []);
+  assert.equal(result.ok, true);
 });
 
 test('doctor warns about outdated or invalid shadows and a project context kept at both paths', async () => {

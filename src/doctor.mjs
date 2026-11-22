@@ -62,6 +62,15 @@ function stateDiagnostics(state) {
   return diagnostics;
 }
 
+const projectSkillsHint = '.agents/project/skills/<name>/';
+// In a target repository the kit registry lists only kit skills: a SKILL.md
+// it does not list is own or left-over content (AC-12 warns about those), and
+// registering it in the kit catalog would only make that catalog a pending edit.
+function targetRepoContractDiagnostic(item) {
+  if (item.code !== 'skills/unregistered-file') return item;
+  return warning(item.code, item.path, `SKILL.md under .agents/skills/ that the kit registry does not list, so it is not kit content and the router does not load it. If a boundary/* finding names it or its folder, follow that; otherwise move the skill to ${projectSkillsHint} with a row in ${projectIndexPath}.`);
+}
+
 function journalDiagnostics(problem) {
   if (problem?.kind === 'unusable') return [error('managed/apply-journal-unusable', applyJournalRelativePath, `${unusableJournalMessage(problem.reason)}. init and update stop until then.`)];
   if (problem?.kind === 'incomplete') return [error('managed/apply-incomplete', applyJournalRelativePath, `${incompleteApplyMessage(problem.appliedAt)}, then run init or update again.`)];
@@ -241,7 +250,7 @@ export async function runDoctor(options = {}) {
   const catalog = await loadDelegateCatalog();
   const modelProfiles = resolveModelProfiles({ catalog, runtimes, stored: storedState?.modelProfiles });
   const diagnostics = [
-    ...contract.diagnostics,
+    ...contract.diagnostics.map(targetRepoContractDiagnostic),
     ...await modelProfileDiagnostics({ targetPath, present, catalog, modelProfiles }),
     ...await workspaceDiagnostics({ targetPath }),
     ...await projectContextDiagnostics({ targetPath }),
