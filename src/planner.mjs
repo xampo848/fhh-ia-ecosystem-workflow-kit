@@ -8,10 +8,10 @@ import { isSupportedRuntime, runtimeTemplatePaths, supportedRuntimes } from './r
 import { loadDelegateCatalog, parseProfileOption, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
-import { assertNoSymlinkWrites, assertWriteFoldersAreFolders, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
+import { assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
 import { applyJournalRelativePath, isUsableApplyJournal } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
-import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, requireMigrationBackups } from './migration.mjs';
+import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, projectIndexPath, requireMigrationBackups } from './migration.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
@@ -161,6 +161,7 @@ export async function buildInstallPlan(options = {}) {
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
   const files = await selectedTemplateFiles({ runtimes, overlay });
+  await assertPathShapes(targetPath, [...files.map((file) => file.relativePath), gitignorePath]);
   const catalog = await loadDelegateCatalog();
   const modelProfiles = resolveModelProfiles({ catalog, runtimes, requested: parseProfileOption(options.profile) });
   const instructionInspection = await inspectProjectInstructions({ targetPath });
@@ -222,6 +223,12 @@ export async function buildUpdatePlan(options = {}) {
   const overlay = normalizeOverlay(options.overlay ?? existingState?.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
   const files = await selectedTemplateFiles({ runtimes, overlay });
+  // The migration also reads the project index and lists the project skills.
+  const migrating = existingState?.schemaVersion === legacyInstallStateSchemaVersion;
+  // The migration leaves a new path it cannot move to pending (legacy_path_unsupported).
+  const shapedFiles = files.map((file) => file.relativePath).filter((relativePath) => !migrating || !Object.values(manifest.legacy_paths).includes(relativePath));
+  await assertPathShapes(targetPath, [...shapedFiles, gitignorePath, ...(migrating ? [projectIndexPath] : [])],
+    migrating ? [`${manifest.project_root}skills`] : []);
   const catalog = await loadDelegateCatalog();
   const modelProfiles = resolveModelProfiles({
     catalog,

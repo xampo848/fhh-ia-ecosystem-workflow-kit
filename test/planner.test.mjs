@@ -506,6 +506,32 @@ test('an own file at a kit path the 2.0.0 state never recorded is pending until 
   assert.equal(operationFor(discarded, codexReadme).operation, 'overwrite_with_backup');
 });
 
+// Round 4 (N5): a file where the plan needs a folder, or a folder where it
+// needs a file, stops init and update with the path to fix, before any read.
+test('init and update stop on a file where a folder belongs, or a folder where a file belongs', async () => {
+  const cases = [
+    { name: 'init with docs as a file', installed: false, run: (target) => buildInstallPlan({ targetPath: target, runtime: 'neutral' }), message: /^docs is a file, not a folder/m, break: (target) => write(target, 'docs', 'not a folder\n') },
+    { name: 'update with .agents/project as a file', installed: true, run: (target) => buildUpdatePlan({ targetPath: target }), message: /^\.agents\/project is a file, not a folder/m, break: async (target) => {
+      await fs.rm(path.join(target, '.agents/project'), { recursive: true });
+      await write(target, '.agents/project', 'not a folder\n');
+    } },
+    { name: 'update with .agents/kit-boundary.md as a folder', installed: true, run: (target) => buildUpdatePlan({ targetPath: target }), message: /^\.agents\/kit-boundary\.md is a folder, not a file/m, break: async (target) => {
+      await fs.rm(path.join(target, '.agents/kit-boundary.md'));
+      await fs.mkdir(path.join(target, '.agents/kit-boundary.md'));
+    } }
+  ];
+  for (const item of cases) {
+    const target = await makeTempRepo();
+    if (item.installed) await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+    await item.break(target);
+    await assert.rejects(item.run(target), (error) => {
+      assert.match(error.message, item.message, item.name);
+      assert.match(error.message, /Nothing was written\.$/, item.name);
+      return true;
+    }, item.name);
+  }
+});
+
 const retiredSkill = '.agents/skills/04-crosscutting/retired-skill/SKILL.md';
 async function installWithRetired(target, records, runtime = 'neutral') {
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime }));
