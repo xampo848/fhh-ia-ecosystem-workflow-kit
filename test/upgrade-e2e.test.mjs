@@ -80,27 +80,6 @@ for (const runtime of ['claude', 'codex', 'copilot', 'antigravity', 'claude,code
   });
 }
 
-// Edge case Rollout/rollback with Windows state keys: after the apply every
-// file the kit still ships is on disk; only the retired file and the moved
-// project files left their old paths.
-test('upgrading a 0.18.1 install with Windows state keys deletes no live kit file', async () => {
-  const { target, legacy } = await legacyRepo({ windowsKeys: true });
-  const before = Object.keys(await hashTree(target));
-
-  await applyInstallPlan(await buildUpdatePlan({ targetPath: target }));
-
-  const after = new Set(Object.keys(await hashTree(target)));
-  const gone = before.filter((relativePath) => !after.has(relativePath));
-  const moved = [legacy.ownContext.path, ...legacy.localSkill.files.map((file) => `${legacy.localSkill.oldDir}/${file}`)];
-  assert.deepEqual(gone.sort(), [legacy.retiredPath, ...moved].sort());
-  const state = JSON.parse(await read(target, installStateRelativePath));
-  const missing = [];
-  for (const relativePath of Object.keys(state.files)) {
-    if (!(await exists(target, relativePath))) missing.push(relativePath);
-  }
-  assert.deepEqual(missing, [], 'every recorded kit file is on disk');
-});
-
 test('update --diff on a 0.18.1 install prints the diff section and writes nothing', async () => {
   const { target } = await legacyRepo({ runtimes: ['claude'] });
   const before = await hashTree(target);

@@ -369,31 +369,6 @@ test('with a 2.0.0 state no operation modifies anything under .agents/project/ (
   }
 });
 
-// Review of phase 1: a 1.0.0 state reaches the class planner only through the
-// layout migration. That state recorded merged catalogs as unedited, so a
-// plain update would replace a registry holding the project's own skills.
-test('a 1.0.0 state with an auto-registered local skill keeps that skill when registry.json is replaced', async () => {
-  const target = await makeTempRepo();
-  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
-  const registryPath = '.agents/skills/registry.json';
-  const skillPath = '.agents/skills/06-patterns/local/retry-policy/SKILL.md';
-  await write(target, skillPath, '---\nname: retry-policy\ndescription: Description the registry entry overrides.\n---\n');
-  const registry = JSON.parse(await read(target, registryPath));
-  registry.pattern_skills.push({ name: 'retry-policy', path: skillPath, trigger: 'Retry calls to external services.' });
-  const merged = `${JSON.stringify(registry, null, 2)}\n`;
-  await write(target, registryPath, merged);
-  const state = await readState(target);
-  const files = Object.fromEntries(Object.entries(state.files).filter(([, entry]) => entry.sha256).map(([key, entry]) => [key, entry.sha256]));
-  files[registryPath] = sha(merged);
-  await writeState(target, { ...state, schemaVersion: '1.0.0', files });
-
-  const plan = await buildUpdatePlan({ targetPath: target, backupMode: 'none' });
-
-  assert.equal(operationFor(plan, registryPath).operation, 'overwrite_with_backup');
-  assert.match(operationFor(plan, '.agents/project/index.md').content, /^\| `retry-policy` \| Pattern \| Retry calls to external services\. \| `\.agents\/project\/skills\/retry-policy\/SKILL\.md` \| lean \|$/m);
-  assert.equal(operationFor(plan, '.agents/project/skills/retry-policy/SKILL.md').operation, 'create');
-});
-
 // Review of phase 1: no plan replaces content without a backup unless that
 // content matches what the kit recorded (here: init ignores the state, adopt
 // records nothing yet; a discarded edit is covered in migration.test.mjs).

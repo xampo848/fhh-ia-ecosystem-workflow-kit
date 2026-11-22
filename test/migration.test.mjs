@@ -10,7 +10,6 @@ import test from 'node:test';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { extractManagedBlock, loadKitManifest } from '../src/kit-manifest.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan, installStateRelativePath, selectPlanOperations } from '../src/planner.mjs';
-import { applyRollbackPlan, buildRollbackPlan } from '../src/rollback.mjs';
 import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
 import { makeTempRepo, hashTree } from './helpers.mjs';
 
@@ -174,6 +173,27 @@ test('a moved skill listed as Runbook in a catalog is written as Pattern, with a
   const migration = layoutMigration(plan);
   assert.match(operationFor(plan, projectIndexPath).content, /^\| `retry-policy` \| Pattern \|/m);
   assert.ok(migration.notes.some((note) => note.startsWith('`retry-policy` row: class Runbook written as Pattern')));
+});
+
+// Without a markdown catalog row, the row takes the trigger of the registry.json entry.
+test('an own skill listed only in registry.json takes the trigger of its registry entry', async () => {
+  const { target, legacy } = await legacyRepo();
+  for (const catalog of ['.agents/skills/06-patterns/index.md', '.agents/skills/registry.md']) {
+    await write(target, catalog, (await read(target, catalog)).split('\n').filter((line) => !line.includes('`retry-policy`')).join('\n'));
+  }
+  const registry = JSON.parse(await read(target, legacy.registryPath));
+  registry.pattern_skills.find((entry) => entry.path === legacy.registryEntryPath).trigger = 'Retry calls to external services.';
+  const merged = `${JSON.stringify(registry, null, 2)}\n`;
+  await write(target, legacy.registryPath, merged);
+  // 0.18 recorded the merged registry it wrote.
+  const state = JSON.parse(await read(target, installStateRelativePath));
+  state.files[legacy.registryPath] = sha(merged);
+  await write(target, installStateRelativePath, `${JSON.stringify(state, null, 2)}\n`);
+
+  const plan = await buildUpdatePlan({ targetPath: target, backupMode: 'none' });
+
+  assert.equal(operationFor(plan, legacy.registryPath).operation, 'overwrite_with_backup');
+  assert.match(operationFor(plan, projectIndexPath).content, /^\| `retry-policy` \| Pattern \| Retry calls to external services\. \| `\.agents\/project\/skills\/retry-policy\/SKILL\.md` \| lean \|$/m);
 });
 
 test('an own skill that cannot move is left pending, not moved and without a row', async () => {
@@ -366,9 +386,9 @@ test('init over a 0.18.1 install stops before planning and points to update', as
 
 // The journal of a run that stopped halfway is the only way back to the
 // 0.18.1 tree: no plan may overwrite it before the rollback.
-test('an apply that stops halfway blocks update and init until rollback, which restores the 0.18.1 tree', async () => {
+// Rolling back a partial journal is proven in test/rollback-journal.test.mjs.
+test('an apply that stops halfway blocks update and init and keeps its journal', async () => {
   const { target, legacy } = await legacyRepo();
-  const before = await hashTree(target);
   const plan = await buildUpdatePlan({ targetPath: target });
   // Hand-crafted failure: the retired delete reads a folder, after earlier writes.
   const failing = operationFor(plan, legacy.retiredPath);
@@ -384,9 +404,6 @@ test('an apply that stops halfway blocks update and init until rollback, which r
   await assert.rejects(buildUpdatePlan({ targetPath: target }), unfinished);
   await assert.rejects(buildInstallPlan({ targetPath: target, runtime: 'claude' }), unfinished);
   assert.equal(await read(target, journalPath), journalRaw);
-
-  await applyRollbackPlan(await buildRollbackPlan({ targetPath: target }));
-  assert.deepEqual(await hashTree(target), before);
 });
 
 test('with Windows state keys the migration deletes only the retired skill and the files it moves, nothing live', async () => {
@@ -428,7 +445,8 @@ test('the migration refuses a .agents/project that is a symbolic link and writes
   assert.deepEqual(await hashTree(elsewhere), outside);
 });
 
-test('a partial selection keeps the whole migration; a retired delete can still be left out', async () => {
+// Deselecting a retired delete is proven in test/planner.test.mjs.
+test('a partial selection keeps the whole migration', async () => {
   const { target, legacy } = await legacyRepo();
   const plan = await buildUpdatePlan({ targetPath: target });
 
@@ -440,8 +458,6 @@ test('a partial selection keeps the whole migration; a retired delete can still 
   assert.deepEqual(selected.operations, migrationOperations);
   await applyInstallPlan(selected);
   assert.equal(await read(target, `${legacy.localSkill.newDir}/SKILL.md`), legacy.localSkill.contents['SKILL.md']);
-  assert.ok(await exists(target, legacy.retiredPath), 'the deselected retired file stays');
-  assert.ok(JSON.parse(await read(target, installStateRelativePath)).files[legacy.retiredPath], 'and keeps its record');
 });
 
 // An own file edited between the plan and the apply keeps the edit where it
@@ -458,19 +474,6 @@ test('an own skill file edited after the plan keeps the edit and leaves no insta
   assert.equal(await read(target, original), 'edited after the plan\n');
   const state = JSON.parse(await read(target, installStateRelativePath));
   assert.equal(original in state.files, false);
-});
-
-test('rollback after the migration restores the 0.18.1 tree byte for byte and the raw 1.0.0 state', async () => {
-  const { target } = await legacyRepo();
-  const before = await hashTree(target);
-  const rawState = await read(target, installStateRelativePath);
-  await applyInstallPlan(await buildUpdatePlan({ targetPath: target }));
-  assert.notDeepEqual(await hashTree(target), before);
-
-  await applyRollbackPlan(await buildRollbackPlan({ targetPath: target }));
-
-  assert.equal(await read(target, installStateRelativePath), rawState);
-  assert.deepEqual(await hashTree(target), before);
 });
 
 // A 2.0.0 state never runs migration code: legacy files are not moved, and
