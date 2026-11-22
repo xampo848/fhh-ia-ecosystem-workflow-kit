@@ -654,7 +654,21 @@ _(Vacio = PRD listo para implementar)_
 
 Esta seccion es el registro durable de cierre: un resumen, no una bitacora. `implement-change` la completa antes de eliminar los artefactos temporales de `.ai-work/<prd-slug>/`.
 
-**Estado**: No iniciada
+**Estado**: En progreso (Fase 1 cerrada; Fases 2 y 3 pendientes)
+
+### Fase 1 - Build del plugin (cerrada 2026-11-22)
+
+| Slice | Resultado | Evidencia |
+| --- | --- | --- |
+| P1-S1 | `scripts/build-plugin.mjs` genera y verifica `plugin.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` y 12 skills (11 wrappers y `kit-root`); corre dentro de `check:workflow`; `docs/versioning.md` pide regenerarlo tras asignar la versión | Commit `c07237a`; `node --test test/plugin-build.test.mjs` 6/6 (corrida roja: módulo inexistente); `claude plugin validate .` sin advertencias |
+| P1-S2 | Smoke de la regla de rutas en Claude Code, en un repo de prueba sin copia del kit, con `claude --plugin-dir` | Cinco sesiones de solo lectura: carga las 12 skills `fhh:*`; el modelo carga `fhh:kit-root` y lee instrucciones y router desde el plugin; lee el overlay y un runbook del repo; `/create-prd` va a la skill local y `/fhh:create-prd` al plugin, sin error (S5, S10) |
+| P1-S3 | El build genera 13 agentes de Claude (`agents/`) y 13 de Copilot (`com.github.copilot/agents/`) con el perfil por defecto y un párrafo `Kit location` | Commit `417244c`; `node --test test/plugin-build.test.mjs test/model-profiles.test.mjs` 19/19 (corrida roja: 5 fallan); los renderers del modo repo siguen idénticos byte a byte contra `.claude/agents` y `.github/agents` |
+
+Criterios: AC-1, AC-2, AC-3 y AC-4 completos con `test/plugin-build.test.mjs` y `npm run check:workflow`; AC-20 parcial (smoke de Claude Code).
+Validaciones: `npm test` 430/430 (los 420 anteriores sin modificar y 10 nuevos); `check`, `check:workflow`, `check:docs` y `check:legal` en verde; `check:release` falla solo porque la versión no se subió.
+No verificado: Copilot (VS Code y CLI; S7, S9); si `${CLAUDE_PLUGIN_ROOT}` se expande en el cuerpo de una skill o de un agente, o se usó el respaldo (ambos llegan a la raíz correcta); los agentes del plugin en una sesión real; en una sesión el agente no leyó el overlay por su cuenta (misma redacción del router en modo repo).
+Hecho aparte: `package.json` agrega `skills/` a `files`, que P1-S1 había omitido.
+
 
 | Campo | Evidencia durable |
 | --- | --- |
