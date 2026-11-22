@@ -3,7 +3,7 @@
 **Ticket**: Épica `kit-project-overlay`, fase F2, fila 2 de la cola de PRDs
 **Autor**: Agente (sesión F2)
 **Fecha**: 2026-11-21
-**Estado**: En revision
+**Estado**: Aprobado
 
 ---
 
@@ -212,12 +212,12 @@ TUI: con archivos pendientes pregunta **Keep** (default) / **Replace all** / **D
 
 | Categoria | Descripcion | Caso de uso vinculado | Capa duena | Validacion | Estado |
 | --- | --- | --- | --- | --- | --- |
-| Datos vacios | Sin overlay ni `project-context.md`: la migración no crea lo que no existe. Sin state: el error de siempre (`--adopt-existing`). | UC-3 | `src/migration.mjs` | `test/migration.test.mjs` | Pending |
-| Limites | Retirado editado no se borra; directorio vacío se elimina; `*.workflow-kit-backup-*` nunca es propio ni retirado | UC-1 | `src/planner.mjs` | `test/planner.test.mjs` | Pending |
-| Errores | Falla a mitad del apply: journal parcial y rollback restaura; state v2 en un CLI viejo: error "upgrade the CLI"; manifiesto ilegible: aborta sin escribir | UC-7 | `src/apply.mjs`, `src/rollback.mjs`, `src/kit-manifest.mjs` | `test/rollback-journal.test.mjs`, `test/kit-manifest.test.mjs` | Pending |
-| Permisos/tenancy | Nada fuera del target ni a través de un symlink (como hoy, ahora también al borrar y mover); `workflow-router` e `instructions` no admiten shadow | UC-5 | `src/fs-safety.mjs` vía planner y `src/migration.mjs`; entry point `--edited` | `test/cli-safety.test.mjs`, `test/cli-args.test.mjs` | Pending |
-| Concurrencia/orden | Skill propia con nombre de una del kit o ya presente en el overlay: pendiente, no se mueve. Selección parcial del TUI: la migración es atómica; los borrados de retirados se pueden quitar. | UC-4, UC-8 | `src/migration.mjs`; `selectPlanOperations` | `test/migration.test.mjs`, `test/tui.test.mjs` | Pending |
-| Rollout/rollback | La migración siempre guarda backup (ignora `--backup-mode none`); el rollback deja el state v1 y el layout 0.18; el segundo update no escribe; el contexto se mueve solo si la ruta nueva no existe | UC-4, UC-7 | `src/migration.mjs`, `src/rollback.mjs` | e2e | Pending |
+| Datos vacios | Sin overlay ni `project-context.md`: la migración no crea lo que no existe. Sin state: el error de siempre (`--adopt-existing`). | UC-3 | `src/migration.mjs` | `test/migration.test.mjs` | Verified |
+| Limites | Retirado editado no se borra; directorio vacío se elimina; `*.workflow-kit-backup-*` nunca es propio ni retirado | UC-1 | `src/planner.mjs` | `test/planner.test.mjs` | Verified |
+| Errores | Falla a mitad del apply: journal parcial y rollback restaura; state v2 en un CLI viejo: error "upgrade the CLI"; manifiesto ilegible: aborta sin escribir | UC-7 | `src/apply.mjs`, `src/rollback.mjs`, `src/kit-manifest.mjs` | `test/rollback-journal.test.mjs`, `test/kit-manifest.test.mjs` | Verified |
+| Permisos/tenancy | Nada fuera del target ni a través de un symlink (como hoy, ahora también al borrar y mover); `workflow-router` e `instructions` no admiten shadow | UC-5 | `src/fs-safety.mjs` vía planner y `src/migration.mjs`; entry point `--edited` | `test/cli-safety.test.mjs`, `test/cli-args.test.mjs` | Verified |
+| Concurrencia/orden | Skill propia con nombre de una del kit o ya presente en el overlay: pendiente, no se mueve. Selección parcial del TUI: la migración es atómica; los borrados de retirados se pueden quitar. | UC-4, UC-8 | `src/migration.mjs`; `selectPlanOperations` | `test/migration.test.mjs`, `test/tui.test.mjs` | Verified |
+| Rollout/rollback | La migración siempre guarda backup (ignora `--backup-mode none`); el rollback deja el state v1 y el layout 0.18; el segundo update no escribe; el contexto se mueve solo si la ruta nueva no existe | UC-4, UC-7 | `src/migration.mjs`, `src/rollback.mjs` | e2e | Verified |
 
 ### 2.9 Contrato Visual (UI lock)
 
@@ -481,39 +481,43 @@ _(Vacio = PRD listo para implementar)_
 
 | Acceptance criterion | Caso de uso | Phase / slice | Test evidence | Edge case(s) | Validation evidence | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| AC-1 | UC-3 | P1-S2, P1-S3 | `kit-manifest.test.mjs`, `planner.test.mjs` | Errores | `npm test` | Pending |
-| AC-2 | UC-2 | P1-S3 | `planner.test.mjs` | — | `npm test` | Pending |
-| AC-3 | UC-2 | P1-S3 | `planner.test.mjs` | — | `npm test` | Pending |
-| AC-4 | UC-1 | P1-S4 | `planner.test.mjs` | Límites | `npm test` | Pending |
-| AC-5 | UC-1, UC-7 | P1-S4 | `rollback-journal.test.mjs` | Errores | `npm test` | Pending |
-| AC-6 | UC-2 | P1-S3 | `planner.test.mjs` | — | `npm test` | Pending |
-| AC-7 | UC-3 | P2-S2 | `migration.test.mjs` | Datos vacíos | `npm test` | Pending |
-| AC-8 | UC-4 | P2-S2 | `migration.test.mjs` | Concurrencia, Rollout | `npm test` | Pending |
-| AC-9 | UC-5, UC-6 | P2-S3 | `migration.test.mjs`, `cli-args.test.mjs` | Permisos | `npm test` | Pending |
-| AC-10 | UC-4 | P2-S2, P2-S4 | `migration.test.mjs`, e2e | Rollout | `npm test` | Pending |
-| AC-11 | UC-4, UC-7 | P2-S1, P2-S4 | `upgrade-e2e.test.mjs` | Rollout | `npm test` | Pending |
-| AC-12 | UC-5, UC-10 | P3-S1 | `doctor.test.mjs`, `project-instructions.test.mjs` | — | `npm test` | Pending |
-| AC-13 | UC-9 | P3-S1 | `workflow-contract.test.mjs` | — | `check:workflow` | Pending |
-| AC-14 | UC-9 | P1-S3, P3-S1 | `workflow-contract.test.mjs` | — | `npm test` | Pending |
-| AC-15 | UC-8 | P3-S2 | `tui.test.mjs` | Concurrencia | `npm test` | Pending |
-| AC-16 | UC-9 | P1-S1 | `validate-kit-boundary` (sin editar) | — | `check:workflow` | Pending |
-| AC-17 | UC-11 | P3-S2 | Suite completa | — | Comandos de cierre | Pending |
+| AC-1 | UC-3 | P1-S2, P1-S3 | `kit-manifest.test.mjs`, `planner.test.mjs` | Errores | `npm test` | Verified |
+| AC-2 | UC-2 | P1-S3 | `planner.test.mjs` | — | `npm test` | Verified |
+| AC-3 | UC-2 | P1-S3 | `planner.test.mjs` | — | `npm test` | Verified |
+| AC-4 | UC-1 | P1-S4 | `planner.test.mjs` | Límites | `npm test` | Verified |
+| AC-5 | UC-1, UC-7 | P1-S4 | `rollback-journal.test.mjs` | Errores | `npm test` | Verified |
+| AC-6 | UC-2 | P1-S3 | `planner.test.mjs` | — | `npm test` | Verified |
+| AC-7 | UC-3 | P2-S2 | `migration.test.mjs` | Datos vacíos | `npm test` | Verified |
+| AC-8 | UC-4 | P2-S2 | `migration.test.mjs` | Concurrencia, Rollout | `npm test` | Verified |
+| AC-9 | UC-5, UC-6 | P2-S3 | `migration.test.mjs`, `cli-args.test.mjs` | Permisos | `npm test` | Verified |
+| AC-10 | UC-4 | P2-S2, P2-S4 | `migration.test.mjs`, e2e | Rollout | `npm test` | Verified |
+| AC-11 | UC-4, UC-7 | P2-S1, P2-S4 | `upgrade-e2e.test.mjs` | Rollout | `npm test` | Verified |
+| AC-12 | UC-5, UC-10 | P3-S1 | `doctor.test.mjs`, `project-instructions.test.mjs` | — | `npm test` | Verified |
+| AC-13 | UC-9 | P3-S1 | `workflow-contract.test.mjs` | — | `check:workflow` | Verified |
+| AC-14 | UC-9 | P1-S3, P3-S1 | `workflow-contract.test.mjs` | — | `npm test` | Verified |
+| AC-15 | UC-8 | P3-S2 | `tui.test.mjs` | Concurrencia | `npm test` | Verified |
+| AC-16 | UC-9 | P1-S1 | `validate-kit-boundary` (sin editar) | — | `check:workflow` | Verified |
+| AC-17 | UC-11 | P3-S2 | Suite completa | — | Comandos de cierre | Pending (version) |
 
 ---
 
 ## 10. Evidencia de Implementacion
 
-**Estado**: Abierta
+**Estado**: Lista para cierre (falta la versión y `CHANGELOG.md`, que asigna el orquestador)
 
 | Campo | Evidencia durable |
 | --- | --- |
-| Cambios entregados | Pendiente |
-| Criterios de aceptacion | Pendiente |
-| Validaciones ejecutadas | Pendiente |
-| Calidad y QA | Pendiente |
-| Referencia de cambio | Pendiente |
-| Riesgos o waivers | Pendiente |
-| Checks reutilizados | Pendiente |
-| Iteraciones y causa | Pendiente |
-| Modo de ejecucion | Pendiente |
-| Fecha de cierre | Pendiente |
+| Cambios entregados | `src/kit-manifest.mjs` (lector del manifiesto); planner por clase con `install-state` 2.0.0 (`mode: "repo"`), adaptadores por bloque, seeds una vez, catálogos `derived`; `delete_with_backup` de retirados y journal 2.0.0 con `deleted`; `src/migration.mjs` (migración desde 1.0.0: skills y filas propias al overlay, contexto por `legacy_paths`, quality gate `superseded_seeds`, todo con backup y atómico en selección parcial); `--edited keep\|discard\|shadow\|split`; compuertas de `init`/`update` (state 1.0.0 en `init`, journal incompleto o ilegible, state ilegible); `doctor` del límite (`boundary/*`, `managed/*`); drift por manifiesto (P5); TUI de 3 opciones; fixture 0.18.1 (`test/fixtures/legacy-0.18.1/`); kit: seed `.agents/project/context.md`, `ignore_entries`, `superseded_seeds`, `legacy-docs-map.md` seed generado; docs `migration.md` y `troubleshooting.md`. |
+| Criterios de aceptacion | AC-1..AC-16: COMPLETE (QA qa-f2-01 + repaso tras reparación). AC-17: pendiente solo de la versión (`check:release` pide el bump). AC-14 acotado (ver Riesgos). |
+| Validaciones ejecutadas | `node --test` 406/406 (0 fail, 0 todo, 0 skip); `npm run check:workflow`, `check:docs`, `check:legal` PASS; `node test/fixtures/legacy-0.18.1/build.mjs --check` PASS; `check:release` FAIL solo por la versión. E2E desde 0.18.1 en claude, codex, copilot, antigravity y claude+codex+copilot: contenido propio conservado, segundo update sin escrituras, rollback byte a byte (tipo, modo, links y carpetas). |
+| Calidad y QA | Quality gate del kit aplicado (sin agregados de proyecto). Dos revisiones independientes del orquestador (fases 1 y 2) y QA final `qa-relampago` sin críticos ni altos; sondas de pérdida de datos sin pérdida. |
+| Referencia de cambio | Rama `claude/f2-manifest-updater-d89813`, commits `97bb073..5569dfe` sobre `45e3797` (0.21.0). |
+| Riesgos o waivers | Desviaciones aceptadas: (1) AC-14 se verifica en los módulos de ownership (`planner`, `migration`, `doctor`, `apply`, `rollback`); `src/workflow-contract/*` nombra archivos obligatorios del kit y `legacyPreservedCatalogs` describe el layout 0.18 (incluye `registry.cache.json`). (2) Un retirado editado queda en el state con `retired: true` para que `doctor` lo nombre. (3) La carpeta de un archivo borrado queda porque su backup está al lado. (4) Un archivo es retirado solo si ningún runtime lo trae. (5) `shadow` solo al migrar desde 1.0.0 (CR-F2-01). (6) Una skill movida siempre es `Pattern`. (7) Carpetas vacías de una skill movida no se recrean. (8) Un adaptador CRLF nunca califica para `split`. (9) Retiro de prueba: `feature-flag-implementation` en vez de product-studio (licencia sin resolver). Riesgos abiertos (bajos): QA-07 rutas del overlay escritas en `src/migration.mjs` y regex de AC-14 estrecho; QA-08 reglas probadas en dos archivos de test; QA-10 sin test de `.agents/project` como symlink (la sonda confirmó el rechazo); `src/migration.mjs` ~670 líneas. Medio fuera de alcance: QA-02, guías humanas y `docs/workflow/**` (kit) todavía describen filas propias en catálogos del kit y `.agents/project-context.md`. |
+| Checks reutilizados | Ninguno |
+| Iteraciones y causa | Ronda 1 (revisión fase 1): `error de implementacion` (backup omitido en init/adopt/forzados, claves de state sin normalizar, re-chequeo de hash al borrar) + `hueco del PRD` (comportamiento con state 1.0.0 antes de la migración). Ronda 2 (revisión fase 2): `hueco del PRD` (compuerta de `init`, journal incompleto, semántica de filas de catálogo, `split` byte a byte) + `error de implementacion` (modos, symlinks, mayúsculas, índice existente). QA final: 4 brechas de test o doc reparadas (QA-01/05/06/09). |
+| Modo de ejecucion | supervisado, con delegados (`turbo-backend`, `testinator-5000`, `capitana-alcance`, `qa-relampago`) y reparaciones puntuales del orquestador inline; pausa de revisión tras cada fase. |
+| Fecha de cierre | Pendiente (al asignar la versión) |
+
+### Resumen del Ledger de Hallazgos
+
+Sin hallazgos `critical` ni `high`. Medios: QA-01 reparado (5569dfe), QA-03 reparado (tracker), QA-02 abierto fuera del alcance de archivos de F2 (decisión del orquestador). Bajos: 3 reparados (QA-05, QA-06, QA-09 en 5569dfe; QA-04 en este cierre), 3 abiertos como follow-up (QA-07, QA-08, QA-10).
