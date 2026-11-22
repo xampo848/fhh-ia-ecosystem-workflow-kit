@@ -412,6 +412,22 @@ test('a migrated repository updates again with no write and no migration; pendin
   assert.equal(operationFor(again, '.agents/instructions.md').operation, 'skip_modified');
 });
 
+// The migration writes into the overlay; an overlay that is a link to another
+// folder would receive those writes outside the repository.
+test('the migration refuses a .agents/project that is a symbolic link and writes nothing', async () => {
+  const { target } = await legacyRepo();
+  const elsewhere = await makeTempRepo();
+  await fs.rename(path.join(target, '.agents/project'), path.join(elsewhere, 'project'));
+  await fs.symlink(path.join(elsewhere, 'project'), path.join(target, '.agents/project'));
+  const before = await hashTree(target);
+  const outside = await hashTree(elsewhere);
+
+  await assert.rejects(buildUpdatePlan({ targetPath: target }), /symbolic link/);
+
+  assert.deepEqual(await hashTree(target), before);
+  assert.deepEqual(await hashTree(elsewhere), outside);
+});
+
 test('a partial selection keeps the whole migration; a retired delete can still be left out', async () => {
   const { target, legacy } = await legacyRepo();
   const plan = await buildUpdatePlan({ targetPath: target });
