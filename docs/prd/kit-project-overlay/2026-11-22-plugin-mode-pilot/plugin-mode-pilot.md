@@ -103,32 +103,34 @@ Verificado contra `main` `558e9fb` (0.22.0-manifest-updater). Suite: 420 tests e
 | ID | `fhh@fhh-ia-ecosystem` | Derivado de los dos anteriores |
 | Repositorio del marketplace | `workflowKit.repository` | `package.json` |
 | Versión | `version` | `package.json` |
-| Raíz del plugin | La raíz del repo del kit (`source: "./"`) | `.claude-plugin/marketplace.json` |
+| Raíz del plugin | `dist/plugin/`, generada por el build e ignorada por Git; se publica como el contenido de la rama `plugin` del repositorio del kit | `.claude-plugin/marketplace.json` (`source: { source: "github", repo, ref: "plugin" }`) |
 
-La raíz del plugin es la raíz del repo del kit, así que el plugin usa el árbol `.agents/**` en su lugar: no hay copia. El build genera solo esto:
+La raíz del plugin es una carpeta generada (D13): `dist/plugin/` se arma desde el árbol del kit cada vez y nunca se commitea en `main`. Al publicar, su contenido pasa a ser el de la rama `plugin`, y el marketplace de `main` apunta a esa rama. `main` solo guarda el script de build, el marketplace y los tests. El build genera:
 
 | Ruta generada | Contenido | Lo lee |
 | --- | --- | --- |
-| `plugin.json` | Manifiesto Agent Plugins 1.0: `$schema`, `name`, `version`, `description`, `license`, `repository`, `keywords` | Copilot |
-| `.claude-plugin/plugin.json` | `name`, `version`, `description`, `license`, `repository` | Claude Code |
-| `.claude-plugin/marketplace.json` | `name`, `owner.name`, `description`, `plugins: [{ name, source: "./", description }]` | Claude Code, Copilot |
-| `skills/<name>/SKILL.md` (12) | 11 wrappers de `claudeSkillKeys` con `disable-model-invocation: true`, más `kit-root` | Claude Code, Copilot |
-| `agents/<slug>.md` (13) | Agentes de Claude con el perfil por defecto, variante plugin | Claude Code |
-| `com.github.copilot/agents/<slug>.agent.md` (13) | Agentes de Copilot con el perfil por defecto, variante plugin | Copilot |
+| `dist/plugin/plugin.json` | Manifiesto Agent Plugins 1.0: `$schema`, `name`, `version`, `description`, `author`, `license`, `repository`, `keywords` | Copilot |
+| `dist/plugin/.claude-plugin/plugin.json` | `name`, `version`, `description`, `author`, `license`, `repository` | Claude Code |
+| `.claude-plugin/marketplace.json` (en `main`, commiteado) | `name`, `owner.name`, `metadata` (`description`, `version`), `plugins: [{ name, source: { source: "github", repo, ref: "plugin" }, description }]` | Claude Code, Copilot |
+| `dist/plugin/.agents/**` y `dist/plugin/docs/workflow/**` | Copia de los archivos de clase `kit` y `derived` de la plantilla del overlay, la misma que instala el modo repo; sin `.agents/project/**`, sin `state` ni `seed` | Claude Code, Copilot |
+| `dist/plugin/skills/<name>/SKILL.md` (12) | 11 wrappers de `claudeSkillKeys` con `disable-model-invocation: true`, más `kit-root` | Claude Code, Copilot |
+| `dist/plugin/agents/<slug>.md` (13) | Agentes de Claude con el perfil por defecto, variante plugin | Claude Code |
+| `dist/plugin/com.github.copilot/agents/<slug>.agent.md` (13) | Agentes de Copilot con el perfil por defecto, variante plugin | Copilot |
 
 La skill `kit-root` es la única que el modelo puede cargar por su cuenta. Su cuerpo da:
-- la raíz del kit (`${CLAUDE_PLUGIN_ROOT}`; si la variable aparece sin expandir, la raíz es la carpeta dos niveles arriba de ese `SKILL.md`);
+- la raíz del kit (`${CLAUDE_PLUGIN_ROOT}`; si la variable aparece sin expandir, la raíz es la carpeta que contiene `skills/` y `.agents/`);
 - la regla de rutas de 2.2;
-- que `.agents/project/` bajo la raíz del kit se ignora: el overlay del proyecto es el del repo;
-- el nombre de los delegados en modo plugin (`fhh:<slug>`, salvo que exista un agente del proyecto con ese slug);
+- el nombre de los delegados en modo plugin, por runtime: en Claude Code `fhh:<slug>`, salvo que exista un agente del proyecto con ese slug; en Copilot, el alias del agente (si Copilot le pone prefijo al agente de un plugin no está documentado: S13);
 - la instrucción de pasar `Kit root: <ruta absoluta>` en el brief de cada delegación;
 - el siguiente paso: leer `<kit root>/.agents/instructions.md`.
 
-**Archivos**. Existentes que este PRD edita: `src/runtime-matrix.mjs`, `src/model-profiles.mjs`, `src/planner.mjs`, `src/doctor.mjs`, `src/cli/args.mjs`, `src/cli/commands.mjs`, `src/tui.mjs`, `src/tui/model.mjs`, `scripts/sync-claude-skills.mjs`, `scripts/sync-delegate-runtime-adapters.mjs`, `package.json` (`files` y `check:workflow`; la versión no), `docs/README.md`, `docs/quickstart.md`, `docs/github-install.md`, `docs/workflow/cross-runtime-capability-matrix.md`, y `docs/versioning.md` (solo el paso de release que regenera el plugin; autorizado por el orquestador). Nuevos: `scripts/build-plugin.mjs`, `src/plugin-mode.mjs`, las rutas generadas de la tabla, `test/plugin-build.test.mjs`, `test/plugin-mode.test.mjs`, `test/plugin-mode-doctor.test.mjs`, `test/plugin-mode-tui.test.mjs`. Ningún archivo de test existente se modifica.
+**Publicación**. `node scripts/build-plugin.mjs --publish` arma `dist/plugin/` y crea un commit local en la rama `plugin` con exactamente ese contenido (un commit nuevo solo si cambió). Nunca empuja: el comando imprime `git push origin plugin`, que ejecuta quien publica con aprobación explícita, en el mismo paso de release que asigna la versión (`docs/versioning.md`). No cambia la configuración de Git. Quien instala el plugin ve un cambio del kit solo cuando cambia la versión publicada: Claude Code fija el plugin a su `version`.
+
+**Archivos**. Existentes que este PRD edita: `src/runtime-matrix.mjs`, `src/model-profiles.mjs`, `src/planner.mjs`, `src/doctor.mjs`, `src/cli/args.mjs`, `src/cli/commands.mjs`, `src/tui.mjs`, `src/tui/model.mjs`, `scripts/sync-claude-skills.mjs`, `scripts/sync-delegate-runtime-adapters.mjs`, `package.json` (`files` y `check:workflow`; la versión no), `docs/README.md`, `docs/quickstart.md`, `docs/github-install.md`, `docs/workflow/cross-runtime-capability-matrix.md`, y `docs/versioning.md` (solo el paso de release que regenera el plugin; autorizado por el orquestador). Nuevos: `scripts/build-plugin.mjs`, `src/plugin-mode.mjs`, `.claude-plugin/marketplace.json` y la carpeta `dist/plugin/` (no commiteada), `test/plugin-build.test.mjs`, `test/plugin-mode.test.mjs`, `test/plugin-mode-doctor.test.mjs`, `test/plugin-mode-tui.test.mjs`. Ningún archivo de test existente se modifica.
 
 ### 2.2 Regla de Negocio: resolución de rutas en modo plugin
 
-> **Decision confirmada**: en modo plugin, una ruta que el manifiesto clasifica como `kit` o `derived` se resuelve bajo la raíz del kit (la carpeta del plugin). Todo lo demás, incluido `.agents/project/**`, se resuelve en el repo. Nadie escribe bajo la raíz del kit.
+> **Decision confirmada**: en modo plugin, una ruta que un archivo del kit nombra se lee bajo la raíz del kit cuando ese archivo existe ahí; si no existe ahí, se resuelve en el repo. Como el plugin solo trae los archivos `kit` y `derived` del manifiesto, todo lo de clase `state` o `seed`, `.agents/project/**`, `.ai-work/**` y el código del proyecto quedan siempre en el repo. Nadie escribe bajo la raíz del kit. La misma frase, generada desde una sola constante, va en `kit-root`, en los agentes del plugin y en el bloque `kit-location`.
 
 **Condicion de aplicacion**: `install-state` con `mode: "plugin"`.
 **Donde vive la regla**: en la skill `kit-root` del plugin y en el bloque `workflow-kit:kit-location` del adaptador del repo. Los archivos del kit no cambian: `.agents/kit-boundary.md` ya define sus referencias como "ancladas en la raíz del kit".
@@ -236,9 +238,9 @@ En modo guionado no pregunta (igual que la pregunta de stack). `update` por TUI 
 
 | ID | Given | When | Then | Evidence expected |
 | --- | --- | --- | --- | --- |
-| AC-1 | El árbol del kit en `main` | `node scripts/build-plugin.mjs --write` y luego sin flag | Genera exactamente las rutas de 2.1 (3 manifiestos, 12 skills, 13 + 13 agentes); la segunda corrida no cambia nada; sin `--write` falla ante drift, un archivo faltante o un generado huérfano; corre dentro de `check:workflow` | `test/plugin-build.test.mjs`; `npm run check:workflow` |
-| AC-2 | Los manifiestos generados | Se validan | `plugin.json` tiene solo campos del esquema Agent Plugins 1.0, el `$schema` exacto y `name: "fhh"`; el marketplace tiene `name`, `owner.name` y un plugin con `source: "./"`; las tres versiones son la de `package.json` | `test/plugin-build.test.mjs`; `claude plugin validate .` en el smoke |
-| AC-3 | Los componentes generados | Se inspeccionan | Ningún generado queda bajo `.agents/` ni `templates/`; cada wrapper apunta a un `SKILL.md` que `registry.json` lista y que existe; cada agente nombra una `shared_skill_path` que existe; `kit-root` contiene la regla de rutas, la exclusión de `.agents/project/` bajo la raíz del kit y el nombre `fhh:<slug>` | `test/plugin-build.test.mjs` |
+| AC-1 | El árbol del kit en `main` | `node scripts/build-plugin.mjs --write`, luego sin flag, y `--publish` en un repositorio de prueba | `--write` reconstruye `dist/plugin/` desde cero (3 + 12 + 13 + 13 generados más los archivos `kit` y `derived`) y actualiza el marketplace de `main`; dos corridas dan el mismo contenido; sin flag arma la carpeta en un directorio temporal y falla, con el comando que lo arregla, si el marketplace de `main` no coincide o si el build no es válido; `dist` o `dist/plugin` como symlink se rechazan; `--publish` crea un commit local en la rama `plugin` con ese contenido, no crea otro si nada cambió y nunca empuja; corre dentro de `check:workflow` | `test/plugin-build.test.mjs`; `npm run check:workflow` |
+| AC-2 | Los manifiestos generados | Se validan | `plugin.json` tiene solo campos del esquema Agent Plugins 1.0, el `$schema` exacto, `name: "fhh"` y `author`; el marketplace tiene `name`, `owner.name` y un plugin con `source` `github` y `ref: "plugin"`; las tres versiones son la de `package.json` | `test/plugin-build.test.mjs`; `claude plugin validate` sobre `.` y sobre `dist/plugin` |
+| AC-3 | Los componentes generados | Se inspeccionan | Todo archivo de `dist/plugin/` fuera de los componentes del plugin es `kit` o `derived` según el manifiesto; no hay `.agents/project/**`, `state`, `seed`, `bin/`, `package.json` ni lockfile; hay 11 wrappers y `kit-root`; cada wrapper y cada agente apunta a un `SKILL.md` que existe dentro de `dist/plugin/`; `kit-root` tiene una descripción no vacía, la regla de rutas y el nombre de los delegados por runtime; cada wrapper lleva la descripción del registro | `test/plugin-build.test.mjs` |
 | AC-4 | Los generadores existentes | `sync-claude-skills` y `sync-delegate-runtime-adapters` en modo check | Sus salidas del modo repo son byte a byte las de `558e9fb` (no se regenera ningún archivo existente) | `npm run check:workflow`; `git diff --stat` sin cambios en `.claude/`, `.github/agents/`, `.codex/`, `templates/runtime-adapters/` |
 | AC-5 | Un repo vacío | `init --mode plugin --runtime claude` (dry run y apply) | El plan tiene 3 archivos del kit (≤ 5), los 5 seeds y `.gitignore`; ninguna operación en una ruta `kit` o `derived`; el state queda con `mode: "plugin"`. Con `copilot`: 6. Con los dos: 8 | `test/plugin-mode.test.mjs` (conteo por clase) |
 | AC-6 | Un repo con `CLAUDE.md` propio sin marcadores, y otro vacío | `init --mode plugin` | El bloque gestionado es el de la plantilla más `workflow-kit:kit-location` (plugin, `fhh:kit-root`, regla de rutas, comando si no está instalado); el texto propio queda fuera de los marcadores; `validateAdapterContracts` no reporta nada | `test/plugin-mode.test.mjs` |
@@ -327,13 +329,17 @@ Fuentes consultadas el 2026-11-22. Lo que corrige al evidence pack de la épica 
 | S8 | El agente cloud de Copilot carga plugins | Documentación | asumido (fuera del piloto, D4) | Se configura con el mismo archivo, no está en la lista GA y no se documenta qué componentes carga | Sin efecto en los AC: la matriz lo marca "sin verificar" |
 | S9 | `copilot plugin install fhh@fhh-ia-ecosystem` funciona con el marketplace declarado en el repo | Documentación | asumido | La forma `plugin@marketplace` está documentada; la resolución desde settings del repo no | P3-S2 lo observa; si falla, los mensajes usan `copilot plugin install <owner/repo>` |
 | S10 | El modelo aplica la regla de rutas al leer archivos del kit que nombran `.agents/...` | Diseño | asumido | — | Es el riesgo central del piloto. P1-S2 es su compuerta, antes de generar agentes, con condición de parada y plan B (hook de inicio de sesión que inyecta la raíz del kit) |
+| S11 | Copilot sigue un marketplace cuyo plugin apunta a otra rama (`source: github` con `ref`) | Documentación | asumido | Claude Code lo documenta; Copilot no | P3-S2 lo observa; si falla, el plugin para Copilot se instala con `copilot plugin install <owner/repo>` sobre la rama `plugin` |
+| S12 | Copilot respeta `disable-model-invocation` en una skill de plugin | Documentación | asumido | No es un campo de Agent Skills | Si no lo respeta, Copilot puede cargar los 11 wrappers por su cuenta; queda en la matriz de runtimes |
+| S13 | Copilot pone prefijo a los agentes de un plugin | Documentación | asumido | No está documentado | `kit-root` nombra el alias en Copilot; P3-S2 lo observa |
 
 ### 2.13 Que queda obsoleto
 
-Ninguno en el código: el piloto agrega un modo y el modo repo conserva todos sus archivos y generadores.
+En el código, solo lo que la Fase 1 commiteó antes de D13; el modo repo conserva todos sus archivos y generadores.
 
 | Elemento | Tipo | Ubicacion | Reemplazado por | Accion | Consumidores | Slice | Busqueda de verificacion |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| `plugin.json`, `.claude-plugin/plugin.json`, `skills/`, `agents/` y `com.github.copilot/` en la raíz de `main` (commits `c07237a` y `417244c`) | codigo | Raíz del repo | `dist/plugin/` y la rama `plugin` (D13) | eliminar | En el repo | Ronda de reparación de la Fase 1 | `git ls-files plugin.json .claude-plugin/plugin.json skills agents com.github.copilot` sin resultados |
 | Texto de la métrica "≤ 5 contando el overlay inicial" | documentacion | `docs/epics/kit-project-overlay/kit-project-overlay.md` (tabla de métricas) | La definición de 2.3 (D6) | adaptar, en `document-development` al cerrar la fase | En el repo | Cierre (ledger) | `grep -n "overlay inicial" docs/epics/kit-project-overlay/kit-project-overlay.md` |
 | Filas "sin verificar" de Agent Plugins y Copilot | documentacion | `docs/epics/kit-project-overlay/kit-project-overlay-evidence.md` | Sección 2.12 de este PRD | adaptar, en `document-development` | En el repo | Cierre (ledger) | Revisión del evidence pack |
 
@@ -483,6 +489,8 @@ flowchart TD
 | P1-S2 | Smoke temprano de la regla de rutas: el runtime carga el plugin desde la carpeta local, `kit-root` da la raíz y el agente lee un archivo del kit a partir de ella | P1-S1 | Sin código de producto. `claude plugin validate .`; una sesión con `claude --plugin-dir <checkout>` en un repo de prueba con el bloque `kit-location` escrito a mano (no cambia la configuración del usuario); en Copilot, instalación local solo con aprobación del usuario | AC-2, AC-20 (parcial) | UC-8 | Smoke manual | S5, S7, S10 | Pasos registrados en el tracker | Resultado por supuesto: verificado o no verificado |
 | P1-S3 | El build genera los 13 + 13 agentes en variante plugin | P1-S2 | `src/model-profiles.mjs` (parámetro `kitLocation`), `scripts/sync-delegate-runtime-adapters.mjs` (solo si hace falta exportar algo), `scripts/build-plugin.mjs`, generados `agents/**`, `com.github.copilot/agents/**` | AC-1, AC-3 (agentes), AC-4 | UC-1 | `test/plugin-build.test.mjs` | — | `node --test test/plugin-build.test.mjs test/model-profiles.test.mjs && npm run check:workflow` | Diff vacío en los agentes del modo repo |
 
+**Ronda de reparación 1** (revisión del orquestador sobre `684d4ec`, dentro del límite de 2): aplica D13 (salida en `dist/plugin/`, publicación en la rama `plugin`, marketplace en `main`), la regla de rutas única de 2.2, `author` en los manifiestos, el nombre de los delegados por runtime, la raíz sin ambigüedad en `kit-root`, el rechazo de symlinks, `files` de `package.json` sin entradas del plugin, y tests que fallen ante cada mutación que señaló la revisión (descripciones vacías, regla recortada, punto de entrada del CLI, conteo de wrappers).
+
 **Out of scope de la fase**: `--mode`, planner, doctor.
 
 **Slice stop conditions**:
@@ -575,11 +583,12 @@ flowchart TD
 | D5 | Cambio repo → plugin con archivos editados | Todo o nada (usuario) | Parada con lista y `--edited ...=discard` |
 | D6 | Métrica ≤ 5 | Mismos seeds que modo repo; se mide lo que el kit posee (usuario) | AC-5; ajuste del texto de la épica |
 | D7 | Versión del schema del state | Sigue 2.0.0 (agente). Descartado: 2.1.0 para que un CLI 0.22.0 se detenga | Riesgo R3 |
-| D8 | Raíz del plugin | La raíz del repo del kit (agente). Descartado: carpeta generada con skills aplanadas | Sin copia del árbol; wrappers por skill |
+| D8 | Raíz del plugin | Reemplazada por D13. Era la raíz del repo del kit (agente); la revisión mostró que Claude Code carga también `bin/` (al PATH de Bash) e instala dependencias por `package.json` y `bun.lock`, y que claude.ai y Cowork no instalan un plugin con `bin/` en la raíz | — |
 | D9 | Adaptador en modo plugin | Plantilla del modo repo más bloque `kit-location` (agente). Descartado: plantillas nuevas | Sin cambios en `templates/**` |
 | D10 | Dividir el PRD (dos señales de tamaño: 11 slices, más de 600 líneas) | No: un solo PRD, ejecutado fase por fase con pausa de revisión y cierre parcial de la sección 10 (usuario) | Respeta "un PRD por fase" de la épica |
 | D11 | Cuándo se prueba la regla de rutas | Apenas existen manifiestos y skills (P1-S2), antes de los agentes; plan B: hook de inicio de sesión (usuario, a propuesta del agente) | Orden de la Fase 1 |
 | D12 | Aviso de instalación en Copilot | Línea informativa, no un diagnóstico (usuario, a propuesta del agente) | Sin ruido en cada corrida de `doctor` |
+| D13 | Raíz del plugin tras la revisión | Carpeta generada `dist/plugin/`, no commiteada, publicada en la rama `plugin`; el marketplace de `main` apunta a esa rama (usuario, 2026-11-22: "si fuera por mi haria la C, pero no quisiera ensuciar el repo, se podria hacer de una forma sin duplicar y que solo tome los archivos necesario?", y "ok" a esta propuesta). Descartadas: raíz del repo con `bin/` en el PATH; mover el CLI (seguían las dependencias y la copia del repo entero); carpeta generada commiteada en `main` (unos 250 archivos duplicados en cada cambio) | `main` sin copias; un paso de publicación por release, con push aprobado |
 
 ---
 
@@ -603,7 +612,7 @@ _(Vacio = PRD listo para implementar)_
 | R3 | Un CLI 0.22.0 corre `update` sobre un state `plugin` y reinstala el árbol | Baja | Medio | `doctor` reporta `mode/repo-and-plugin`; `update --mode plugin` lo repara; docs: actualizar el CLI primero |
 | R4 | El cambio de modo borra un archivo que el usuario quería | Baja | Alto | Solo se borra lo que coincide con el hash registrado; lo editado exige `discard`; backup y rollback en todos los casos |
 | R5 | La versión del plugin queda vieja tras subir la versión del paquete | Media | Bajo | El check del build falla; el orquestador corre `node scripts/build-plugin.mjs --write` después de asignar la versión |
-| R6 | Las carpetas nuevas en la raíz (`skills/`, `agents/`, `com.github.copilot/`) chocan con un validador | Baja | Medio | Condición de parada de P1-S1 |
+| R6 | Se publica una versión nueva y se olvida empujar la rama `plugin` | Media | Medio | `docs/versioning.md` pone el paso de publicación junto a la asignación de versión; `--publish` imprime el comando de push |
 | R7 | El cambio repo → plugin deja un backup junto a cada archivo borrado | Alta | Bajo | Es el mecanismo de F2 y lo que permite el rollback; los docs dicen cómo borrarlos después de verificar |
 
 ---
