@@ -3,7 +3,7 @@
 **Ticket**: Épica `kit-project-overlay`, fase F4, fila 4 de la cola de PRDs
 **Autor**: Agente (sesión F4)
 **Fecha**: 2026-11-22
-**Estado**: En revision
+**Estado**: Aprobado (usuario, 2026-11-22, en la sesión F4: "Apruebo el PRD")
 
 ---
 
