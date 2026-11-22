@@ -284,14 +284,17 @@ test('buildUpdatePlan supports no-backup write operations', async () => {
   const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex', toolkitVersion: '0.6.0-test' });
   await applyInstallPlan(installPlan);
 
-  const managedModified = path.join(target, 'docs/workflow/README.md');
-  await fs.writeFile(managedModified, 'local override\n', 'utf8');
+  // An older kit version of the file, unedited: its hash is the recorded one.
+  const olderKitVersion = 'older kit version\n';
+  await fs.writeFile(path.join(target, 'docs/workflow/README.md'), olderKitVersion, 'utf8');
+  const state = await readState(target);
+  state.files['docs/workflow/README.md'] = { sha256: sha(olderKitVersion), class: 'kit' };
+  await writeState(target, state);
 
   const updatePlan = await buildUpdatePlan({
     targetPath: target,
     runtime: 'codex',
     toolkitVersion: '0.7.0-test',
-    overwriteModified: true,
     backupMode: 'none'
   });
 
@@ -300,31 +303,21 @@ test('buildUpdatePlan supports no-backup write operations', async () => {
   assert.equal(updatePlan.summary.overwrite_no_backup > 0, true);
 });
 
-// A 1.0.0 state recorded each file whole, so an adapter the kit wrote before
-// it had markers is recognized by that hash.
-test('a 1.0.0 state is still read; an unmarked adapter takes the template only when its recorded hash matches', async () => {
+// A 1.0.0 state recorded each file whole. It is read (doctor and the layout
+// migration need it); update stops on it (test below). Its unmarked adapters
+// are covered by the migration tests.
+test('a 1.0.0 state is read with each entry classified; an unknown schema asks to upgrade the CLI', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude,codex' }));
   const state = await readState(target);
   const files = Object.fromEntries(Object.entries(state.files).filter(([, entry]) => entry.sha256).map(([key, entry]) => [key, entry.sha256]));
   const oldKitClaude = 'old kit adapter without markers\n';
-  await write(target, 'CLAUDE.md', oldKitClaude);
-  await write(target, 'AGENTS.md', 'team-edited adapter without markers\n');
   files['CLAUDE.md'] = sha(oldKitClaude);
-  files['AGENTS.md'] = sha('the kit version the team edited\n');
   await writeState(target, { ...state, schemaVersion: '1.0.0', files });
 
   const legacy = await readManagedInstallState(target);
   assert.equal(legacy.schemaVersion, '1.0.0');
   assert.deepEqual(legacy.files['CLAUDE.md'], { sha256: sha(oldKitClaude), class: 'adapter' });
-
-  const plan = await buildUpdatePlan({ targetPath: target });
-  const claude = operationFor(plan, 'CLAUDE.md');
-  assert.equal(claude.operation, 'overwrite_with_backup');
-  assert.equal(claude.content, await fs.readFile(path.join(templates, 'runtime-adapters/claude/CLAUDE.md'), 'utf8'));
-  const agents = operationFor(plan, 'AGENTS.md');
-  assert.equal(agents.operation, 'skip_modified');
-  assert.equal(agents.reason, 'unmarked_adapter');
 
   await writeState(target, { ...state, schemaVersion: '3.0.0' });
   await assert.rejects(buildUpdatePlan({ targetPath: target }), /uses schema 3\.0\.0.*upgrade the CLI/);
@@ -368,6 +361,66 @@ test('with a 2.0.0 state no operation modifies anything under .agents/project/ (
     const projectOperations = plan.operations.filter((item) => item.relativePath.startsWith('.agents/project/'));
     assert.ok(projectOperations.length >= projectFiles.length - 1);
     assert.deepEqual(projectOperations.filter((item) => item.operation !== 'skip_unmanaged').map((item) => `${item.operation}:${item.relativePath}`), []);
+  }
+});
+
+// Review of phase 1: until the migration exists, a 1.0.0 state must not reach
+// the class planner. That state recorded merged catalogs as unedited, so a
+// plain update would replace a registry holding the project's own skills.
+test('update stops on a 1.0.0 state before planning any write', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  const registryPath = '.agents/skills/registry.json';
+  const registry = JSON.parse(await read(target, registryPath));
+  registry.pattern_skills.push({ name: 'retry-policy', path: '.agents/skills/06-patterns/local/retry-policy/SKILL.md' });
+  const merged = `${JSON.stringify(registry, null, 2)}\n`;
+  await write(target, registryPath, merged);
+  const state = await readState(target);
+  const files = Object.fromEntries(Object.entries(state.files).filter(([, entry]) => entry.sha256).map(([key, entry]) => [key, entry.sha256]));
+  files[registryPath] = sha(merged);
+  await writeState(target, { ...state, schemaVersion: '1.0.0', files });
+
+  await assert.rejects(buildUpdatePlan({ targetPath: target, backupMode: 'none' }), /install-state 1\.0\.0[\s\S]*Nothing was written/);
+});
+
+// Review of phase 1: no plan replaces content without a backup unless that
+// content matches what the kit recorded (here: init ignores the state, adopt
+// records nothing yet, an edit forced with overwriteModified).
+test('a file that differs from its recorded hash is never replaced without a backup', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+  const kitFile = '.agents/instructions.md';
+  const catalog = '.agents/skills/index.md';
+  await write(target, kitFile, '# Our own instructions\n');
+  await write(target, catalog, '# Our own catalog\n');
+
+  const init = await buildInstallPlan({ targetPath: target, runtime: 'claude', backupMode: 'none' });
+  assert.equal(operationFor(init, kitFile).operation, 'overwrite_with_backup');
+  assert.equal(operationFor(init, catalog).operation, 'overwrite_with_backup');
+
+  const forced = await buildUpdatePlan({ targetPath: target, backupMode: 'none', overwriteModified: true });
+  assert.equal(operationFor(forced, kitFile).operation, 'overwrite_with_backup');
+
+  const claude = await read(target, 'CLAUDE.md');
+  const { block } = extractManagedBlock(claude, 'workflow-kit:managed');
+  await write(target, 'CLAUDE.md', claude.replace(block, block.replace('# CLAUDE.md', '# CLAUDE.md (edited inside the block)')));
+  const adapter = await buildUpdatePlan({ targetPath: target, backupMode: 'none' });
+  assert.equal(operationFor(adapter, 'CLAUDE.md').operation, 'overwrite_with_backup');
+});
+
+test('adopt-existing records a customized kit file as edited, so a later update leaves it alone', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  await fs.rm(path.join(target, installStateRelativePath));
+  const customized = ['.agents/instructions.md', '.agents/skills/registry.md'];
+  for (const relativePath of customized) await write(target, relativePath, `# Our own ${relativePath}\n`);
+
+  await applyInstallPlan(await buildUpdatePlan({ targetPath: target, adoptExisting: true }));
+  const next = await buildUpdatePlan({ targetPath: target, backupMode: 'none' });
+
+  for (const relativePath of customized) {
+    assert.equal(operationFor(next, relativePath).operation, 'skip_modified', relativePath);
+    assert.equal(operationFor(next, relativePath).reason, 'edited_kit_file', relativePath);
   }
 });
 
@@ -519,21 +572,39 @@ test('never retired: other runtimes, seeds, adapters, the project overlay, gener
   }
 });
 
-test('a retired path outside the target or behind a symbolic link is refused before writing', async () => {
-  const parent = await makeTempRepo();
-  const target = path.join(parent, 'repo');
-  await fs.mkdir(target);
-  await fs.writeFile(path.join(parent, 'victim.txt'), 'keep me\n', 'utf8');
-  await installWithRetired(target, [{ relativePath: '../victim.txt', content: null, recorded: 'keep me\n' }]);
-  await assert.rejects(buildUpdatePlan({ targetPath: target }), /outside the target: \.\.\/victim\.txt/);
+// Review of phase 1: install-state keys come from the repository. A key
+// written with "\" by an old Windows install, one with "..", one in another
+// letter case, or one no manifest entry covers is never retired.
+test('never retired: unnormalized, traversing, case-variant or unclassified state keys', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  const state = await readState(target);
+  const live = '.agents/skills/00-router/workflow-router/SKILL.md';
+  const liveContent = await read(target, live);
+  const contextContent = await read(target, '.agents/project/context.md');
+  state.files[live.replaceAll('/', '\\')] = { sha256: sha(liveContent), class: 'kit' };
+  state.files['docs/workflow/../../.agents/project/context.md'] = { sha256: sha(contextContent), class: 'kit' };
+  state.files[live.replace('workflow-router', 'Workflow-Router')] = { sha256: sha(liveContent), class: 'kit' };
+  await write(target, 'outside-manifest.md', 'kit file of an old version\n');
+  state.files['outside-manifest.md'] = { sha256: sha('kit file of an old version\n'), class: null };
+  await writeState(target, state);
 
+  const plan = await buildUpdatePlan({ targetPath: target, backupMode: 'none' });
+  assert.deepEqual(plan.operations.filter((item) => item.operation === 'delete_with_backup').map((item) => item.relativePath), []);
+  const readBack = await readManagedInstallState(target);
+  assert.equal(Object.keys(readBack.files).some((key) => key.includes('\\') || key.includes('..')), false);
+});
+
+// The ".." case is covered by the state-key test above.
+test('a retired path behind a symbolic link is never deleted', async () => {
   const linkedTarget = await makeTempRepo();
   const elsewhere = await makeTempRepo();
   await fs.writeFile(path.join(elsewhere, 'SKILL.md'), 'kit body\n', 'utf8');
   await installWithRetired(linkedTarget, [{ relativePath: '.agents/skills/04-crosscutting/linked/SKILL.md', content: null, recorded: 'kit body\n' }]);
   await fs.symlink(elsewhere, path.join(linkedTarget, '.agents/skills/04-crosscutting/linked'));
 
-  await assert.rejects(buildUpdatePlan({ targetPath: linkedTarget }), /Refusing to write or delete through symbolic links[\s\S]*linked/);
+  const plan = await buildUpdatePlan({ targetPath: linkedTarget });
+  assert.equal(plan.operations.some((item) => item.operation === 'delete_with_backup'), false);
+  await applyInstallPlan(plan);
   assert.equal(await fs.readFile(path.join(elsewhere, 'SKILL.md'), 'utf8'), 'kit body\n');
-  assert.equal(await fs.readFile(path.join(parent, 'victim.txt'), 'utf8'), 'keep me\n');
 });

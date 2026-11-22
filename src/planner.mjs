@@ -1,4 +1,6 @@
 import fs from 'node:fs/promises';
+import { realpath as realpathCallback } from 'node:fs';
+import { promisify } from 'node:util';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -163,6 +165,12 @@ export async function buildUpdatePlan(options = {}) {
   if (!existingState && !options.adoptExisting) {
     throw new Error('No install state found. Run `workflow-kit update --adopt-existing --runtime <list>` first to bootstrap a safe baseline.');
   }
+  // A 1.0.0 state recorded merged catalogs and preserved files as if the kit
+  // owned them, so the class planner would replace project content. Only the
+  // layout migration may read it.
+  if (existingState?.schemaVersion === legacyInstallStateSchemaVersion) {
+    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}, the layout before the kit and project overlay split. This workflow-kit build cannot migrate it yet, and updating it in place could replace project content. Nothing was written.`);
+  }
   const runtimes = parseRuntimeList(options.runtime ?? existingState?.runtimes?.join(',') ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? existingState?.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
@@ -199,7 +207,7 @@ export async function buildUpdatePlan(options = {}) {
   operations.push(...await buildStackPackOperations({ targetPath, stackPack, previousFiles }));
   const retired = existingState ? await planRetiredFiles({ targetPath, manifest, previousFiles, operations }) : { operations: [], missing: [] };
   operations.push(...retired.operations);
-  await finalizeOperations({ targetPath, manifest, operations });
+  await finalizeOperations({ targetPath, manifest, operations, previousFiles });
 
   const nextInstallState = buildNextInstallState({
     previousState: existingState,
@@ -251,11 +259,27 @@ function classifyOrThrow(manifest, relativePath) {
   return entry;
 }
 
-// Retired operations already carry their class, which may be null.
-async function finalizeOperations({ targetPath, manifest, operations }) {
+// No plan replaces content without a backup unless that content matches what
+// the kit recorded for it: init (no state), adopt, a forced edit, or a block
+// edited by hand always keep a backup, whatever the backup mode.
+async function requireBackupForUnrecordedContent({ targetPath, manifest, operations, previousFiles }) {
+  for (const item of operations) {
+    if (item.operation !== 'overwrite_no_backup') continue;
+    const existing = await readOptional(path.join(targetPath, item.relativePath));
+    if (existing === null) continue;
+    const recorded = previousFiles[item.relativePath]?.sha256;
+    if (!recorded || recorded !== recordedChecksumOf(manifest, item.relativePath, item.class, existing)) {
+      item.operation = 'overwrite_with_backup';
+    }
+  }
+}
+
+// Retired operations already carry their class.
+async function finalizeOperations({ targetPath, manifest, operations, previousFiles = {} }) {
   for (const item of operations) {
     if (item.class === undefined && item.relativePath !== gitignorePath) item.class = classifyOrThrow(manifest, item.relativePath).class;
   }
+  await requireBackupForUnrecordedContent({ targetPath, manifest, operations, previousFiles });
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
   await assertNoSymlinkWrites(targetPath, operations);
 }
@@ -265,8 +289,10 @@ async function finalizeOperations({ targetPath, manifest, operations }) {
 // generated file, the project overlay, a path the migration moves, or a
 // backup. Shipped means any runtime's template, so switching runtimes never
 // deletes the files of the runtime left out.
-const retirableClasses = new Set(['kit', 'derived', null]);
+const retirableClasses = new Set(['kit', 'derived']);
 const backupFileMarker = '.workflow-kit-backup-';
+// The native call returns the letter case stored on disk.
+const realpathNative = promisify(realpathCallback.native);
 
 function isRetirable(manifest, relativePath) {
   if (relativePath.includes(backupFileMarker) || isProjectPath(manifest, relativePath)) return false;
@@ -278,14 +304,32 @@ function isRetirable(manifest, relativePath) {
 // Unedited: deleted with a backup whatever the backup mode. Edited: kept and
 // flagged in the next state. Missing: only its record goes away.
 async function planRetiredFiles({ targetPath, manifest, previousFiles, operations }) {
-  const planned = new Set(operations.map((item) => item.relativePath));
-  const shipped = new Set((await selectedTemplateFiles({ runtimes: supportedRuntimes })).map((file) => file.relativePath));
+  // Compared without letter case: on a case-insensitive file system a key
+  // that differs from a live path only in case names that same live file.
+  const livePaths = new Set([
+    ...operations.map((item) => item.relativePath),
+    ...(await selectedTemplateFiles({ runtimes: supportedRuntimes })).map((file) => file.relativePath)
+  ]);
+  const live = new Set([...livePaths].map((relativePath) => relativePath.toLowerCase()));
+  const realTarget = await fs.realpath(targetPath);
   const retired = { operations: [], missing: [] };
   for (const [relativePath, recorded] of Object.entries(previousFiles)) {
-    if (planned.has(relativePath) || shipped.has(relativePath) || !isRetirable(manifest, relativePath)) continue;
+    if (!isRetirable(manifest, relativePath)) continue;
+    if (livePaths.has(relativePath)) continue;
+    // Same file as a live path in another letter case: only the stale key goes.
+    if (live.has(relativePath.toLowerCase())) {
+      retired.missing.push(relativePath);
+      continue;
+    }
     const targetFile = resolveInsideTarget(targetPath, relativePath);
     const existingContent = await readOptional(targetFile);
     if (existingContent === null) {
+      retired.missing.push(relativePath);
+      continue;
+    }
+    // The file found must be the one the key names, letter case included.
+    const onDisk = path.relative(realTarget, await realpathNative(targetFile)).split(path.sep).join('/');
+    if (onDisk !== relativePath) {
       retired.missing.push(relativePath);
       continue;
     }
@@ -362,7 +406,9 @@ function planOwnedFile({ base, templateContent, existingContent, recorded, mode,
   if (mode === 'init') return plan(overwriteOperation(backupMode));
 
   const existingChecksum = computeChecksum(existingContent);
-  if (mode === 'adopt') return plan('adopt_existing', { stateChecksum: existingChecksum });
+  // A file that differs from this version when adopting is a customization,
+  // not a baseline: record the kit checksum so later updates see it as edited.
+  if (mode === 'adopt') return plan('adopt_existing', { existingChecksum });
   if (!recorded?.sha256) return plan('skip_unmanaged');
   if (recorded.sha256 === existingChecksum) return plan(overwriteOperation(backupMode), { recordedChecksum: recorded.sha256 });
   if (overwriteModified) return plan(overwriteOperation(backupMode), { existingChecksum, recordedChecksum: recorded.sha256 });
@@ -530,7 +576,13 @@ async function readInstallState(stateFilePath, manifest) {
   }
   const legacy = parsed.schemaVersion === legacyInstallStateSchemaVersion;
   const files = {};
-  for (const [relativePath, entry] of Object.entries(parsed.files)) {
+  for (const [rawPath, entry] of Object.entries(parsed.files)) {
+    // Keys come from the repository: installs before 0.17.0 on Windows wrote
+    // "\". A key that is absolute or steps through "." or ".." names no file
+    // the kit installed, so it is ignored.
+    const relativePath = rawPath.replaceAll('\\', '/');
+    if (relativePath.startsWith('/') || relativePath.split('/').some((segment) => ['', '.', '..'].includes(segment))) continue;
+    if (relativePath !== rawPath && Object.hasOwn(parsed.files, relativePath)) continue;
     if (legacy && typeof entry === 'string') {
       files[relativePath] = { sha256: entry, class: classifyPath(manifest, relativePath)?.class ?? null };
     } else if (!legacy && entry !== null && typeof entry === 'object' && !Array.isArray(entry)) {

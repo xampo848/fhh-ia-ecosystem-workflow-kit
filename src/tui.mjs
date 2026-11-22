@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { applyInstallPlan } from './apply.mjs';
+import { writingOperations } from './fs-safety.mjs';
 import { formatDoctorResult, runDoctor } from './doctor.mjs';
 import { buildInstallPlan, buildUpdatePlan, detectStackPack, formatPlan, readManagedInstallState, selectPlanOperations } from './planner.mjs';
 import {
@@ -97,13 +98,8 @@ const TUI_MODE_OPTIONS = [
 ];
 
 const FULL_OVERLAY = 'fhh-ia-ecosystem-full';
-const WRITE_OPERATIONS = new Set([
-  'create',
-  'overwrite_with_backup',
-  'merge_with_backup',
-  'overwrite_no_backup',
-  'merge_no_backup'
-]);
+// Every operation that changes a file, deletes included, can be deselected.
+const WRITE_OPERATIONS = writingOperations;
 
 const defaultCommandExists = upgradeCommandExists;
 

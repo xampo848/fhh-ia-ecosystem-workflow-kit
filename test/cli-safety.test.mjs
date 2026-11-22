@@ -188,7 +188,7 @@ test('rollback keeps a file that was edited after the apply', async () => {
   assert.equal(await fs.readFile(path.join(target, 'AGENTS.md'), 'utf8'), 'edited after install\n');
 });
 
-test('rollback rejects install-state keys that point outside the target', async () => {
+test('rollback never acts on install-state keys that point outside the target', async () => {
   const parent = await makeTempRepo();
   const target = path.join(parent, 'repo');
   await fs.mkdir(path.join(target, '.agents/workflow-kit'), { recursive: true });
@@ -200,8 +200,9 @@ test('rollback rejects install-state keys that point outside the target', async 
 
   const result = await run(['rollback', '--target', target, '--apply', '--yes']);
 
-  assert.equal(result.code, 2);
-  assert.match(result.stderr, /outside the target/);
+  // The key is dropped when the state is read, so nothing outside is restored.
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /Nothing to roll back/);
   assert.equal(await fs.readFile(path.join(parent, 'victim.txt'), 'utf8'), 'keep me\n');
 });
 

@@ -49,27 +49,26 @@ async function installWithRetired(target, retired) {
   return state;
 }
 
-test('rollback restores a deleted and an overwritten file, removes a created one and puts the 1.0.0 state back (AC-5)', async () => {
+test('rollback restores a deleted and an overwritten file, removes a created one and puts the previous state back (AC-5)', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
   const retiredContent = '---\nname: retired-skill\n---\nCuerpo con acentos: áéí\r\nsin salto final';
   const olderInstructions = 'older kit instructions\n';
   const created = '.agents/README.md';
   const state = await readJson(target, installStateRelativePath);
-  const v1Files = Object.fromEntries(Object.entries(state.files).filter(([, entry]) => entry.sha256).map(([key, entry]) => [key, entry.sha256]));
-  v1Files[retiredSkill] = sha(retiredContent);
-  v1Files['.agents/instructions.md'] = sha(olderInstructions);
-  const v1State = `${JSON.stringify({ ...state, schemaVersion: '1.0.0', files: v1Files }, null, 2)}\n`;
+  state.files[retiredSkill] = { sha256: sha(retiredContent), class: 'kit' };
+  state.files['.agents/instructions.md'] = { sha256: sha(olderInstructions), class: 'kit' };
+  const previousState = `${JSON.stringify(state, null, 2)}\n`;
   await write(target, retiredSkill, retiredContent);
   await write(target, '.agents/instructions.md', olderInstructions);
-  await write(target, installStateRelativePath, v1State);
+  await write(target, installStateRelativePath, previousState);
   await fs.rm(path.join(target, created));
 
   await applyInstallPlan(await buildUpdatePlan({ targetPath: target }));
 
   const journal = await readJson(target, applyJournalRelativePath);
   assert.equal(journal.schemaVersion, '2.0.0');
-  assert.equal(journal.previousInstallState, v1State);
+  assert.equal(journal.previousInstallState, previousState);
   const byPath = Object.fromEntries(journal.files.map((entry) => [entry.relativePath, entry]));
   assert.equal(byPath[retiredSkill].action, 'deleted');
   assert.equal(byPath[retiredSkill].writtenChecksum, null);
@@ -87,7 +86,7 @@ test('rollback restores a deleted and an overwritten file, removes a created one
   assert.deepEqual(await fs.readFile(path.join(target, retiredSkill)), Buffer.from(retiredContent, 'utf8'));
   assert.equal(await fs.readFile(path.join(target, '.agents/instructions.md'), 'utf8'), olderInstructions);
   assert.equal(await exists(target, created), false);
-  assert.equal(await fs.readFile(path.join(target, installStateRelativePath), 'utf8'), v1State);
+  assert.equal(await fs.readFile(path.join(target, installStateRelativePath), 'utf8'), previousState);
   assert.deepEqual(await listBackups(target), [], 'used backups are removed');
   assert.equal(await exists(target, applyJournalRelativePath), false);
 });
@@ -124,6 +123,21 @@ test('a 1.0.0 journal written by an older CLI still rolls back', async () => {
   assert.equal(await fs.readFile(path.join(target, installStateRelativePath), 'utf8'), previousState);
 });
 
+// Review of phase 1: a retired file edited between the plan and the apply is
+// no longer the unedited kit file the plan decided to delete.
+test('apply does not delete a retired file that changed after the plan', async () => {
+  const target = await makeTempRepo();
+  await installWithRetired(target, { [retiredSkill]: 'retired body\n' });
+  const plan = await buildUpdatePlan({ targetPath: target });
+  assert.equal(plan.operations.find((item) => item.relativePath === retiredSkill).operation, 'delete_with_backup');
+  await write(target, retiredSkill, 'edited after the plan\n');
+
+  await applyInstallPlan(plan);
+
+  assert.equal(await fs.readFile(path.join(target, retiredSkill), 'utf8'), 'edited after the plan\n');
+  assert.equal((await readJson(target, installStateRelativePath)).files[retiredSkill].retired, true);
+});
+
 test('rollback keeps a deleted path that was recreated and reports a deleted file whose backup is gone', async () => {
   const target = await makeTempRepo();
   await installWithRetired(target, { [retiredSkill]: 'kit body one\n', [otherRetired]: 'kit body two\n' });
@@ -153,7 +167,7 @@ test('a failure halfway through an apply leaves a partial journal that rollback 
     stateFilePath: path.join(target, installStateRelativePath),
     nextInstallState: { schemaVersion: '2.0.0', files: {} },
     operations: [
-      { operation: 'delete_with_backup', relativePath: retiredSkill, targetFile: path.join(target, retiredSkill), class: 'kit', retired: true, content: null },
+      { operation: 'delete_with_backup', relativePath: retiredSkill, targetFile: path.join(target, retiredSkill), class: 'kit', retired: true, content: null, recordedChecksum: sha('kit body\n') },
       { operation: 'create', relativePath: 'blocker/inner.md', targetFile: path.join(target, 'blocker/inner.md'), content: 'never written\n' }
     ]
   };

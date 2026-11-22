@@ -83,6 +83,13 @@ export async function applyInstallPlan(plan) {
       }
 
       if (deleteOperations.has(item.operation)) {
+        // Edited since the plan: it is no longer the unedited kit file the
+        // plan chose to delete, so it stays and is recorded as retired.
+        if (checksumOf(await fs.readFile(item.targetFile, 'utf8')) !== item.recordedChecksum) {
+          if (plan.nextInstallState?.files) plan.nextInstallState.files[item.relativePath] = { sha256: item.recordedChecksum, class: item.class, retired: true };
+          applied.push({ ...item, applied: false, reason: 'changed_since_plan' });
+          continue;
+        }
         // The backup stays next to the deleted file, so its directory stays.
         const backupPath = `${item.targetFile}.workflow-kit-backup-${backupStamp}`;
         await fs.copyFile(item.targetFile, backupPath);

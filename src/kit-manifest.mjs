@@ -50,7 +50,7 @@ function manifestProblem(manifest) {
     if (typeof entry?.path !== 'string') return `has a path entry without a string path (${JSON.stringify(entry)})`;
     if (!manifestClasses.has(entry.class)) return `gives ${entry.path} the unknown class ${entry.class}`;
   }
-  if (typeof manifest.project_root !== 'string' || !manifest.project_root) return 'has no project_root';
+  if (typeof manifest.project_root !== 'string' || !manifest.project_root.endsWith('/')) return 'has no project_root (a folder ending in /)';
   return null;
 }
 

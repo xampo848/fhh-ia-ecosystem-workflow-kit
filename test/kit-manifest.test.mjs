@@ -48,7 +48,8 @@ test('loadKitManifest names the file and the problem of an invalid manifest', as
     ['empty paths', await writeManifest({ ...minimalManifest, paths: [] }), /manifest\.json must list its paths in a non-empty array/],
     ['entry without path', await writeManifest({ ...minimalManifest, paths: [{ class: 'kit' }] }), /manifest\.json has a path entry without a string path/],
     ['unknown class', await writeManifest({ ...minimalManifest, paths: [{ path: 'AGENTS.md', class: 'owned' }] }), /manifest\.json gives AGENTS\.md the unknown class owned/],
-    ['no project_root', await writeManifest({ ...minimalManifest, project_root: undefined }), /manifest\.json has no project_root/]
+    ['no project_root', await writeManifest({ ...minimalManifest, project_root: undefined }), /manifest\.json has no project_root/],
+    ['project_root without a trailing slash', await writeManifest({ ...minimalManifest, project_root: '.agents/project' }), /manifest\.json has no project_root/]
   ];
   for (const [label, file, message] of cases) {
     await assert.rejects(loadKitManifest({ file }), message, label);
