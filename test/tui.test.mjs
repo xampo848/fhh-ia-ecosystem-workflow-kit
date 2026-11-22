@@ -251,12 +251,13 @@ test('tui update keeps every edited file pending when the user keeps the default
 
   let output = '';
   const result = await runTui({
-    ask: scriptedAsk(['2', target, '2', '', '', '', 'no']),
+    ask: scriptedAsk(['2', target, '2', '', '', '', 'yes']),
     color: false,
     write: (message) => { output += message; }
   });
 
-  assert.equal(result.applied, false);
+  assert.equal(result.applied, true);
+  assert.equal(await fs.readFile(path.join(target, 'docs/workflow/README.md'), 'utf8'), 'local override\n');
   assert.match(output, /Detected 1 managed file\(s\) with local edits\./);
   assert.deepEqual(optionsOf(output, editedFilesQuestion).map((option) => option.label), [
     'Keep my edits (recommended)',
@@ -345,13 +346,13 @@ test('tui partial selection keeps the layout migration whole and lets a retired 
   };
 
   const result = await runTui({
-    ask: scriptedAsk(['2', target, '', '', keepAllButRetired, '', '', 'no'], () => output),
+    ask: scriptedAsk(['2', target, '', '', keepAllButRetired, '', '', 'yes'], () => output),
     color: false,
     write: (message) => { output += message; },
     enableScriptedAdvancedPrompts: true
   });
 
-  assert.equal(result.applied, false);
+  assert.equal(result.applied, true);
   assert.match(output, /The layout migration \(\d+ files\) is applied as one block and is not listed here\./);
   assert.ok(offered.some((option) => option.label.startsWith(`${legacy.retiredPath} `)), 'the retired delete is offered');
   const movedSource = `${legacy.localSkill.oldDir}/SKILL.md`;
@@ -359,6 +360,13 @@ test('tui partial selection keeps the layout migration whole and lets a retired 
   assert.equal(operationFor(result.plan, legacy.retiredPath), undefined);
   assert.equal(operationFor(result.plan, movedSource).operation, 'delete_with_backup');
   assert.equal(operationFor(result.plan, legacy.ownContext.newPath).operation, 'create');
+  // Final review 10: what was applied, not only what was planned.
+  const exists = (relativePath) => fs.access(path.join(target, relativePath)).then(() => true, () => false);
+  assert.equal(await exists(legacy.retiredPath), true, 'the deselected retired file stays');
+  assert.equal(await exists(movedSource), false);
+  assert.equal(await exists(`.agents/project/skills/${legacy.localSkill.name}/SKILL.md`), true);
+  assert.equal(await fs.readFile(path.join(target, legacy.ownContext.newPath), 'utf8'), legacy.ownContext.content);
+  assert.equal(JSON.parse(await fs.readFile(path.join(target, installStateRelativePath), 'utf8')).schemaVersion, '2.0.0');
 });
 
 test('tui upgrade-toolkit mode runs the global upgrade command and exits without repo writes', async () => {

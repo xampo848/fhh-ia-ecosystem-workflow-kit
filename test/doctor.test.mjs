@@ -274,3 +274,15 @@ test('doctor fails when a generated agent does not match the equilibrado profile
   assert.match(io.output.stdout, /Expected `model: sonnet` for the equilibrado profile but found `model: opus`/);
   assert.match(io.output.stdout, /update --profile claude=equilibrado --apply --yes/);
 });
+
+// Final review 10: every fixed code doctor emits has a row or a bullet in the
+// troubleshooting guide (the per-reason boundary/pending-* codes are listed by
+// reason there).
+test('every fixed doctor code is documented in docs/troubleshooting.md', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const guide = await fs.readFile(path.join(root, 'docs/troubleshooting.md'), 'utf8');
+  const sources = await Promise.all(['src/doctor.mjs', 'src/workspace-diagnostics.mjs'].map((file) => fs.readFile(path.join(root, file), 'utf8')));
+  const codes = [...new Set(sources.flatMap((source) => [...source.matchAll(/'((?:managed|boundary|project-context)\/[a-z-]+)'/g)].map((match) => match[1])))];
+  assert.ok(codes.length > 10, codes.join(', '));
+  assert.deepEqual(codes.filter((code) => !guide.includes(`\`${code}\``)), []);
+});
