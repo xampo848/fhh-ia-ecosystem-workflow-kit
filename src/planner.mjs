@@ -11,7 +11,7 @@ import { describeMigrations } from './plan-insight.mjs';
 import { assertNoSymlinkWrites, resolveInsideTarget } from './fs-safety.mjs';
 import { applyJournalRelativePath } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
-import { pendingEditReasons, prepareLayoutMigration, requireMigrationBackups } from './migration.mjs';
+import { layoutMigrationId, pendingEditReasons, prepareLayoutMigration, projectIndexUnexpected, requireMigrationBackups } from './migration.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
@@ -103,8 +103,43 @@ export async function selectedTemplateFiles({ runtimes = ['neutral'], overlay = 
   return [...deduped.values()].sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 }
 
+// An apply that stopped halfway left a journal with `completed: false`; it is
+// the only way back, and the next apply would replace it. A journal that is
+// not JSON is rollback's concern, not a reason to stop here.
+async function assertLastApplyFinished(targetPath) {
+  const raw = await readOptional(path.join(targetPath, applyJournalRelativePath));
+  if (raw === null) return;
+  let journal;
+  try {
+    journal = JSON.parse(raw);
+  } catch {
+    return;
+  }
+  if (journal?.completed === false) {
+    throw new Error(`The last workflow-kit apply did not finish (${journal.appliedAt ?? 'unknown date'}). Run \`workflow-kit rollback --apply --yes\` first, then run this command again. Nothing was written.`);
+  }
+}
+
+// init plans as if nothing were installed: over a 1.0.0 state it would
+// replace the project content that only the layout migration of update moves.
+async function assertNotLegacyInstall(targetPath) {
+  const raw = await readOptional(path.join(targetPath, installStateRelativePath));
+  if (raw === null) return;
+  let state;
+  try {
+    state = JSON.parse(raw);
+  } catch {
+    return;
+  }
+  if (state?.schemaVersion === legacyInstallStateSchemaVersion) {
+    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run \`workflow-kit update\` to migrate this repository; init would replace project content. Nothing was written.`);
+  }
+}
+
 export async function buildInstallPlan(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
+  await assertLastApplyFinished(targetPath);
+  await assertNotLegacyInstall(targetPath);
   const runtimes = parseRuntimeList(options.runtime ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
@@ -161,6 +196,7 @@ export async function buildInstallPlan(options = {}) {
 export async function buildUpdatePlan(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   const stateFilePath = path.join(targetPath, installStateRelativePath);
+  await assertLastApplyFinished(targetPath);
   const manifest = options.manifest ?? await loadKitManifest();
   const existingState = await readInstallState(stateFilePath, manifest);
   if (!existingState && !options.adoptExisting) {
@@ -193,7 +229,8 @@ export async function buildUpdatePlan(options = {}) {
 
   const operations = await planTemplateFiles({
     targetPath,
-    files,
+    // A legacy path that cannot move keeps its new path out of the plan.
+    files: migration ? files.filter((file) => !migration.excludedPaths.has(file.relativePath)) : files,
     manifest,
     mode: existingState ? 'update' : 'adopt',
     previousFiles: migration?.plannerFiles ?? previousFiles,
@@ -204,6 +241,7 @@ export async function buildUpdatePlan(options = {}) {
   });
   // Before anything reads the planned content of other files (the Copilot
   // wrappers read the quality gate) and before the project index is planned.
+  if (migration) await migration.markUnrecordedKitFiles(operations);
   const shadows = await planEditedDecisions({ operations, edited: options.edited ?? {}, manifest, migration });
   if (migration) await migration.completeOperations(operations, shadows);
   operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
@@ -214,6 +252,19 @@ export async function buildUpdatePlan(options = {}) {
   await finalizeOperations({ targetPath, manifest, operations, previousFiles });
   if (migration) requireMigrationBackups(operations);
   const droppedStatePaths = [...retired.missing, ...(migration?.droppedPaths ?? [])];
+  const layoutMigration = migration?.describe(operations);
+  const migrations = describeMigrations({
+    operations,
+    existingState,
+    modelProfiles,
+    requestedProfiles: parseProfileOption(options.profile),
+    stackPack,
+    stackRequested: options.stack !== undefined,
+    migratedInstructions,
+    layoutMigration
+  });
+  // Per-row and per-skill notes print under the layout migration's summary.
+  if (layoutMigration) migrations.find((item) => item.id === layoutMigrationId).notes = layoutMigration.notes;
 
   const nextInstallState = buildNextInstallState({
     previousState: existingState,
@@ -231,16 +282,7 @@ export async function buildUpdatePlan(options = {}) {
     targetPath,
     stateFilePath,
     hadExistingState: Boolean(existingState),
-    migrations: describeMigrations({
-      operations,
-      existingState,
-      modelProfiles,
-      requestedProfiles: parseProfileOption(options.profile),
-      stackPack,
-      stackRequested: options.stack !== undefined,
-      migratedInstructions,
-      layoutMigration: migration?.describe(operations)
-    }),
+    migrations,
     nextInstallState,
     toolkitVersion: options.toolkitVersion ?? null,
     previousToolkitVersion: existingState?.toolkitVersion ?? null,
@@ -314,24 +356,30 @@ async function planEditedDecisions({ operations, edited, manifest, migration }) 
   const pending = operations.filter((item) => item.operation === 'skip_modified' && pendingEditReasons.has(item.reason));
   const validByPath = new Map();
   const shadowTargets = new Map();
+  const splitContents = new Map();
   for (const item of pending) {
     const shadow = migration ? await migration.shadowFor(item) : null;
     if (shadow) shadowTargets.set(item.relativePath, shadow);
-    const applies = { keep: true, discard: true, shadow: Boolean(shadow), split: item.reason === 'unmarked_adapter' };
+    if (item.reason === 'unmarked_adapter') {
+      const blockName = classifyPath(manifest, item.relativePath)?.block ?? defaultBlockName;
+      const split = splitUnmarkedAdapter(await fs.readFile(item.targetFile, 'utf8'), item.content, blockName);
+      if (split !== null) splitContents.set(item.relativePath, split);
+    }
+    const applies = { keep: true, discard: true, shadow: Boolean(shadow), split: splitContents.has(item.relativePath) };
     validByPath.set(item.relativePath, editedDecisions.filter((decision) => applies[decision]));
   }
   const chosen = chooseEditedDecisions(validByPath, edited);
   const shadows = [];
   for (const item of pending) {
     const decision = chosen.get(item.relativePath) ?? 'keep';
-    if (decision === 'keep') {
+    // A shadow needs its row in the project index; it waits with the index.
+    const waitsForIndex = decision === 'shadow' && !migration.indexWritable;
+    if (decision === 'keep' || waitsForIndex) {
       item.decisions = validByPath.get(item.relativePath);
+      if (waitsForIndex) item.reason = projectIndexUnexpected;
       continue;
     }
-    if (decision === 'split') {
-      const blockName = classifyPath(manifest, item.relativePath)?.block ?? defaultBlockName;
-      item.content = splitUnmarkedAdapter(await fs.readFile(item.targetFile, 'utf8'), item.content, blockName);
-    }
+    if (decision === 'split') item.content = splitContents.get(item.relativePath);
     if (decision === 'shadow') {
       const shadow = shadowTargets.get(item.relativePath);
       shadows.push(shadow);
@@ -344,20 +392,31 @@ async function planEditedDecisions({ operations, edited, manifest, migration }) 
   return shadows;
 }
 
-// split: the new block where the template places it, plus the file's own
-// lines (those not in the new block), in their order, blank runs collapsed.
+// The kit text of a template block: the lines between its marker lines,
+// without the trailing blank lines and HTML comment lines (the note about
+// where own text goes, which kits before the markers did not have).
+function kitBody(templateContent, blockName) {
+  const lines = extractManagedBlock(templateContent, blockName).block.split('\n').slice(1, -1);
+  while (lines.length > 0 && (lines.at(-1).trim() === '' || /^\s*<!--.*-->\s*$/.test(lines.at(-1)))) lines.pop();
+  return lines.join('\n');
+}
+
+// split: valid only when the file holds the kit text as one region of whole
+// lines, byte for byte. The own text is what comes before and after that
+// region, unchanged except for the blank lines that touched it (one blank line
+// keeps the two parts apart); the new block goes where the template places it.
+// Returns null when split does not apply.
 function splitUnmarkedAdapter(existingContent, templateContent, blockName) {
-  const blockLines = new Set(extractManagedBlock(templateContent, blockName).block.split('\n').map((line) => line.trim()));
-  const own = [];
-  for (const line of existingContent.split('\n')) {
-    const text = line.trim();
-    // A leading or repeated blank line, or a line the new block already has.
-    if (text === '' && (own.length === 0 || own.at(-1).trim() === '')) continue;
-    if (text !== '' && blockLines.has(text)) continue;
-    own.push(line);
-  }
-  while (own.length > 0 && own.at(-1).trim() === '') own.pop();
-  return own.length === 0 ? templateContent : insertManagedBlock(`${own.join('\n')}\n`, templateContent, blockName);
+  const body = kitBody(templateContent, blockName);
+  if (body === '') return null;
+  let start = existingContent.indexOf(body);
+  const wholeLines = (index) => (index === 0 || existingContent[index - 1] === '\n') && [undefined, '\n'].includes(existingContent[index + body.length]);
+  while (start !== -1 && !wholeLines(start)) start = existingContent.indexOf(body, start + 1);
+  if (start === -1) return null;
+  const before = existingContent.slice(0, start).replace(/(?:^|(?<=\n))(?:[ \t]*\n)+$/, '');
+  const after = existingContent.slice(start + body.length).replace(/^\n/, '').replace(/^(?:[ \t]*\n)+/, '').replace(/^[ \t]*$/, '');
+  const own = `${before}${before && after ? '\n' : ''}${after}`;
+  return own === '' ? templateContent : insertManagedBlock(own, templateContent, blockName);
 }
 
 // No plan replaces content without a backup unless that content matches what
@@ -640,6 +699,7 @@ export function formatPlan(plan) {
     for (const migration of plan.migrations) {
       lines.push(`- ${migration.id}: ${migration.summary}`);
       for (const item of migration.pending ?? []) lines.push(`  - pending ${item.relativePath} (${item.reason})${item.decisions ? `: ${item.decisions.join(' | ')}` : ''}`);
+      for (const note of migration.notes ?? []) lines.push(`  - note: ${note}`);
     }
   }
   lines.push('Operations:');

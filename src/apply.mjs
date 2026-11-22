@@ -109,6 +109,8 @@ export async function applyInstallPlan(plan) {
       }
 
       await writeFileAtomic(item.targetFile, item.content);
+      // A moved file keeps its permission bits (an executable script stays executable).
+      if (item.mode !== undefined) await fs.chmod(item.targetFile, item.mode);
       applied.push({ ...item, applied: true, backupPath });
       journalFiles.push({
         relativePath: item.relativePath,

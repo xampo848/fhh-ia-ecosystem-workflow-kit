@@ -52,9 +52,9 @@ for (const runtime of ['claude', 'codex', 'copilot', 'antigravity', 'claude,code
     for (const file of legacy.localSkill.files) {
       assert.equal(await read(target, `${legacy.localSkill.newDir}/${file}`), legacy.localSkill.contents[file]);
     }
-    const rows = (await read(target, projectIndexPath)).split('\n').filter((line) => line.startsWith(`| \`${legacy.localSkill.name}\` |`));
-    assert.equal(rows.length, 1);
-    assert.ok(rows[0].includes(`\`${legacy.localSkill.newDir}/SKILL.md\``));
+    // The catalog rows the team wrote, with their own text, in the project index.
+    const rows = (await read(target, projectIndexPath)).split('\n').filter((line) => line.startsWith('| `'));
+    assert.deepEqual(rows, legacy.projectIndexRows);
     // Own context moved; no template context anywhere.
     assert.equal(await read(target, legacy.ownContext.newPath), legacy.ownContext.content);
     assert.equal(await exists(target, legacy.ownContext.path), false);

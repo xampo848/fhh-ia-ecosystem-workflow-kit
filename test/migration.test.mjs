@@ -18,6 +18,7 @@ const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const overlayTemplates = path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full');
 const migrationId = '0.22.0-kit-overlay-layout';
 const projectIndexPath = '.agents/project/index.md';
+const journalPath = '.agents/workflow-kit/last-apply.json';
 const catalogPaths = ['.agents/skills/index.md', '.agents/skills/registry.md', '.agents/skills/06-patterns/index.md', '.agents/skills/registry.json'];
 const nonWriting = new Set(['unchanged', 'skip_unmanaged', 'skip_modified', 'adopt_existing']);
 const instructionsPath = '.agents/instructions.md';
@@ -66,7 +67,7 @@ test('the dry-run lists the migration groups with counts and every pending file 
     /edited files pending 3 \(\.agents\/instructions\.md, \.agents\/skills\/02-implement\/validation-runner\/SKILL\.md, CLAUDE\.md\)/,
     /retired deleted 1;/,
     /own skills moved to \.agents\/project\/skills\/ 1;/,
-    /catalog rows moved to \.agents\/project\/index\.md 1 \(rows added 1\)/,
+    /catalog rows moved to \.agents\/project\/index\.md 2 \(rows added 2\)/,
     /catalogs replaced whole 5/,
     /context moved: \.agents\/project-context\.md -> \.agents\/project\/context\.md/,
     /superseded seeds reset 1\./
@@ -76,34 +77,54 @@ test('the dry-run lists the migration groups with counts and every pending file 
     { relativePath: leafSkill.path, reason: 'edited_kit_file', decisions: ['keep', 'discard', 'shadow'] },
     { relativePath: 'CLAUDE.md', reason: 'unmarked_adapter', decisions: ['keep', 'discard', 'split'] }
   ]);
-  const pendingLines = [
+  // The catalog class the project index does not allow is named.
+  const classNote = '`retry-policy` row: class Standards/pattern written as Pattern (a moved skill goes to .agents/project/skills/<name>/, where only Pattern fits)';
+  assert.deepEqual(migration.notes, [classNote]);
+  const migrationLines = [
     `  - pending ${instructionsPath} (edited_kit_file): keep | discard`,
     `  - pending ${leafSkill.path} (edited_kit_file): keep | discard | shadow`,
-    '  - pending CLAUDE.md (unmarked_adapter): keep | discard | split'
+    '  - pending CLAUDE.md (unmarked_adapter): keep | discard | split',
+    `  - note: ${classNote}`
   ];
   const lines = formatPlan(plan).split('\n');
   const header = lines.findIndex((line) => line.startsWith(`- ${migrationId}: `));
-  assert.deepEqual(lines.slice(header + 1, header + 4), pendingLines);
+  assert.deepEqual(lines.slice(header + 1, header + 5), migrationLines);
 });
 
 test('applying the migration moves project content to the overlay and keeps a backup of every write, also with backupMode none (AC-8)', async () => {
   const { target, legacy } = await legacyRepo();
+  // An index the team started (merged), a context readable only by its owner
+  // and an empty folder inside the own skill.
+  const ownIndex = '# Project Catalog\n\nOwn notes.\n';
+  await write(target, projectIndexPath, ownIndex);
+  await fs.chmod(path.join(target, legacy.ownContext.path), 0o600);
+  const emptyFolder = `${legacy.localSkill.oldDir}/drafts`;
+  await fs.mkdir(path.join(target, emptyFolder));
+  const retiredContent = await read(target, legacy.retiredPath);
+  const qualityGateContent = await read(target, legacy.qualityGate.path);
   const plan = await buildUpdatePlan({ targetPath: target, backupMode: 'none' });
   assert.deepEqual(plan.operations.filter((item) => item.operation.endsWith('_no_backup')).map((item) => item.relativePath), []);
+  assert.ok(layoutMigration(plan).notes.includes(`${legacy.localSkill.name}: empty folders left in place: ${emptyFolder}/`));
 
   const applied = await applyInstallPlan(plan);
   const replacedWithoutBackup = applied.filter((item) => item.applied && item.operation !== 'create' && !item.backupPath);
   assert.deepEqual(replacedWithoutBackup.map((item) => item.relativePath), []);
   const backupOf = (relativePath) => applied.find((item) => item.relativePath === relativePath)?.backupPath;
+  const backupContent = (relativePath) => fs.readFile(backupOf(relativePath), 'utf8');
+  const modeOf = async (relativePath) => (await fs.stat(path.join(target, relativePath))).mode & 0o777;
 
-  // Own skill: every file moved unchanged; the old copies leave backups.
+  // Own skill (move): every file moved unchanged with its permission bits; the
+  // old copies leave backups with their content; the empty folder stays.
   for (const file of legacy.localSkill.files) {
     assert.equal(await read(target, `${legacy.localSkill.newDir}/${file}`), legacy.localSkill.contents[file]);
+    assert.equal(await modeOf(`${legacy.localSkill.newDir}/${file}`), legacy.localSkill.modes[file] ?? 0o644, file);
     assert.equal(await exists(target, `${legacy.localSkill.oldDir}/${file}`), false);
-    assert.ok(backupOf(`${legacy.localSkill.oldDir}/${file}`));
+    assert.equal(await backupContent(`${legacy.localSkill.oldDir}/${file}`), legacy.localSkill.contents[file]);
   }
-  const newSkillPath = `${legacy.localSkill.newDir}/SKILL.md`;
-  assert.match(await read(target, projectIndexPath), new RegExp(`^\\| \`${legacy.localSkill.name}\` \\| Pattern \\| Project pattern for retrying calls .* \\| \`${newSkillPath}\` \\| lean \\|$`, 'm'));
+  assert.ok(await exists(target, emptyFolder));
+  // Project index (merge): the team's text, then the moved rows; the backup is the team's text.
+  assert.equal(await read(target, projectIndexPath), `${ownIndex}\n## Skills\n\n| Skill name | Class | Trigger | Physical path | Cost hint |\n| --- | --- | --- | --- | --- |\n${legacy.projectIndexRows.join('\n')}\n`);
+  assert.equal(await backupContent(projectIndexPath), ownIndex);
 
   // Catalogs are replaced whole: the local entry leaves registry.json and
   // lives on only in the project index.
@@ -112,18 +133,22 @@ test('applying the migration moves project content to the overlay and keeps a ba
     assert.ok(backupOf(catalogPath), `${catalogPath} keeps a backup`);
   }
   assert.equal((await read(target, legacy.registryPath)).includes(legacy.registryEntryPath), false);
+  assert.ok((await backupContent(legacy.registryPath)).includes(legacy.registryEntryPath));
 
-  // Context moved with its own content; no template context next to it.
+  // Context moved with its own content and permission bits; no template context next to it.
   assert.equal(await read(target, legacy.ownContext.newPath), legacy.ownContext.content);
+  assert.equal(await modeOf(legacy.ownContext.newPath), 0o600);
   assert.equal(await exists(target, legacy.ownContext.path), false);
-  assert.ok(backupOf(legacy.ownContext.path));
+  assert.equal(await backupContent(legacy.ownContext.path), legacy.ownContext.content);
 
-  // The unedited 0.18.1 quality gate becomes the current stub.
+  // The unedited 0.18.1 quality gate becomes the current stub (overwrite).
   assert.notEqual(sha(await read(target, legacy.qualityGate.path)), legacy.qualityGate.sha256);
   assert.equal(await read(target, legacy.qualityGate.path), await fs.readFile(path.join(overlayTemplates, legacy.qualityGate.path), 'utf8'));
-  assert.ok(backupOf(legacy.qualityGate.path));
+  assert.equal(await backupContent(legacy.qualityGate.path), qualityGateContent);
 
+  // The retired kit file (delete).
   assert.equal(await exists(target, legacy.retiredPath), false);
+  assert.equal(await backupContent(legacy.retiredPath), retiredContent);
   assert.equal(await read(target, legacy.ownBackend.path), legacy.ownBackend.content);
 
   const state = JSON.parse(await read(target, installStateRelativePath));
@@ -134,35 +159,60 @@ test('applying the migration moves project content to the overlay and keeps a ba
 });
 
 // Edge case Concurrencia/orden: a skill that cannot move unchanged stays
-// where it is, without a row, and is listed as pending.
+// where it is, without a row, and is listed as pending. Names are compared
+// without letter case: on most file systems Tool/ and tool/ are one folder.
+// A runbook lives in .agents/project/skills/runbooks/<name>/ with its own
+// sections (.agents/kit-boundary.md, "Runbooks"); a moved 0.18 skill goes to
+// .agents/project/skills/<name>/, so its row is always a Pattern.
+test('a moved skill listed as Runbook in a catalog is written as Pattern, with a note', async () => {
+  const { target } = await legacyRepo();
+  for (const catalog of ['.agents/skills/06-patterns/index.md', '.agents/skills/registry.md']) {
+    const content = await read(target, catalog);
+    await write(target, catalog, content.split('\n').map((line) => (line.includes('`retry-policy`') ? line.replace('Standards/pattern', 'Runbook') : line)).join('\n'));
+  }
+  const plan = await buildUpdatePlan({ targetPath: target });
+  const migration = layoutMigration(plan);
+  assert.match(operationFor(plan, projectIndexPath).content, /^\| `retry-policy` \| Pattern \|/m);
+  assert.ok(migration.notes.some((note) => note.startsWith('`retry-policy` row: class Runbook written as Pattern')));
+});
+
 test('an own skill that cannot move is left pending, not moved and without a row', async () => {
   const { target, legacy } = await legacyRepo();
   const ownSkill = (name) => `---\nname: ${name}\ndescription: Own skill.\n---\n\n# Own\n`;
   const cases = [
     { directory: '.agents/skills/06-patterns/local/router-copy', files: { 'SKILL.md': ownSkill('workflow-router') }, reason: 'kit_skill_name' },
+    { directory: '.agents/skills/06-patterns/local/router-upper', files: { 'SKILL.md': ownSkill('Workflow-Router') }, reason: 'kit_skill_name' },
     { directory: legacy.localSkill.oldDir, files: {}, reason: 'project_skill_exists' },
+    { directory: '.agents/skills/06-patterns/local/existing', files: { 'SKILL.md': ownSkill('existing') }, reason: 'project_skill_exists' },
     { directory: '.agents/skills/06-patterns/local/escape', files: { 'SKILL.md': ownSkill('../escape') }, reason: 'invalid_skill_name' },
     { directory: '.agents/skills/06-patterns/authoring', files: { 'SKILL.md': ownSkill('authoring') }, reason: 'mixed_with_kit_files' },
     { directory: '.agents/skills/06-patterns/local/diagram', files: { 'SKILL.md': ownSkill('diagram'), 'diagram.png': Buffer.from([0x89, 0xff, 0xfe, 0x00]) }, reason: 'binary_file' },
+    // A link would move as the file it points to, or not at all.
+    { directory: '.agents/skills/06-patterns/local/linked-file', files: { 'SKILL.md': ownSkill('linked-file') }, links: { 'notes.md': '../../../../../README.md' }, reason: 'symlink' },
+    { directory: '.agents/skills/06-patterns/local/linked-dir', files: { 'SKILL.md': ownSkill('linked-dir') }, links: { shared: '../diagram' }, reason: 'symlink' },
     // Two own skills with one name: the first moves, the second waits.
-    { directory: '.agents/skills/06-patterns/local/zz-tool', files: { 'SKILL.md': ownSkill('tool') }, reason: 'project_skill_exists' }
+    { directory: '.agents/skills/06-patterns/local/zz-tool', files: { 'SKILL.md': ownSkill('tool') }, reason: 'project_skill_exists' },
+    { directory: '.agents/skills/06-patterns/local/zz-tool-upper', files: { 'SKILL.md': ownSkill('TOOL') }, reason: 'project_skill_exists' }
   ];
   await write(target, '.agents/skills/06-patterns/local/aa-tool/SKILL.md', ownSkill('tool'));
   await write(target, `${legacy.localSkill.newDir}/notes.md`, 'already in the overlay\n');
+  await write(target, '.agents/project/skills/Existing/SKILL.md', ownSkill('Existing'));
   for (const item of cases) {
     for (const [file, content] of Object.entries(item.files)) await write(target, `${item.directory}/${file}`, content);
+    for (const [file, linkTarget] of Object.entries(item.links ?? {})) await fs.symlink(linkTarget, path.join(target, item.directory, file));
   }
 
   const plan = await buildUpdatePlan({ targetPath: target });
 
   const pending = layoutMigration(plan).pending;
   for (const item of cases) {
-    assert.deepEqual(pending.find((entry) => entry.relativePath === `${item.directory}/`), { relativePath: `${item.directory}/`, reason: item.reason });
-    assert.deepEqual(plan.operations.filter((op) => op.migration && op.relativePath.startsWith(`${item.directory}/`)).map((op) => op.relativePath), [], item.reason);
+    assert.deepEqual(pending.find((entry) => entry.relativePath === `${item.directory}/`), { relativePath: `${item.directory}/`, reason: item.reason }, item.directory);
+    assert.deepEqual(plan.operations.filter((op) => op.migration && op.relativePath.startsWith(`${item.directory}/`)).map((op) => op.relativePath), [], item.directory);
   }
+  // The only moved skill and the catalog row that names a document.
   const rows = operationFor(plan, projectIndexPath).content.split('\n').filter((line) => line.startsWith('| `'));
-  assert.deepEqual(rows.map((line) => line.split('|')[1].trim()), ['`tool`']);
-  assert.match(layoutMigration(plan).summary, /own skills moved to \.agents\/project\/skills\/ 1 \(6 pending\)/);
+  assert.deepEqual(rows.map((line) => line.split('|')[1].trim()), ['`tool`', '`release-handbook`']);
+  assert.match(layoutMigration(plan).summary, /own skills moved to \.agents\/project\/skills\/ 1 \(11 pending\)/);
 });
 
 test('moved skills join an existing project index as new rows, never changing the rows it has', async () => {
@@ -174,15 +224,18 @@ test('moved skills join an existing project index as new rows, never changing th
   // A registry that is not JSON has no rows to give; the Markdown catalogs still list the skill.
   await write(target, legacy.registryPath, '{ not json');
   const header = '| Skill name | Class | Trigger | Physical path | Cost hint |\n| --- | --- | --- | --- | --- |';
-  const retryRow = `| \`retry-policy\` | Pattern | ${legacy.localSkill.contents['SKILL.md'].match(/^description: (.*)$/m)[1]} | \`.agents/project/skills/retry-policy/SKILL.md\` | lean |`;
+  // The catalog rows keep the team's text; a skill no catalog lists takes its description.
+  const [retryRow, handbookRow] = legacy.projectIndexRows;
   const bareRow = '| `bare` | Pattern | Project skill moved from .agents/skills/06-patterns/local/bare/. | `.agents/project/skills/bare/SKILL.md` | lean |';
   const foldedRow = '| `folded` | Pattern | Folded text. | `.agents/project/skills/folded/SKILL.md` | lean |';
   const ownRow = '| `x` | Pattern | t | `.agents/project/skills/x/SKILL.md` | lean |';
+  const crlf = (text) => text.replaceAll('\n', '\r\n');
   const cases = [
-    { name: 'no Skills section', index: '# Mine\n\nNotes.\n', expected: `# Mine\n\nNotes.\n\n## Skills\n\n${header}\n${bareRow}\n${foldedRow}\n${retryRow}\n` },
-    { name: 'a Skills table', index: `## Skills\n\n${header}\n${ownRow}\n\n## Shadows\n`, expected: `## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n\n## Shadows\n` },
-    { name: 'a Skills heading without a table', index: '## Skills\n\nNone yet.\n', expected: `## Skills\n\n${header}\n${bareRow}\n${foldedRow}\n${retryRow}\n\nNone yet.\n` },
-    { name: 'a row for the new path already', index: `## Skills\n\n${header}\n${retryRow}\n`, expected: `## Skills\n\n${header}\n${retryRow}\n${bareRow}\n${foldedRow}\n` }
+    { name: 'no Skills section', index: '# Mine\n\nNotes.\n', expected: `# Mine\n\nNotes.\n\n## Skills\n\n${header}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n` },
+    { name: 'a Skills table', index: `## Skills\n\n${header}\n${ownRow}\n\n## Shadows\n`, expected: `## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n\n## Shadows\n` },
+    { name: 'a Skills heading without a table', index: '## Skills\n\nNone yet.\n', expected: `## Skills\n\n${header}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n\nNone yet.\n` },
+    { name: 'a row for the new path already', index: `## Skills\n\n${header}\n${retryRow}\n`, expected: `## Skills\n\n${header}\n${retryRow}\n${bareRow}\n${foldedRow}\n${handbookRow}\n` },
+    { name: 'CRLF line endings', index: crlf(`## Skills\n\n${header}\n${ownRow}\n`), expected: crlf(`## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n`) }
   ];
   for (const item of cases) {
     await write(target, projectIndexPath, item.index);
@@ -196,16 +249,49 @@ test('moved skills join an existing project index as new rows, never changing th
   }
 });
 
+// Moving a skill without its row would hide it from the router: when the
+// index has a table the migration cannot extend safely, nothing that needs a
+// row moves, and the index is not written.
+test('an index whose tables the migration cannot extend is not written and every move that needs a row waits', async () => {
+  const { target, legacy } = await legacyRepo();
+  await appendTo(target, leafSkill.path, '\nOwn step.\n');
+  const skillsHeader = '| Skill name | Class | Trigger | Physical path | Cost hint |\n| --- | --- | --- | --- | --- |';
+  const cases = [
+    { name: 'a 3-column Skills table', index: '## Skills\n\n| Skill | Trigger | Path |\n| --- | --- | --- |\n' },
+    { name: 'a Skills table inside a code fence', index: `# Catalog\n\n\`\`\`markdown\n## Skills\n\n${skillsHeader}\n\`\`\`\n` },
+    { name: 'a 3-column Shadows table', index: `## Skills\n\n${skillsHeader}\n\n## Shadows\n\n| Kit skill | Shadow directory | Notes |\n| --- | --- | --- |\n` }
+  ];
+  for (const item of cases) {
+    await write(target, projectIndexPath, item.index);
+
+    const plan = await buildUpdatePlan({ targetPath: target, edited: { [leafSkill.path]: 'shadow' } });
+
+    const migration = layoutMigration(plan);
+    assert.equal(operationFor(plan, projectIndexPath), undefined, item.name);
+    assert.deepEqual(plan.operations.filter((op) => op.relativePath.startsWith('.agents/project/skills/') || op.relativePath.startsWith(legacy.localSkill.oldDir) || op.relativePath.startsWith(shadowDirectory)).map((op) => op.relativePath), [], item.name);
+    assert.equal(operationFor(plan, leafSkill.path).operation, 'skip_modified', item.name);
+    for (const entry of [
+      { relativePath: projectIndexPath, reason: 'project_index_unexpected' },
+      { relativePath: `${legacy.localSkill.oldDir}/`, reason: 'project_index_unexpected' },
+      { relativePath: leafSkill.path, reason: 'project_index_unexpected', decisions: ['keep', 'discard', 'shadow'] }
+    ]) assert.deepEqual(migration.pending.find((pending) => pending.relativePath === entry.relativePath), entry, `${item.name}: ${entry.relativePath}`);
+  }
+});
+
 // Edge case Datos vacios: nothing to move means nothing created for it.
-test('without own skills or a legacy context the migration creates no project index and moves nothing', async () => {
+test('without own skills, project catalog rows or a legacy context the migration creates no project index and moves nothing', async () => {
   const { target, legacy } = await legacyRepo();
   await fs.rm(path.join(target, legacy.localSkill.oldDir), { recursive: true });
   await fs.rm(path.join(target, legacy.ownContext.path));
+  // The skill's rows stay in the catalogs, naming a folder that is gone.
+  const patternsIndex = '.agents/skills/06-patterns/index.md';
+  await write(target, patternsIndex, (await read(target, patternsIndex)).split('\n').filter((line) => !line.includes(legacy.handbook.path)).join('\n'));
 
   const plan = await buildUpdatePlan({ targetPath: target });
 
   assert.deepEqual(plan.operations.filter((item) => item.relativePath === projectIndexPath || item.relativePath.startsWith('.agents/project/skills/')), []);
   assert.match(layoutMigration(plan).summary, /own skills moved to \.agents\/project\/skills\/ 0;.*context moved: none;/);
+  assert.deepEqual(layoutMigration(plan).notes, [`\`${legacy.localSkill.name}\` row not moved: ${legacy.registryEntryPath} is under .agents/skills/ and is not an own skill`]);
 });
 
 test('a legacy file is never deleted unless its content is created at the new path', async () => {
@@ -224,6 +310,83 @@ test('a legacy file is never deleted unless its content is created at the new pa
   assert.equal(operationFor(plan, '.agents/old-notes.md'), undefined);
   assert.equal(operationFor(plan, '.agents/project/notes.md'), undefined);
   assert.match(layoutMigration(plan).summary, /context moved: none;/);
+});
+
+// The context moves as text: a file that is not UTF-8, or a folder at either
+// path, stays where it is and the new path is not planned.
+test('a legacy context that cannot move unchanged is left pending and nothing is planned at either path', async () => {
+  const cases = [
+    { name: 'legacy file not UTF-8', setup: (target, legacy) => write(target, legacy.ownContext.path, Buffer.from([0x23, 0x20, 0xff, 0xfe, 0x0a])) },
+    { name: 'legacy path is a folder', setup: async (target, legacy) => { await fs.rm(path.join(target, legacy.ownContext.path)); await write(target, `${legacy.ownContext.path}/notes.md`, '# Notes\n'); } },
+    { name: 'new path is a folder', setup: (target, legacy) => write(target, `${legacy.ownContext.newPath}/notes.md`, '# Notes\n') }
+  ];
+  for (const item of cases) {
+    const { target, legacy } = await legacyRepo();
+    await item.setup(target, legacy);
+
+    const plan = await buildUpdatePlan({ targetPath: target });
+
+    const touched = plan.operations.filter((op) => op.relativePath.startsWith(legacy.ownContext.path) || op.relativePath.startsWith(legacy.ownContext.newPath));
+    assert.deepEqual(touched.map((op) => `${op.operation}:${op.relativePath}`), [], item.name);
+    assert.deepEqual(layoutMigration(plan).pending.find((entry) => entry.relativePath === legacy.ownContext.path), { relativePath: legacy.ownContext.path, reason: 'legacy_path_unsupported' }, item.name);
+    assert.match(layoutMigration(plan).summary, /context moved: none;/, item.name);
+  }
+});
+
+// Only the catalogs 0.18 preserved reach the planner as recorded; any other
+// kit file the 1.0.0 state does not record is someone's own text.
+test('an unrecorded kit file that differs from this version is pending until decided', async () => {
+  const { target } = await legacyRepo();
+  const agentPath = '.claude/agents/arquitecta-fases.md';
+  const statePath = path.join(target, installStateRelativePath);
+  const state = JSON.parse(await fs.readFile(statePath, 'utf8'));
+  delete state.files[agentPath];
+  await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`);
+  await write(target, agentPath, '# Our own architect agent\n');
+
+  const plan = await buildUpdatePlan({ targetPath: target });
+
+  assert.equal(operationFor(plan, agentPath).operation, 'skip_modified');
+  assert.deepEqual(layoutMigration(plan).pending.find((entry) => entry.relativePath === agentPath), { relativePath: agentPath, reason: 'unrecorded_kit_file', decisions: ['keep', 'discard'] });
+  const discarded = operationFor(await buildUpdatePlan({ targetPath: target, edited: { [agentPath]: 'discard' } }), agentPath);
+  assert.equal(discarded.operation, 'overwrite_with_backup');
+  await assert.rejects(buildUpdatePlan({ targetPath: target, edited: { [agentPath]: 'shadow' } }), invalidDecision(agentPath, 'shadow', ['keep', 'discard']));
+});
+
+// init plans as if nothing were installed: over a 1.0.0 state it would
+// replace the project content the migration moves.
+test('init over a 0.18.1 install stops before planning and points to update', async () => {
+  const { target } = await legacyRepo();
+  const before = await hashTree(target);
+
+  await assert.rejects(buildInstallPlan({ targetPath: target, runtime: 'claude' }), new Error(`${installStateRelativePath} uses install-state 1.0.0. Run \`workflow-kit update\` to migrate this repository; init would replace project content. Nothing was written.`));
+
+  assert.deepEqual(await hashTree(target), before);
+});
+
+// The journal of a run that stopped halfway is the only way back to the
+// 0.18.1 tree: no plan may overwrite it before the rollback.
+test('an apply that stops halfway blocks update and init until rollback, which restores the 0.18.1 tree', async () => {
+  const { target, legacy } = await legacyRepo();
+  const before = await hashTree(target);
+  const plan = await buildUpdatePlan({ targetPath: target });
+  // Hand-crafted failure: the retired delete reads a folder, after earlier writes.
+  const failing = operationFor(plan, legacy.retiredPath);
+  assert.ok(plan.operations.indexOf(failing) > 0);
+  failing.targetFile = path.join(target, '.agents/skills');
+  await assert.rejects(applyInstallPlan(plan), { code: 'EISDIR' });
+  const journalRaw = await read(target, journalPath);
+  const journal = JSON.parse(journalRaw);
+  assert.equal(journal.completed, false);
+  assert.ok(journal.files.length > 0);
+
+  const unfinished = new Error(`The last workflow-kit apply did not finish (${journal.appliedAt}). Run \`workflow-kit rollback --apply --yes\` first, then run this command again. Nothing was written.`);
+  await assert.rejects(buildUpdatePlan({ targetPath: target }), unfinished);
+  await assert.rejects(buildInstallPlan({ targetPath: target, runtime: 'claude' }), unfinished);
+  assert.equal(await read(target, journalPath), journalRaw);
+
+  await applyRollbackPlan(await buildRollbackPlan({ targetPath: target }));
+  assert.deepEqual(await hashTree(target), before);
 });
 
 test('with Windows state keys the migration deletes only the retired skill and the files it moves, nothing live', async () => {
@@ -351,15 +514,21 @@ test('deciding shadow, split and discard writes each file with a backup, also wi
   assert.deepEqual(again.operations.filter((item) => !nonWriting.has(item.operation)).map((item) => `${item.operation}:${item.relativePath}`), []);
 });
 
-test('split puts the new block where the template places it and keeps only the own lines (UC-6)', async () => {
+// split is offered only when the file holds the current kit text as one
+// region; the text around it is the team's, byte for byte, whatever it says.
+test('split puts the new block where the template places it and keeps the own text byte for byte (UC-6)', async () => {
   const { target } = await legacyRepo();
   const legacyClaude = await read(target, 'CLAUDE.md');
   const template = await fs.readFile(claudeTemplate, 'utf8');
   const { block } = extractManagedBlock(template, 'workflow-kit:managed');
+  const kitLine = legacyClaude.split('\n')[0];
+  const fence = '```sh\nmake test\n\n\n   \nmake lint\n```\n';
   const cases = [
-    // Lines of the old kit text are in the new block; blank runs collapse.
-    { name: 'notes around the old kit text', content: `Intro del equipo\n\n\n${legacyClaude}\n\n  \nNota del equipo.\n\n`, expected: `${block}\n\nIntro del equipo\n\nNota del equipo.\n` },
-    { name: 'a kit line removed and nothing own', content: legacyClaude.replace(/^.*\n/, ''), expected: template }
+    // Only the blank lines that touched the kit text go; one blank line keeps the two parts apart.
+    { name: 'notes around the old kit text', content: `Intro del equipo\n\n\n${legacyClaude}\n\n  \nNota del equipo.\n\n`, expected: `${block}\n\nIntro del equipo\n\nNota del equipo.\n\n` },
+    { name: 'an own line equal to a kit line', content: `${legacyClaude}\n${kitLine}\n\nNota del equipo.\n`, expected: `${block}\n\n${kitLine}\n\nNota del equipo.\n` },
+    { name: 'a code fence with blank runs', content: `${fence}\n${legacyClaude}`, expected: `${block}\n\n${fence}` },
+    { name: 'only blank lines around the kit text', content: `\n${legacyClaude}\n  \n`, expected: template }
   ];
   for (const item of cases) {
     await write(target, 'CLAUDE.md', item.content);
@@ -370,6 +539,11 @@ test('split puts the new block where the template places it and keeps only the o
     assert.equal(claude.operation, 'overwrite_with_backup', item.name);
     assert.equal(claude.content, item.expected, item.name);
   }
+
+  // A kit line the team changed: the own text cannot be told apart.
+  await write(target, 'CLAUDE.md', legacyClaude.replace(kitLine, `${kitLine} (ours)`));
+  assert.deepEqual(operationFor(await buildUpdatePlan({ targetPath: target }), 'CLAUDE.md').decisions, ['keep', 'discard']);
+  await assert.rejects(buildUpdatePlan({ targetPath: target, edited: { 'CLAUDE.md': 'split' } }), invalidDecision('CLAUDE.md', 'split', ['keep', 'discard']));
 });
 
 // A script that always passes --edited all=discard must keep working on a

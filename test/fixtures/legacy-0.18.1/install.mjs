@@ -1,7 +1,8 @@
 // Turns an empty directory into a repository that workflow-kit 0.18.1 installed
 // and later updated, with the content a team adds on top: a local pattern
-// skill, a written project context, project backend rules, and a kit file a
-// release before 0.18.1 retired. The structural files come from Git through
+// skill (with an executable script), catalog rows written by hand (one of them
+// for a document, not a skill), a written project context, project backend
+// rules, and a kit file a release before 0.18.1 retired. The structural files come from Git through
 // build.mjs (files/ and files.json); every other kit file is today's content,
 // recorded with the hash of what is on disk, so it reads as unedited.
 import { createHash } from 'node:crypto';
@@ -47,6 +48,7 @@ Load when a slice adds or changes a call to a service outside this repository.
 ## Must Read
 
 - \`references/notes.md\`
+- \`scripts/check-retries.sh\` lists calls that retry without a limit.
 
 ## Procedure
 
@@ -67,8 +69,31 @@ Load when a slice adds or changes a call to a service outside this repository.
 
 - Backoff starts at 200 ms and doubles per attempt, with up to 20% jitter.
 - A call that already has its own retry layer is not wrapped again.
+`,
+  'scripts/check-retries.sh': `#!/bin/sh
+# Lists calls that retry without a limit.
+grep -rn "retry(" app lib || true
 `
 };
+// Permission bits of the skill files that are not 644.
+const localSkillModes = { 'scripts/check-retries.sh': 0o755 };
+
+// Rows a team wrote by hand in the 0.18.1 catalogs: the skill's row has its
+// own trigger and cost, and the handbook row names a document, not a skill.
+const localSkillTriggerRow = 'Slice adds or changes a call to a service outside this repository';
+const localSkillCost = 'balanced';
+const handbook = {
+  path: 'docs/release-handbook.md',
+  content: '# Release Handbook\n\n1. Tag the release.\n2. Promote to production after the smoke check.\n',
+  row: '| `release-handbook` | Runbook | Before tagging a release or promoting to production | `docs/release-handbook.md` | Explicit-only | heavy |'
+};
+// The same rows in .agents/project/index.md after the layout migration: the
+// skill's path follows the skill and its class becomes Pattern (the project
+// catalog allows Pattern and Runbook); everything else is the team's text.
+const projectIndexRows = [
+  `| \`${localSkillName}\` | Pattern | ${localSkillTriggerRow} | \`.agents/project/skills/${localSkillName}/SKILL.md\` | ${localSkillCost} |`,
+  '| `release-handbook` | Runbook | Before tagging a release or promoting to production | `docs/release-handbook.md` | heavy |'
+];
 
 const ownContext = `# Project Context
 
@@ -223,12 +248,12 @@ async function mergedLegacyRegistry(target, templateContent) {
   return { content: `${JSON.stringify(registry, null, 2)}\n`, discovered };
 }
 
-// Adds a row after the last row of the table that lists pattern skills.
-function appendPatternRow(content, row) {
+// Adds rows after the last row of the table that lists pattern skills.
+function appendPatternRows(content, rows) {
   const lines = content.split('\n');
   const last = lines.findLastIndex((line) => line.startsWith('| `') && line.includes('`.agents/skills/06-patterns/'));
   if (last === -1) throw new Error('The 0.18.1 catalog has no pattern table.');
-  lines.splice(last + 1, 0, row);
+  lines.splice(last + 1, 0, ...rows);
   return lines.join('\n');
 }
 
@@ -259,18 +284,19 @@ export async function installLegacy0181(target, { runtimes = ['claude'], windows
 
   // c. Project content as a 0.18 team has it, and the retired kit file.
   for (const [file, content] of Object.entries(localSkillFiles)) await writeFile(target, `${localSkillOldDir}/${file}`, content);
+  for (const [file, mode] of Object.entries(localSkillModes)) await fs.chmod(path.join(target, localSkillOldDir, file), mode);
+  await writeFile(target, handbook.path, handbook.content);
   await writeFile(target, '.agents/project-context.md', ownContext);
   await writeFile(target, '.agents/project/backend.md', ownBackend);
   await writeFile(target, index.retired.target, await read(index.retired));
 
   const localSkillPath = `${localSkillOldDir}/SKILL.md`;
-  const shortTrigger = 'Slice adds or changes a call to a service outside this repository';
   const catalogRows = {
-    '.agents/skills/registry.md': `| \`${localSkillName}\` | Standards/pattern | \`${localSkillPath}\` | ${shortTrigger} | Just-in-time | lean | \`${localSkillName}\` | Project-local pattern. |`,
-    '.agents/skills/06-patterns/index.md': `| \`${localSkillName}\` | Standards/pattern | ${shortTrigger} | \`${localSkillPath}\` | Just-in-time | lean |`
+    '.agents/skills/registry.md': [`| \`${localSkillName}\` | Standards/pattern | \`${localSkillPath}\` | ${localSkillTriggerRow} | Just-in-time | ${localSkillCost} | \`${localSkillName}\` | Project-local pattern. |`],
+    '.agents/skills/06-patterns/index.md': [`| \`${localSkillName}\` | Standards/pattern | ${localSkillTriggerRow} | \`${localSkillPath}\` | Just-in-time | ${localSkillCost} |`, handbook.row]
   };
-  for (const [relativePath, row] of Object.entries(catalogRows)) {
-    await writeFile(target, relativePath, appendPatternRow(snapshotContent[relativePath].toString('utf8'), row));
+  for (const [relativePath, rows] of Object.entries(catalogRows)) {
+    await writeFile(target, relativePath, appendPatternRows(snapshotContent[relativePath].toString('utf8'), rows));
   }
   const registry = await mergedLegacyRegistry(target, snapshotContent[registryJsonPath].toString('utf8'));
   await writeFile(target, registryJsonPath, registry.content);
@@ -311,8 +337,11 @@ export async function installLegacy0181(target, { runtimes = ['claude'], windows
       newDir: `.agents/project/skills/${localSkillName}`,
       files: Object.keys(localSkillFiles),
       contents: { ...localSkillFiles },
+      modes: { ...localSkillModes },
       catalogRows
     },
+    handbook: { path: handbook.path, content: handbook.content },
+    projectIndexRows: [...projectIndexRows],
     ownContext: { path: '.agents/project-context.md', newPath: '.agents/project/context.md', content: ownContext },
     ownBackend: { path: '.agents/project/backend.md', content: ownBackend },
     qualityGate: { path: qualityGatePath, sha256: sha256(snapshotContent[qualityGatePath]) },

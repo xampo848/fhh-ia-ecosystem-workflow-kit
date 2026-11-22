@@ -33,17 +33,27 @@ export function createMemoryIo() {
   };
 }
 
-// Hash of every file under target, keyed by its "/" path, so "nothing
-// changed" also covers files no assertion names.
+// Every entry under target, keyed by its "/" path, so "nothing changed" also
+// covers what no assertion names: a file by its permission bits and content
+// hash, a directory (empty ones included) by its type, a symbolic link by
+// its target.
 export async function hashTree(target) {
-  const hashes = {};
+  const entries = {};
   async function walk(relativeDirectory) {
     for (const entry of await fs.readdir(path.join(target, relativeDirectory), { withFileTypes: true })) {
       const relativePath = path.posix.join(relativeDirectory, entry.name);
-      if (entry.isDirectory()) await walk(relativePath);
-      else hashes[relativePath] = createHash('sha256').update(await fs.readFile(path.join(target, relativePath))).digest('hex');
+      const absolute = path.join(target, relativePath);
+      if (entry.isSymbolicLink()) {
+        entries[relativePath] = `symlink -> ${await fs.readlink(absolute)}`;
+      } else if (entry.isDirectory()) {
+        entries[relativePath] = 'dir';
+        await walk(relativePath);
+      } else {
+        const mode = ((await fs.lstat(absolute)).mode & 0o777).toString(8);
+        entries[relativePath] = `file ${mode} ${createHash('sha256').update(await fs.readFile(absolute)).digest('hex')}`;
+      }
     }
   }
   await walk('.');
-  return hashes;
+  return entries;
 }
