@@ -118,7 +118,7 @@ function explainExistingRepoBehavior(write, paint) {
 const EDITED_FILES_QUESTION = 'Some workflow files in this project have your own edits. What should the update do with them?';
 const EDITED_FILES_OPTIONS = [
   { value: 'keep', label: 'Keep my edits (recommended)', description: 'Every edited file stays as it is and stays pending; the update changes nothing in them.' },
-  { value: 'replace-all', label: 'Replace all edited files with the kit version', description: 'Every edited file gets the kit version; a backup copy of your version is saved first.' },
+  { value: 'replace-all', label: 'Replace all edited files with the kit version', description: 'Every edited file gets the kit version; an adapter without markers whose kit text is intact keeps your own text outside the new markers. A backup copy of your version is saved first.' },
   { value: 'file-by-file', label: 'Decide file by file', description: 'One question per edited file, with only the choices that apply to it and a short diff.' }
 ];
 const EDITED_DECISION_OPTIONS = {
@@ -163,8 +163,8 @@ async function askEditedFileDecisions({ plan, prompter, write, paint }) {
     options: EDITED_FILES_OPTIONS
   });
   if (policy === 'keep') return undefined;
-  // Replace all is --edited all=discard.
-  if (policy === 'replace-all') return { all: 'discard' };
+  // Replace all: split where it applies (it keeps own adapter text), discard elsewhere.
+  if (policy === 'replace-all') return Object.fromEntries(decidable.map((item) => [item.relativePath, item.decisions.includes('split') ? 'split' : 'discard']));
 
   const edited = {};
   for (const item of decidable) {

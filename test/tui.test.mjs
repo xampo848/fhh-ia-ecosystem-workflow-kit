@@ -266,26 +266,34 @@ test('tui update keeps every edited file pending when the user keeps the default
   assert.equal(operationFor(result.plan, 'docs/workflow/README.md').operation, 'skip_modified');
 });
 
-test('tui update replaces every edited file with the kit version when the user picks Replace all', async () => {
-  const target = await makeTempRepo();
-  const installPlan = await buildInstallPlan({ targetPath: target, runtime: 'codex' });
-  await applyInstallPlan(installPlan);
-  await fs.writeFile(path.join(target, 'docs/workflow/README.md'), 'local override\n', 'utf8');
+// Final review 6 and 10: Replace all takes the kit version of every edited
+// file, but an unmarked adapter whose kit text is intact keeps its own text
+// (split); every replaced version is kept as a backup and project files stay.
+test('tui Replace all takes the kit version with a backup and keeps the own text of an adapter split applies to', async () => {
+  const { target, legacy } = await legacyRepoWithEdits();
+  const ownNote = '\nOwn note for Claude.\n';
+  await fs.appendFile(path.join(target, 'CLAUDE.md'), ownNote);
+  const edited = Object.fromEntries(await Promise.all([instructionsPath, leafSkillPath, 'CLAUDE.md'].map(async (relativePath) => [relativePath, await fs.readFile(path.join(target, relativePath), 'utf8')])));
 
   let output = '';
   const result = await runTui({
-    ask: scriptedAsk(['2', target, '2', '2', '', '', 'yes']),
+    ask: scriptedAsk(['2', target, '', '2', '', '', 'yes']),
     color: false,
     write: (message) => { output += message; }
   });
 
-  assert.equal(result.mode, 'update');
   assert.equal(result.applied, true);
+  const journal = JSON.parse(await fs.readFile(path.join(target, '.agents/workflow-kit/last-apply.json'), 'utf8'));
+  for (const [relativePath, content] of Object.entries(edited)) {
+    const entry = journal.files.find((file) => file.relativePath === relativePath);
+    assert.equal(await fs.readFile(path.join(target, entry.backup), 'utf8'), content, `${relativePath}: backup of the edited version`);
+  }
+  assert.doesNotMatch(await fs.readFile(path.join(target, instructionsPath), 'utf8'), /Local edit\./);
+  const claude = await fs.readFile(path.join(target, 'CLAUDE.md'), 'utf8');
+  assert.match(claude, /<!-- workflow-kit:managed:start -->/);
+  assert.ok(claude.includes(ownNote.trim()), 'CLAUDE.md keeps its own text');
+  assert.equal(await fs.readFile(path.join(target, legacy.ownContext.newPath), 'utf8'), legacy.ownContext.content);
   assert.match(output, /Protected local edits \(skipped\): 0/);
-  assert.match(output, /Backups created: [1-9]/);
-
-  const docsContent = await fs.readFile(path.join(target, 'docs/workflow/README.md'), 'utf8');
-  assert.notEqual(docsContent, 'local override\n');
 });
 
 test('tui update decides file by file with only the valid decisions, a short diff, and lists the files it cannot ask about (AC-15)', async () => {
