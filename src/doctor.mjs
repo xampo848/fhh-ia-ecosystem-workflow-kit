@@ -81,7 +81,9 @@ function journalDiagnostics(problem) {
 // What each pending reason of the update plan asks the user to do. Own
 // skills the layout migration cannot move are moved by hand.
 function pendingMessage(manifest, item) {
-  const decide = `Run \`workflow-kit update --edited ${item.relativePath}=${(item.decisions ?? ['keep', 'discard']).join('|')}\` (keep leaves it as it is; discard takes the kit version${item.decisions?.includes('shadow') ? '; shadow moves your edit to a project shadow' : ''}${item.decisions?.includes('split') ? '; split keeps your own lines next to a new block' : ''}).`;
+  // One decision per run; a list joined with | would be a shell pipe when pasted.
+  const decisions = item.decisions ?? ['keep', 'discard'];
+  const decide = `Run \`workflow-kit update --edited ${item.relativePath}=<decision>\`, where <decision> is ${decisions.length > 1 ? `${decisions.slice(0, -1).join(', ')} or ${decisions.at(-1)}` : decisions[0]} (keep leaves it as it is; discard takes the kit version${item.decisions?.includes('shadow') ? '; shadow moves your edit to a project shadow' : ''}${item.decisions?.includes('split') ? '; split keeps your own lines next to a new block' : ''}).`;
   const skillHome = `${manifest.project_root}skills/<name>/`;
   const moveByHand = (problem, step) => `${problem}, so the migration does not move it: ${step}move the folder by hand to ${skillHome} and add its row to ${projectIndexPath}.`;
   switch (item.reason) {

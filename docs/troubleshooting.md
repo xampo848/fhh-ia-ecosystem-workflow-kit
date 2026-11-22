@@ -52,12 +52,7 @@ Common cases:
   shadow to review. See "Doctor reports `boundary/*` or `managed/*` findings"
   below. These are warnings, never an automatic overwrite.
 
-Regenerate and verify the skill registry with:
-
-```bash
-node scripts/sync-skill-registry.mjs --write
-bun run check:workflow
-```
+Run `workflow-kit doctor` again after fixing a finding.
 
 ## Legacy docs map was generated and I am not sure what to do
 
@@ -168,12 +163,12 @@ lives in `.ai-work/<prd-slug>/`, ignored by Git. These warnings never fail
 
 ## Update shows `skip_modified` or `skip_unmanaged`
 
-- `skip_modified`: a kit file you edited (or an adapter without markers) is
+- `skip_modified`: a kit file you edited, an adapter without markers, or your
+  own file at a kit path the install never recorded (`unrecorded_kit_file`) is
   pending. The plan lists the decisions it accepts, for example
   `keep | discard`.
-- `skip_unmanaged`: a file exists at a workflow-kit path but is not tracked in
-  install state, or it is a project file the kit only seeds, so update does
-  not overwrite it.
+- `skip_unmanaged`: a project file the kit only seeds, or an adapter whose
+  markers are broken, so update does not overwrite it.
 
 Decide a pending file with `--edited` (since `0.22.0`; see
 `docs/migration.md`, "Deciding edited files"):
@@ -204,8 +199,8 @@ would build and names what is pending and how to resolve it.
 | `managed/symlink` | warning | a path the kit manages is, or passes through, a symbolic link | replace the link with a real file or folder; `init` and `update` refuse to write through it |
 | `managed/toolkit-version-mismatch` | warning | the last apply used another workflow-kit version than this CLI | run `workflow-kit update` (dry run first) |
 | `managed/path-unreadable` | error | `doctor` met a path it cannot read: a file where a folder of the path should be (for example `.agents/project` as a file), a folder where a file should be, or no permission | fix that path, then run `doctor` again |
-| `boundary/pending-edited_kit_file`, `boundary/pending-unrecorded_kit_file` | warning | a kit file differs from what the kit recorded (or was never recorded) | `workflow-kit update --edited <path>=keep\|discard` (plus `shadow` when the message offers it) |
-| `boundary/pending-unmarked_adapter` | warning | an adapter has no `workflow-kit:managed` block and was edited | `--edited <path>=keep\|discard`, or `split` when offered |
+| `boundary/pending-edited_kit_file`, `boundary/pending-unrecorded_kit_file` | warning | a kit file differs from what the kit recorded (or was never recorded) | `workflow-kit update --edited <path>=<decision>` with `keep` or `discard` (or `shadow` when the message offers it) |
+| `boundary/pending-unmarked_adapter` | warning | an adapter has no `workflow-kit:managed` block and was edited | `--edited <path>=<decision>` with `keep` or `discard`, or `split` when offered |
 | `boundary/pending-retired_edited` | warning | the kit no longer ships this file and you edited it | delete it, or keep it as project content outside the kit folders |
 | `boundary/pending-symlink`, `-project_skill_exists`, `-kit_skill_name`, `-invalid_skill_name`, `-mixed_with_kit_files`, `-binary_file` | warning | an own skill could not move to the overlay during the migration | follow the step in the message, move the folder by hand to `.agents/project/skills/<name>/` and add its row to `.agents/project/index.md` |
 | `boundary/pending-legacy_path_unsupported` | warning | the legacy context is not UTF-8 text or a folder is in the way | fix the file, then run `update` |

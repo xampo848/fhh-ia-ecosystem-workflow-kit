@@ -29,8 +29,8 @@ Operation meanings in preview:
 - `overwrite_with_backup`: write with backup first
 - `merge_with_backup`: intelligent merge with backup first
 - `overwrite_no_backup` / `merge_no_backup`: same, with `--backup-mode none`
-- `skip_modified`: managed local edit protected during update
-- `skip_unmanaged`: unmanaged collision protected during update
+- `skip_modified`: pending during update: a kit file you edited, or your own file at a kit path the install never recorded
+- `skip_unmanaged`: a project file the kit only seeds (or an adapter with broken markers), left as it is
 - `adopt_existing`: baseline captured during update bootstrap
 
 ## 2. Preview selected runtime adapters
@@ -200,7 +200,7 @@ Apply update:
 workflow-kit update --target /path/to/repo --apply --yes
 ```
 
-Local edits in tracked files are preserved (`skip_modified`), and untracked path collisions are ignored (`skip_unmanaged`).
+Local edits in tracked files, and your own files at kit paths the install never recorded, stay pending (`skip_modified`) until you decide them with `--edited`; project files the kit only seeds are left as they are (`skip_unmanaged`).
 
 When an update includes a smart composition, it appears as `merge_with_backup`.
 

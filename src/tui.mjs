@@ -108,7 +108,7 @@ const defaultCommandExists = upgradeCommandExists;
 
 function explainExistingRepoBehavior(write, paint) {
   write(`${paint.bold('Existing repo behavior')}\n`);
-  write(`${paint.dim('- Local .agents/skills/**/SKILL.md files will be auto-registered into registry.json.')}\n`);
+  write(`${paint.dim('- Own skills go to .agents/project/skills/<name>/ with a row in .agents/project/index.md; SKILL.md files under .agents/skills/ that the kit does not ship are not registered.')}\n`);
   write(`${paint.dim('- Old docs are never moved automatically by the TUI.')}\n`);
   write(`${paint.dim('- Review docs/workflow/migration/legacy-docs-map.md and relocate docs manually if needed.')}\n\n`);
 }

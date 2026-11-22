@@ -94,7 +94,7 @@ test('doctor lists what update leaves pending and what is neither kit nor projec
   const result = await runDoctor({ targetPath: target });
 
   assertFindings(result, [
-    ['boundary/pending-edited_kit_file', '.agents/instructions.md', /workflow-kit update --edited \.agents\/instructions\.md=keep\|discard/],
+    ['boundary/pending-edited_kit_file', '.agents/instructions.md', /workflow-kit update --edited \.agents\/instructions\.md=<decision>`, where <decision> is keep or discard/],
     ['boundary/pending-retired_edited', retired, /the kit no longer ships it; delete it or keep it as project content outside the kit folders/],
     ['boundary/adapter-block-edited', 'CLAUDE.md', /next update restores the block.*move your text outside the markers/],
     ['boundary/unowned-path', own, /neither kit nor project; move it to \.agents\/project\/ \(skills go to \.agents\/project\/skills\/<name>\/ with a row in \.agents\/project\/index\.md\)/],
@@ -155,8 +155,8 @@ test('with a 1.0.0 state doctor asks for the migration and lists what it would l
 
   assertFindings(result, [
     ['managed/legacy-layout', installStateRelativePath, /run workflow-kit update \(dry run first\) to migrate to the kit\/project overlay layout/],
-    ['boundary/pending-edited_kit_file', '.agents/instructions.md', /workflow-kit update --edited \.agents\/instructions\.md=keep\|discard/],
-    ['boundary/pending-unmarked_adapter', 'CLAUDE.md', /workflow-kit update --edited CLAUDE\.md=keep\|discard\|split/],
+    ['boundary/pending-edited_kit_file', '.agents/instructions.md', /workflow-kit update --edited \.agents\/instructions\.md=<decision>`, where <decision> is keep or discard/],
+    ['boundary/pending-unmarked_adapter', 'CLAUDE.md', /workflow-kit update --edited CLAUDE\.md=<decision>`, where <decision> is keep, discard or split/],
     ['boundary/pending-kit_skill_name', `${kitNamed}/`, /move the folder by hand to \.agents\/project\/skills\/<name>\/.*add its row to \.agents\/project\/index\.md/],
     ['boundary/pending-catalog_row_not_moved', ghostPath, /`ghost`.*add the row to \.agents\/project\/index\.md by hand/]
   ]);

@@ -62,6 +62,9 @@ test('tui previews plan and default decline writes nothing', async () => {
   assert.match(output, /Full FHH IA Ecosystem flow selected \(recommended\)\./);
   assert.match(output, /Mission control/);
   assert.match(output, /Legacy docs are not moved automatically/);
+  // Round 4 (N9): own skills are not registered from the kit tree.
+  assert.doesNotMatch(output, /auto-registered/);
+  assert.match(output, /Own skills go to \.agents\/project\/skills\/<name>\/ with a row in \.agents\/project\/index\.md/);
   assert.match(output, /Aborted\. No files were written\./);
   await assert.rejects(fs.access(path.join(target, '.agents/instructions.md')), { code: 'ENOENT' });
 });

@@ -375,7 +375,7 @@ export function renderSummary(write, paint, plan) {
 
   if (plan.mode !== 'export') {
     write(`\n${paint.bold('What happens automatically')}\n`);
-    write(`  ${paint.dim('Skills found in .agents/skills/**/SKILL.md are auto-registered into registry.json.')}\n`);
+    write(`  ${paint.dim('Own skills go to .agents/project/skills/<name>/ with a row in .agents/project/index.md; a SKILL.md under .agents/skills/ that the kit does not ship is not registered (doctor names it).')}\n`);
     write(`  ${paint.dim('Legacy docs are not moved automatically; workflow-kit only creates the migration map.')}\n`);
   }
 
