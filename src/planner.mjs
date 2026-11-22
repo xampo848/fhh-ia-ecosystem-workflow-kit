@@ -678,7 +678,8 @@ export function selectPlanOperations(plan, selectedRelativePaths = []) {
     overlay: plan.overlay,
     modelProfiles: plan.modelProfiles,
     stackPack: plan.stackPack,
-    toolkitVersion: plan.toolkitVersion
+    toolkitVersion: plan.toolkitVersion,
+    mode: plan.nextInstallState?.mode
   });
 
   return {

@@ -5,9 +5,10 @@ import path from 'node:path';
 import test from 'node:test';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { buildInstallPlan, installStateRelativePath } from '../src/planner.mjs';
+import { runCli } from '../src/cli.mjs';
 import { runTui } from '../src/tui.mjs';
 import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
-import { hashTree, makeTempRepo } from './helpers.mjs';
+import { createMemoryIo, hashTree, makeTempRepo } from './helpers.mjs';
 
 // An answer is a string, or a function of the output written so far.
 function scriptedAsk(answers, readOutput = () => '') {
@@ -477,6 +478,20 @@ test('tui export mode writes workflow files into the selected output directory',
   assert.match(output, /Exported files:/);
   await fs.access(path.join(target, '.agents/instructions.md'));
   await fs.access(path.join(target, 'AGENTS.md'));
+});
+
+// Round 6 (S1): the backup-mode and file-selection prompts rebuild the plan's
+// state; an export keeps mode "export", so it can be exported over again.
+test('tui export with the selection prompts records an export that can be refreshed', async () => {
+  const target = await makeTempRepo('workflow-kit-tui-export-');
+  const exportAnswers = () => scriptedAsk(['3', target, '1', '', '', '', '', 'yes']);
+  const exportOnce = () => runTui({ ask: exportAnswers(), env: {}, color: false, write: () => {}, enableScriptedAdvancedPrompts: true });
+
+  assert.equal((await exportOnce()).applied, true);
+  assert.equal(JSON.parse(await fs.readFile(path.join(target, installStateRelativePath), 'utf8')).mode, 'export');
+  assert.equal((await exportOnce()).applied, true, 'TUI export again');
+  const io = createMemoryIo();
+  assert.equal(await runCli(['export', '--output', target, '--apply', '--yes'], io), 0, io.output.stderr);
 });
 
 // Round 5 (R1): the TUI export stops over an installed repository root too.
