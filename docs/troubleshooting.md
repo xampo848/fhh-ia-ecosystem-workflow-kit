@@ -27,7 +27,7 @@ Recommended action:
 
 ## Doctor reports missing files
 
-Run `doctor` with the same runtime options used for install. If files are still missing, rerun `init` in dry-run mode to see what would be created.
+Run `doctor` with the same runtime options used for install. If files are still missing, run `update` in dry-run mode to see what would be created (`init` stops on an existing install).
 
 ## Doctor reports semantic diagnostics
 
@@ -42,17 +42,17 @@ Common cases:
   the wording of an older version.
 - `managed/install-state-unusable`: `install-state.json` is corrupt or was
   written by a newer CLI. Restore it from Git or upgrade the CLI.
-- `skills/unregistered-file`: register the skill in
-  `.agents/skills/registry.md`, then regenerate structured artifacts.
-- `managed/content-drift`: a managed file changed locally; review it before
-  running an update. This is a warning, not an automatic overwrite.
+- `skills/unregistered-file` (warning): a `SKILL.md` under `.agents/skills/`
+  that the kit registry does not list, so it is not kit content. If a
+  `boundary/*` finding names it or its folder, follow that; otherwise move the
+  skill to `.agents/project/skills/<name>/` with a row in
+  `.agents/project/index.md`. Do not register it in `.agents/skills/registry.md`:
+  that is a kit file, and editing it leaves it pending.
+- `boundary/*`: a kit file you edited, an own file inside a kit folder, or a
+  shadow to review. See "Doctor reports `boundary/*` or `managed/*` findings"
+  below. These are warnings, never an automatic overwrite.
 
-Regenerate and verify the skill registry with:
-
-```bash
-node scripts/sync-skill-registry.mjs --write
-bun run check:workflow
-```
+Run `workflow-kit doctor` again after fixing a finding.
 
 ## Legacy docs map was generated and I am not sure what to do
 
@@ -126,12 +126,16 @@ copies.
 | --- | --- | --- |
 | `project-instructions/not-migrated` | rules exist only in `.github/instructions/`, so other runtimes skip them | run `workflow-kit update`; it copies them to `.agents/project/` and regenerates the Copilot file with a backup |
 | `project-instructions/wrapper-stale` | the generated Copilot file differs from the neutral one | run `workflow-kit update`; edit `.agents/project/<name>.md`, never the generated copy |
-| `project-instructions/quality-gate-missing` | no quality gate is configured | run `workflow-kit update` to restore the default; until then code-writing work reports `quality gate: no configurado` and N3 work stops |
-| `stack-pack/missing` | a stack pack is recorded but `.agents/project/stack.md` is gone | run `workflow-kit update --stack <pack> --apply --yes` |
+| `stack-pack/missing` | a stack pack is recorded but `.agents/project/stack.md` is gone | restore it from Git, or copy `templates/stack-packs/<pack>/stack.md` again by hand: `update` never recreates a project file it created once |
+
+Since `0.22.0` the quality gate default belongs to the kit
+(`.agents/delegation/quality-gate.md`) and always applies;
+`.agents/project/quality-gate.md` only holds project additions and may be
+missing.
 
 ## Doctor reports `project-context/*` warnings
 
-`.agents/project-context.md` is the project's fixed knowledge base: structure
+`.agents/project/context.md` (legacy path: `.agents/project-context.md`) is the project's fixed knowledge base: structure
 map, validation commands with their cost, test conventions, environment
 quirks, and pointers to architecture docs. Discovery reads it first.
 
@@ -140,6 +144,7 @@ quirks, and pointers to architecture docs. Discovery reads it first.
 | `project-context/not-initialized` | the file is still the installed template | run an initial Discovery of the project (an N2 task), review the result, and remove the template marker |
 | `project-context/too-long` | more than 200 lines | point to other documents instead of copying them |
 | `project-context/missing-path` | it names a path that no longer exists | fix it at the next closure; only the orchestrator edits this file |
+| `project-context/both-paths` | the file exists at both paths | merge the legacy file into `.agents/project/context.md` and delete `.agents/project-context.md` |
 
 ## Doctor reports `workspace/*` or `prd/section-10-oversized` warnings
 
@@ -158,33 +163,68 @@ lives in `.ai-work/<prd-slug>/`, ignored by Git. These warnings never fail
 
 ## Update shows `skip_modified` or `skip_unmanaged`
 
-- `skip_modified`: the file is managed but was changed locally after last apply, so update protects it.
-- `skip_unmanaged`: file exists at a workflow-kit path but is not tracked in install state, so update does not overwrite it.
+- `skip_modified`: a kit file you edited, an adapter without markers, or your
+  own file at a kit path the install never recorded (`unrecorded_kit_file`) is
+  pending. The plan lists the decisions it accepts, for example
+  `keep | discard`.
+- `skip_unmanaged`: a project file the kit only seeds, or an adapter whose
+  markers are broken, so update does not overwrite it.
 
-If you want that file managed, align content intentionally and re-run with review.
+Decide a pending file with `--edited` (since `0.22.0`; see
+`docs/migration.md`, "Deciding edited files"):
 
-To take the new version of a protected file (since `0.16.1`): move any rule of
-your own to `.agents/project/` or `.agents/project-context.md`, copy the
-workflow-kit version of the file over yours, and run `update` again. A file
-whose content equals what this version would write is reported as `unchanged`
-and stops being protected. `update --diff` shows the difference beforehand.
+```bash
+workflow-kit update --target /path/to/repo --edited .agents/instructions.md=discard --apply --yes
+```
 
-## Doctor reports `skills/local-catalog-missing-skill`
+Before taking the kit version, move any rule of your own to the project
+overlay: `.agents/project/routing.md` for routing rules,
+`.agents/project/quality-gate.md` for quality additions, a project skill or a
+shadow for a skill (`.agents/kit-boundary.md`). A file whose content equals
+what this version would write is reported as `unchanged` and stops being
+pending. `update --diff` shows the difference beforehand.
 
-Your repository keeps its own `.agents/skills/index.md` or
-`.agents/skills/registry.md` (for example, because it lists local skills). The
-skill is installed, but the router discovers skills through the index and
-cannot find it.
+## Doctor reports `boundary/*` or `managed/*` findings (since 0.22.0)
 
-Since `0.17.2`, `update` adds the rows of skills introduced by later versions
-next to the related skills and never changes your rows. Run `workflow-kit
-update` first. If the warning stays, the catalog has no table under the
-workflow-kit heading (for example, `## Direct routing inventory`): copy the rows
-named in the message from the workflow-kit version of the same file.
+The kit owns a closed list of paths (`.agents/workflow-kit/manifest.json`);
+the project owns `.agents/project/`. `doctor` reads the same plan `update`
+would build and names what is pending and how to resolve it.
 
-If a script of your own regenerates the catalog (for example, from
-`registry.md`), add the new skills to that script as well; otherwise the next
-regeneration drops the rows again.
+| Code | Severity | Meaning | Action |
+| --- | --- | --- | --- |
+| `managed/legacy-layout` | warning | the install still has `install-state` `1.0.0` | run `workflow-kit update` (dry run first) to migrate; see `docs/migration.md` |
+| `managed/apply-incomplete` | error | the last apply stopped halfway | `workflow-kit rollback --apply --yes`, then run the command again |
+| `managed/apply-journal-unusable` | error | `.agents/workflow-kit/last-apply.json` cannot be read, so `rollback` cannot use it | fix it by hand (Git does not track it); only if you will not roll back the last apply, move it out of `.agents/workflow-kit/` |
+| `managed/install-state-unusable` | error | `install-state.json` cannot be read | restore it from Git, or upgrade the CLI if a newer version wrote it |
+| `managed/symlink` | warning | a path the kit manages is, or passes through, a symbolic link | replace the link with a real file or folder; `init` and `update` refuse to write through it |
+| `managed/toolkit-version-mismatch` | warning | the last apply used another workflow-kit version than this CLI | run `workflow-kit update` (dry run first) |
+| `managed/path-unreadable` | error | `doctor` met a path it cannot read: a file where a folder of the path should be (for example `.agents/project` as a file), a folder where a file should be, or no permission | fix that path, then run `doctor` again |
+| `boundary/pending-edited_kit_file`, `boundary/pending-unrecorded_kit_file` | warning | a kit file differs from what the kit recorded (or was never recorded) | `workflow-kit update --edited <path>=<decision>` with `keep` or `discard` (or `shadow` when the message offers it) |
+| `boundary/pending-unmarked_adapter` | warning | an adapter has no `workflow-kit:managed` block and was edited | `--edited <path>=<decision>` with `keep` or `discard`, or `split` when offered |
+| `boundary/pending-retired_edited` | warning | the kit no longer ships this file and you edited it | delete it, or keep it as project content outside the kit folders |
+| `boundary/pending-symlink`, `-project_skill_exists`, `-kit_skill_name`, `-invalid_skill_name`, `-mixed_with_kit_files`, `-binary_file` | warning | an own skill could not move to the overlay during the migration | follow the step in the message, move the folder by hand to `.agents/project/skills/<name>/` and add its row to `.agents/project/index.md` |
+| `boundary/pending-legacy_path_unsupported` | warning | the legacy context is not UTF-8 text or a folder is in the way | fix the file, then run `update` |
+| `boundary/pending-catalog_row_not_moved` | warning | a project row of an old catalog could not be moved | add it to `.agents/project/index.md` by hand |
+| `boundary/adapter-block-edited` | warning | the text inside an adapter's `workflow-kit:managed` block was edited | the next `update` restores the block; keep your text outside the markers |
+| `boundary/shadow-outdated` | warning | the kit skill changed since the shadow was made, or the kit no longer ships it | compare, refresh the shadow and its `base_sha256` (or remove it) |
+| `boundary/shadow-invalid` | warning | a listed shadow has no valid `shadow.json` | write it as `.agents/kit-boundary.md` describes |
+| `boundary/ignored-state-key` | warning | `install-state.json` has a key that is absolute or contains `.`/`..` | remove that key |
+| `boundary/unowned-path` | warning | a file under a kit folder is neither shipped by the kit nor recorded | move it to `.agents/project/` (skills to `.agents/project/skills/<name>/` with a row in the project index) |
+| `boundary/update-plan-failed` | warning | `doctor` could not build the update plan (for example, a `1.0.0` install whose `.agents/project/index.md` has a `## Skills` or `## Shadows` table with another header, so the migration stops) | fix the error in the message, then run `doctor` again |
+
+Things to know:
+
+- `init` never runs over an existing install: on a `1.0.0` or `2.0.0` install
+  it stops and asks for `update` (with `--runtime`, `--stack` or
+  `--profile` to change those choices; the TUI Install stops the same way).
+- After an apply that stopped halfway, `init` and `update` refuse to run until
+  `rollback` undoes it, so its journal is never overwritten.
+- Empty folders inside an own skill are not recreated by the migration.
+- A file where the plan needs a folder (for example `docs`, `.agents/project`
+  or `.agents/project/skills` as a file), or a folder where it writes a file
+  (for example `.agents/kit-boundary.md` as a folder), stops `init` and
+  `update` before anything is written; move it aside.
+- An adapter with Windows (CRLF) line endings never qualifies for `split`.
 
 ## `last-apply.json` was committed
 

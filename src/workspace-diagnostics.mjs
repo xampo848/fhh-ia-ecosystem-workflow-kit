@@ -4,6 +4,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { gitignoreHasWorkspaceEntry, workspaceDirectory } from './planner.mjs';
+import { legacyPathFor, loadKitManifest } from './kit-manifest.mjs';
 
 export const staleWorkspaceDays = 14;
 export const section10LineGuide = 60;
@@ -75,30 +76,43 @@ async function collectPrds(targetPath) {
   return { prds, legacyMeta };
 }
 
-export const projectContextPath = '.agents/project-context.md';
+// Current overlay path; a repository installed before 0.22 may still keep the
+// file at the legacy path the manifest maps to it (legacy_paths).
+export const projectContextPath = '.agents/project/context.md';
 export const projectContextLineLimit = 200;
 const projectContextTemplateMarker = '<!-- workflow-kit:project-context:template -->';
 const pathLike = /^[A-Za-z0-9_.@-][A-Za-z0-9_.@/-]*$/;
 
 // Checks that the project's fixed knowledge base is filled in, short, and
 // still points to paths that exist.
-export async function projectContextDiagnostics({ targetPath }) {
-  let content;
+async function readOptional(file) {
   try {
-    content = await fs.readFile(path.join(targetPath, projectContextPath), 'utf8');
+    return await fs.readFile(file, 'utf8');
   } catch (error) {
-    if (error.code === 'ENOENT') return [];
+    if (error.code === 'ENOENT') return null;
     throw error;
   }
+}
+
+export async function projectContextDiagnostics({ targetPath }) {
+  const legacyPath = legacyPathFor(await loadKitManifest(), projectContextPath);
+  const current = await readOptional(path.join(targetPath, projectContextPath));
+  const legacy = legacyPath ? await readOptional(path.join(targetPath, legacyPath)) : null;
+  const both = current !== null && legacy !== null
+    ? [warning('project-context/both-paths', legacyPath, `Both ${projectContextPath} and ${legacyPath} exist, and the workflow reads only ${projectContextPath}; merge them into ${projectContextPath} and delete ${legacyPath}.`)]
+    : [];
+  if (current === null && legacy === null) return [];
+  const contextPath = current !== null ? projectContextPath : legacyPath;
+  const content = current ?? legacy;
 
   if (content.includes(projectContextTemplateMarker)) {
-    return [warning('project-context/not-initialized', projectContextPath, 'Still the template. Generate the first version with an initial Discovery of the project (an N2 task), review it, and remove the template marker.')];
+    return [...both, warning('project-context/not-initialized', contextPath, 'Still the template. Generate the first version with an initial Discovery of the project (an N2 task), review it, and remove the template marker.')];
   }
 
-  const diagnostics = [];
+  const diagnostics = [...both];
   const lines = content.split('\n').length;
   if (lines > projectContextLineLimit) {
-    diagnostics.push(warning('project-context/too-long', projectContextPath, `${lines} lines (limit: ${projectContextLineLimit}). Point to other documents instead of copying them.`));
+    diagnostics.push(warning('project-context/too-long', contextPath, `${lines} lines (limit: ${projectContextLineLimit}). Point to other documents instead of copying them.`));
   }
 
   const missing = new Set();
@@ -113,7 +127,7 @@ export async function projectContextDiagnostics({ targetPath }) {
     }
   }
   for (const candidate of [...missing].sort()) {
-    diagnostics.push(warning('project-context/missing-path', projectContextPath, `Points to \`${candidate}\`, which does not exist. Update the file at the next closure.`));
+    diagnostics.push(warning('project-context/missing-path', contextPath, `Points to \`${candidate}\`, which does not exist. Update the file at the next closure.`));
   }
   return diagnostics;
 }

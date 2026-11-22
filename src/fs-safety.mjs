@@ -54,7 +54,9 @@ export const writingOperations = new Set([
   'overwrite_with_backup',
   'overwrite_no_backup',
   'merge_with_backup',
-  'merge_no_backup'
+  'merge_no_backup',
+  // A delete through a link would remove a file somewhere else.
+  'delete_with_backup'
 ]);
 
 // Fails the whole plan when a write would go through a symbolic link: the
@@ -72,10 +74,61 @@ export async function assertNoSymlinkWrites(targetPath, operations) {
 
   const links = [...new Set(offending.map((item) => item.link))].sort();
   throw new Error([
-    `Refusing to write through symbolic links in the target (${offending.length} file(s) affected):`,
+    `Refusing to write or delete through symbolic links in the target (${offending.length} file(s) affected):`,
     ...links.map((link) => `- ${link}`),
     'Replace each link with a real file or directory, or leave that runtime out with --runtime, then run again.'
   ].join('\n'));
+}
+
+// Fails before planning reads anything when a path the kit writes needs a
+// folder where a file stands (for example docs or .agents/project as a file)
+// or is itself a folder: the plan could not read it, and the apply would stop
+// halfway. `folders` are paths that must be folders when they exist. Paths
+// that do not exist yet are fine.
+export async function assertPathShapes(targetPath, relativePaths, folders = []) {
+  const root = path.resolve(targetPath);
+  const kinds = new Map();
+  const kindOf = async (relativePath) => {
+    if (!kinds.has(relativePath)) {
+      let kind = 'missing';
+      try {
+        const stat = await fs.lstat(path.join(root, relativePath));
+        // A symbolic link is refused by assertNoSymlinkWrites with its own message.
+        kind = stat.isSymbolicLink() ? 'link' : stat.isDirectory() ? 'folder' : 'file';
+      } catch (error) {
+        if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') throw error;
+      }
+      kinds.set(relativePath, kind);
+    }
+    return kinds.get(relativePath);
+  };
+  const problems = new Map();
+  // A folder path is checked like the path of a file inside it.
+  for (const relativePath of [...relativePaths, ...folders.map((folder) => `${folder}/\0`)]) {
+    const segments = String(relativePath).split(/[\\/]+/).filter(Boolean);
+    let walked = '';
+    let blocked = false;
+    for (const segment of segments.slice(0, -1)) {
+      walked = walked ? `${walked}/${segment}` : segment;
+      const kind = await kindOf(walked);
+      if (kind === 'missing' || kind === 'link') break;
+      if (kind === 'file') {
+        problems.set(walked, `${walked} is a file, not a folder, and the plan writes inside it.`);
+        blocked = true;
+        break;
+      }
+    }
+    if (!blocked && !relativePath.endsWith('/\0') && await kindOf(segments.join('/')) === 'folder') problems.set(segments.join('/'), `${segments.join('/')} is a folder, not a file, and the plan writes that file.`);
+  }
+  if (problems.size === 0) return;
+  throw new Error([...problems.keys()].sort().map((key) => problems.get(key)).join('\n')
+    + '\nMove it aside (or rename it) and run again. Nothing was written.');
+}
+
+export async function assertWriteFoldersAreFolders(targetPath, operations) {
+  await assertPathShapes(targetPath, operations
+    .filter((item) => writingOperations.has(item.operation) && item.operation !== 'delete_with_backup')
+    .map((item) => item.relativePath));
 }
 
 // Write to a sibling temporary file and rename it over the destination, so an

@@ -5,7 +5,8 @@ import test from 'node:test';
 import { runCli } from '../src/cli.mjs';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { buildInstallPlan } from '../src/planner.mjs';
-import { createMemoryIo, makeTempRepo } from './helpers.mjs';
+import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
+import { createMemoryIo, hashTree, makeTempRepo } from './helpers.mjs';
 
 test('init defaults to dry-run and writes nothing', async () => {
   const target = await makeTempRepo();
@@ -95,6 +96,49 @@ test('export --apply --yes writes selected templates', async () => {
   await fs.access(path.join(target, '.agents/instructions.md'));
   await fs.access(path.join(target, 'AGENTS.md'));
   await fs.access(path.join(target, '.agents/skills/06-patterns/README.md'));
+
+  // Round 4 (N2): exporting again to the same folder works; only init stops
+  // over an existing install.
+  const again = createMemoryIo();
+  assert.equal(await runCli(['export', '--output', target, '--runtime', 'codex', '--apply', '--yes'], again), 0, again.output.stderr);
+  assert.match(again.output.stdout, /Exported files:/);
+  assert.equal(JSON.parse(await fs.readFile(path.join(target, '.agents/workflow-kit/install-state.json'), 'utf8')).mode, 'export');
+});
+
+// Round 5 (R1): export refreshes only a folder an earlier export wrote (its
+// install state says mode "export"). A maintained install, 1.0.0 or 2.0.0,
+// is never exported over; a subfolder of an install is a folder of its own.
+test('export stops over an installed repository root and leaves it untouched', async () => {
+  const legacy = await makeTempRepo();
+  await installLegacy0181(legacy);
+  const installed = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: installed, runtime: 'claude' }));
+  for (const [name, target, message] of [
+    // Round 6 (S3): the message names the remedy that keeps an old export an export.
+    ['1.0.0 install', legacy, /uses install-state 1\.0\.0\. If this folder is an export from a workflow-kit version before 0\.22\.0, export to an empty folder, or remove its \.agents\/workflow-kit\/install-state\.json and export again\./],
+    ['2.0.0 install', installed, /records an install, not an export \(runtimes: claude\)\. If this folder is an export from a workflow-kit version before 0\.22\.0, .*If it is a workflow-kit install, export to another folder; `workflow-kit update` brings an install to this version\. Nothing was written\./]
+  ]) {
+    const before = await hashTree(target);
+    const io = createMemoryIo();
+    assert.equal(await runCli(['export', '--output', target, '--runtime', 'claude', '--apply', '--yes'], io), 2, name);
+    assert.match(io.output.stderr, message, name);
+    assert.deepEqual(await hashTree(target), before, name);
+  }
+});
+
+test('export into a subfolder of an installed repository leaves the install untouched', async () => {
+  const installed = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: installed, runtime: 'claude' }));
+  const state = await fs.readFile(path.join(installed, '.agents/workflow-kit/install-state.json'), 'utf8');
+  const before = await hashTree(installed);
+  const io = createMemoryIo();
+
+  assert.equal(await runCli(['export', '--output', path.join(installed, 'kit-export'), '--runtime', 'codex', '--apply', '--yes'], io), 0, io.output.stderr);
+
+  const after = await hashTree(installed);
+  const outside = (tree) => Object.fromEntries(Object.entries(tree).filter(([relativePath]) => !relativePath.startsWith('kit-export')));
+  assert.deepEqual(outside(after), outside(before));
+  assert.equal(await fs.readFile(path.join(installed, '.agents/workflow-kit/install-state.json'), 'utf8'), state);
 });
 
 test('update apply requires --yes', async () => {
@@ -132,7 +176,7 @@ test('update skips locally modified managed files', async () => {
   assert.equal(current, 'local custom adapter\n');
 });
 
-test('update adopt-existing bootstraps state without overwriting existing files', async () => {
+test('update adopt-existing bootstraps state and keeps the text of an existing adapter', async () => {
   const target = await makeTempRepo();
   await fs.writeFile(path.join(target, 'AGENTS.md'), 'legacy adapter content\n', 'utf8');
   const io = createMemoryIo();
@@ -151,9 +195,10 @@ test('update adopt-existing bootstraps state without overwriting existing files'
   ], io);
 
   assert.equal(code, 0);
-  assert.match(io.output.stdout, /Adopted baseline files: 1/);
+  // The adapter had no kit block: the block is added and the project's text stays after it.
   const current = await fs.readFile(path.join(target, 'AGENTS.md'), 'utf8');
-  assert.equal(current, 'legacy adapter content\n');
+  assert.match(current, /^<!-- workflow-kit:managed:start -->/);
+  assert.ok(current.endsWith('<!-- workflow-kit:managed:end -->\n\nlegacy adapter content\n'));
   await fs.access(path.join(target, '.agents/workflow-kit/install-state.json'));
 });
 

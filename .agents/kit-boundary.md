@@ -45,9 +45,9 @@ because the project has not created it.
 
 Legacy layout: read `.agents/project/context.md`, or `.agents/project-context.md` while the new one does not exist.
 The manifest lists every such pair under `legacy_paths`; a kit file that names
-a legacy path names its current path on the same line. Keep the legacy file
-until `workflow-kit update` migrates it: today's `workflow-kit doctor` and
-installer still check and seed the legacy path, not `.agents/project/context.md`.
+a legacy path names its current path on the same line. The installer seeds
+only the current path, and `workflow-kit update` moves a legacy file to it
+once, with a backup, when the current one does not exist yet.
 
 ## Extension levels
 

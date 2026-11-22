@@ -1,9 +1,31 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { applyInstallPlan } from '../src/apply.mjs';
 import { runCli } from '../src/cli.mjs';
+import { runDoctor } from '../src/doctor.mjs';
+import { buildInstallPlan, installStateRelativePath } from '../src/planner.mjs';
+import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
 import { createMemoryIo, makeTempRepo } from './helpers.mjs';
+
+const sha = (content) => createHash('sha256').update(content, 'utf8').digest('hex');
+const read = (target, relativePath) => fs.readFile(path.join(target, relativePath), 'utf8');
+async function write(target, relativePath, content) {
+  const file = path.join(target, relativePath);
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, content, 'utf8');
+}
+
+// Each expected finding: [code, path, message pattern, severity].
+function assertFindings(result, expected) {
+  for (const [code, relativePath, message, severity = 'warning'] of expected) {
+    const finding = result.diagnostics.find((item) => item.code === code && item.path === relativePath && message.test(item.message));
+    assert.ok(finding, `${code} ${relativePath} ${message} not in ${JSON.stringify(result.diagnostics, null, 2)}`);
+    assert.equal(finding.severity, severity, code);
+  }
+}
 
 test('doctor succeeds after selected install is applied', async () => {
   const target = await makeTempRepo();
@@ -47,18 +69,157 @@ test('doctor fails with actionable semantic diagnostics', async () => {
   assert.match(doctorIo.output.stdout, /\.github\/instructions\/ai-workflow\.instructions\.md/);
 });
 
-test('doctor reports locally modified managed files as warnings', async () => {
+// One source of truth for what update leaves pending: the update plan.
+test('doctor lists what update leaves pending and what is neither kit nor project, each with its action (2.0.0 state)', async () => {
   const target = await makeTempRepo();
-  const installIo = createMemoryIo();
-  const doctorIo = createMemoryIo();
-  await runCli(['init', '--target', target, '--runtime', 'antigravity', '--apply', '--yes'], installIo);
-  await fs.appendFile(path.join(target, 'ANTIGRAVITY.md'), '\nlocal rule\n', 'utf8');
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nlocal rule\n');
+  const retired = '.agents/skills/04-crosscutting/retired-skill/SKILL.md';
+  await write(target, retired, 'edited by the team\n');
+  // An adapter's own text outside the block is the project's; an edit inside it is not.
+  await fs.appendFile(path.join(target, 'docs/README.md'), '\nown text\n');
+  await write(target, 'CLAUDE.md', (await read(target, 'CLAUDE.md')).replace('# CLAUDE.md', '# CLAUDE.md\n\nlocal rule inside the block'));
+  // An own file in the kit skills tree; a backup the kit left is not reported.
+  const own = '.agents/skills/06-patterns/local/own/SKILL.md';
+  await write(target, own, '---\nname: own\n---\n');
+  await write(target, '.agents/skills/06-patterns/README.md.workflow-kit-backup-20260101T000000Z', 'old\n');
+  const state = JSON.parse(await read(target, installStateRelativePath));
+  state.files[retired] = { sha256: sha('as the kit shipped it\n'), class: 'kit' };
+  for (const key of ['/etc/hosts', 'docs/../outside.md', 'docs//double.md']) state.files[key] = { sha256: sha('x'), class: 'kit' };
+  // A block that already equals this version's template is not an edit, even
+  // when the state recorded an older block.
+  state.files['docs/README.md'] = { sha256: sha('an older kit block'), class: 'adapter' };
+  await write(target, installStateRelativePath, JSON.stringify(state, null, 2));
 
-  const code = await runCli(['doctor', '--target', target, '--runtime', 'antigravity'], doctorIo);
+  const result = await runDoctor({ targetPath: target });
 
-  assert.equal(code, 0);
-  assert.match(doctorIo.output.stdout, /\[managed\/content-drift\]/);
-  assert.match(doctorIo.output.stdout, /warning/i);
+  assertFindings(result, [
+    ['boundary/pending-edited_kit_file', '.agents/instructions.md', /workflow-kit update --edited \.agents\/instructions\.md=<decision>`, where <decision> is keep or discard/],
+    ['boundary/pending-retired_edited', retired, /the kit no longer ships it; delete it or keep it as project content outside the kit folders/],
+    ['boundary/adapter-block-edited', 'CLAUDE.md', /next update restores the block.*move your text outside the markers/],
+    ['boundary/unowned-path', own, /neither kit nor project; move it to \.agents\/project\/ \(skills go to \.agents\/project\/skills\/<name>\/ with a row in \.agents\/project\/index\.md\)/],
+    ...['/etc/hosts', 'docs/../outside.md', 'docs//double.md'].map((key) => ['boundary/ignored-state-key', installStateRelativePath, new RegExp(`^Key "${key.replaceAll('.', '\\.')}" .*remove it from install-state\\.json`)]),
+    // Final review 3: a SKILL.md the kit registry does not list is not kit
+    // content; registering it in the kit catalog would make it a pending edit.
+    ...[retired, own].map((skillPath) => ['skills/unregistered-file', skillPath, /not kit content.*boundary\/\* finding.*\.agents\/project\/skills\/<name>\/ with a row in \.agents\/project\/index\.md/])
+  ]);
+  const unexpected = result.diagnostics.filter((item) => item.code === 'managed/content-drift' || item.path === 'docs/README.md' || item.path.includes('workflow-kit-backup'));
+  assert.deepEqual(unexpected, []);
+  // Everything above is a warning: doctor passes.
+  assert.deepEqual(result.diagnostics.filter((item) => item.severity === 'error'), []);
+  assert.equal(result.ok, true);
+});
+
+test('doctor warns about outdated or invalid shadows and a project context kept at both paths', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  const kitPath = '.agents/skills/02-implement/validation-runner/SKILL.md';
+  const shadows = {
+    current: { skill: 'validation-runner', kit_path: kitPath, base_sha256: sha(await read(target, kitPath)) },
+    outdated: { skill: 'validation-runner', kit_path: kitPath, base_sha256: sha('older kit version\n') },
+    gone: { skill: 'retired-skill', kit_path: '.agents/skills/04-crosscutting/retired-skill/SKILL.md', base_sha256: sha('x') },
+    invalid: '{ not json',
+    missing: null
+  };
+  const rows = Object.keys(shadows).map((name) => `| \`${name}\` | \`.agents/project/shadows/${name}/\` |`);
+  // Round 5 (R3): an inline `<!--` in prose does not hide the table.
+  await write(target, '.agents/project/index.md', `# Project Catalog\n\nAdapters use \`<!--\` markers.\n\n## Shadows\n\n| Kit skill | Shadow directory |\n| --- | --- |\n${rows.join('\n')}\n`);
+  for (const [name, manifest] of Object.entries(shadows)) {
+    await write(target, `.agents/project/shadows/${name}/SKILL.md`, '---\nname: shadow\n---\n');
+    if (manifest !== null) await write(target, `.agents/project/shadows/${name}/shadow.json`, typeof manifest === 'string' ? manifest : JSON.stringify(manifest));
+  }
+  await write(target, '.agents/project-context.md', '# Old context\n');
+
+  const result = await runDoctor({ targetPath: target });
+
+  assertFindings(result, [
+    ['boundary/shadow-outdated', '.agents/project/shadows/outdated/shadow.json', /changed since this shadow was made.*compare .* refresh the shadow, then update base_sha256/],
+    ['boundary/shadow-outdated', '.agents/project/shadows/gone/shadow.json', /the kit no longer ships it/],
+    ['boundary/shadow-invalid', '.agents/project/shadows/invalid/shadow.json', /not valid JSON/],
+    ['boundary/shadow-invalid', '.agents/project/shadows/missing/shadow.json', /missing/],
+    ['project-context/both-paths', '.agents/project-context.md', /merge them into \.agents\/project\/context\.md and delete \.agents\/project-context\.md/]
+  ]);
+  assert.equal(result.diagnostics.some((item) => item.path.startsWith('.agents/project/shadows/current/')), false);
+});
+
+test('with a 1.0.0 state doctor asks for the migration and lists what it would leave pending, with the action for each', async () => {
+  const target = await makeTempRepo();
+  await installLegacy0181(target);
+  for (const relativePath of ['.agents/instructions.md', 'CLAUDE.md']) await fs.appendFile(path.join(target, relativePath), '\nLocal edit.\n');
+  const kitNamed = '.agents/skills/06-patterns/local/router-copy';
+  await write(target, `${kitNamed}/SKILL.md`, '---\nname: workflow-router\ndescription: Own copy.\n---\n');
+  // A catalog row naming a path in the kit tree that is no own skill is not written.
+  const ghostPath = '.agents/skills/06-patterns/local/ghost/SKILL.md';
+  await fs.appendFile(path.join(target, '.agents/skills/registry.md'), `\n| Skill name | Trigger | Physical path |\n| --- | --- | --- |\n| \`ghost\` | Ghost row | \`${ghostPath}\` |\n`);
+
+  const result = await runDoctor({ targetPath: target });
+
+  assertFindings(result, [
+    ['managed/legacy-layout', installStateRelativePath, /run workflow-kit update \(dry run first\) to migrate to the kit\/project overlay layout/],
+    ['boundary/pending-edited_kit_file', '.agents/instructions.md', /workflow-kit update --edited \.agents\/instructions\.md=<decision>`, where <decision> is keep or discard/],
+    ['boundary/pending-unmarked_adapter', 'CLAUDE.md', /workflow-kit update --edited CLAUDE\.md=<decision>`, where <decision> is keep, discard or split/],
+    ['boundary/pending-kit_skill_name', `${kitNamed}/`, /move the folder by hand to \.agents\/project\/skills\/<name>\/.*add its row to \.agents\/project\/index\.md/],
+    ['boundary/pending-catalog_row_not_moved', ghostPath, /`ghost`.*add the row to \.agents\/project\/index\.md by hand/]
+  ]);
+  // The migration plan already lists the own files in the kit tree.
+  assert.equal(result.diagnostics.some((item) => item.code === 'boundary/unowned-path'), false);
+});
+
+test('doctor reports an unusable or unfinished apply journal as an error with the way back', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  const journalPath = '.agents/workflow-kit/last-apply.json';
+  const cases = [
+    ['{ not json', 'managed/apply-journal-unusable', /cannot be read \(not valid JSON\), so rollback cannot use it\. Fix it by hand \(Git does not track it\); only if you will not roll back the last apply, move it out of \.agents\/workflow-kit\/\. init and update stop until then\.$/],
+    ['{"schemaVersion":"2.0.0"}', 'managed/apply-journal-unusable', /cannot be read \(unsupported format\)/],
+    [JSON.stringify({ schemaVersion: '2.0.0', appliedAt: '2026-01-01T00:00:00.000Z', completed: false, files: [] }), 'managed/apply-incomplete', /did not finish \(2026-01-01T00:00:00\.000Z\)\. Run `workflow-kit rollback --apply --yes`/]
+  ];
+  for (const [content, code, message] of cases) {
+    await write(target, journalPath, content);
+    const result = await runDoctor({ targetPath: target });
+    assertFindings(result, [[code, journalPath, message, 'error']]);
+    assert.equal(result.ok, false);
+  }
+  // Final review 7: a journal that cannot even be opened is a finding too.
+  await fs.rm(path.join(target, journalPath));
+  await fs.mkdir(path.join(target, journalPath));
+  assertFindings(await runDoctor({ targetPath: target }), [['managed/apply-journal-unusable', journalPath, /cannot be read \(EISDIR\)/, 'error']]);
+});
+
+// Final review 7 and round 4 (N3): a path doctor cannot read is reported,
+// never a crash: a file where the kit expects a folder, a folder where it
+// expects a file, a folder without permission.
+test('doctor reports a path it cannot read as a finding instead of crashing', async () => {
+  const cases = [
+    { name: '.agents/project as a file', path: '.agents/project/context.md', message: /ENOTDIR.*a file stands where a folder of this path should be/, break: async (target) => {
+      await fs.rm(path.join(target, '.agents/project'), { recursive: true });
+      await write(target, '.agents/project', 'not a folder\n');
+    } },
+    { name: 'CLAUDE.md as a folder', path: 'CLAUDE.md', message: /EISDIR/, break: async (target) => {
+      await fs.rm(path.join(target, 'CLAUDE.md'));
+      await fs.mkdir(path.join(target, 'CLAUDE.md'));
+    } },
+    { name: 'the project context as a folder', path: '.agents/project/context.md', message: /EISDIR/, break: async (target) => {
+      await fs.rm(path.join(target, '.agents/project/context.md'));
+      await fs.mkdir(path.join(target, '.agents/project/context.md'));
+    } },
+    // Permission bits do not stop root.
+    ...(process.getuid?.() === 0 ? [] : [{ name: '.claude/agents without permission', path: '.claude/agents', message: /EACCES/, break: async (target) => {
+      await fs.chmod(path.join(target, '.claude/agents'), 0o000);
+    } }])
+  ];
+  for (const item of cases) {
+    const target = await makeTempRepo();
+    await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+    await item.break(target);
+    try {
+      const result = await runDoctor({ targetPath: target });
+      assert.equal(result.ok, false, item.name);
+      assertFindings(result, [['managed/path-unreadable', item.path, item.message, 'error']]);
+    } finally {
+      await fs.chmod(path.join(target, '.claude/agents'), 0o755).catch(() => {});
+    }
+  }
 });
 
 test('doctor warns when target was last applied with a different toolkit version', async () => {
@@ -136,4 +297,16 @@ test('doctor fails when a generated agent does not match the equilibrado profile
   assert.match(io.output.stdout, /model-profile\/agent-mismatch/);
   assert.match(io.output.stdout, /Expected `model: sonnet` for the equilibrado profile but found `model: opus`/);
   assert.match(io.output.stdout, /update --profile claude=equilibrado --apply --yes/);
+});
+
+// Final review 10: every fixed code doctor emits has a row or a bullet in the
+// troubleshooting guide (the per-reason boundary/pending-* codes are listed by
+// reason there).
+test('every fixed doctor code is documented in docs/troubleshooting.md', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const guide = await fs.readFile(path.join(root, 'docs/troubleshooting.md'), 'utf8');
+  const sources = await Promise.all(['src/doctor.mjs', 'src/workspace-diagnostics.mjs'].map((file) => fs.readFile(path.join(root, file), 'utf8')));
+  const codes = [...new Set(sources.flatMap((source) => [...source.matchAll(/'((?:managed|boundary|project-context)\/[a-z-]+)'/g)].map((match) => match[1])))];
+  assert.ok(codes.length > 10, codes.join(', '));
+  assert.deepEqual(codes.filter((code) => !guide.includes(`\`${code}\``)), []);
 });

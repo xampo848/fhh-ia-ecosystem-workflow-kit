@@ -30,7 +30,8 @@ released it. Tags of the current lines:
 
 | Tag | Notes |
 | --- | --- |
-| `v0.21.0-project-runbooks` | current |
+| `v0.22.0-manifest-updater` | current |
+| `v0.21.0-project-runbooks` | |
 | `v0.20.0-kit-overlay-contract` | |
 | `v0.19.2-visual-lock` | |
 | `v0.19.1-tui-option-clarity` | |

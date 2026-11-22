@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { applyInstallPlan } from '../apply.mjs';
 import { formatDoctorResult, runDoctor } from '../doctor.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan } from '../planner.mjs';
@@ -82,7 +83,7 @@ export async function runExportCommand(options, { stdout, stderr }) {
     return 2;
   }
 
-  const plan = await buildInstallPlan({ ...options, ensureWorkspaceIgnore: false, recordJournal: false, toolkitVersion: packageJson.version });
+  const plan = await buildInstallPlan({ ...options, export: true, ensureWorkspaceIgnore: false, recordJournal: false, toolkitVersion: packageJson.version });
   stdout.write(`${options.apply ? 'Export apply plan' : 'Export dry-run plan'}\n${formatPlan(plan)}\n`);
 
   if (!options.apply) return 0;
@@ -110,8 +111,11 @@ export async function runRollbackCommand(options, { stdout, stderr }) {
 
   if (!options.apply || plan.operations.length === 0) return 0;
 
-  const summary = summarizeRollback(await applyRollbackPlan(plan));
+  const results = await applyRollbackPlan(plan);
+  const summary = summarizeRollback(results);
   stdout.write(`Restored files: ${summary.restored}\nRemoved created files: ${summary.removed}\nKept (edited after the apply): ${summary.keptModified}\nNot restorable (no backup): ${summary.withoutBackup}\n`);
+  const copies = results.filter((item) => item.keptCopy).map((item) => path.relative(plan.targetPath, item.keptCopy).split(path.sep).join('/'));
+  if (copies.length > 0) stdout.write(`Copies of the replaced content (${copies.length}):\n${copies.map((copy) => `- ${copy}`).join('\n')}\n`);
   return 0;
 }
 

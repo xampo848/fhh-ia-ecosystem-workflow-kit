@@ -1,7 +1,11 @@
 import { spawn } from 'node:child_process';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { applyInstallPlan } from './apply.mjs';
+import { countAppliedOperations } from './cli/summaries.mjs';
+import { writingOperations } from './fs-safety.mjs';
 import { formatDoctorResult, runDoctor } from './doctor.mjs';
+import { lineDiff } from './plan-insight.mjs';
 import { buildInstallPlan, buildUpdatePlan, detectStackPack, formatPlan, readManagedInstallState, selectPlanOperations } from './planner.mjs';
 import {
   createCapabilityGuide,
@@ -97,21 +101,93 @@ const TUI_MODE_OPTIONS = [
 ];
 
 const FULL_OVERLAY = 'fhh-ia-ecosystem-full';
-const WRITE_OPERATIONS = new Set([
-  'create',
-  'overwrite_with_backup',
-  'merge_with_backup',
-  'overwrite_no_backup',
-  'merge_no_backup'
-]);
+// Every operation that changes a file, deletes included, can be deselected.
+const WRITE_OPERATIONS = writingOperations;
 
 const defaultCommandExists = upgradeCommandExists;
 
 function explainExistingRepoBehavior(write, paint) {
   write(`${paint.bold('Existing repo behavior')}\n`);
-  write(`${paint.dim('- Local .agents/skills/**/SKILL.md files will be auto-registered into registry.json.')}\n`);
+  write(`${paint.dim('- Own skills go to .agents/project/skills/<name>/ with a row in .agents/project/index.md; SKILL.md files under .agents/skills/ that the kit does not ship are not registered.')}\n`);
   write(`${paint.dim('- Old docs are never moved automatically by the TUI.')}\n`);
   write(`${paint.dim('- Review docs/workflow/migration/legacy-docs-map.md and relocate docs manually if needed.')}\n\n`);
+}
+
+// Files with your own edits (PRD manifest-updater 2.4, D5): one question for
+// all of them, or one per file offering only the decisions that apply to it.
+const EDITED_FILES_QUESTION = 'Some workflow files in this project have your own edits. What should the update do with them?';
+const EDITED_FILES_OPTIONS = [
+  { value: 'keep', label: 'Keep my edits (recommended)', description: 'Every edited file stays as it is and stays pending; the update changes nothing in them.' },
+  { value: 'replace-all', label: 'Replace all edited files with the kit version', description: 'Every edited kit file gets the kit version. An adapter without markers keeps your own text outside the new markers, or stays pending when that is not possible (for example Windows line endings). A backup copy of your version is saved first.' },
+  { value: 'file-by-file', label: 'Decide file by file', description: 'One question per edited file, with only the choices that apply to it and a short diff.' }
+];
+const EDITED_DECISION_OPTIONS = {
+  keep: () => ({ label: 'Keep my edits in this file', description: 'The file stays as it is and stays pending.' }),
+  discard: () => ({ label: 'Take the kit version', description: 'The file gets the kit version; a backup copy of your version is saved first.' }),
+  shadow: (relativePath) => ({
+    label: 'Move my version to a project shadow',
+    description: `Copy your version to .agents/project/shadows/${path.posix.basename(path.posix.dirname(relativePath))}/ and take the kit version.`
+  }),
+  split: () => ({ label: 'Split: kit block plus my text', description: 'The file gets the kit block between markers; your own text stays outside the markers.' })
+};
+const EDITED_DIFF_MAX_LINES = 12;
+
+// Pending files with decisions are asked; the rest (own skills that cannot
+// move, files edited after the kit retired them...) are only listed.
+function pendingEditedFiles(plan) {
+  const decidable = plan.operations.filter((item) => item.operation === 'skip_modified' && item.decisions?.length > 0);
+  const asked = new Set(decidable.map((item) => item.relativePath));
+  const listed = new Map();
+  const migrationPending = (plan.migrations ?? []).flatMap((item) => item.pending ?? []);
+  for (const item of [...migrationPending, ...plan.operations.filter((operation) => operation.operation === 'skip_modified')]) {
+    if (!asked.has(item.relativePath) && !listed.has(item.relativePath)) listed.set(item.relativePath, item.reason);
+  }
+  return { decidable, listed: [...listed].map(([relativePath, reason]) => ({ relativePath, reason })) };
+}
+
+// Returns the --edited map for the chosen decisions, or undefined to keep
+// every edit pending.
+async function askEditedFileDecisions({ plan, prompter, write, paint }) {
+  const { decidable, listed } = pendingEditedFiles(plan);
+  if (listed.length > 0) {
+    write(`\n${paint.copperInk(`${listed.length} file(s) stay pending; there is no choice to make for them here:`)}\n`);
+    listed.forEach((item) => write(`  - ${item.relativePath}${item.reason ? ` (${item.reason})` : ''}\n`));
+  }
+  if (decidable.length === 0) return undefined;
+
+  write(`\n${paint.copperInk(`Detected ${decidable.length} managed file(s) with local edits.`)}\n`);
+  const policy = await prompter.chooseOption({
+    title: EDITED_FILES_QUESTION,
+    defaultValue: 'keep',
+    defaultIndex: 0,
+    options: EDITED_FILES_OPTIONS
+  });
+  if (policy === 'keep') return undefined;
+  // Replace all: split where it applies (it keeps own adapter text); an
+  // unmarked adapter split cannot keep stays pending; discard elsewhere.
+  if (policy === 'replace-all') {
+    const decisions = {};
+    for (const item of decidable) {
+      if (item.decisions.includes('split')) decisions[item.relativePath] = 'split';
+      else if (item.reason === 'unmarked_adapter') write(`${paint.copperInk(`${item.relativePath} stays pending: Replace all cannot keep its own text (split does not apply). Decide it file by file or with --edited.`)}\n`);
+      else decisions[item.relativePath] = 'discard';
+    }
+    return Object.keys(decisions).length > 0 ? decisions : undefined;
+  }
+
+  const edited = {};
+  for (const item of decidable) {
+    const diff = lineDiff(await fs.readFile(item.targetFile, 'utf8'), item.content ?? '', { maxLines: EDITED_DIFF_MAX_LINES });
+    write(`\n${paint.bold(item.relativePath)} ${paint.dim(`(taking the kit version changes +${diff.added} -${diff.removed} lines)`)}\n`);
+    write(`${paint.dim(diff.lines.join('\n'))}\n\n`);
+    edited[item.relativePath] = await prompter.chooseOption({
+      title: `${item.relativePath}: what should the update do with your edits?`,
+      defaultValue: 'keep',
+      defaultIndex: 0,
+      options: item.decisions.map((decision) => ({ value: decision, ...EDITED_DECISION_OPTIONS[decision](item.relativePath) }))
+    });
+  }
+  return edited;
 }
 
 function isWriteOperation(item) {
@@ -444,6 +520,22 @@ async function collectCapabilitiesFlow({
   return { capabilitySelections, shouldAutoInstallCapabilities };
 }
 
+// Install plans as if nothing were installed, and init stops over an
+// existing install: say so right after the target is chosen, before asking
+// about runtimes, profile or stack. An unusable state is left to the planner.
+async function stopInstallOverExistingInstall({ mode, targetPath, write, paint }) {
+  if (mode !== 'install') return false;
+  let state = null;
+  try {
+    state = await readManagedInstallState(targetPath);
+  } catch {
+    return false;
+  }
+  if (!state) return false;
+  write(`${paint.copperInk(`.agents/workflow-kit/install-state.json already records an install (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}). Choose Update to bring it to this version (or run workflow-kit update; --runtime, --stack and --profile change those choices). Install would reset them. Nothing was written.`)}\n`);
+  return true;
+}
+
 export async function runTui(options = {}) {
   const write = options.write ?? ((message) => process.stdout.write(message));
   const colorEnabled = options.color === false ? false : supportsColor();
@@ -696,6 +788,7 @@ export async function runTui(options = {}) {
 
       targetPath = await prompter.promptText(mode === 'export' ? 'Output path [.]: ' : 'Target path [.]: ', '.');
       write('\n');
+      if (await stopInstallOverExistingInstall({ mode, targetPath, write, paint })) return { code: 1, applied: false, mode };
 
       renderStageHeader(write, paint, {
         step: 3,
@@ -742,6 +835,7 @@ export async function runTui(options = {}) {
       });
 
       targetPath = await prompter.promptText(mode === 'export' ? 'Output path' : 'Target path', '.');
+      if (await stopInstallOverExistingInstall({ mode, targetPath, write, paint })) return { code: 1, applied: false, mode };
 
       renderStageHeader(write, paint, {
         step: 3,
@@ -801,11 +895,12 @@ export async function runTui(options = {}) {
       });
     }
 
-    let overwriteModified = false;
+    // The --edited decisions on files with your own edits.
+    let edited;
     let backupMode = 'required';
     let adoptExistingAnswer;
 
-    const buildPlan = async ({ overwriteModified: overwriteModifiedValue = false, backupMode: backupModeValue = 'required' } = {}) => {
+    const buildPlan = async ({ edited: editedValue, backupMode: backupModeValue = 'required' } = {}) => {
       if (mode === 'update') {
         try {
           return await buildUpdatePlan({
@@ -813,7 +908,7 @@ export async function runTui(options = {}) {
             runtime,
             overlay,
             stack,
-            overwriteModified: overwriteModifiedValue,
+            edited: editedValue,
             backupMode: backupModeValue,
             toolkitVersion: currentToolkitMetadata().version
           });
@@ -836,7 +931,7 @@ export async function runTui(options = {}) {
             overlay,
             stack,
             adoptExisting: true,
-            overwriteModified: overwriteModifiedValue,
+            edited: editedValue,
             backupMode: backupModeValue,
             toolkitVersion: currentToolkitMetadata().version
           });
@@ -849,6 +944,7 @@ export async function runTui(options = {}) {
         overlay,
         profile,
         stack,
+        export: mode === 'export',
         ensureWorkspaceIgnore: mode !== 'export',
         recordJournal: mode !== 'export',
         backupMode: backupModeValue,
@@ -861,37 +957,17 @@ export async function runTui(options = {}) {
       paint,
       label: 'Building plan',
       enabled: animate
-    }, () => buildPlan({ overwriteModified, backupMode }));
+    }, () => buildPlan({ edited, backupMode }));
 
-    if (mode === 'update' && plan.summary.skip_modified > 0) {
-      write(`\n${paint.copperInk(`Detected ${plan.summary.skip_modified} managed file(s) with local edits.`)}\n`);
-
-      const modifiedPolicy = await prompter.chooseOption({
-        title: 'Some workflow files in this project have your own edits. What should the update do with them?',
-        defaultValue: 'protect',
-        defaultIndex: 0,
-        options: [
-          {
-            label: 'Keep my edits (recommended)',
-            value: 'protect',
-            description: 'Files you edited are skipped and left as they are.'
-          },
-          {
-            label: 'Replace with the new version',
-            value: 'overwrite',
-            description: 'Your edited files get the new workflow version; a backup copy is saved first.'
-          }
-        ]
-      });
-
-      if (modifiedPolicy === 'overwrite') {
-        overwriteModified = true;
+    if (mode === 'update') {
+      edited = await askEditedFileDecisions({ plan, prompter, write, paint });
+      if (edited) {
         plan = await withSpinner({
           write,
           paint,
-          label: 'Rebuilding plan with overwrite for modified files',
+          label: 'Rebuilding plan with your decisions on edited files',
           enabled: animate
-        }, () => buildPlan({ overwriteModified, backupMode }));
+        }, () => buildPlan({ edited, backupMode }));
       }
     }
 
@@ -921,10 +997,14 @@ export async function runTui(options = {}) {
           paint,
           label: `Rebuilding plan with backup mode: ${backupMode}`,
           enabled: animate
-        }, () => buildPlan({ overwriteModified, backupMode }));
+        }, () => buildPlan({ edited, backupMode }));
       }
 
-      const writableOperations = plan.operations.filter((item) => isWriteOperation(item));
+      // The layout migration is applied whole (selectPlanOperations keeps it):
+      // its files are not offered; retired deletes are.
+      const migrationWrites = plan.operations.filter((item) => item.migration && isWriteOperation(item)).length;
+      if (migrationWrites > 0) write(`${paint.dim(`The layout migration (${migrationWrites} files) is applied as one block and is not listed here.`)}\n`);
+      const writableOperations = plan.operations.filter((item) => isWriteOperation(item) && !item.migration);
       if (writableOperations.length > 0) {
         const selectedWritablePaths = await prompter.chooseOptions({
           title: 'Select files to modify',
@@ -940,7 +1020,7 @@ export async function runTui(options = {}) {
         const selectedPaths = selectedPathsFromPlan(plan).filter((relativePath) => {
           const operation = plan.operations.find((item) => item.relativePath === relativePath);
           if (!operation) return false;
-          if (!isWriteOperation(operation)) return true;
+          if (!isWriteOperation(operation) || operation.migration) return true;
           return selectedWritableSet.has(relativePath);
         });
 
@@ -991,11 +1071,7 @@ export async function runTui(options = {}) {
     }
 
     const applied = await applyInstallPlan(plan);
-    const writeCount = applied.filter((item) => item.applied).length;
-    const backupCount = applied.filter((item) => item.backupPath).length;
-    const modifiedSkips = applied.filter((item) => item.operation === 'skip_modified').length;
-    const unmanagedSkips = applied.filter((item) => item.operation === 'skip_unmanaged').length;
-    const adopted = applied.filter((item) => item.operation === 'adopt_existing').length;
+    const { writeCount, backupCount, modifiedSkips, unmanagedSkips, adopted, retiredDeleted, projectFilesMoved } = countAppliedOperations(applied);
     write(`\n${paint.copper(mode === 'export' ? 'Export completed successfully.' : 'Apply completed successfully.')} ${renderChip(paint, 'SYSTEM READY', 'copper')}\n`);
     write(`${mode === 'export' ? 'Exported files' : 'Applied writes'}: ${paint.copper(String(writeCount))}\n`);
     write(`Backups created: ${paint.copperInk(String(backupCount))}\n`);
@@ -1003,6 +1079,8 @@ export async function runTui(options = {}) {
       write(`Protected local edits (skipped): ${paint.copperInk(String(modifiedSkips))}\n`);
       write(`Unmanaged files (skipped): ${paint.copperInk(String(unmanagedSkips))}\n`);
       write(`Adopted baseline files: ${paint.indigo(String(adopted))}\n`);
+      write(`Retired files deleted (backup kept): ${paint.copperInk(String(retiredDeleted))}\n`);
+      write(`Project files moved to .agents/project/: ${paint.copperInk(String(projectFilesMoved))}\n`);
     }
 
     // Verify the result right away so a broken install or update is visible

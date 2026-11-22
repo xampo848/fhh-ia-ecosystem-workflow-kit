@@ -71,12 +71,11 @@ Before rolling the workflow to a team, run one manual interaction check in the t
 
 During init on an existing repository:
 
-- `.agents/skills/**/SKILL.md` files already present in the target repo are auto-discovered and merged into `.agents/skills/registry.json`.
-- `.agents/skills/registry.json` is merged by union so local custom entries are preserved. A skill found on disk only fills a gap: an entry already registered for the same path keeps its name and trigger, even when the `SKILL.md` frontmatter uses another name.
-- `.agents/skills/index.md`, `.agents/skills/06-patterns/index.md`, and `.agents/skills/registry.md` are yours once they exist. Your rows are never changed; the rows of workflow-kit skills they do not list are added next to the related skills, inside the table under the same heading.
+- `.agents/skills/` holds kit skills only. A `SKILL.md` of your own there is not registered (`doctor` names it); move it to `.agents/project/skills/<name>/` and add its row to `.agents/project/index.md`.
+- The kit catalogs (`.agents/skills/index.md`, `.agents/skills/06-patterns/index.md`, `.agents/skills/registry.md`, `.agents/skills/registry.json`) are kit files: init replaces an existing one and keeps a backup. Your own rows go to `.agents/project/index.md`.
 - `docs/README.md` gets a non-destructive workflow block (idempotent marker block).
 - `docs/workflow/README.md` is created as an initial docs map when missing, and `docs/workflow/standards/` adds setup guides for backend/frontend standards.
-- Project rules are runtime-neutral: the installer creates `.agents/project/quality-gate.md`, templates for `.agents/project/backend.md` and `.agents/project/frontend.md`, and `.agents/project-context.md`. Existing hand-written `.github/instructions/*.instructions.md` files are migrated with a backup, and Copilot gets generated copies.
+- Project rules are runtime-neutral and live in the project overlay `.agents/project/`, which no update edits: the installer creates `.agents/project/quality-gate.md` (project additions to the kit quality gate), templates for `.agents/project/backend.md` and `.agents/project/frontend.md`, and `.agents/project/context.md`. Existing hand-written `.github/instructions/*.instructions.md` files are migrated with a backup, and Copilot gets generated copies.
 - `.ai-work/` (temporary AI state) and `.agents/workflow-kit/last-apply.json` (the local rollback journal) are added to `.gitignore`.
 
 ## 5) Existing docs: one-time intelligent recovery
@@ -95,7 +94,7 @@ This file suggests coherent destinations under `docs/workflow/` and includes `gi
 4. Keep one canonical source per topic.
 5. Update old links in README/CONTRIBUTING/docs indexes.
 
-The map is generated once. If it already exists, it is not regenerated on subsequent init runs.
+The map is generated once. If it already exists, later updates do not regenerate it (init stops on an existing install).
 
 Workflow-kit does not relocate legacy docs for you. Use the generated map and move the files manually with `git mv` so you stay in control of duplicates, naming, and history preservation.
 

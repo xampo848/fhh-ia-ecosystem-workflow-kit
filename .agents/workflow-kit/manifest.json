@@ -2,7 +2,7 @@
   "$schema": "./manifest.schema.json",
   "schema_version": "2.0.0",
   "name": "fhh-ia-ecosystem-workflow-kit",
-  "kit_version": "0.21.0-project-runbooks",
+  "kit_version": "0.22.0-manifest-updater",
   "description": "Closed list of the paths the workflow kit owns in a target repository. A path belongs to the kit only when an entry below covers it; everything under project_root belongs to the project. The most specific entry wins.",
   "contract": ".agents/kit-boundary.md",
   "project_root": ".agents/project/",
@@ -31,13 +31,14 @@
     { "path": ".agents/workflow-kit/manifest.schema.json", "class": "kit" },
     { "path": ".agents/workflow-kit/install-state.json", "class": "state", "generated": true },
     { "path": ".agents/workflow-kit/diagnostics/", "class": "state", "generated": true },
-    { "path": ".agents/project-context.md", "class": "seed" },
+    { "path": ".agents/project/context.md", "class": "seed" },
     { "path": ".agents/project/quality-gate.md", "class": "seed" },
     { "path": ".agents/project/backend.md", "class": "seed" },
     { "path": ".agents/project/frontend.md", "class": "seed" },
     { "path": ".agents/project/paths.json", "class": "seed" },
     { "path": ".agents/project/stack.md", "class": "seed", "generated": true },
     { "path": "docs/workflow/", "class": "kit" },
+    { "path": "docs/workflow/migration/legacy-docs-map.md", "class": "seed", "generated": true },
     { "path": "docs/README.md", "class": "adapter", "block": "workflow-kit:docs-workflow" },
     { "path": "AGENTS.md", "class": "adapter" },
     { "path": "CLAUDE.md", "class": "adapter" },
@@ -77,6 +78,16 @@
     "workflow-router",
     "instructions"
   ],
+  "ignore_entries": [
+    ".ai-work/",
+    "/.agents/workflow-kit/last-apply.json"
+  ],
+  "superseded_seeds": {
+    ".agents/project/quality-gate.md": [
+      "c44ad4dacdbfd50134a830b982e47c345d8c3f58ee1e43d0e137a47dbdaa36f6",
+      "f1be609d63476ba6d1bfdd5d803fa4269e53f33a1b6e4946a7996c1a2a5353a8"
+    ]
+  },
   "excluded_from_distribution": [
     "docs/epics/",
     "docs/prd/",

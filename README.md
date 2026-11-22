@@ -21,7 +21,7 @@ What the installed workflow does:
 One neutral source of truth lives in `.agents/`; runtime files such as
 `CLAUDE.md` or `AGENTS.md` are thin adapters that point back to it.
 
-> Status: public GitHub install, version `0.21.0-project-runbooks`. The CLI and
+> Status: public GitHub install, version `0.22.0-manifest-updater`. The CLI and
 > TUI install, update, export, check, and roll back the workflow, with dry-run
 > by default and backups before every overwrite. The package is intentionally
 > **not published to npm**.
@@ -43,7 +43,7 @@ workflow-kit --help
 ```
 
 `main` installs the latest merged version. To pin a release instead, append
-`#<tag>`, for example `#v0.21.0-project-runbooks`; every released version has a
+`#<tag>`, for example `#v0.22.0-manifest-updater`; every released version has a
 `v<version>` tag, listed on the repository's
 [Releases page](https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/releases).
 SSH install and access details:
@@ -77,11 +77,11 @@ The installer cannot know your project, so a few things are yours to complete, o
 
 | # | What to do | Why | Done when |
 | --- | --- | --- | --- |
-| 1 | Fill `.agents/project-context.md`. Ask your agent: "Genera la primera versión de `.agents/project-context.md` con un Discovery inicial del proyecto", review the result, and remove the template marker. | Discovery reads this file first and then explores only what is specific to a change. Record the validation commands with their cost and the known environment quirks (flaky tests, required environment variables). | `doctor` no longer reports `project-context/not-initialized` |
+| 1 | Fill `.agents/project/context.md`. Ask your agent: "Genera la primera versión de `.agents/project/context.md` con un Discovery inicial del proyecto", review the result, and remove the template marker. | Discovery reads this file first and then explores only what is specific to a change. Record the validation commands with their cost and the known environment quirks (flaky tests, required environment variables). | `doctor` no longer reports `project-context/not-initialized` |
 | 2 | Review `.agents/project/quality-gate.md` and fill `.agents/project/backend.md` and `.agents/project/frontend.md` for the surfaces that exist. | These are your project rules for every runtime. Edit these files, never the generated copies in `.github/instructions/`. | The files no longer carry the template marker; `doctor` reports no `project-instructions/*` warning |
 | 3 | Check the model profile shown by `doctor`: `calidad` when the runtime is paid by subscription, `equilibrado` when that subscription often hits its weekly limits (planning and final QA keep Opus; implementation, tests, and contract checks move to Sonnet), `costo` when it is billed per token. Change it with `workflow-kit update --profile claude=equilibrado` (or `=costo`). | Delegate agents take their model from the profile. | `doctor` prints the profile you expect |
-| 4 | If your repository keeps its own `.agents/skills/index.md` or `.agents/skills/registry.md`, check after each update that the new workflow-kit skills are listed. If a script of your own regenerates them, add the new skills to it too. | `update` adds the missing rows next to the related skills and keeps yours, but only inside the table it recognizes; the router discovers skills through the index. | `doctor` reports no `skills/local-catalog-missing-skill` |
-| 5 | Leave validation reuse in shadow mode for the first 2 or 3 implementations. If the shadow results never differed, add `validation_reuse: active` to `.agents/project-context.md`. | Reuse skips an expensive check only when the content is proven identical; shadow mode shows what it would have skipped before you trust it. | Section 10 of a PRD lists reused checks |
+| 4 | Keep your own skills, routing rules and catalog rows in the project overlay `.agents/project/` (skills in `.agents/project/skills/<name>/`, rows in `.agents/project/index.md`), never in the kit's `.agents/skills/` folders or catalogs. A repository installed before `0.22.0` gets them moved there by its first `update` (see `docs/migration.md`). | The kit replaces its own files and catalogs on every update; the router reads project skills from `.agents/project/index.md` after the kit catalog. | `doctor` reports no `boundary/unowned-path` and no `boundary/pending-*` finding |
+| 5 | Leave validation reuse in shadow mode for the first 2 or 3 implementations. If the shadow results never differed, add `validation_reuse: active` to `.agents/project/context.md`. | Reuse skips an expensive check only when the content is proven identical; shadow mode shows what it would have skipped before you trust it. | Section 10 of a PRD lists reused checks |
 | 6 | In the first implementation that has a QA re-entry, let it run both the focused and the full review and compare them (the workflow asks for this once). | Calibrates the focused QA re-entry for your project. | The comparison is recorded in that PRD |
 
 Updating an existing installation? Follow the same table after `workflow-kit update`; steps 1 and 4 are the ones older installations usually miss.
@@ -144,10 +144,12 @@ workflow-kit update --target /path/to/repo --apply --yes
 ```
 
 `update` only overwrites files recorded in
-`.agents/workflow-kit/install-state.json`. A managed file you edited is kept as
-`skip_modified`; a file workflow-kit never installed is kept as
-`skip_unmanaged`. The plan lists one-time migrations, `--diff` shows every
-change, and `update` never deletes or moves your files. It reuses the runtimes
+`.agents/workflow-kit/install-state.json`. A managed file you edited, or your
+own file at a kit path the install never recorded, stays pending as
+`skip_modified` until you decide it with `--edited`. The plan lists one-time
+migrations and `--diff` shows every change. Since `0.22.0`, `update` can
+delete kit files a version no longer ships and move project content to
+`.agents/project/`, always with a backup and `workflow-kit rollback`. It reuses the runtimes
 and model profile recorded at install time. Installs older than state tracking
 need one bootstrap with `--adopt-existing`; see
 [Migration](docs/migration.md).

@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import test from 'node:test';
+import { applyInstallPlan } from '../src/apply.mjs';
+import { runCli } from '../src/cli.mjs';
 import { parseArgs, printHelp } from '../src/cli/args.mjs';
+import { buildInstallPlan } from '../src/planner.mjs';
+import { createMemoryIo, makeTempRepo } from './helpers.mjs';
 
 test('parseArgs applies defaults when no flags are given', () => {
   const options = parseArgs(['init']);
@@ -48,6 +54,45 @@ test('parseArgs parses backup mode for install and update flows', () => {
   assert.equal(updateOptions.backupMode, 'required');
 });
 
+test('parseArgs collects repeatable --edited decisions by path, all= included', () => {
+  const options = parseArgs(['update', '--edited', 'CLAUDE.md=split', '--edited', 'all=discard', '--edited', '.agents/skills/a/SKILL.md=shadow']);
+
+  assert.deepEqual(options.edited, { 'CLAUDE.md': 'split', all: 'discard', '.agents/skills/a/SKILL.md': 'shadow' });
+  assert.equal(parseArgs(['update']).edited, undefined);
+});
+
+test('parseArgs rejects a malformed --edited value or an unknown decision', () => {
+  const cases = [
+    { args: ['--edited'], error: /Missing value for --edited/ },
+    { args: ['--edited', '--apply'], error: /Missing value for --edited/ },
+    { args: ['--edited', 'CLAUDE.md'], error: /Invalid --edited CLAUDE\.md: use --edited <path>=<decision> or --edited all=<decision>\./ },
+    { args: ['--edited', '=keep'], error: /Invalid --edited =keep: use --edited <path>=<decision>/ },
+    { args: ['--edited', 'CLAUDE.md='], error: /Invalid --edited CLAUDE\.md=: use --edited <path>=<decision>/ },
+    { args: ['--edited', 'CLAUDE.md=merge'], error: /Invalid --edited CLAUDE\.md=merge: unknown decision merge\. Use one of: keep, discard, shadow, split\./ },
+    { args: ['--edited', 'all=keep', '--edited', 'all=discard'], error: /--edited all is given more than once/ }
+  ];
+  for (const item of cases) assert.throws(() => parseArgs(['update', ...item.args]), item.error, item.args.join(' '));
+});
+
+// Wiring: the planner proves which decisions apply (migration.test.mjs).
+test('update with an --edited decision that does not apply exits 2 and writes nothing', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  const instructions = path.join(target, '.agents/instructions.md');
+  await fs.appendFile(instructions, '\nLocal edit.\n');
+  const watched = ['.agents/instructions.md', '.agents/workflow-kit/install-state.json', '.agents/workflow-kit/last-apply.json'].map((relativePath) => path.join(target, relativePath));
+  const before = await Promise.all(watched.map((file) => fs.readFile(file, 'utf8')));
+  const entriesBefore = await fs.readdir(path.dirname(instructions));
+  const io = createMemoryIo();
+
+  const code = await runCli(['update', '--target', target, '--edited', '.agents/instructions.md=shadow', '--apply', '--yes'], io);
+
+  assert.equal(code, 2);
+  assert.match(io.output.stderr, /^Invalid --edited \.agents\/instructions\.md=shadow: shadow does not apply to this file\. Valid decisions: keep \| discard\. Nothing was written\.$/m);
+  assert.deepEqual(await Promise.all(watched.map((file) => fs.readFile(file, 'utf8'))), before);
+  assert.deepEqual(await fs.readdir(path.dirname(instructions)), entriesBefore, 'no backup file appears');
+});
+
 test('parseArgs marks help flag for --help and -h', () => {
   assert.equal(parseArgs(['init', '--help']).help, true);
   assert.equal(parseArgs(['init', '-h']).help, true);
@@ -68,6 +113,7 @@ test('printHelp documents all commands', () => {
   assert.match(help, /workflow-kit tui/);
   assert.match(help, /--backup-mode required\|none/);
   assert.match(help, /--profile <runtime>=<calidad\|equilibrado\|costo>/);
+  assert.match(help, /workflow-kit update .*\[--edited <path>=<decision>\]\.\.\. \[--edited all=<decision>\]/);
 });
 
 test('printHelp says which commands act on a project and which one updates workflow-kit itself', () => {

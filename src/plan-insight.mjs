@@ -2,21 +2,25 @@
 // (roadmap D-33): which structural migrations it carries and, on request, the
 // line diff of every file it would change.
 import fs from 'node:fs/promises';
+import { applyJournalRelativePath } from './apply.mjs';
+import { workspaceDirectory } from './planner.mjs';
 import { neutralInstructionPath, projectInstructionNames } from './project-instructions.mjs';
 
 // Migrations are derived from the plan itself, so they are idempotent: once a
 // repository is migrated the plan no longer contains the operation.
-export function describeMigrations({ operations, existingState, modelProfiles = {}, requestedProfiles = {}, stackPack, stackRequested, migratedInstructions = {} }) {
+export function describeMigrations({ operations, existingState, modelProfiles = {}, requestedProfiles = {}, stackPack, stackRequested, migratedInstructions = {}, layoutMigration = null }) {
   const migrations = [];
+  if (layoutMigration) migrations.push(describeLayoutMigration(layoutMigration));
   const has = (relativePath, kinds) => operations.some((item) => item.relativePath === relativePath && kinds.includes(item.operation));
   const writes = ['create', 'merge_with_backup', 'merge_no_backup', 'overwrite_with_backup', 'overwrite_no_backup'];
 
   const ignored = operations.find((item) => item.relativePath === '.gitignore' && writes.includes(item.operation))?.ignoredEntries ?? [];
-  if (ignored.includes('workspace')) {
-    migrations.push({ id: '0.11.0-ai-workspace', summary: 'Add .ai-work/ (temporary AI state) to .gitignore.' });
+  // The ignored entries are the manifest's lines that .gitignore was missing.
+  if (ignored.includes(`${workspaceDirectory}/`)) {
+    migrations.push({ id: '0.11.0-ai-workspace', summary: `Add ${workspaceDirectory}/ (temporary AI state) to .gitignore.` });
   }
-  if (ignored.includes('apply-journal')) {
-    migrations.push({ id: '0.17.2-apply-journal-ignored', summary: 'Add .agents/workflow-kit/last-apply.json (local rollback journal) to .gitignore. If it was committed before, run: git rm --cached .agents/workflow-kit/last-apply.json' });
+  if (ignored.includes(`/${applyJournalRelativePath}`)) {
+    migrations.push({ id: '0.17.2-apply-journal-ignored', summary: `Add ${applyJournalRelativePath} (local rollback journal) to .gitignore. If it was committed before, run: git rm --cached ${applyJournalRelativePath}` });
   }
   const defaultedRuntimes = existingState
     ? Object.keys(modelProfiles).filter((runtime) => !existingState.modelProfiles?.[runtime] && !requestedProfiles[runtime])
@@ -48,6 +52,28 @@ export function describeMigrations({ operations, existingState, modelProfiles = 
     });
   }
   return migrations;
+}
+
+// One line per group of the 1.0.0 -> 2.0.0 layout migration (PRD 2.3); the
+// pending files are listed one per line by formatPlan.
+function describeLayoutMigration(groups) {
+  const pendingEdits = groups.pending.filter((item) => !item.relativePath.endsWith('/'));
+  const pendingSkills = groups.pending.length - pendingEdits.length;
+  const context = groups.contextMoved.length > 0 ? groups.contextMoved.map((item) => `${item.from} -> ${item.to}`).join(', ') : 'none';
+  const parts = [
+    `kit files updated ${groups.kitUpdated} (catalogs replaced whole ${groups.catalogsReplaced})`,
+    `edited files pending ${pendingEdits.length}${pendingEdits.length > 0 ? ` (${pendingEdits.map((item) => item.relativePath).join(', ')})` : ''}`,
+    `retired deleted ${groups.retiredDeleted}`,
+    `own skills moved to .agents/project/skills/ ${groups.skillsMoved}${pendingSkills > 0 ? ` (${pendingSkills} pending)` : ''}`,
+    `catalog rows moved to .agents/project/index.md ${groups.catalogRowsMoved} (rows added ${groups.projectIndexRows})`,
+    `context moved: ${context}`,
+    `superseded seeds reset ${groups.seedsReset.length}`
+  ];
+  return {
+    id: groups.id,
+    summary: `Move to the kit and project overlay layout (install-state 2.0.0); every write keeps a backup. ${parts.join('; ')}.`,
+    pending: groups.pending
+  };
 }
 
 // Longest-common-subsequence line diff, printed as changed hunks with context.
