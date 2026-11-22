@@ -37,9 +37,10 @@ Everything under `.agents/project/` belongs to the project:
   additions.
 
 A missing overlay file means an empty overlay: a repository installed with an
-earlier version keeps working without any of these files. Until the updater
-migrates it, the project context may still live at `.agents/project-context.md`;
-the kit reads that path when `.agents/project/context.md` does not exist.
+earlier version keeps working without any of these files. A repository
+installed before `0.22.0` keeps its project context at
+`.agents/project-context.md` until its first `workflow-kit update` moves it to
+`.agents/project/context.md`; until then the kit reads the legacy path.
 
 The installer may generate starter placeholders (`seed`), but it must not
 pretend FHH IA Ecosystem overlay rules are universal.

@@ -22,6 +22,6 @@
     { "id": "routing-trace", "scope": "orchestrator", "rule": "A routing trace is emitted before loading the selected skill." },
     { "id": "user-owned-prd-decision", "scope": "orchestrator", "rule": "The AI never decides alone to create a PRD, epic, or ticket." },
     { "id": "continuation-fast-path", "scope": "orchestrator", "rule": "Continuation turns do not reload policy files." },
-    { "id": "project-context-ownership", "scope": "orchestrator", "rule": "Only the orchestrator edits .agents/project-context.md, and only at closure." }
+    { "id": "project-context-ownership", "scope": "orchestrator", "rule": "Only the orchestrator edits .agents/project/context.md (legacy: .agents/project-context.md), and only at closure." }
   ]
 }

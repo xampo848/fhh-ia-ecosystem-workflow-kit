@@ -14,7 +14,7 @@ The maintainer runs it; an AI session in another runtime cannot.
   `costo`.
 - The model is inherited from the session, because Codex model identifiers
   change between releases. To pin one, add `model = "<id>"` in a project copy
-  of the agent file and record it in `.agents/project-context.md`.
+  of the agent file and record it in `.agents/project/context.md` (legacy: `.agents/project-context.md`).
 - Codex resolves `model` and `model_reasoning_effort` in this order: an
   explicit spawn value, the agent file, then the parent session. Codex spawns
   agents after a direct request or an applicable project or skill instruction;

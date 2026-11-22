@@ -59,7 +59,7 @@ Rails examples of the workflow's test-design rules
 
 ## Validation commands
 
-Copy these into the "Validation commands" table of `.agents/project-context.md`
+Copy these into the "Validation commands" table of `.agents/project/context.md`
 with their real cost in this project.
 
 Backend, run from `backend/`; prefer `make` targets:
