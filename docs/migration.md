@@ -59,6 +59,12 @@ that run created, and restores the previous install state. As a fallback, you
 can restore any file by hand from the `.workflow-kit-backup-<timestamp>` file
 created during apply (files written with `--backup-mode none` have none).
 
+Without the journal (`.agents/workflow-kit/last-apply.json`), `rollback`
+restores the newest backup of each managed file instead. It cannot tell which
+files changed after that backup, so it first keeps the current content of
+each file it replaces as a new `.workflow-kit-backup-<timestamp>` file.
+Created files and the install state stay as they are.
+
 ## Upgrading safely after migration
 
 `workflow-kit update` uses `.agents/workflow-kit/install-state.json` to decide which files are managed.

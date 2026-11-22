@@ -27,10 +27,9 @@ async function exists(file) {
   }
 }
 
-// Two applies inside the same second would otherwise overwrite each other's
-// backups. Move the stamp forward until no planned backup name is taken.
-async function freeBackupStamp(operations, backupOperations) {
-  const targets = operations.filter((item) => backupOperations.has(item.operation)).map((item) => item.targetFile);
+// Two runs inside the same second would otherwise overwrite each other's
+// backups. Move the stamp forward until no backup name of these files is taken.
+export async function freeBackupStamp(targets) {
   const date = new Date();
   for (let attempt = 0; attempt < 120; attempt += 1) {
     const stamp = timestamp(date);
@@ -70,7 +69,8 @@ export async function applyInstallPlan(plan) {
     await assertNoSymlinkWrites(plan.targetPath, plan.operations);
   }
 
-  const backupStamp = await freeBackupStamp(plan.operations, new Set([...writeWithBackupOperations, ...deleteOperations]));
+  const backupOperations = new Set([...writeWithBackupOperations, ...deleteOperations]);
+  const backupStamp = await freeBackupStamp(plan.operations.filter((item) => backupOperations.has(item.operation)).map((item) => item.targetFile));
   const previousStateRaw = plan.stateFilePath ? await readIfPresent(plan.stateFilePath) : null;
   const journalFiles = [];
   let stateWritten = false;

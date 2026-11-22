@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { applyJournalRelativePath, readableApplyJournalVersions } from './apply.mjs';
+import { applyJournalRelativePath, freeBackupStamp, readableApplyJournalVersions } from './apply.mjs';
 import { checksumOf, findSymlinkInPath, resolveInsideTarget, writeFileAtomic } from './fs-safety.mjs';
 import { installStateRelativePath, readManagedInstallState } from './planner.mjs';
 
@@ -24,7 +24,7 @@ async function readJournal(targetPath) {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error(`${applyJournalRelativePath} is not valid JSON. Restore it from Git or delete it to fall back to the newest backup of each managed file.`);
+    throw new Error(`${applyJournalRelativePath} is not valid JSON, so rollback cannot tell what the last apply wrote. Fix the file by hand; Git does not track it. Nothing was changed.`);
   }
   if (!readableApplyJournalVersions.has(parsed?.schemaVersion) || !Array.isArray(parsed.files)) {
     throw new Error(`${applyJournalRelativePath} has an unsupported format. Run rollback with the workflow-kit version that wrote it.`);
@@ -82,6 +82,8 @@ export async function buildRollbackPlan(options = {}) {
 
 // Installs applied before the journal existed: restore the newest backup of
 // each managed file. Created files and install-state cannot be undone here.
+// Nothing says whether a file changed after its backup, so the apply keeps a
+// copy of the content it replaces (see applyRollbackPlan).
 async function buildLegacyRollbackPlan(targetPath) {
   const state = await readManagedInstallState(targetPath);
   const operations = [];
@@ -108,11 +110,16 @@ async function removeEmptyParents(targetPath, file) {
 
 export async function applyRollbackPlan(plan) {
   const results = [];
+  const copyStamp = plan.source === 'backups'
+    ? await freeBackupStamp(plan.operations.filter((item) => item.action === 'restore').map((item) => item.targetFile))
+    : null;
   for (const item of plan.operations) {
     if (item.action === 'restore') {
+      let keptCopy = null;
+      if (copyStamp) keptCopy = await keepCurrentContent(item, copyStamp);
       await fs.copyFile(item.backupPath, item.targetFile);
       if (plan.source === 'journal') await fs.rm(item.backupPath, { force: true });
-      results.push({ ...item, restored: true });
+      results.push({ ...item, restored: true, ...(keptCopy ? { keptCopy } : {}) });
     } else if (item.action === 'remove') {
       await fs.rm(item.targetFile, { force: true });
       await removeEmptyParents(plan.targetPath, item.targetFile);
@@ -134,6 +141,22 @@ export async function applyRollbackPlan(plan) {
   }
 
   return results;
+}
+
+// Without a journal: the content a restore replaces is kept as a newer
+// backup when it differs from the backup restored. Returns its path, or null.
+async function keepCurrentContent(item, stamp) {
+  let current;
+  try {
+    current = await fs.readFile(item.targetFile);
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+  if (current.equals(await fs.readFile(item.backupPath))) return null;
+  const copyPath = `${item.targetFile}.workflow-kit-backup-${stamp}`;
+  await fs.copyFile(item.targetFile, copyPath, fs.constants.COPYFILE_EXCL);
+  return copyPath;
 }
 
 export function summarizeRollback(results) {
@@ -159,7 +182,7 @@ export function formatRollbackPlan(plan) {
   });
   const scope = plan.source === 'journal'
     ? `Undoes the apply of ${plan.appliedAt ?? 'unknown date'}; install-state returns to its previous content.`
-    : 'No apply journal found: restoring the newest backup of each managed file. Created files and install-state stay as they are.';
+    : 'No apply journal found: restoring the newest backup of each managed file; a file whose content differs from that backup is first kept as a new backup. Created files and install-state stay as they are.';
   return [header, scope, ...lines].join('\n');
 }
 

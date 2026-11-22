@@ -6,6 +6,7 @@ import test from 'node:test';
 import { applyInstallPlan, applyJournalRelativePath } from '../src/apply.mjs';
 import { buildInstallPlan, buildUpdatePlan, installStateRelativePath } from '../src/planner.mjs';
 import { applyRollbackPlan, buildRollbackPlan, formatRollbackPlan, summarizeRollback } from '../src/rollback.mjs';
+import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
 // Journal 2.0.0 and rollback (AC-5): an apply that deleted retired kit files,
@@ -195,4 +196,32 @@ test('apply refuses a delete through a symbolic link that appeared after the pla
   await assert.rejects(applyInstallPlan(plan), /Refusing to write or delete through symbolic links/);
   assert.equal(await fs.readFile(path.join(elsewhere, 'moved/SKILL.md'), 'utf8'), 'kit body\n');
   assert.deepEqual(await fs.readdir(path.join(elsewhere, 'moved')), ['SKILL.md']);
+});
+
+// Final review 2: without a journal, rollback restores the newest backup of
+// each managed file. After a migration those files were edited again; their
+// current content is kept as a backup before the restore, never lost.
+test('rollback without a journal on a migrated 2.0.0 repository keeps a copy of every file it replaces', async () => {
+  const target = await makeTempRepo();
+  await installLegacy0181(target);
+  await applyInstallPlan(await buildUpdatePlan({ targetPath: target }));
+  assert.equal((await readJson(target, installStateRelativePath)).schemaVersion, '2.0.0');
+  const ownText = '\nOwn text added after the migration.\n';
+  for (const relativePath of ['CLAUDE.md', '.agents/project/quality-gate.md']) await fs.appendFile(path.join(target, relativePath), ownText);
+  await fs.rm(path.join(target, applyJournalRelativePath));
+
+  const plan = await buildRollbackPlan({ targetPath: target });
+  const restores = plan.operations.filter((item) => item.action === 'restore');
+  assert.ok(['CLAUDE.md', '.agents/project/quality-gate.md'].every((relativePath) => restores.some((item) => item.relativePath === relativePath)));
+  const before = new Map(await Promise.all(restores.map(async (item) => [item.relativePath, await fs.readFile(item.targetFile)])));
+  const restoredFrom = new Map(await Promise.all(restores.map(async (item) => [item.relativePath, await fs.readFile(item.backupPath)])));
+  await applyRollbackPlan(plan);
+
+  for (const item of restores) {
+    assert.deepEqual(await fs.readFile(item.targetFile), restoredFrom.get(item.relativePath), item.relativePath);
+    if (before.get(item.relativePath).equals(restoredFrom.get(item.relativePath))) continue;
+    const copies = (await listBackups(target)).filter((backup) => backup.startsWith(`${item.relativePath}.workflow-kit-backup-`));
+    const kept = await Promise.all(copies.map((backup) => fs.readFile(path.join(target, backup))));
+    assert.ok(kept.some((content) => content.equals(before.get(item.relativePath))), `${item.relativePath}: its content before the rollback is kept`);
+  }
 });

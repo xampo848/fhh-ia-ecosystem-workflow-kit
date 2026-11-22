@@ -163,7 +163,7 @@ test('doctor reports an unusable or unfinished apply journal as an error with th
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
   const journalPath = '.agents/workflow-kit/last-apply.json';
   const cases = [
-    ['{ not json', 'managed/apply-journal-unusable', /cannot be read \(not valid JSON\)\. Check it, then run `workflow-kit rollback` \(or delete it if the last apply finished\)/],
+    ['{ not json', 'managed/apply-journal-unusable', /cannot be read \(not valid JSON\), so rollback cannot use it\. Fix it by hand \(Git does not track it\); only if you will not roll back the last apply, move it out of \.agents\/workflow-kit\/\. init and update stop until then\.$/],
     ['{"schemaVersion":"2.0.0"}', 'managed/apply-journal-unusable', /cannot be read \(unsupported format\)/],
     [JSON.stringify({ schemaVersion: '2.0.0', appliedAt: '2026-01-01T00:00:00.000Z', completed: false, files: [] }), 'managed/apply-incomplete', /did not finish \(2026-01-01T00:00:00\.000Z\)\. Run `workflow-kit rollback --apply --yes`/]
   ];

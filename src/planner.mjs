@@ -123,12 +123,12 @@ export async function lastApplyProblem(targetPath) {
   return journal.completed === false ? { kind: 'incomplete', appliedAt: journal.appliedAt ?? 'unknown date' } : null;
 }
 
-export const unusableJournalMessage = (reason) => `${applyJournalRelativePath} cannot be read (${reason}). Check it, then run \`workflow-kit rollback\` (or delete it if the last apply finished)`;
+export const unusableJournalMessage = (reason) => `${applyJournalRelativePath} cannot be read (${reason}), so rollback cannot use it. Fix it by hand (Git does not track it); only if you will not roll back the last apply, move it out of .agents/workflow-kit/`;
 export const incompleteApplyMessage = (appliedAt) => `The last workflow-kit apply did not finish (${appliedAt}). Run \`workflow-kit rollback --apply --yes\` first`;
 
 async function assertLastApplyFinished(targetPath) {
   const problem = await lastApplyProblem(targetPath);
-  if (problem?.kind === 'unusable') throw new Error(`${unusableJournalMessage(problem.reason)}, and run this command again. Nothing was written.`);
+  if (problem?.kind === 'unusable') throw new Error(`${unusableJournalMessage(problem.reason)}. Then run this command again. Nothing was written.`);
   if (problem?.kind === 'incomplete') throw new Error(`${incompleteApplyMessage(problem.appliedAt)}, then run this command again. Nothing was written.`);
 }
 
