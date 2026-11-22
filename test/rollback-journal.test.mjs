@@ -245,6 +245,9 @@ test('rollback without a journal on a migrated 2.0.0 repository keeps a copy of 
   const plan = await buildRollbackPlan({ targetPath: target });
   const restores = plan.operations.filter((item) => item.action === 'restore');
   assert.ok(['CLAUDE.md', '.agents/project/quality-gate.md'].every((relativePath) => restores.some((item) => item.relativePath === relativePath)));
+  // Round 4 (N4): the dry run says a copy is kept first and what comes next.
+  assert.match(formatRollbackPlan(plan), /^restore CLAUDE\.md <- CLAUDE\.md\.workflow-kit-backup-\d{8}T\d{6}Z \(its current content is kept first as a -before-rollback copy\)$/m);
+  assert.match(formatRollbackPlan(plan), /workflow-kit update --edited all=discard --apply --yes/);
   const before = new Map(await Promise.all(restores.map(async (item) => [item.relativePath, await fs.readFile(item.targetFile)])));
   const restoredFrom = new Map(await Promise.all(restores.map(async (item) => [item.relativePath, await fs.readFile(item.backupPath)])));
   await applyRollbackPlan(plan);
@@ -252,8 +255,10 @@ test('rollback without a journal on a migrated 2.0.0 repository keeps a copy of 
   for (const item of restores) {
     assert.deepEqual(await fs.readFile(item.targetFile), restoredFrom.get(item.relativePath), item.relativePath);
     if (before.get(item.relativePath).equals(restoredFrom.get(item.relativePath))) continue;
-    const copies = (await listBackups(target)).filter((backup) => backup.startsWith(`${item.relativePath}.workflow-kit-backup-`));
+    const copies = (await listBackups(target)).filter((backup) => backup.startsWith(`${item.relativePath}.workflow-kit-backup-`) && backup.endsWith('-before-rollback'));
     const kept = await Promise.all(copies.map((backup) => fs.readFile(path.join(target, backup))));
     assert.ok(kept.some((content) => content.equals(before.get(item.relativePath))), `${item.relativePath}: its content before the rollback is kept`);
   }
+  // A second rollback restores nothing: the copies it kept are not backups to restore.
+  assert.deepEqual((await buildRollbackPlan({ targetPath: target })).operations, []);
 });
