@@ -419,7 +419,8 @@ test('a partial selection keeps the whole migration; a retired delete can still 
   const selected = selectPlanOperations(plan, []);
 
   const migrationOperations = plan.operations.filter((item) => item.migration);
-  assert.ok(migrationOperations.length > 0);
+  // The catalogs belong to the block: their project rows already moved.
+  for (const catalog of catalogPaths) assert.ok(migrationOperations.some((item) => item.relativePath === catalog), catalog);
   assert.deepEqual(selected.operations, migrationOperations);
   await applyInstallPlan(selected);
   assert.equal(await read(target, `${legacy.localSkill.newDir}/SKILL.md`), legacy.localSkill.contents['SKILL.md']);

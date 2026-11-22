@@ -95,6 +95,11 @@ test('the project context is created once, never overwritten, and checked by doc
   const diagnostics = await projectContextDiagnostics({ targetPath: target });
   assert.deepEqual(diagnostics.map((item) => item.code), ['project-context/missing-path']);
   assert.match(diagnostics[0].message, /docs\/missing\/ARCHITECTURE\.md/);
+
+  // A repository not migrated yet keeps the context at the legacy path: it is
+  // still read and checked there.
+  await fs.rename(contextPath, path.join(target, '.agents/project-context.md'));
+  assert.deepEqual((await projectContextDiagnostics({ targetPath: target })).map((item) => [item.code, item.path]), [['project-context/missing-path', '.agents/project-context.md']]);
 });
 
 test('preparation is proportional: one inline pass at N2, an index at N3, a delta discovery, a proportional matcher', async () => {

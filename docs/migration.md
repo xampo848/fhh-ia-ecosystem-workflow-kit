@@ -124,7 +124,11 @@ workflow-kit rollback --target /path/to/repo --apply --yes
 ```
 
 Rollback restores every moved, deleted or overwritten file and the `1.0.0`
-install state, byte for byte.
+install state, byte for byte. It undoes only the last apply: if you decide
+pending files in a second apply, rolling back undoes that decision, and the
+migration itself can then only be undone by hand from its
+`.workflow-kit-backup-*` files. Decide pending files in the same apply as the
+migration when you may want to roll back.
 
 Things the migration does not do:
 

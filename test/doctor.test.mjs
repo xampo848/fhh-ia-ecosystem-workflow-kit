@@ -86,6 +86,9 @@ test('doctor lists what update leaves pending and what is neither kit nor projec
   const state = JSON.parse(await read(target, installStateRelativePath));
   state.files[retired] = { sha256: sha('as the kit shipped it\n'), class: 'kit' };
   for (const key of ['/etc/hosts', 'docs/../outside.md', 'docs//double.md']) state.files[key] = { sha256: sha('x'), class: 'kit' };
+  // A block that already equals this version's template is not an edit, even
+  // when the state recorded an older block.
+  state.files['docs/README.md'] = { sha256: sha('an older kit block'), class: 'adapter' };
   await write(target, installStateRelativePath, JSON.stringify(state, null, 2));
 
   const result = await runDoctor({ targetPath: target });
