@@ -201,6 +201,7 @@ would build and names what is pending and how to resolve it.
 | `managed/apply-incomplete` | error | the last apply stopped halfway | `workflow-kit rollback --apply --yes`, then run the command again |
 | `managed/apply-journal-unusable` | error | `.agents/workflow-kit/last-apply.json` cannot be read, so `rollback` cannot use it | fix it by hand (Git does not track it); only if you will not roll back the last apply, move it out of `.agents/workflow-kit/` |
 | `managed/install-state-unusable` | error | `install-state.json` cannot be read | restore it from Git, or upgrade the CLI if a newer version wrote it |
+| `managed/path-unreadable` | error | `doctor` met a path it cannot read: a file where a folder of the path should be (for example `.agents/project` as a file), a folder where a file should be, or no permission | fix that path, then run `doctor` again |
 | `boundary/pending-edited_kit_file`, `boundary/pending-unrecorded_kit_file` | warning | a kit file differs from what the kit recorded (or was never recorded) | `workflow-kit update --edited <path>=keep\|discard` (plus `shadow` when the message offers it) |
 | `boundary/pending-unmarked_adapter` | warning | an adapter has no `workflow-kit:managed` block and was edited | `--edited <path>=keep\|discard`, or `split` when offered |
 | `boundary/pending-retired_edited` | warning | the kit no longer ships this file and you edited it | delete it, or keep it as project content outside the kit folders |

@@ -9,6 +9,17 @@ export const applyJournalRelativePath = '.agents/workflow-kit/last-apply.json';
 export const applyJournalSchemaVersion = '2.0.0';
 // Journal versions this CLI can read back (rollback, and the init/update gate).
 export const readableApplyJournalVersions = new Set(['1.0.0', applyJournalSchemaVersion]);
+const journalActions = new Set(['created', 'overwritten', 'deleted']);
+const stringOrNull = (value) => value === null || typeof value === 'string';
+
+// Whether rollback can trust a parsed journal: a version it reads and files
+// entries it can act on. Shared by rollback and the init/update gate.
+export function isUsableApplyJournal(journal) {
+  if (journal === null || typeof journal !== 'object' || !readableApplyJournalVersions.has(journal.schemaVersion) || !Array.isArray(journal.files)) return false;
+  return journal.files.every((entry) => entry !== null && typeof entry === 'object'
+    && typeof entry.relativePath === 'string' && entry.relativePath !== ''
+    && journalActions.has(entry.action) && stringOrNull(entry.backup ?? null) && stringOrNull(entry.writtenChecksum ?? null));
+}
 
 // A retired kit file is removed only after a copy is kept next to it, even
 // with --backup-mode none: the delete is what rollback has to undo.

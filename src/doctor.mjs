@@ -241,28 +241,42 @@ export async function runDoctor(options = {}) {
       await fs.access(targetFile);
       present.push(file.relativePath);
     } catch (accessError) {
-      if (accessError.code !== 'ENOENT') throw accessError;
+      // ENOTDIR: a file stands where a folder of the path should be.
+      if (accessError.code !== 'ENOENT' && accessError.code !== 'ENOTDIR') throw accessError;
       missing.push(file.relativePath);
     }
   }
 
-  const contract = await validateWorkflowContract({ root: targetPath, runtimes });
   const catalog = await loadDelegateCatalog();
   const modelProfiles = resolveModelProfiles({ catalog, runtimes, stored: storedState?.modelProfiles });
+  // A path doctor cannot read (a file where a folder should be, no
+  // permission) is a finding of the check that met it, never a crash.
+  const guarded = async (check) => {
+    try {
+      return await check();
+    } catch (fsError) {
+      if (typeof fsError?.code !== 'string' || typeof fsError.path !== 'string') throw fsError;
+      const relativePath = path.relative(targetPath, fsError.path).split(path.sep).join('/');
+      return [error('managed/path-unreadable', relativePath, `Cannot read ${relativePath} (${fsError.code}): a file stands where a folder of this path should be, a folder where a file should be, or it is not readable. Fix it and run doctor again.`)];
+    }
+  };
+  const checks = await Promise.all([
+    async () => (await validateWorkflowContract({ root: targetPath, runtimes })).diagnostics.map(targetRepoContractDiagnostic),
+    () => modelProfileDiagnostics({ targetPath, present, catalog, modelProfiles }),
+    () => workspaceDiagnostics({ targetPath }),
+    () => projectContextDiagnostics({ targetPath }),
+    () => projectInstructionDiagnostics({ targetPath, runtimes }),
+    () => stackPackDiagnostics({ targetPath, stackPack: storedState?.stackPack }),
+    () => adapterBlockDiagnostics({ targetPath, manifest, state: storedState, files }),
+    () => pendingDiagnostics({ targetPath, manifest, state: storedState, runtimes, overlay, journalProblem }),
+    () => shadowDiagnostics({ targetPath, manifest, shippedPaths }),
+    () => unownedPathDiagnostics({ targetPath, manifest, state: storedState, shippedPaths }),
+    () => symlinkDiagnostics(targetPath, files)
+  ].map(guarded));
   const diagnostics = [
-    ...contract.diagnostics.map(targetRepoContractDiagnostic),
-    ...await modelProfileDiagnostics({ targetPath, present, catalog, modelProfiles }),
-    ...await workspaceDiagnostics({ targetPath }),
-    ...await projectContextDiagnostics({ targetPath }),
-    ...await projectInstructionDiagnostics({ targetPath, runtimes }),
-    ...await stackPackDiagnostics({ targetPath, stackPack: storedState?.stackPack }),
-    ...await adapterBlockDiagnostics({ targetPath, manifest, state: storedState, files }),
-    ...await pendingDiagnostics({ targetPath, manifest, state: storedState, runtimes, overlay, journalProblem }),
-    ...await shadowDiagnostics({ targetPath, manifest, shippedPaths }),
-    ...await unownedPathDiagnostics({ targetPath, manifest, state: storedState, shippedPaths }),
+    ...checks.flat(),
     ...stateDiagnostics(storedState),
     ...managedVersionDiagnostics(storedState),
-    ...await symlinkDiagnostics(targetPath, files),
     ...journalDiagnostics(journalProblem),
     ...unusableState
   ].sort((a, b) => a.severity.localeCompare(b.severity)

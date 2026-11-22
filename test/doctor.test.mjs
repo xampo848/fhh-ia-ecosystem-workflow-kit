@@ -179,6 +179,23 @@ test('doctor reports an unusable or unfinished apply journal as an error with th
     assertFindings(result, [[code, journalPath, message, 'error']]);
     assert.equal(result.ok, false);
   }
+  // Final review 7: a journal that cannot even be opened is a finding too.
+  await fs.rm(path.join(target, journalPath));
+  await fs.mkdir(path.join(target, journalPath));
+  assertFindings(await runDoctor({ targetPath: target }), [['managed/apply-journal-unusable', journalPath, /cannot be read \(EISDIR\)/, 'error']]);
+});
+
+// Final review 7: a file where the kit expects a folder is reported, never a crash.
+test('doctor reports a .agents/project that is a file as a finding instead of crashing', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  await fs.rm(path.join(target, '.agents/project'), { recursive: true });
+  await write(target, '.agents/project', 'not a folder\n');
+
+  const result = await runDoctor({ targetPath: target });
+
+  assert.equal(result.ok, false);
+  assertFindings(result, [['managed/path-unreadable', '.agents/project/context.md', /ENOTDIR.*a file stands where a folder of this path should be/, 'error']]);
 });
 
 test('doctor warns when target was last applied with a different toolkit version', async () => {

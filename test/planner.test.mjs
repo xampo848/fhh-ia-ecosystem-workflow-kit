@@ -452,7 +452,9 @@ test('init and update stop on an unusable install-state or apply journal, and wr
     { file: installStateRelativePath, content: '{ not json', message: /install-state\.json is not valid JSON\. Restore it from Git/ },
     { file: installStateRelativePath, content: '[]', message: /install-state\.json does not have the expected structure\. Restore it from Git/ },
     { file: journalPath, content: '{ not json', message: `${journalPath} cannot be read (not valid JSON), ${journalAction}` },
-    { file: journalPath, content: '{"schemaVersion":"2.0.0","completed":true}', message: `${journalPath} cannot be read (unsupported format), ${journalAction}` }
+    { file: journalPath, content: '{"schemaVersion":"2.0.0","completed":true}', message: `${journalPath} cannot be read (unsupported format), ${journalAction}` },
+    // Final review 7: every files entry is checked, not only the array.
+    { file: journalPath, content: '{"schemaVersion":"2.0.0","completed":true,"files":[{"relativePath":5,"action":"moved"}]}', message: `${journalPath} cannot be read (unsupported format), ${journalAction}` }
   ];
   for (const item of cases) {
     const original = await read(target, item.file);
