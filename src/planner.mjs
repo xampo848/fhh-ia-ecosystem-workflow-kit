@@ -8,7 +8,7 @@ import { isSupportedRuntime, runtimeTemplatePaths, supportedRuntimes } from './r
 import { loadDelegateCatalog, parseProfileOption, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
-import { assertNoSymlinkWrites, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
+import { assertNoSymlinkWrites, assertWriteFoldersAreFolders, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
 import { applyJournalRelativePath, isUsableApplyJournal } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, requireMigrationBackups } from './migration.mjs';
@@ -452,9 +452,11 @@ async function finalizeOperations({ targetPath, manifest, operations, previousFi
   for (const item of operations) {
     if (item.class === undefined && item.relativePath !== gitignorePath) item.class = classifyOrThrow(manifest, item.relativePath).class;
   }
-  await requireBackupForUnrecordedContent({ targetPath, manifest, operations, previousFiles });
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+  // Before reading what the writes replace.
   await assertNoSymlinkWrites(targetPath, operations);
+  await assertWriteFoldersAreFolders(targetPath, operations);
+  await requireBackupForUnrecordedContent({ targetPath, manifest, operations, previousFiles });
 }
 
 // P4: a file the previous state records that this CLI version no longer ships.

@@ -80,6 +80,37 @@ export async function assertNoSymlinkWrites(targetPath, operations) {
   ].join('\n'));
 }
 
+// Fails the whole plan when a write needs a folder where a file stands (for
+// example .agents/project/skills as a file): the apply would stop halfway.
+export async function assertWriteFoldersAreFolders(targetPath, operations) {
+  const blocking = new Set();
+  const checked = new Map();
+  for (const item of operations) {
+    if (!writingOperations.has(item.operation) || item.operation === 'delete_with_backup') continue;
+    const segments = String(item.relativePath).split(/[\\/]+/).filter(Boolean).slice(0, -1);
+    let walked = '';
+    for (const segment of segments) {
+      walked = walked ? `${walked}/${segment}` : segment;
+      if (!checked.has(walked)) {
+        let isFolder = true;
+        try {
+          isFolder = (await fs.lstat(path.join(path.resolve(targetPath), walked))).isDirectory();
+        } catch (error) {
+          if (error.code !== 'ENOENT') throw error;
+        }
+        checked.set(walked, isFolder);
+      }
+      if (!checked.get(walked)) {
+        blocking.add(walked);
+        break;
+      }
+    }
+  }
+  if (blocking.size === 0) return;
+  throw new Error([...blocking].sort().map((folder) => `${folder} is a file, not a folder, and the plan writes inside it.`).join('\n')
+    + '\nMove that file aside (or rename it) and run again. Nothing was written.');
+}
+
 // Write to a sibling temporary file and rename it over the destination, so an
 // interrupted run never leaves a half-written file.
 export async function writeFileAtomic(targetFile, content) {

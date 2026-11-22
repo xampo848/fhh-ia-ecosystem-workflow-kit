@@ -452,6 +452,18 @@ test('the migration refuses a .agents/project that is a symbolic link and writes
   assert.deepEqual(await hashTree(elsewhere), outside);
 });
 
+// Final review 9: a file where a planned write needs a folder stops the plan,
+// instead of an apply that fails halfway with ENOTDIR.
+test('the migration refuses a .agents/project/skills that is a file and writes nothing', async () => {
+  const { target } = await legacyRepo();
+  await write(target, '.agents/project/skills', 'not a folder\n');
+  const before = await hashTree(target);
+
+  await assert.rejects(buildUpdatePlan({ targetPath: target }), /\.agents\/project\/skills is a file, not a folder.*Nothing was written\./s);
+
+  assert.deepEqual(await hashTree(target), before);
+});
+
 // Deselecting a retired delete is proven in test/planner.test.mjs.
 test('a partial selection keeps the whole migration', async () => {
   const { target, legacy } = await legacyRepo();

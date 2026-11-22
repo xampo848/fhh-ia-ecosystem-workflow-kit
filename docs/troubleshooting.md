@@ -222,6 +222,8 @@ Things to know:
 - After an apply that stopped halfway, `init` and `update` refuse to run until
   `rollback` undoes it, so its journal is never overwritten.
 - Empty folders inside an own skill are not recreated by the migration.
+- A file where the plan needs a folder (for example `.agents/project/skills` as
+  a file) stops `init` and `update` before anything is written; move it aside.
 - An adapter with Windows (CRLF) line endings never qualifies for `split`.
 
 ## `last-apply.json` was committed
