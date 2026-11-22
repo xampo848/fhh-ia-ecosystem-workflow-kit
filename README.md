@@ -144,10 +144,12 @@ workflow-kit update --target /path/to/repo --apply --yes
 ```
 
 `update` only overwrites files recorded in
-`.agents/workflow-kit/install-state.json`. A managed file you edited is kept as
-`skip_modified`; a file workflow-kit never installed is kept as
-`skip_unmanaged`. The plan lists one-time migrations, `--diff` shows every
-change, and `update` never deletes or moves your files. It reuses the runtimes
+`.agents/workflow-kit/install-state.json`. A managed file you edited, or your
+own file at a kit path the install never recorded, stays pending as
+`skip_modified` until you decide it with `--edited`. The plan lists one-time
+migrations and `--diff` shows every change. Since `0.22.0`, `update` can
+delete kit files a version no longer ships and move project content to
+`.agents/project/`, always with a backup and `workflow-kit rollback`. It reuses the runtimes
 and model profile recorded at install time. Installs older than state tracking
 need one bootstrap with `--adopt-existing`; see
 [Migration](docs/migration.md).

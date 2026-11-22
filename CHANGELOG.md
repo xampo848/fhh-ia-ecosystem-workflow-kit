@@ -2,8 +2,10 @@
 
 Versions follow `docs/versioning.md`. While the package is `0.x`, installed
 paths may change between versions; every change below is applied by
-`workflow-kit update` without deleting or moving files in your repository.
-Migration details are in `docs/migration.md`.
+`workflow-kit update`. Since `0.22.0`, update can delete kit files a version
+no longer ships and move project content to `.agents/project/`, always with a
+backup and `workflow-kit rollback`. Migration details are in
+`docs/migration.md`.
 
 ## 0.22.0-manifest-updater
 
