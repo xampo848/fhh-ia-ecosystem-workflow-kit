@@ -114,8 +114,9 @@ test('export stops over an installed repository root and leaves it untouched', a
   const installed = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: installed, runtime: 'claude' }));
   for (const [name, target, message] of [
-    ['1.0.0 install', legacy, /uses install-state 1\.0\.0/],
-    ['2.0.0 install', installed, /records an install, not an export \(runtimes: claude\), so this folder is a workflow-kit install\. Export to an empty folder/]
+    // Round 6 (S3): the message names the remedy that keeps an old export an export.
+    ['1.0.0 install', legacy, /uses install-state 1\.0\.0\. If this folder is an export from a workflow-kit version before 0\.22\.0, export to an empty folder, or remove its \.agents\/workflow-kit\/install-state\.json and export again\./],
+    ['2.0.0 install', installed, /records an install, not an export \(runtimes: claude\)\. If this folder is an export from a workflow-kit version before 0\.22\.0, .*If it is a workflow-kit install, export to another folder; `workflow-kit update` brings an install to this version\. Nothing was written\./]
   ]) {
     const before = await hashTree(target);
     const io = createMemoryIo();

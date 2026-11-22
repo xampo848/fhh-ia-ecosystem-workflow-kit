@@ -146,7 +146,7 @@ async function assertNoInstallState(targetPath, manifest, { exporting = false } 
   const state = await readInstallState(path.join(targetPath, installStateRelativePath), manifest);
   if (exporting && state?.schemaVersion === installStateSchemaVersion && state.mode === 'export') return;
   if (exporting && state) {
-    throw new Error(`${installStateRelativePath} ${state.schemaVersion === legacyInstallStateSchemaVersion ? `uses install-state ${legacyInstallStateSchemaVersion}, so this folder` : `records an install, not an export (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}), so this folder`} is a workflow-kit install. Export to an empty folder or to one an earlier export wrote; to bring this install to this version, run \`workflow-kit update\`. Nothing was written.`);
+    throw new Error(`${installStateRelativePath} ${state.schemaVersion === legacyInstallStateSchemaVersion ? `uses install-state ${legacyInstallStateSchemaVersion}` : `records an install, not an export (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'})`}. If this folder is an export from a workflow-kit version before 0.22.0, export to an empty folder, or remove its ${installStateRelativePath} and export again. If it is a workflow-kit install, export to another folder; \`workflow-kit update\` brings an install to this version. Nothing was written.`);
   }
   if (state?.schemaVersion === legacyInstallStateSchemaVersion) {
     throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run \`workflow-kit update\` to migrate this repository; init would replace project content. Nothing was written.`);
