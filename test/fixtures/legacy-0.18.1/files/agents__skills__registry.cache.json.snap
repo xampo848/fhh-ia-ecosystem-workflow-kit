@@ -1,0 +1,405 @@
+{
+  "cache_schema_version": "1.0.0",
+  "derived_artifact": true,
+  "generated_by": "scripts/sync-skill-registry.mjs",
+  "canonical_source": ".agents/skills/registry.md",
+  "compact_index": ".agents/skills/index.md",
+  "compact_pattern_index": ".agents/skills/06-patterns/index.md",
+  "structured_registry": ".agents/skills/registry.json",
+  "source_hashes": {
+    ".agents/skills/index.md": "29936e5e0df5a3b6268da8c6a9481dc1c1c929dcb51ed29a3beefd76116000db",
+    ".agents/skills/06-patterns/index.md": "93951753002cd3cc900caaad297faf072c168a5b1c88145ae391719c4f683ac9",
+    ".agents/skills/registry.md": "ec0f6251d84e13f28d7b32c1733354eedafa2b71a7a4405cf1633a6da49ed045",
+    ".agents/skills/registry.json": "883f500df3c67833e363fdde95db88b19fe0075f242958cba5e53d3d977ff2dd"
+  },
+  "entry_count": 43,
+  "entries": [
+    {
+      "key": "acceptance-test-engineer",
+      "name": "acceptance-test-engineer",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/acceptance-test-engineer/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "cbefaa476ea5416576057c3c7d1115a53c64464215860122b970284e65caba44"
+    },
+    {
+      "key": "backend-phase-implementer",
+      "name": "backend-phase-implementer",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/backend-phase-implementer/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "aca95f655ac41f1b145e3b53b4061d40ba610ddc1aa9ab10de0c5ec242426594"
+    },
+    {
+      "key": "cavecrew",
+      "name": "cavecrew",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/cavecrew/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "526149dfb226437abdc78ae1797e6b972936f9a55c62aa5b0eb017e6d9dc0025"
+    },
+    {
+      "key": "cavecrew-builder",
+      "name": "cavecrew-builder",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/cavecrew-builder/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "ee5a86a8a239f51e14bb44c11d8c9f72e3ee13362d0ad904514186f6b8141aa4"
+    },
+    {
+      "key": "cavecrew-investigator",
+      "name": "cavecrew-investigator",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/cavecrew-investigator/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "451010818d6b200127bf6e79aa4b9bf07e0aeb7c7213f73ad99dc3b26b943c14"
+    },
+    {
+      "key": "cavecrew-reviewer",
+      "name": "cavecrew-reviewer",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/cavecrew-reviewer/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "fdd494cd510f5f9f41f322331ac5a47b79bd81b40d666fe7689373a2d6158f30"
+    },
+    {
+      "key": "caveman",
+      "name": "caveman",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman/SKILL.md",
+      "loading_posture": "Helper/mode",
+      "skill_sha256": "079a5466ec29c700c1ae9470a5acf4d64a9aef00fdebce0728609f2f697ae2e2"
+    },
+    {
+      "key": "caveman-commit",
+      "name": "caveman-commit",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-commit/SKILL.md",
+      "loading_posture": "Helper/mode",
+      "skill_sha256": "58db7b8efab911a629c26e7132517d9076e4e3645009eb604cb8c25663477841"
+    },
+    {
+      "key": "caveman-compress",
+      "name": "caveman-compress",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-compress/SKILL.md",
+      "loading_posture": "Helper/mode",
+      "skill_sha256": "ff336e35374ef337d62148721cc154164997afbca5d2c1c4ddacb6496b9f8824"
+    },
+    {
+      "key": "caveman-help",
+      "name": "caveman-help",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-help/SKILL.md",
+      "loading_posture": "Helper/mode",
+      "skill_sha256": "590d6c6c17254bda56d18da7cc9d0bf252aeec5d1c78b77dd7ae4cabb8404f89"
+    },
+    {
+      "key": "caveman-review",
+      "name": "caveman-review",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-review/SKILL.md",
+      "loading_posture": "Helper/mode",
+      "skill_sha256": "9ef09065f26b9781275b5a4775e14870e331fab833efb2a2aa33f3205a2b83c3"
+    },
+    {
+      "key": "caveman-stats",
+      "name": "caveman-stats",
+      "group": "skills",
+      "class": "Mode/helper",
+      "path": ".agents/skills/05-caveman/caveman-stats/SKILL.md",
+      "loading_posture": "Helper/mode",
+      "skill_sha256": "b9e49e46ede956e0c1633eae82a695c996f728bc48f3903f001d301068a2b0ea"
+    },
+    {
+      "key": "codebase-discovery",
+      "name": "codebase-discovery",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/codebase-discovery/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "5186c7cfe809b7010706e4b0f09c48bf676a61f877ebcc5a0ca6b226050a92b3"
+    },
+    {
+      "key": "contract-verifier",
+      "name": "contract-verifier",
+      "group": "skills",
+      "class": "Quality/validation",
+      "path": ".agents/skills/02-implement/contract-verifier/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "de783c8d82c76340c0a93a212abc07395b69459aa46e909d4e7b1bba1fe7aa84"
+    },
+    {
+      "key": "create-epic",
+      "name": "create-epic",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/create-epic/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "7fe66e729583a9d09e030e420126c0f1f0188d9d5747980030327dd694ac5f37"
+    },
+    {
+      "key": "create-prd",
+      "name": "create-prd",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/create-prd/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "d54a45fac29148f913d47d97ad365c5e0e90f96bca18813b7bc3852fea7bef13"
+    },
+    {
+      "key": "document-development",
+      "name": "document-development",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/03-quality/document-development/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "1eb5fb09721bc31f5df2431dc1d5033ef07e4d1188458a117cc7dd138d1bd4c5"
+    },
+    {
+      "key": "engineering-mentor",
+      "name": "engineering-mentor",
+      "group": "skills",
+      "class": "Cross-cutting overlay",
+      "path": ".agents/skills/04-crosscutting/engineering-mentor/SKILL.md",
+      "loading_posture": "Overlay",
+      "skill_sha256": "7f874c4f28d564301bb4c2a3fad843f9e0a6bde80706c9f60b22b6330c73e0b0"
+    },
+    {
+      "key": "frontend-design",
+      "name": "frontend-design",
+      "group": "skills",
+      "class": "Cross-cutting overlay",
+      "path": ".agents/skills/04-crosscutting/frontend-design/SKILL.md",
+      "loading_posture": "Overlay",
+      "skill_sha256": "2a902a88b2cad2d0c1c23c5999a09feff7705ebdc4ef23487eeaeadcabb970d1"
+    },
+    {
+      "key": "frontend-phase-implementer",
+      "name": "frontend-phase-implementer",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/frontend-phase-implementer/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "927103e6529567fac0edc670e5ae3830a6220988780056eccd543ec7e2e1df3a"
+    },
+    {
+      "key": "generate-pm-ticket",
+      "name": "generate-pm-ticket",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/generate-pm-ticket/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "ac1bba0d62fe13af98fd725ac86b0dec9caab7c8a9001495a2746c67827a08e8"
+    },
+    {
+      "key": "impeccable",
+      "name": "impeccable",
+      "group": "skills",
+      "class": "Cross-cutting overlay",
+      "path": ".agents/skills/04-crosscutting/impeccable/SKILL.md",
+      "loading_posture": "Overlay",
+      "skill_sha256": "1afa66d9be6126f895ae542135b889bbe52bf593826887176f059c87ddc82973"
+    },
+    {
+      "key": "implement-change",
+      "name": "implement-change",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/02-implement/implement-change/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "8bc030e946c641c8e579d27ce9598959d895e50c346f8efdbdec654c79b093d1"
+    },
+    {
+      "key": "implement-prd",
+      "name": "implement-prd",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/02-implement/implement-prd/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "b66e38a3d01de9bc9558bab112c05da585aedcd294d2ab04ac174cf3bcd28f03"
+    },
+    {
+      "key": "implementation-skill-matcher",
+      "name": "implementation-skill-matcher",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/implementation-skill-matcher/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "8acacfb7204d86e6dcde38985afe6946a29560e77c7a3d804e73ee166ec1195e"
+    },
+    {
+      "key": "implementation-slicing",
+      "name": "implementation-slicing",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/implementation-slicing/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "b88bf7fc84452775d2eb0500bd5470137f75702c299f929cd23100f4dd09737c"
+    },
+    {
+      "key": "pattern-authoring-add-project-pattern",
+      "name": "add-project-pattern",
+      "group": "pattern_skills",
+      "class": "Standards/pattern",
+      "path": ".agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "a635cb3e25b584abf19be559f5d1635ae575abf87d281fdb81f3c19a51160d5f"
+    },
+    {
+      "key": "pattern-authoring-init-legacy-attachments",
+      "name": "init-legacy-attachments",
+      "group": "pattern_skills",
+      "class": "Standards/pattern",
+      "path": ".agents/skills/06-patterns/authoring/init-legacy-attachments/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "6213305e501bdf97ba22ad62b72a9123f7a16c70603b9f519eb910b224d8b061"
+    },
+    {
+      "key": "playwright-testing",
+      "name": "playwright-testing",
+      "group": "skills",
+      "class": "Quality/validation",
+      "path": ".agents/skills/03-quality/playwright-testing/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "e46ad252681cec75fb0f8105eba5cdbaf21ee4925ed06955dc7c14aa250a95ab"
+    },
+    {
+      "key": "pr-comments-resolution",
+      "name": "pr-comments-resolution",
+      "group": "skills",
+      "class": "Cross-cutting overlay",
+      "path": ".agents/skills/04-crosscutting/pr-comments-resolution/SKILL.md",
+      "loading_posture": "Overlay",
+      "skill_sha256": "ba25e20bb7db9e8c1d9593093199e147eef4ad6b82a249eed854262a7ae244ec"
+    },
+    {
+      "key": "prd-readiness-review",
+      "name": "prd-readiness-review",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/prd-readiness-review/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "cc142694a7c9c3d5fe2d13bcd2999a05c8c26d37de35f1d0c39b755fa7ebb4fc"
+    },
+    {
+      "key": "project-formation",
+      "name": "project-formation",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/project-formation/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "4a19a68acae75a7167776a87e4048b7466147bdfcb5c5838b92be5670bd635be"
+    },
+    {
+      "key": "project-formation-discovery",
+      "name": "project-formation-discovery",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/discovery/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "a13f29cfc581111225255e37f26974cf608b804d9c929a57c555e12207b95693"
+    },
+    {
+      "key": "project-formation-dossier",
+      "name": "project-formation-dossier",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/dossier/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "6cf99babfe2c584032e46bfffc568f1fcc58f6bb4d6ec54378ff065326cdcf6f"
+    },
+    {
+      "key": "project-formation-gtm",
+      "name": "project-formation-gtm",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/gtm/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "a8dfff263fe047511bac4b8c142f3ade9e9ab6cd8e1bc8e7c52a87c3f1012bdd"
+    },
+    {
+      "key": "project-formation-roadmap",
+      "name": "project-formation-roadmap",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/roadmap/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "a2b1a55c202d453e20589b82d768be1e8c87d6f60e4e14d8589cad9f7d80332f"
+    },
+    {
+      "key": "project-formation-router",
+      "name": "project-formation-router",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/router/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "fa11bed15efe9f2bde2f4035ebdf9c104d70cd3d6b560b21bb6dbb0186ddda55"
+    },
+    {
+      "key": "project-formation-shaping",
+      "name": "project-formation-shaping",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/01-product/project-formation/shaping/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "7bd915b7ef66aed364c7da5453ae253a7ee82dddec58f3a510a4b1bf716de697"
+    },
+    {
+      "key": "qa-handoff-review",
+      "name": "qa-handoff-review",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/qa-handoff-review/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "86593207d9fc1951e497f99b1a8cb3452e0efeeceed20c33d3143e00d86d7d55"
+    },
+    {
+      "key": "react-doctor",
+      "name": "react-doctor",
+      "group": "skills",
+      "class": "Quality/validation",
+      "path": ".agents/skills/03-quality/react-doctor/SKILL.md",
+      "loading_posture": "Just-in-time",
+      "skill_sha256": "7606d08286f24cc560683e0a52843b57a8dd791f75febd3b2efc35ddbad276a8"
+    },
+    {
+      "key": "solution-sketch",
+      "name": "solution-sketch",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/01-product/solution-sketch/SKILL.md",
+      "loading_posture": "Explicit-only",
+      "skill_sha256": "1779dbac442c0625f55e391ec0378b0024a633d5aab47417efbaa6e30435e7ad"
+    },
+    {
+      "key": "validation-runner",
+      "name": "validation-runner",
+      "group": "skills",
+      "class": "Delegate-only implementation",
+      "path": ".agents/skills/02-implement/validation-runner/SKILL.md",
+      "loading_posture": "Delegated-only",
+      "skill_sha256": "444049db44e279249c4c49f98bc19f8173e93afaca8009ed3ad9b934d1751a8a"
+    },
+    {
+      "key": "workflow-router",
+      "name": "workflow-router",
+      "group": "skills",
+      "class": "Workflow",
+      "path": ".agents/skills/00-router/workflow-router/SKILL.md",
+      "loading_posture": "Startup-minimal",
+      "skill_sha256": "e4e0b33dc37b8e3fecfaf1e51cdf3bf92bcf60ea3e30156e918ae3d32dbbfe20"
+    }
+  ]
+}
