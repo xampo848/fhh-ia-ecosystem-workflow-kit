@@ -12,7 +12,7 @@ import { extractManagedBlock, loadKitManifest } from '../src/kit-manifest.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan, installStateRelativePath, selectPlanOperations } from '../src/planner.mjs';
 import { applyRollbackPlan, buildRollbackPlan } from '../src/rollback.mjs';
 import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
-import { makeTempRepo } from './helpers.mjs';
+import { makeTempRepo, hashTree } from './helpers.mjs';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const overlayTemplates = path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full');
@@ -50,21 +50,6 @@ const invalidDecision = (relativePath, decision, validDecisions) => (error) => {
 async function legacyRepo(options) {
   const target = await makeTempRepo();
   return { target, legacy: await installLegacy0181(target, options) };
-}
-
-// Hash of every file in the tree, so "nothing changed" covers files no
-// assertion names.
-async function hashTree(target) {
-  const hashes = {};
-  async function walk(relativeDirectory) {
-    for (const entry of await fs.readdir(path.join(target, relativeDirectory), { withFileTypes: true })) {
-      const relativePath = path.posix.join(relativeDirectory, entry.name);
-      if (entry.isDirectory()) await walk(relativePath);
-      else hashes[relativePath] = sha(await fs.readFile(path.join(target, relativePath)));
-    }
-  }
-  await walk('.');
-  return hashes;
 }
 
 test('the dry-run lists the migration groups with counts and every pending file with its valid decisions, and writes nothing (AC-7)', async () => {

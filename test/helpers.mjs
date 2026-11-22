@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { rmSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -30,4 +31,19 @@ export function createMemoryIo() {
     stdout: { write: (chunk) => { output.stdout += chunk; } },
     stderr: { write: (chunk) => { output.stderr += chunk; } }
   };
+}
+
+// Hash of every file under target, keyed by its "/" path, so "nothing
+// changed" also covers files no assertion names.
+export async function hashTree(target) {
+  const hashes = {};
+  async function walk(relativeDirectory) {
+    for (const entry of await fs.readdir(path.join(target, relativeDirectory), { withFileTypes: true })) {
+      const relativePath = path.posix.join(relativeDirectory, entry.name);
+      if (entry.isDirectory()) await walk(relativePath);
+      else hashes[relativePath] = createHash('sha256').update(await fs.readFile(path.join(target, relativePath))).digest('hex');
+    }
+  }
+  await walk('.');
+  return hashes;
 }

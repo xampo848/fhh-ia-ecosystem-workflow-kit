@@ -7,9 +7,11 @@ import { applyInstallPlan } from '../src/apply.mjs';
 import { runCli } from '../src/cli.mjs';
 import { runDoctor } from '../src/doctor.mjs';
 import { lineDiff, renderPlanDiffs } from '../src/plan-insight.mjs';
-import { buildInstallPlan, buildUpdatePlan, formatPlan, installStateRelativePath } from '../src/planner.mjs';
+import { buildInstallPlan, buildUpdatePlan, installStateRelativePath } from '../src/planner.mjs';
+import { applyRollbackPlan, buildRollbackPlan } from '../src/rollback.mjs';
 import { stackPackQuestion } from '../src/tui/model.mjs';
-import { createMemoryIo, makeTempRepo } from './helpers.mjs';
+import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
+import { createMemoryIo, makeTempRepo, hashTree } from './helpers.mjs';
 
 const read = (target, relativePath) => fs.readFile(path.join(target, relativePath), 'utf8');
 async function write(target, relativePath, content) {
@@ -19,128 +21,98 @@ async function write(target, relativePath, content) {
 }
 const exists = (target, relativePath) => fs.access(path.join(target, relativePath)).then(() => true, () => false);
 
-const ownBackendRules = '# Backend Instructions\n\n- Regla propia: los servicios devuelven un Result.\n';
-const ownClaudeNote = '\n# Nota del equipo: usar siempre la rama develop.\n';
+const migrationId = '0.22.0-kit-overlay-layout';
+const projectIndexPath = '.agents/project/index.md';
+const nonWriting = new Set(['unchanged', 'skip_unmanaged', 'skip_modified', 'adopt_existing']);
 
-// Turns a fresh install into the shape a repository had before the roadmap:
-// no neutral project files, no delegate contract, PRD-local _meta, hand-written
-// Copilot instructions, agents that inherit the model, a customized adapter,
-// and a 1.0.0 install-state (one whole hash per file) without profiles or
-// stack pack.
-async function downgradeToLegacyLayout(target, runtimes) {
-  for (const relativePath of ['.agents/project', '.agents/delegation', '.agents/project-context.md', '.agents/skills/02-implement/implement-change', '.claude/skills', '.gitignore']) {
-    await fs.rm(path.join(target, relativePath), { recursive: true, force: true });
-  }
-  // The legacy repository is Rails + React, so update detects the stack pack.
-  await write(target, 'Gemfile', "gem 'rails'\n");
-  await write(target, 'frontend/package.json', JSON.stringify({ dependencies: { react: '^19.0.0' } }));
-  await write(target, '.github/instructions/backend.instructions.md', `---\napplyTo: "backend/**/*.rb"\n---\n\n${ownBackendRules}`);
-  await write(target, 'docs/prd/area/2026-10-01-old/_meta/orchestration.md', '# notas\n');
-  await write(target, 'docs/prd/area/2026-10-01-old/old.md', '# PRD\n\n| AC-1 | x |\n');
-  if (runtimes.includes('claude')) {
-    // A legacy adapter had no level pre-filter, and the team customized it.
-    const claude = await fs.readFile(path.join(target, 'CLAUDE.md'), 'utf8');
-    const legacyClaude = claude.replace(/<!-- workflow-kit:level-prefilter:start -->[\s\S]*<!-- workflow-kit:level-prefilter:end -->\n/, '');
-    await fs.writeFile(path.join(target, 'CLAUDE.md'), `${legacyClaude}${ownClaudeNote}`, 'utf8');
-    const agent = path.join(target, '.claude/agents/turbo-backend.md');
-    await fs.writeFile(agent, (await fs.readFile(agent, 'utf8')).replace(/^model: .*$/m, 'model: inherit'), 'utf8');
-  }
-  const statePath = path.join(target, installStateRelativePath);
-  const state = JSON.parse(await fs.readFile(statePath, 'utf8'));
-  // The old kit installed the agent with `model: inherit`, so that content is
-  // what install-state recorded: it is managed and unmodified, not a local edit.
-  if (runtimes.includes('claude')) {
-    const legacyAgent = await fs.readFile(path.join(target, '.claude/agents/turbo-backend.md'), 'utf8');
-    state.files['.claude/agents/turbo-backend.md'] = { sha256: createHash('sha256').update(legacyAgent).digest('hex') };
-  }
-  delete state.modelProfiles;
-  delete state.stackPack;
-  delete state.mode;
-  state.schemaVersion = '1.0.0';
-  state.toolkitVersion = '0.7.40-contextual-model-selection';
-  for (const [key, entry] of Object.entries(state.files)) {
-    if (!entry.sha256 || key.startsWith('.agents/project') || key.startsWith('.agents/delegation') || key.startsWith('.claude/skills') || key.includes('implement-change')) delete state.files[key];
-    else state.files[key] = entry.sha256;
-  }
-  await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+async function legacyRepo(options) {
+  const target = await makeTempRepo();
+  return { target, legacy: await installLegacy0181(target, options) };
 }
 
+// AC-10, AC-11 (UC-3, UC-4, UC-7): the whole upgrade flow from a real 0.18.1
+// install, per runtime. The rule variants of each migration group are proven
+// in migration.test.mjs; this test proves the flow ends healthy and reversible.
 for (const runtime of ['claude', 'codex', 'copilot', 'antigravity', 'claude,codex,copilot']) {
-  test(`upgrade from the legacy layout keeps project content and ends healthy (${runtime})`, { todo: 'P2-S4 replaces this with the 0.18.1 fixture once the layout migration lifts the 1.0.0 gate' }, async () => {
+  test(`upgrade from a 0.18.1 install keeps project content, updates again with no write, and rolls back byte for byte (${runtime})`, async () => {
     const runtimes = runtime.split(',');
-    const target = await makeTempRepo();
-    await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime }));
-    await downgradeToLegacyLayout(target, runtimes);
+    const { target, legacy } = await legacyRepo({ runtimes });
+    const before = await hashTree(target);
+    const rawState = await read(target, installStateRelativePath);
 
+    // Dry-run: the plan carries the layout migration and writes nothing.
     const plan = await buildUpdatePlan({ targetPath: target });
     assert.deepEqual(plan.runtimes, runtimes, 'runtimes come from install-state');
-    const migrationIds = plan.migrations.map((item) => item.id);
-    assert.ok(migrationIds.includes('0.11.0-ai-workspace'));
-    assert.ok(migrationIds.includes('0.15.0-neutral-project-instructions'));
-    assert.ok(migrationIds.includes('0.15.0-stack-pack'));
-    assert.equal(migrationIds.includes('0.9.0-model-profiles'), runtimes.some((item) => ['claude', 'codex', 'copilot'].includes(item)));
-    assert.match(formatPlan(plan), /Migrations \(applied once, idempotent\):/);
-    // The update never deletes anything.
-    assert.equal(plan.operations.some((item) => /delete|remove/.test(item.operation)), false);
+    assert.ok(plan.migrations.some((item) => item.id === migrationId));
+    assert.deepEqual(await hashTree(target), before);
 
     await applyInstallPlan(plan);
 
-    // Project content survives: own backend rules moved to the neutral file.
-    assert.equal(await read(target, '.agents/project/backend.md'), ownBackendRules);
-    assert.match(await read(target, '.agents/project/stack.md'), /Use Minitest, not RSpec/);
-    assert.match(await read(target, '.agents/project/quality-gate.md'), /# Quality Gate/);
-    assert.match(await read(target, '.gitignore'), /^\.ai-work\/$/m);
-    assert.ok(await exists(target, '.agents/delegation/delegate-contract.md'));
-    assert.ok(await exists(target, '.agents/skills/02-implement/implement-change/SKILL.md'));
-    assert.ok(await exists(target, '.agents/skills/02-implement/implement-prd/SKILL.md'), 'the alias stays');
-    assert.ok(await exists(target, 'docs/prd/area/2026-10-01-old/_meta/orchestration.md'), 'legacy workspace is never deleted');
+    // Own skill moved whole and listed in the project index.
+    for (const file of legacy.localSkill.files) {
+      assert.equal(await read(target, `${legacy.localSkill.newDir}/${file}`), legacy.localSkill.contents[file]);
+    }
+    const rows = (await read(target, projectIndexPath)).split('\n').filter((line) => line.startsWith(`| \`${legacy.localSkill.name}\` |`));
+    assert.equal(rows.length, 1);
+    assert.ok(rows[0].includes(`\`${legacy.localSkill.newDir}/SKILL.md\``));
+    // Own context moved; no template context anywhere.
+    assert.equal(await read(target, legacy.ownContext.newPath), legacy.ownContext.content);
+    assert.equal(await exists(target, legacy.ownContext.path), false);
+    // Own backend rules untouched.
+    assert.equal(await read(target, legacy.ownBackend.path), legacy.ownBackend.content);
 
-    if (runtimes.includes('copilot')) {
-      const wrapper = await read(target, '.github/instructions/backend.instructions.md');
-      assert.match(wrapper, /^---\napplyTo: "backend\/\*\*\/\*\.rb"\n---\n/);
-      assert.ok(wrapper.endsWith(ownBackendRules));
-    } else {
-      assert.ok((await read(target, '.github/instructions/backend.instructions.md')).includes(ownBackendRules), 'untouched without Copilot');
-    }
-    if (runtimes.includes('claude')) {
-      // The block is regenerated (the pre-filter comes back); the team note after it stays.
-      assert.ok((await read(target, 'CLAUDE.md')).endsWith(ownClaudeNote), 'text outside the managed block is kept');
-      assert.match(await read(target, '.claude/agents/turbo-backend.md'), /^model: opus$/m);
-      assert.ok(await exists(target, '.claude/skills/implement-change/SKILL.md'));
-    }
+    const state = JSON.parse(await read(target, installStateRelativePath));
+    assert.equal(state.schemaVersion, '2.0.0');
+    assert.equal(state.mode, 'repo');
 
     const doctor = await runDoctor({ targetPath: target });
     assert.deepEqual(doctor.diagnostics.filter((item) => item.severity === 'error'), []);
-    assert.equal(doctor.ok, true);
-    const warningCodes = new Set(doctor.diagnostics.map((item) => item.code));
-    assert.ok(warningCodes.has('workspace/legacy-meta'));
-    assert.ok(warningCodes.has('project-context/not-initialized'));
-    assert.equal(warningCodes.has('adapter/missing-level-prefilter'), false, 'the regenerated block carries the pre-filter');
 
-    // Idempotent: a second update writes nothing and carries no migration.
+    // AC-10: a second update writes nothing and carries no migration.
     const again = await buildUpdatePlan({ targetPath: target });
-    const writes = again.operations.filter((item) => !['unchanged', 'skip_unmanaged', 'skip_modified'].includes(item.operation));
-    assert.deepEqual(writes.map((item) => `${item.operation}:${item.relativePath}`), []);
+    assert.deepEqual(again.operations.filter((item) => !nonWriting.has(item.operation)).map((item) => `${item.operation}:${item.relativePath}`), []);
     assert.deepEqual(again.migrations, []);
+
+    // AC-11: rollback restores the 0.18.1 tree and the raw 1.0.0 state.
+    await applyRollbackPlan(await buildRollbackPlan({ targetPath: target }));
+    assert.equal(await read(target, installStateRelativePath), rawState);
+    assert.deepEqual(await hashTree(target), before);
   });
 }
 
-test('update --diff shows what would change, keeping the text outside the managed block', { todo: 'P2-S4 replaces this with the 0.18.1 fixture once the layout migration lifts the 1.0.0 gate' }, async () => {
-  const target = await makeTempRepo();
-  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
-  await downgradeToLegacyLayout(target, ['claude']);
+// Edge case Rollout/rollback with Windows state keys: after the apply every
+// file the kit still ships is on disk; only the retired file and the moved
+// project files left their old paths.
+test('upgrading a 0.18.1 install with Windows state keys deletes no live kit file', async () => {
+  const { target, legacy } = await legacyRepo({ windowsKeys: true });
+  const before = Object.keys(await hashTree(target));
+
+  await applyInstallPlan(await buildUpdatePlan({ targetPath: target }));
+
+  const after = new Set(Object.keys(await hashTree(target)));
+  const gone = before.filter((relativePath) => !after.has(relativePath));
+  const moved = [legacy.ownContext.path, ...legacy.localSkill.files.map((file) => `${legacy.localSkill.oldDir}/${file}`)];
+  assert.deepEqual(gone.sort(), [legacy.retiredPath, ...moved].sort());
+  const state = JSON.parse(await read(target, installStateRelativePath));
+  const missing = [];
+  for (const relativePath of Object.keys(state.files)) {
+    if (!(await exists(target, relativePath))) missing.push(relativePath);
+  }
+  assert.deepEqual(missing, [], 'every recorded kit file is on disk');
+});
+
+test('update --diff on a 0.18.1 install prints the diff section and writes nothing', async () => {
+  const { target } = await legacyRepo({ runtimes: ['claude'] });
+  const before = await hashTree(target);
 
   const io = createMemoryIo();
   assert.equal(await runCli(['update', '--target', target, '--diff'], io), 0);
+
   assert.match(io.output.stdout, /Diff of files that would change:/);
-  assert.match(io.output.stdout, /--- overwrite_with_backup: CLAUDE\.md/);
-  assert.match(io.output.stdout, /^\+ <!-- workflow-kit:level-prefilter:start -->$/m);
-  assert.doesNotMatch(io.output.stdout, /^- # Nota del equipo: usar siempre la rama develop\.$/m);
-  assert.match(io.output.stdout, /--- overwrite_with_backup: \.claude\/agents\/turbo-backend\.md/);
-  assert.match(io.output.stdout, /^- model: inherit$/m);
-  assert.match(io.output.stdout, /^\+ model: opus$/m);
-  // A dry-run with --diff writes nothing.
-  assert.match(await read(target, '.claude/agents/turbo-backend.md'), /^model: inherit$/m);
+  // The catalog replaced whole shows the own skill's old entry leaving.
+  assert.match(io.output.stdout, /^--- overwrite_with_backup: \.agents\/skills\/registry\.json /m);
+  assert.match(io.output.stdout, /^- +"path": "\.agents\/skills\/06-patterns\/local\/retry-policy\/SKILL\.md",$/m);
+  assert.deepEqual(await hashTree(target), before);
 
   const plan = await buildUpdatePlan({ targetPath: target });
   assert.match(await renderPlanDiffs(plan, { maxLines: 5 }), /more diff lines\)/);
