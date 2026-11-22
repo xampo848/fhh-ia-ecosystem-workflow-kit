@@ -69,8 +69,8 @@ export async function applyInstallPlan(plan) {
     await assertNoSymlinkWrites(plan.targetPath, plan.operations);
   }
 
-  const backupOperations = new Set([...writeWithBackupOperations, ...deleteOperations]);
-  const backupStamp = await freeBackupStamp(plan.operations.filter((item) => backupOperations.has(item.operation)).map((item) => item.targetFile));
+  // A write without a backup may need one at apply time (see below).
+  const backupStamp = await freeBackupStamp(plan.operations.filter((item) => !nonWriteOperations.has(item.operation)).map((item) => item.targetFile));
   const previousStateRaw = plan.stateFilePath ? await readIfPresent(plan.stateFilePath) : null;
   const journalFiles = [];
   let stateWritten = false;
@@ -105,7 +105,14 @@ export async function applyInstallPlan(plan) {
       let backupPath = null;
       await fs.mkdir(path.dirname(item.targetFile), { recursive: true });
 
-      if (writeWithBackupOperations.has(item.operation)) {
+      // A write planned without a backup replaces only what the plan saw:
+      // content that appeared or changed since then is kept as a backup.
+      const changedSincePlan = async () => {
+        if (!Object.hasOwn(item, 'planChecksum')) return false;
+        const current = await readIfPresent(item.targetFile);
+        return current !== null && checksumOf(current) !== item.planChecksum;
+      };
+      if (writeWithBackupOperations.has(item.operation) || await changedSincePlan()) {
         backupPath = `${item.targetFile}.workflow-kit-backup-${backupStamp}`;
         await fs.copyFile(item.targetFile, backupPath);
       }
@@ -116,7 +123,7 @@ export async function applyInstallPlan(plan) {
       applied.push({ ...item, applied: true, backupPath });
       journalFiles.push({
         relativePath: item.relativePath,
-        action: item.operation === 'create' ? 'created' : 'overwritten',
+        action: item.operation === 'create' && !backupPath ? 'created' : 'overwritten',
         backup: backupPath && plan.targetPath ? toRelative(backupPath) : null,
         writtenChecksum: checksumOf(item.content)
       });

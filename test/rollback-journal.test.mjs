@@ -139,6 +139,38 @@ test('apply does not delete a retired file that changed after the plan', async (
   assert.equal((await readJson(target, installStateRelativePath)).files[retiredSkill].retired, true);
 });
 
+// Final review 5: like a delete, a write planned without a backup is checked
+// again right before it happens. Content that appeared or changed since the
+// plan is kept as a backup, whatever the backup mode.
+test('apply keeps a backup of content that changed after a plan that wrote without one', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  const state = await readJson(target, installStateRelativePath);
+  const olderInstructions = 'older kit instructions\n';
+  state.files['.agents/instructions.md'] = { sha256: sha(olderInstructions), class: 'kit' };
+  await write(target, '.agents/instructions.md', olderInstructions);
+  await write(target, installStateRelativePath, `${JSON.stringify(state, null, 2)}\n`);
+  await fs.rm(path.join(target, '.agents/README.md'));
+  const plan = await buildUpdatePlan({ targetPath: target, backupMode: 'none' });
+  const cases = [
+    { relativePath: '.agents/instructions.md', planned: 'overwrite_no_backup', edit: 'edited after the plan\n' },
+    { relativePath: '.agents/README.md', planned: 'create', edit: 'written after the plan\n' }
+  ];
+  for (const item of cases) {
+    assert.equal(plan.operations.find((op) => op.relativePath === item.relativePath).operation, item.planned);
+    await write(target, item.relativePath, item.edit);
+  }
+
+  await applyInstallPlan(plan);
+
+  const journal = await readJson(target, applyJournalRelativePath);
+  for (const item of cases) {
+    const entry = journal.files.find((file) => file.relativePath === item.relativePath);
+    assert.ok(entry?.backup, `${item.relativePath}: backup recorded`);
+    assert.equal(await fs.readFile(path.join(target, entry.backup), 'utf8'), item.edit, item.relativePath);
+  }
+});
+
 test('rollback keeps a deleted path that was recreated and reports a deleted file whose backup is gone', async () => {
   const target = await makeTempRepo();
   await installWithRetired(target, { [retiredSkill]: 'kit body one\n', [otherRetired]: 'kit body two\n' });

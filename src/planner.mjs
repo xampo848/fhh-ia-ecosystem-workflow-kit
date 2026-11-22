@@ -8,7 +8,7 @@ import { isSupportedRuntime, runtimeTemplatePaths, supportedRuntimes } from './r
 import { loadDelegateCatalog, parseProfileOption, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
-import { assertNoSymlinkWrites, resolveInsideTarget } from './fs-safety.mjs';
+import { assertNoSymlinkWrites, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
 import { applyJournalRelativePath, readableApplyJournalVersions } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, requireMigrationBackups } from './migration.mjs';
@@ -425,12 +425,16 @@ function splitUnmarkedAdapter(existingContent, templateContent, blockName) {
 
 // No plan replaces content without a backup unless that content matches what
 // the kit recorded for it: init (no state), adopt, a decided edit, or a block
-// edited by hand always keep a backup, whatever the backup mode.
+// edited by hand always keep a backup, whatever the backup mode. A write left
+// without a backup carries the checksum of what it replaces (null: nothing),
+// so the apply can keep a backup of content that changed since the plan.
+const writesWithoutBackup = new Set(['create', 'overwrite_no_backup', 'merge_no_backup']);
 async function requireBackupForUnrecordedContent({ targetPath, manifest, operations, previousFiles }) {
   for (const item of operations) {
-    if (item.operation !== 'overwrite_no_backup') continue;
+    if (!writesWithoutBackup.has(item.operation)) continue;
     const existing = await readOptional(path.join(targetPath, item.relativePath));
-    if (existing === null) continue;
+    item.planChecksum = existing === null ? null : checksumOf(existing);
+    if (existing === null || item.operation !== 'overwrite_no_backup') continue;
     const recorded = previousFiles[item.relativePath]?.sha256;
     if (!recorded || recorded !== recordedChecksumOf(manifest, item.relativePath, item.class, existing)) {
       item.operation = 'overwrite_with_backup';
