@@ -195,7 +195,9 @@ A decision that does not apply to a file exits with code 2 before anything is
 written. `--edited all=<decision>` applies where it is valid and is a no-op
 when nothing is pending. The TUI offers three ways: keep my edits, replace all
 with the kit version (`split` for an adapter where it applies, so its own text
-stays; `discard` for the rest), or decide file by file.
+stays; an adapter without markers where `split` does not apply, such as one
+with Windows line endings, stays pending; `discard` for the rest), or decide
+file by file.
 
 Reviewing an update (since `0.16.0`): the plan lists its one-time migrations
 under "Migrations", and `workflow-kit update --target <repo> --diff` prints the

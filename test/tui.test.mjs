@@ -297,6 +297,28 @@ test('tui Replace all takes the kit version with a backup and keeps the own text
   assert.match(output, /Protected local edits \(skipped\): 0/);
 });
 
+// Round 4 (N7): where split does not apply (an adapter with Windows line
+// endings), Replace all leaves the adapter pending instead of dropping its text.
+test('tui Replace all leaves pending an unmarked adapter split cannot keep', async () => {
+  const { target } = await legacyRepoWithEdits();
+  const claudePath = path.join(target, 'CLAUDE.md');
+  const crlf = `${await fs.readFile(claudePath, 'utf8')}\nOwn note for Claude.\n`.replaceAll('\r\n', '\n').replaceAll('\n', '\r\n');
+  await fs.writeFile(claudePath, crlf);
+
+  let output = '';
+  const result = await runTui({
+    ask: scriptedAsk(['2', target, '', '2', '', '', 'yes']),
+    color: false,
+    write: (message) => { output += message; }
+  });
+
+  assert.equal(result.applied, true);
+  assert.equal(await fs.readFile(claudePath, 'utf8'), crlf);
+  assert.equal(operationFor(result.plan, 'CLAUDE.md').operation, 'skip_modified');
+  assert.doesNotMatch(await fs.readFile(path.join(target, instructionsPath), 'utf8'), /Local edit\./);
+  assert.match(output, /CLAUDE\.md stays pending: Replace all cannot keep its own text/);
+});
+
 test('tui update decides file by file with only the valid decisions, a short diff, and lists the files it cannot ask about (AC-15)', async () => {
   const { target } = await legacyRepoWithEdits();
   // An own skill named like a kit skill stays pending with no decision.
