@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { colorizeFullPlanPreview, createPainter, renderChip, renderStageHeader } from '../src/tui/view.mjs';
+import { colorizeFullPlanPreview, createPainter, renderChip, renderStageHeader, renderSummary } from '../src/tui/view.mjs';
 
 function recordingPaint() {
   const tones = [
@@ -108,4 +108,50 @@ test('colorizeFullPlanPreview dims unrecognized lines and preserves blank lines'
   const result = colorizeFullPlanPreview(paint, formattedPlan);
 
   assert.equal(result, '<dim>Some free-form note</dim>\n');
+});
+
+test('renderSummary groups the layout migration with its pending files and notes, and counts deletes', () => {
+  let output = '';
+  const summary = { create: 1, unchanged: 0, merge_with_backup: 0, merge_no_backup: 0, overwrite_with_backup: 0, overwrite_no_backup: 0, skip_modified: 2, skip_unmanaged: 0, adopt_existing: 0, delete_with_backup: 2 };
+  const plan = {
+    mode: 'update',
+    targetPath: '/tmp/repo',
+    runtimes: ['claude'],
+    overlay: 'fhh-ia-ecosystem-full',
+    summary,
+    operations: [{ operation: 'delete_with_backup', relativePath: '.agents/skills/old/SKILL.md', retired: true }],
+    migrations: [
+      {
+        id: '0.22.0-kit-overlay-layout',
+        summary: 'Move to the kit and project overlay layout.',
+        pending: [
+          { relativePath: '.agents/instructions.md', reason: 'edited_kit_file', decisions: ['keep', 'discard'] },
+          { relativePath: '.agents/skills/06-patterns/local/router-copy/', reason: 'kit_skill_name' }
+        ],
+        notes: ['`retry-policy` row: class written as Pattern']
+      }
+    ]
+  };
+
+  renderSummary((message) => { output += message; }, createPainter(false), plan);
+
+  const lines = output.split('\n');
+  const header = lines.findIndex((line) => line.includes('Move to the kit and project overlay layout.'));
+  assert.ok(header > -1, output);
+  assert.deepEqual(lines.slice(header + 1, header + 4), [
+    '    - pending .agents/instructions.md (edited_kit_file): keep | discard',
+    '    - pending .agents/skills/06-patterns/local/router-copy/ (kit_skill_name)',
+    '    - note: `retry-policy` row: class written as Pattern'
+  ]);
+  assert.match(output, /Delete \(backup kept\) +: 2/);
+  assert.match(output, /\[ 2 backup delete \]/);
+});
+
+test('colorizeFullPlanPreview tones a delete like the other writes', () => {
+  const paint = recordingPaint();
+
+  assert.equal(
+    colorizeFullPlanPreview(paint, '- delete_with_backup: old.md (no longer shipped)'),
+    '- <copperInk>delete_with_backup</copperInk>: <cream>old.md (no longer shipped)</cream>'
+  );
 });

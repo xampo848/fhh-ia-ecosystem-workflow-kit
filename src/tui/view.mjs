@@ -313,7 +313,8 @@ function renderDashboard(write, paint, plan) {
     row('Merge safe', plan.summary.merge_with_backup),
     row('Merge fast', plan.summary.merge_no_backup),
     row('Overwrite safe', plan.summary.overwrite_with_backup),
-    row('Overwrite fast', plan.summary.overwrite_no_backup)
+    row('Overwrite fast', plan.summary.overwrite_no_backup),
+    row('Delete (backup kept)', plan.summary.delete_with_backup ?? 0)
   );
 
   renderBox(write, paint, 'Mission control', rows);
@@ -324,7 +325,8 @@ function renderDashboard(write, paint, plan) {
   write(`${renderChip(paint, `${plan.summary.merge_with_backup} backup merge`, 'yellow')} `);
   write(`${renderChip(paint, `${plan.summary.merge_no_backup} direct merge`, 'copperInk')} `);
   write(`${renderChip(paint, `${plan.summary.overwrite_with_backup} backup overwrite`, 'yellow')} `);
-  write(`${renderChip(paint, `${plan.summary.overwrite_no_backup} direct overwrite`, 'copperInk')}\n\n`);
+  write(`${renderChip(paint, `${plan.summary.overwrite_no_backup} direct overwrite`, 'copperInk')} `);
+  write(`${renderChip(paint, `${plan.summary.delete_with_backup ?? 0} backup delete`, 'yellow')}\n\n`);
 }
 
 export function renderSummary(write, paint, plan) {
@@ -340,10 +342,18 @@ export function renderSummary(write, paint, plan) {
   renderDashboard(write, paint, plan);
 
   // One-time migrations change what the update writes (for example the stack
-  // pack), so they are shown before the user decides.
+  // pack), so they are shown before the user decides, each with the files it
+  // leaves pending and its notes (the same lines as the dry run).
   if (Array.isArray(plan.migrations) && plan.migrations.length > 0) {
     write(`${paint.bold('Migrations')} ${paint.dim('(applied once)')}\n`);
-    plan.migrations.forEach((item) => write(`  ${paint.copperInk('•')} ${item.summary}\n`));
+    plan.migrations.forEach((item) => {
+      write(`  ${paint.copperInk('•')} ${item.summary}\n`);
+      for (const pending of item.pending ?? []) {
+        const decisions = pending.decisions ? `: ${pending.decisions.join(' | ')}` : '';
+        write(`    - ${paint.copperInk('pending')} ${pending.relativePath} (${pending.reason})${decisions}\n`);
+      }
+      for (const note of item.notes ?? []) write(`    - ${paint.dim(`note: ${note}`)}\n`);
+    });
     write('\n');
   }
 
@@ -391,7 +401,8 @@ export function colorizeFullPlanPreview(paint, formattedPlan) {
     overwrite_no_backup: 'copperInk',
     skip_modified: 'copperInk',
     skip_unmanaged: 'copperInk',
-    adopt_existing: 'indigo'
+    adopt_existing: 'indigo',
+    delete_with_backup: 'copperInk'
   };
 
   const colorKeyValueLine = (line, key, valueTone = 'cream') => {
