@@ -77,10 +77,10 @@ test('PRD index verifier recognizes ids with a letter suffix', () => {
   assert.ok(result.failures.some((failure) => failure.includes('AC-1a')));
 });
 
-test('project-context.md is created once, never overwritten, and checked by doctor', async () => {
+test('the project context is created once, never overwritten, and checked by doctor', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
-  const contextPath = path.join(target, '.agents/project-context.md');
+  const contextPath = path.join(target, '.agents/project/context.md');
   assert.match(await fs.readFile(contextPath, 'utf8'), /workflow-kit:project-context:template/);
   assert.deepEqual((await projectContextDiagnostics({ targetPath: target })).map((item) => item.code), ['project-context/not-initialized']);
 
@@ -88,7 +88,7 @@ test('project-context.md is created once, never overwritten, and checked by doct
   const own = '# Project Context\n\n| Path | Responsibility |\n| --- | --- |\n| `backend/` | API |\n| `docs/missing/ARCHITECTURE.md` | gone |\n\nRun `make test-fast` per slice.\n';
   await fs.writeFile(contextPath, own, 'utf8');
   const update = await buildUpdatePlan({ targetPath: target, runtime: 'neutral' });
-  assert.equal(update.operations.find((item) => item.relativePath === '.agents/project-context.md').operation, 'skip_unmanaged');
+  assert.equal(update.operations.find((item) => item.relativePath === '.agents/project/context.md').operation, 'skip_unmanaged');
   await applyInstallPlan(update);
   assert.equal(await fs.readFile(contextPath, 'utf8'), own);
 

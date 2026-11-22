@@ -16,7 +16,7 @@ const installStateSchemaVersion = '1.0.0';
 const skillRegistryJsonPath = '.agents/skills/registry.json';
 // Project-owned once created: the installer writes them only when missing.
 const skillCatalogPreservePaths = new Set([
-  '.agents/project-context.md',
+  '.agents/project/context.md',
   '.agents/project/quality-gate.md',
   '.agents/project/backend.md',
   '.agents/project/frontend.md',

@@ -56,6 +56,8 @@
     "legacy_paths": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^\\.agents/project/" } },
     "extension_points": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^\\.agents/project/" } },
     "not_shadowable": { "type": "array", "items": { "type": "string" } },
+    "ignore_entries": { "type": "array", "items": { "type": "string" }, "description": "Lines the CLI keeps in the target .gitignore; it appends a missing one and never edits the rest of the file." },
+    "superseded_seeds": { "type": "object", "description": "sha256 of seed contents shipped by earlier kit versions. A seed byte-identical to one of them holds no project content, so the migration may replace it with the current seed.", "additionalProperties": { "type": "array", "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" } } },
     "excluded_from_distribution": { "type": "array", "items": { "type": "string" } },
     "validation_commands": { "type": "array", "items": { "type": "string" } }
   }
