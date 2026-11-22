@@ -65,8 +65,11 @@ files changed after that backup, so it first keeps the current content of
 each file it replaces as a `.workflow-kit-backup-<timestamp>-before-rollback`
 copy (listed after the run; a later rollback never restores those). Running
 it again restores nothing more. Created and moved files and the install state
-stay as they are: run `workflow-kit doctor` next, and to return to this kit
-version run `workflow-kit update --edited all=discard --apply --yes`.
+stay as they are: run `workflow-kit doctor` next. To return to this kit
+version, run `workflow-kit update` (dry run first) and decide each pending
+file with `--edited` (`split` keeps the own text of an adapter, `keep` an
+edit). `--edited all=discard` would also take the kit version of every
+pending file, so kept edits and adapter text would remain only in backups.
 
 ## Upgrading safely after migration
 

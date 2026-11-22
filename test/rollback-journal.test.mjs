@@ -247,7 +247,8 @@ test('rollback without a journal on a migrated 2.0.0 repository keeps a copy of 
   assert.ok(['CLAUDE.md', '.agents/project/quality-gate.md'].every((relativePath) => restores.some((item) => item.relativePath === relativePath)));
   // Round 4 (N4): the dry run says a copy is kept first and what comes next.
   assert.match(formatRollbackPlan(plan), /^restore CLAUDE\.md <- CLAUDE\.md\.workflow-kit-backup-\d{8}T\d{6}Z \(its current content is kept first as a -before-rollback copy\)$/m);
-  assert.match(formatRollbackPlan(plan), /workflow-kit update --edited all=discard --apply --yes/);
+  // Round 5 (R2): the advice keeps own text: decide file by file, and say what all=discard drops.
+  assert.match(formatRollbackPlan(plan), /run `workflow-kit update` \(dry run first\) and decide each pending file with --edited; `--edited all=discard` would also drop every kept edit and the own text of adapters \(left in backups\)\./);
   const before = new Map(await Promise.all(restores.map(async (item) => [item.relativePath, await fs.readFile(item.targetFile)])));
   const restoredFrom = new Map(await Promise.all(restores.map(async (item) => [item.relativePath, await fs.readFile(item.backupPath)])));
   await applyRollbackPlan(plan);
