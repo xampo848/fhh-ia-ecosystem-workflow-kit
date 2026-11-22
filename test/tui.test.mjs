@@ -7,7 +7,7 @@ import { applyInstallPlan } from '../src/apply.mjs';
 import { buildInstallPlan, installStateRelativePath } from '../src/planner.mjs';
 import { runTui } from '../src/tui.mjs';
 import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
-import { makeTempRepo } from './helpers.mjs';
+import { hashTree, makeTempRepo } from './helpers.mjs';
 
 // An answer is a string, or a function of the output written so far.
 function scriptedAsk(answers, readOutput = () => '') {
@@ -477,6 +477,27 @@ test('tui export mode writes workflow files into the selected output directory',
   assert.match(output, /Exported files:/);
   await fs.access(path.join(target, '.agents/instructions.md'));
   await fs.access(path.join(target, 'AGENTS.md'));
+});
+
+// Round 5 (R1): the TUI export stops over an installed repository root too.
+test('tui export stops over an installed repository root and leaves it untouched', async () => {
+  const legacy = await makeTempRepo();
+  await installLegacy0181(legacy);
+  const installed = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: installed, runtime: 'codex' }));
+  for (const [name, target, message] of [
+    ['1.0.0 install', legacy, /uses install-state 1\.0\.0/],
+    ['2.0.0 install', installed, /records an install, not an export/]
+  ]) {
+    const before = await hashTree(target);
+    await assert.rejects(runTui({
+      ask: scriptedAsk(['3', target, '1', '', '', '', 'yes']),
+      env: {},
+      color: false,
+      write: () => {}
+    }), message, name);
+    assert.deepEqual(await hashTree(target), before, name);
+  }
 });
 
 test('tui doctor mode reports repository diagnostics without writing files', async () => {

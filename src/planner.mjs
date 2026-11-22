@@ -139,9 +139,15 @@ async function assertLastApplyFinished(targetPath) {
 // replace the project content that only the layout migration of update moves;
 // over a 2.0.0 state it would reset the recorded runtimes, stack and profiles
 // and replace pending edited files. A state that exists but cannot be used
-// stops init the same way it stops update.
-async function assertNoInstallState(targetPath, manifest) {
+// stops init the same way it stops update. An export only refreshes a folder
+// whose state an earlier export wrote (mode "export"); any other state,
+// including one an export from before 0.22.0 wrote, is a maintained install.
+async function assertNoInstallState(targetPath, manifest, { exporting = false } = {}) {
   const state = await readInstallState(path.join(targetPath, installStateRelativePath), manifest);
+  if (exporting && state?.schemaVersion === installStateSchemaVersion && state.mode === 'export') return;
+  if (exporting && state) {
+    throw new Error(`${installStateRelativePath} ${state.schemaVersion === legacyInstallStateSchemaVersion ? `uses install-state ${legacyInstallStateSchemaVersion}, so this folder` : `records an install, not an export (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}), so this folder`} is a workflow-kit install. Export to an empty folder or to one an earlier export wrote; to bring this install to this version, run \`workflow-kit update\`. Nothing was written.`);
+  }
   if (state?.schemaVersion === legacyInstallStateSchemaVersion) {
     throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run \`workflow-kit update\` to migrate this repository; init would replace project content. Nothing was written.`);
   }
@@ -155,8 +161,8 @@ export async function buildInstallPlan(options = {}) {
   await assertLastApplyFinished(targetPath);
   const manifest = options.manifest ?? await loadKitManifest();
   // An export writes a copy of the kit, not an install someone maintains:
-  // exporting again to the same folder only refreshes that copy.
-  if (!options.export) await assertNoInstallState(targetPath, manifest);
+  // exporting again to a folder an export wrote only refreshes that copy.
+  await assertNoInstallState(targetPath, manifest, { exporting: Boolean(options.export) });
   const runtimes = parseRuntimeList(options.runtime ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
@@ -187,7 +193,8 @@ export async function buildInstallPlan(options = {}) {
     overlay,
     modelProfiles,
     stackPack,
-    toolkitVersion: options.toolkitVersion
+    toolkitVersion: options.toolkitVersion,
+    mode: options.export ? 'export' : 'repo'
   });
 
   return {
@@ -818,7 +825,7 @@ function formatModelProfiles(modelProfiles = {}) {
 // adapters the hash of their block, seeds only that the kit created them. A
 // retired file that was deleted or is gone leaves the state; one kept because
 // it was edited stays with `retired: true` so doctor can name it.
-function buildNextInstallState({ previousState, operations, droppedPaths = [], runtimes, overlay, modelProfiles, stackPack, toolkitVersion }) {
+function buildNextInstallState({ previousState, operations, droppedPaths = [], runtimes, overlay, modelProfiles, stackPack, toolkitVersion, mode = 'repo' }) {
   const files = {};
   for (const [relativePath, entry] of Object.entries(previousState?.files ?? {})) {
     files[relativePath] = entry.class === 'seed' ? { class: 'seed' } : { ...entry };
@@ -852,7 +859,8 @@ function buildNextInstallState({ previousState, operations, droppedPaths = [], r
     managedBy: 'fhh-ia-ecosystem-workflow-kit',
     toolkitVersion: toolkitVersion ?? null,
     generatedAt: new Date().toISOString(),
-    mode: 'repo',
+    // "export": a copy of the kit that export may refresh; "repo": an install.
+    mode,
     runtimes,
     overlay,
     modelProfiles: { ...(previousState?.modelProfiles ?? {}), ...(modelProfiles ?? {}) },

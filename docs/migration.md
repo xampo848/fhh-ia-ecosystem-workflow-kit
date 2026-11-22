@@ -148,6 +148,13 @@ Things the migration does not do:
   `--stack` or `--profile` to change those choices), so the recorded
   runtimes, stack, profiles and pending files are never reset. The TUI Install
   stops the same way right after you choose the target.
+- **`export` never writes over an install.** Since `0.22.0` an export records
+  `mode: "export"` in its `install-state.json`, and `export` refreshes only a
+  folder with that mark. Over a folder with any other install state (a
+  `1.0.0` or `2.0.0` install, or an export written before `0.22.0`, which
+  recorded `mode: "repo"`) it stops before writing anything: export to an
+  empty folder, or delete the old export's `install-state.json` first.
+  Exporting into a subfolder of an install does not touch the install.
 - **An unfinished apply blocks the next one.** If an apply stops halfway (a
   permission error, a full disk), `init` and `update` stop with "The last
   workflow-kit apply did not finish" until you run `workflow-kit rollback
