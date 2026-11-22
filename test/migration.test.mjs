@@ -255,7 +255,10 @@ test('moved skills join an existing project index as new rows, never changing th
     { name: 'a Skills table', index: `## Skills\n\n${header}\n${ownRow}\n\n## Shadows\n`, expected: `## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n\n## Shadows\n` },
     { name: 'a Skills heading without a table', index: '## Skills\n\nNone yet.\n', expected: `## Skills\n\n${header}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n\nNone yet.\n` },
     { name: 'a row for the new path already', index: `## Skills\n\n${header}\n${retryRow}\n`, expected: `## Skills\n\n${header}\n${retryRow}\n${bareRow}\n${foldedRow}\n${handbookRow}\n` },
-    { name: 'CRLF line endings', index: crlf(`## Skills\n\n${header}\n${ownRow}\n`), expected: crlf(`## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n`) }
+    { name: 'CRLF line endings', index: crlf(`## Skills\n\n${header}\n${ownRow}\n`), expected: crlf(`## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n`) },
+    // Round 4 (N1): only a row of the Skills table lists a path; prose that
+    // names it does not.
+    { name: 'prose naming the new paths', index: `Notes on \`.agents/project/skills/retry-policy/SKILL.md\` and \`docs/release-handbook.md\`.\n\n## Skills\n\n${header}\n${ownRow}\n`, expected: `Notes on \`.agents/project/skills/retry-policy/SKILL.md\` and \`docs/release-handbook.md\`.\n\n## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n` }
   ];
   for (const item of cases) {
     await write(target, projectIndexPath, item.index);
@@ -278,7 +281,10 @@ test('an index whose tables the migration cannot extend stops the whole migratio
   const indexes = [
     { name: 'a 3-column Skills table', index: '## Skills\n\n| Skill | Trigger | Path |\n| --- | --- | --- |\n| `release-handbook` | Handbook | `docs/handbook.md` |\n' },
     { name: 'a Skills table inside a code fence', index: `# Catalog\n\n\`\`\`markdown\n## Skills\n\n${skillsHeader}\n\`\`\`\n` },
-    { name: 'a 3-column Shadows table', index: `## Skills\n\n${skillsHeader}\n\n## Shadows\n\n| Kit skill | Shadow directory | Notes |\n| --- | --- | --- |\n` }
+    { name: 'a 3-column Shadows table', index: `## Skills\n\n${skillsHeader}\n\n## Shadows\n\n| Kit skill | Shadow directory | Notes |\n| --- | --- | --- |\n` },
+    // Round 4 (N1): rows would land inside the comment, or in a second section.
+    { name: 'a Skills table inside an HTML comment', index: `# Catalog\n\n<!--\n## Skills\n\n${skillsHeader}\n-->\n` },
+    { name: 'mixed line endings', index: `# Catalog\r\n\n## Skills\n\n${skillsHeader}\n` }
   ];
   const repos = [
     { name: 'own skill and catalog rows', prepare: async () => {} },

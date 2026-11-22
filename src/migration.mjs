@@ -51,7 +51,7 @@ export const pendingEditReasons = new Set(['edited_kit_file', 'unmarked_adapter'
 // take them, the whole migration stops before anything is written.
 export const projectIndexUnexpectedCode = 'PROJECT_INDEX_UNEXPECTED';
 export function projectIndexUnexpectedError(what) {
-  const error = new Error(`${projectIndexPath} has a ## Skills or ## Shadows table without the header of the project catalog format (.agents/kit-boundary.md), or inside a code block, so the layout migration cannot add ${what} to it. Give the table that header (or move it out of the code block) and run workflow-kit update again. Nothing was written.`);
+  const error = new Error(`${projectIndexPath} has a ## Skills or ## Shadows table the layout migration cannot extend (not the header of the project catalog format in .agents/kit-boundary.md, a section named twice, inside a code block or an HTML comment, or mixed line endings), so it cannot add ${what} to it. Fix that and run workflow-kit update again. Nothing was written.`);
   return Object.assign(error, { code: projectIndexUnexpectedCode });
 }
 const noBackupUpgrade = { overwrite_no_backup: 'overwrite_with_backup', merge_no_backup: 'merge_with_backup' };
@@ -172,6 +172,22 @@ function fencedLines(lines) {
     }
     if (marker) fence = marker;
     return Boolean(marker);
+  });
+}
+
+// Which lines sit inside a code fence or an HTML comment: text the project
+// index shows as an example or hides, never a table the migration extends.
+function hiddenLines(lines) {
+  const fenced = fencedLines(lines);
+  let inComment = false;
+  return lines.map((line, index) => {
+    if (fenced[index]) return true;
+    const wasInComment = inComment;
+    const open = line.lastIndexOf('<!--');
+    const close = line.lastIndexOf('-->');
+    if (open !== -1 && open > close) inComment = true;
+    else if (close !== -1) inComment = false;
+    return wasInComment || inComment;
   });
 }
 
@@ -356,10 +372,11 @@ const headingOf = (table) => new RegExp(`^##\\s+${table.heading}\\s*$`);
 const tableHeader = (table) => [`| ${table.columns.join(' | ')} |`, `| ${table.columns.map(() => '---').join(' | ')} |`];
 
 // The section of a table in the project index: its heading line, the end of
-// the section and the lines of its table, all outside code fences. null when
-// the section is missing; `unexpected` when the migration cannot extend it.
+// the section and the lines of its table, all outside code fences and HTML
+// comments. null when the section is missing; `unexpected` when the migration
+// cannot extend it.
 function indexSection(lines, table) {
-  const fenced = fencedLines(lines);
+  const fenced = hiddenLines(lines);
   const headings = lines.map((line, index) => (headingOf(table).test(line) ? index : -1)).filter((index) => index !== -1);
   if (headings.length === 0) return null;
   if (headings.length > 1 || fenced[headings[0]]) return { unexpected: true };
@@ -392,9 +409,12 @@ export function projectIndexTableRows(text, heading) {
 
 // The line ending of an existing index, or null when one of its tables is
 // not the one the project catalog format describes (wrong header, inside a
-// code fence, or named twice): then the migration does not write it.
+// code fence or an HTML comment, or named twice) or when it mixes line
+// endings (a row would land in a second section): then the migration does
+// not write it.
 function projectIndexLineEnding(text) {
   const eol = text.includes('\r\n') ? '\r\n' : '\n';
+  if (eol === '\r\n' && /(^|[^\r])\n/.test(text)) return null;
   const lines = text.split(eol);
   return [skillsTable, shadowsTable].some((table) => indexSection(lines, table)?.unexpected) ? null : eol;
 }
@@ -542,8 +562,12 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
   }
   if (!indexWritable && indexRows.length > 0) throw projectIndexUnexpectedError(`the ${indexRows.length} own catalog row(s) it moves out of the kit catalogs`);
   notes.push(...indexRows.map((item) => item.note).filter(Boolean));
-  // A row whose path the index already lists is not added again.
-  const newRows = (rows) => rows.filter(({ listedPath }) => !listedPath || !indexText.includes(`\`${listedPath}\``)).map(({ row }) => row);
+  // A row whose path a row of the index table already lists is not added
+  // again; prose that names the path does not list it.
+  const listedPaths = (heading, column) => new Set((indexWritable ? projectIndexTableRows(indexText, heading) ?? [] : []).map((cells) => unquote(cells[column]).replace(/\/+$/, '')));
+  const listedSkillPaths = listedPaths('Skills', 3);
+  const listedShadowPaths = listedPaths('Shadows', 1);
+  const newRows = (rows, listed = listedSkillPaths) => rows.filter(({ listedPath }) => !listedPath || !listed.has(listedPath.replace(/\/+$/, ''))).map(({ row }) => row);
   const skillRows = newRows(indexRows);
   let indexRowsAdded = 0;
 
@@ -606,7 +630,7 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
       }
     }
     // One index operation for the moved skills and the new shadows.
-    const shadowRows = newRows(shadows.map((shadow) => ({ listedPath: `${shadow.directory}/`, row: shadowRow(shadow) })));
+    const shadowRows = newRows(shadows.map((shadow) => ({ listedPath: `${shadow.directory}/`, row: shadowRow(shadow) })), listedShadowPaths);
     indexRowsAdded = skillRows.length + shadowRows.length;
     if (indexRowsAdded > 0) {
       const content = appendTableRows(appendTableRows(existingIndex === null ? newProjectIndexIntro : indexText, indexLineEnding, skillsTable, skillRows), indexLineEnding, shadowsTable, shadowRows);

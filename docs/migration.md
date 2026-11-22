@@ -158,10 +158,13 @@ Things the migration does not do:
 - **An index the migration cannot extend stops it.** When
   `.agents/project/index.md` already exists and its `## Skills` or
   `## Shadows` table does not have the header from `.agents/kit-boundary.md`
-  (or sits inside a code block), and the migration has own catalog rows to
+  (or the section appears twice, sits inside a code block or an HTML comment,
+  or the file mixes line endings), and the migration has own catalog rows to
   move or a shadow candidate, `update` stops before writing anything. Fix the
   table header and run `update` again; the kit catalogs are only replaced
-  together with the index that takes their own rows.
+  together with the index that takes their own rows. A row counts as already
+  listed only when a row of that table names its path; prose that mentions
+  the path does not.
 
 ### Deciding edited files
 
