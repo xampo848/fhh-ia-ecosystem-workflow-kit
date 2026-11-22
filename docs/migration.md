@@ -144,9 +144,14 @@ Things the migration does not do:
   skill with a symbolic link, with a name that collides with a kit skill or
   another project skill (letter case ignored), with an invalid name, mixed
   with kit files or with a file that is not UTF-8 text; a legacy context that
-  is not UTF-8 or is a folder; a project index whose `## Skills` or
-  `## Shadows` table does not have the expected header; a kit file the old
-  state never recorded.
+  is not UTF-8 or is a folder; a kit file the old state never recorded.
+- **An index the migration cannot extend stops it.** When
+  `.agents/project/index.md` already exists and its `## Skills` or
+  `## Shadows` table does not have the header from `.agents/kit-boundary.md`
+  (or sits inside a code block), and the migration has own catalog rows to
+  move or a shadow candidate, `update` stops before writing anything. Fix the
+  table header and run `update` again; the kit catalogs are only replaced
+  together with the index that takes their own rows.
 
 ### Deciding edited files
 

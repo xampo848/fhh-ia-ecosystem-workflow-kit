@@ -11,7 +11,7 @@ import { describeMigrations } from './plan-insight.mjs';
 import { assertNoSymlinkWrites, resolveInsideTarget } from './fs-safety.mjs';
 import { applyJournalRelativePath, readableApplyJournalVersions } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
-import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, projectIndexUnexpected, requireMigrationBackups } from './migration.mjs';
+import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, requireMigrationBackups } from './migration.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
@@ -379,11 +379,8 @@ async function planEditedDecisions({ operations, edited, manifest, migration }) 
   const shadows = [];
   for (const item of pending) {
     const decision = chosen.get(item.relativePath) ?? 'keep';
-    // A shadow needs its row in the project index; it waits with the index.
-    const waitsForIndex = decision === 'shadow' && !migration.indexWritable;
-    if (decision === 'keep' || waitsForIndex) {
+    if (decision === 'keep') {
       item.decisions = validByPath.get(item.relativePath);
-      if (waitsForIndex) item.reason = projectIndexUnexpected;
       continue;
     }
     if (decision === 'split') item.content = splitContents.get(item.relativePath);

@@ -46,8 +46,14 @@ const movedSkillClasses = new Set([defaultProjectClass]);
 const defaultCostHint = 'lean';
 // Pending files an --edited decision can settle (PRD 2.4).
 export const pendingEditReasons = new Set(['edited_kit_file', 'unmarked_adapter', 'unrecorded_kit_file']);
-// A shadow, or a skill move, that waits because the project index cannot take its row.
-export const projectIndexUnexpected = 'project_index_unexpected';
+// The catalogs are replaced only together with the project index that takes
+// their own rows, and a shadow needs its row there too: when the index cannot
+// take them, the whole migration stops before anything is written.
+export const projectIndexUnexpectedCode = 'PROJECT_INDEX_UNEXPECTED';
+export function projectIndexUnexpectedError(what) {
+  const error = new Error(`${projectIndexPath} has a ## Skills or ## Shadows table without the header of the project catalog format (.agents/kit-boundary.md), or inside a code block, so the layout migration cannot add ${what} to it. Give the table that header (or move it out of the code block) and run workflow-kit update again. Nothing was written.`);
+  return Object.assign(error, { code: projectIndexUnexpectedCode });
+}
 const noBackupUpgrade = { overwrite_no_backup: 'overwrite_with_backup', merge_no_backup: 'merge_with_backup' };
 
 async function readBufferOptional(file) {
@@ -482,14 +488,12 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
   const indexLineEnding = existingIndex === null ? '\n' : projectIndexLineEnding(indexText);
   const indexWritable = indexLineEnding !== null;
 
-  // 1. Own skills. Without a writable index none moves: a skill moved
-  // without its row would be hidden from the router.
+  // 1. Own skills.
   const kitNames = await kitSkillNames(shippedFiles);
   const taken = new Set((await readdirOptional(path.join(targetPath, projectSkillsRoot))).map(nameKey));
   const skills = [];
   for (const skill of await findOwnSkills({ targetPath, isKitPath })) {
-    const planned = await planSkillMove({ targetPath, skill, kitNames, taken });
-    skills.push(planned.newDirectory && !indexWritable ? { ...skill, name: planned.name, reason: projectIndexUnexpected } : planned);
+    skills.push(await planSkillMove({ targetPath, skill, kitNames, taken }));
   }
   const moved = skills.filter((skill) => skill.newDirectory);
   const notes = moved.filter((skill) => skill.emptyDirectories.length > 0)
@@ -535,10 +539,11 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
       ...projectIndexRow({ source, name: source.name ?? '', rowPath, fallbackTrigger: '' })
     });
   }
-  if (indexWritable) notes.push(...indexRows.map((item) => item.note).filter(Boolean));
+  if (!indexWritable && indexRows.length > 0) throw projectIndexUnexpectedError(`the ${indexRows.length} own catalog row(s) it moves out of the kit catalogs`);
+  notes.push(...indexRows.map((item) => item.note).filter(Boolean));
   // A row whose path the index already lists is not added again.
   const newRows = (rows) => rows.filter(({ listedPath }) => !listedPath || !indexText.includes(`\`${listedPath}\``)).map(({ row }) => row);
-  const skillRows = indexWritable ? newRows(indexRows) : [];
+  const skillRows = newRows(indexRows);
   let indexRowsAdded = 0;
 
   // shadow (PRD 2.4): only the SKILL.md of a kit leaf skill that the manifest
@@ -554,6 +559,9 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
     if (!skillNamePattern.test(skill) || manifest.not_shadowable.includes(skill)) return null;
     const shadowDirectory = `${projectShadowsRoot}/${skill}`;
     if (await pathExists(path.join(targetPath, shadowDirectory))) return null;
+    // shadow is offered only during this migration: it cannot wait for a
+    // later update.
+    if (!indexWritable) throw projectIndexUnexpectedError(`the row of a shadow for ${item.relativePath}, which only this migration can create`);
     // The shadow is the edited file byte for byte, written as text.
     const edited = await fs.readFile(item.targetFile);
     if (!isUtf8(edited)) return null;
@@ -620,8 +628,7 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
   function describe(operations) {
     const writing = (item) => !['unchanged', 'skip_modified', 'skip_unmanaged', 'adopt_existing', 'delete_with_backup'].includes(item.operation);
     const kitUpdated = operations.filter((item) => !item.retired && ['kit', 'derived', 'adapter'].includes(item.class) && writing(item));
-    const pendingFiles = operations.filter((item) => item.operation === 'skip_modified' && (pendingEditReasons.has(item.reason) || item.reason === projectIndexUnexpected));
-    const waitingForIndex = !indexWritable && (indexRows.length > 0 || skills.some((skill) => skill.reason === projectIndexUnexpected) || pendingFiles.some((item) => item.reason === projectIndexUnexpected));
+    const pendingFiles = operations.filter((item) => item.operation === 'skip_modified' && pendingEditReasons.has(item.reason));
     return {
       id: layoutMigrationId,
       kitUpdated: kitUpdated.length,
@@ -629,14 +636,13 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
       pending: [
         ...pendingFiles.map((item) => ({ relativePath: item.relativePath, reason: item.reason, decisions: item.decisions })),
         ...legacyPending,
-        ...(waitingForIndex ? [{ relativePath: projectIndexPath, reason: projectIndexUnexpected }] : []),
         ...skills.filter((skill) => !skill.newDirectory).map((skill) => ({ relativePath: `${skill.directory}/`, reason: skill.reason }))
       ],
       notes,
       unwrittenRows,
       retiredDeleted: operations.filter((item) => item.retired && item.operation === 'delete_with_backup').length,
       skillsMoved: moved.length,
-      catalogRowsMoved: indexWritable ? indexRows.filter((item) => item.fromCatalog).length : 0,
+      catalogRowsMoved: indexRows.filter((item) => item.fromCatalog).length,
       projectIndexRows: indexRowsAdded,
       contextMoved: contextMoves.map(({ legacyPath, currentPath }) => ({ from: legacyPath, to: currentPath })),
       seedsReset: operations.filter((item) => item.superseded).map((item) => item.relativePath)
@@ -647,7 +653,6 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
     plannerFiles,
     seedContents,
     excludedPaths,
-    indexWritable,
     // A legacy path never enters the 2.0.0 state, moved or not.
     droppedPaths: Object.keys(manifest.legacy_paths).filter((legacyPath) => Object.hasOwn(previousFiles, legacyPath)),
     shadowFor,

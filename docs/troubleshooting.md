@@ -202,14 +202,13 @@ would build and names what is pending and how to resolve it.
 | `boundary/pending-retired_edited` | warning | the kit no longer ships this file and you edited it | delete it, or keep it as project content outside the kit folders |
 | `boundary/pending-symlink`, `-project_skill_exists`, `-kit_skill_name`, `-invalid_skill_name`, `-mixed_with_kit_files`, `-binary_file` | warning | an own skill could not move to the overlay during the migration | follow the step in the message, move the folder by hand to `.agents/project/skills/<name>/` and add its row to `.agents/project/index.md` |
 | `boundary/pending-legacy_path_unsupported` | warning | the legacy context is not UTF-8 text or a folder is in the way | fix the file, then run `update` |
-| `boundary/pending-project_index_unexpected` | warning | `.agents/project/index.md` has a `## Skills` or `## Shadows` table with another header, or inside a code block | give it the header from `.agents/kit-boundary.md`, then run `update` |
 | `boundary/pending-catalog_row_not_moved` | warning | a project row of an old catalog could not be moved | add it to `.agents/project/index.md` by hand |
 | `boundary/adapter-block-edited` | warning | the text inside an adapter's `workflow-kit:managed` block was edited | the next `update` restores the block; keep your text outside the markers |
 | `boundary/shadow-outdated` | warning | the kit skill changed since the shadow was made, or the kit no longer ships it | compare, refresh the shadow and its `base_sha256` (or remove it) |
 | `boundary/shadow-invalid` | warning | a listed shadow has no valid `shadow.json` | write it as `.agents/kit-boundary.md` describes |
 | `boundary/ignored-state-key` | warning | `install-state.json` has a key that is absolute or contains `.`/`..` | remove that key |
 | `boundary/unowned-path` | warning | a file under a kit folder is neither shipped by the kit nor recorded | move it to `.agents/project/` (skills to `.agents/project/skills/<name>/` with a row in the project index) |
-| `boundary/update-plan-failed` | warning | `doctor` could not build the update plan | fix the error in the message, then run `doctor` again |
+| `boundary/update-plan-failed` | warning | `doctor` could not build the update plan (for example, a `1.0.0` install whose `.agents/project/index.md` has a `## Skills` or `## Shadows` table with another header, so the migration stops) | fix the error in the message, then run `doctor` again |
 
 Things to know:
 

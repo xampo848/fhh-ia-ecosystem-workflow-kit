@@ -269,32 +269,39 @@ test('moved skills join an existing project index as new rows, never changing th
   }
 });
 
-// Moving a skill without its row would hide it from the router: when the
-// index has a table the migration cannot extend safely, nothing that needs a
-// row moves, and the index is not written.
-test('an index whose tables the migration cannot extend is not written and every move that needs a row waits', async () => {
-  const { target, legacy } = await legacyRepo();
-  await appendTo(target, leafSkill.path, '\nOwn step.\n');
+// Final review 1: the catalogs are replaced only together with the index that
+// takes their own rows, and a shadow needs its row there too. When the index
+// has a table the migration cannot extend, the whole migration stops before
+// anything is written, so no 2.0.0 state ever keeps own rows only in backups.
+test('an index whose tables the migration cannot extend stops the whole migration with the fix', async () => {
   const skillsHeader = '| Skill name | Class | Trigger | Physical path | Cost hint |\n| --- | --- | --- | --- | --- |';
-  const cases = [
-    { name: 'a 3-column Skills table', index: '## Skills\n\n| Skill | Trigger | Path |\n| --- | --- | --- |\n' },
+  const indexes = [
+    { name: 'a 3-column Skills table', index: '## Skills\n\n| Skill | Trigger | Path |\n| --- | --- | --- |\n| `release-handbook` | Handbook | `docs/handbook.md` |\n' },
     { name: 'a Skills table inside a code fence', index: `# Catalog\n\n\`\`\`markdown\n## Skills\n\n${skillsHeader}\n\`\`\`\n` },
     { name: 'a 3-column Shadows table', index: `## Skills\n\n${skillsHeader}\n\n## Shadows\n\n| Kit skill | Shadow directory | Notes |\n| --- | --- | --- |\n` }
   ];
-  for (const item of cases) {
-    await write(target, projectIndexPath, item.index);
+  const repos = [
+    { name: 'own skill and catalog rows', prepare: async () => {} },
+    // Nothing moves but the edited leaf skill could become a shadow.
+    { name: 'only a shadow candidate', prepare: async (target, legacy) => {
+      await fs.rm(path.join(target, legacy.localSkill.oldDir), { recursive: true });
+      const patternsIndex = '.agents/skills/06-patterns/index.md';
+      await write(target, patternsIndex, (await read(target, patternsIndex)).split('\n').filter((line) => !line.includes(legacy.handbook.path)).join('\n'));
+    } }
+  ];
+  for (const repo of repos) {
+    for (const item of indexes) {
+      const { target, legacy } = await legacyRepo();
+      await repo.prepare(target, legacy);
+      await appendTo(target, leafSkill.path, '\nOwn step.\n');
+      await write(target, projectIndexPath, item.index);
 
-    const plan = await buildUpdatePlan({ targetPath: target, edited: { [leafSkill.path]: 'shadow' } });
-
-    const migration = layoutMigration(plan);
-    assert.equal(operationFor(plan, projectIndexPath), undefined, item.name);
-    assert.deepEqual(plan.operations.filter((op) => op.relativePath.startsWith('.agents/project/skills/') || op.relativePath.startsWith(legacy.localSkill.oldDir) || op.relativePath.startsWith(shadowDirectory)).map((op) => op.relativePath), [], item.name);
-    assert.equal(operationFor(plan, leafSkill.path).operation, 'skip_modified', item.name);
-    for (const entry of [
-      { relativePath: projectIndexPath, reason: 'project_index_unexpected' },
-      { relativePath: `${legacy.localSkill.oldDir}/`, reason: 'project_index_unexpected' },
-      { relativePath: leafSkill.path, reason: 'project_index_unexpected', decisions: ['keep', 'discard', 'shadow'] }
-    ]) assert.deepEqual(migration.pending.find((pending) => pending.relativePath === entry.relativePath), entry, `${item.name}: ${entry.relativePath}`);
+      await assert.rejects(buildUpdatePlan({ targetPath: target }), (error) => {
+        assert.equal(error.code, 'PROJECT_INDEX_UNEXPECTED', `${repo.name}, ${item.name}`);
+        assert.match(error.message, /\.agents\/project\/index\.md .*\.agents\/kit-boundary\.md.*run workflow-kit update again.*Nothing was written\.$/s);
+        return true;
+      }, `${repo.name}, ${item.name}`);
+    }
   }
 });
 

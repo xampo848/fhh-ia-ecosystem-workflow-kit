@@ -86,12 +86,11 @@ function pendingMessage(manifest, item) {
     case 'mixed_with_kit_files': return moveByHand('Own skill folder that also holds kit files', 'leave the kit files where they are and ');
     case 'binary_file': return moveByHand('Own skill with a file that is not UTF-8 text', '');
     case 'legacy_path_unsupported': return `Cannot move to ${currentPathFor(manifest, item.relativePath)}: it is not UTF-8 text, or one of the two paths is a folder. Fix the file (UTF-8 text, not a folder) and run workflow-kit update.`;
-    case 'project_index_unexpected': return `The ## Skills or ## Shadows table of ${projectIndexPath} does not have the expected header, so no row can be added and own skills and shadows wait. Give the tables the header of the project catalog format (.agents/kit-boundary.md) and run workflow-kit update.`;
     default: return `Pending in workflow-kit update (${item.reason}). Run workflow-kit update (dry run) to see it.`;
   }
 }
 
-const pendingReasons = new Set(['edited_kit_file', 'unrecorded_kit_file', 'unmarked_adapter', 'retired_edited', 'project_index_unexpected']);
+const pendingReasons = new Set(['edited_kit_file', 'unrecorded_kit_file', 'unmarked_adapter', 'retired_edited']);
 
 // One source of truth: the update plan in dry run. A plan that cannot be
 // built is a finding, never a crash.
