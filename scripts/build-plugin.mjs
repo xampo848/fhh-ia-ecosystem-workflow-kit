@@ -6,14 +6,18 @@
 // delegate agents for Claude Code and Copilot, the legal files, and a copy of
 // the `kit` and `derived` files of the overlay template. Only the marketplace,
 // which points at the branch `plugin`, is committed at the repository root.
-// Usage: node scripts/build-plugin.mjs [--write | --publish] [--root <dir>]
+// Usage: node scripts/build-plugin.mjs [--write | --publish [--same-version]] [--root <dir>]
 //   (no flag)  build into a temporary folder, validate it and compare the
 //              committed marketplace; never writes into the repository.
-//   --write    rebuild dist/plugin/ from scratch and rewrite the marketplace.
-//   --publish  rebuild dist/plugin/ and commit it to the local branch
-//              `plugin` without touching HEAD, the index or the working tree.
-//              It never pushes.
+//   --write    build and validate a fresh folder, swap it in for dist/plugin/
+//              and rewrite the marketplace.
+//   --publish  validate like check mode, rebuild dist/plugin/ and commit it to
+//              the local branch `plugin` without touching HEAD, the index or
+//              the working tree. It never pushes, never fetches and never
+//              changes the git configuration. --same-version publishes new
+//              content under the version already published.
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -45,9 +49,26 @@ export const marketplacePath = '.claude-plugin/marketplace.json';
 // docs/legal tree they cite (license texts, third-party notices, provenance).
 export const pluginLegalFiles = ['LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.md'];
 export const pluginLegalDirectory = 'docs/legal';
+// Every path the build reads. --publish refuses uncommitted changes in them,
+// so the source commit its message names holds exactly what it built.
+export const pluginBuildInputs = [
+  templatePath,
+  '.agents/skills/registry.json',
+  catalogPath,
+  'package.json',
+  ...pluginLegalFiles,
+  pluginLegalDirectory,
+  'scripts/build-plugin.mjs',
+  'scripts/sync-claude-skills.mjs',
+  'src/model-profiles.mjs',
+  'src/plugin-mode.mjs',
+  'src/kit-manifest.mjs',
+  marketplacePath
+];
 const agentPluginsSchema = 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json';
 const pluginDescription = 'Workflow kit: routed workflow skills and delegates that run from the plugin while each repository keeps its own project overlay.';
 const marketplaceDescription = 'Marketplace of the fhh workflow kit plugin.';
+const pluginRemote = 'origin';
 const writeCommand = 'node scripts/build-plugin.mjs --write';
 const sourceFix = 'fix the source named in the message (skill registry, delegate catalog, overlay template or kit manifest), then run node scripts/build-plugin.mjs';
 
@@ -206,50 +227,104 @@ function isInside(parent, child) {
   return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
 }
 
-// Returns dist/plugin as a real, empty directory inside the root. It never
-// follows a link: a `dist` or `dist/plugin` that resolves outside the root, is
-// a symbolic link, or is not a directory stops the build before any removal.
-// Only the contents of dist/plugin are removed.
-async function preparePluginDirectory(root) {
-  const realRoot = await fs.realpath(root);
+// Looks at a path inside the real root one segment at a time and never
+// follows a link: a segment that is a symbolic link, a parent that is not a
+// directory, or a last segment of the wrong kind stops the build before
+// anything is written. Returns the absolute path and whether it exists.
+async function guardedPath(realRoot, relativePath, kind) {
+  const segments = relativePath.split('/');
   let current = realRoot;
-  for (const segment of pluginOutputDirectory.split('/')) {
+  for (const [index, segment] of segments.entries()) {
     current = path.join(current, segment);
-    const label = path.relative(realRoot, current).split(path.sep).join('/');
+    const label = segments.slice(0, index + 1).join('/');
+    const last = index === segments.length - 1;
     let stats;
     try {
       stats = await fs.lstat(current);
     } catch (error) {
       if (error.code !== 'ENOENT') throw error;
-      await fs.mkdir(current);
-      continue;
+      return { target: path.join(realRoot, ...segments), exists: false };
     }
     if (stats.isSymbolicLink()) {
       const target = await fs.realpath(current).catch(() => null);
       if (!target || !isInside(realRoot, target)) throw new Error(`Refusing to build: ${label} resolves outside the root (it is a symbolic link). Remove it and rerun.`);
       throw new Error(`Refusing to build: ${label} is a symbolic link. Remove it and rerun.`);
     }
-    if (!stats.isDirectory()) throw new Error(`Refusing to build: ${label} is not a directory. Remove it and rerun.`);
+    if ((!last || kind === 'directory') && !stats.isDirectory()) throw new Error(`Refusing to build: ${label} is not a directory. Remove it and rerun.`);
+    if (last && kind === 'file' && !stats.isFile()) throw new Error(`Refusing to build: ${label} is not a file. Remove it and rerun.`);
   }
-  for (const entry of await fs.readdir(current)) {
-    await fs.rm(path.join(current, entry), { recursive: true, force: true });
-  }
-  return current;
+  return { target: current, exists: true };
 }
 
-async function buildPluginDirectory(root) {
-  const resolved = await resolveKitRoot(root);
-  const dir = await preparePluginDirectory(resolved);
-  const count = await buildInto({ root: resolved, dir });
-  return { root: resolved, dir, count };
+// Returns dist/ as a real directory inside the root, after checking that
+// dist/plugin, when present, is a real directory too.
+async function prepareDistDirectory(realRoot) {
+  const dist = await guardedPath(realRoot, path.posix.dirname(pluginOutputDirectory), 'directory');
+  if (!dist.exists) await fs.mkdir(dist.target);
+  await guardedPath(realRoot, pluginOutputDirectory, 'directory');
+  return dist.target;
+}
+
+function formatFailures(failures) {
+  return ['Plugin build validation failed:', ...failures.map((failure) => `- ${failure.message} (fix: ${failure.fix})`)].join('\n');
+}
+
+async function marketplaceFailures(root) {
+  const expected = await expectedMarketplace({ root });
+  const committed = await fs.readFile(path.join(root, marketplacePath), 'utf8').catch(() => null);
+  if (committed === null) return [{ message: `Marketplace missing: ${marketplacePath}`, fix: writeCommand }];
+  if (committed !== expected) return [{ message: `Marketplace drift: ${marketplacePath}`, fix: writeCommand }];
+  return [];
+}
+
+// The one validation of every mode: build into an empty folder, apply the
+// structural rules and, unless the caller rewrites it, compare the marketplace.
+async function buildAndValidate({ root, dir, marketplace }) {
+  let count;
+  try {
+    count = await buildInto({ root, dir });
+  } catch (error) {
+    return { count: 0, failures: [{ message: `Plugin build failed: ${error.message}`, fix: sourceFix }] };
+  }
+  const { failures } = await validatePluginFolder({ root, dir });
+  if (marketplace) failures.push(...await marketplaceFailures(root));
+  return { count, failures };
+}
+
+// Builds and validates a fresh folder inside dist/, then swaps it in for
+// dist/plugin with renames and removes the previous folder only after the
+// swap. Any failure removes the fresh folder and leaves dist/plugin as it was.
+async function replacePluginDirectory({ root, realRoot, marketplace }) {
+  const distDir = await prepareDistDirectory(realRoot);
+  const staging = await fs.mkdtemp(path.join(distDir, '.plugin-build-'));
+  try {
+    const { count, failures } = await buildAndValidate({ root, dir: staging, marketplace });
+    if (failures.length > 0) throw new Error(formatFailures(failures));
+    const dir = (await guardedPath(realRoot, pluginOutputDirectory, 'directory')).target;
+    const previous = existsSync(dir) ? `${staging}-previous` : null;
+    if (previous) await fs.rename(dir, previous);
+    try {
+      await fs.rename(staging, dir);
+    } catch (error) {
+      if (previous) await fs.rename(previous, dir);
+      throw error;
+    }
+    if (previous) await fs.rm(previous, { recursive: true, force: true });
+    return { dir, count };
+  } finally {
+    // After a successful swap the fresh folder is dist/plugin: nothing left.
+    await fs.rm(staging, { recursive: true, force: true });
+  }
 }
 
 export async function writePluginBuild({ root = packageRoot } = {}) {
-  const result = await buildPluginDirectory(root);
-  const target = path.join(result.root, marketplacePath);
-  await fs.mkdir(path.dirname(target), { recursive: true });
-  await fs.writeFile(target, await expectedMarketplace({ root: result.root }), 'utf8');
-  return result;
+  const resolved = await resolveKitRoot(root);
+  const realRoot = await fs.realpath(resolved);
+  const marketplace = await guardedPath(realRoot, marketplacePath, 'file');
+  const result = await replacePluginDirectory({ root: resolved, realRoot, marketplace: false });
+  await fs.mkdir(path.dirname(marketplace.target), { recursive: true });
+  await fs.writeFile(marketplace.target, await expectedMarketplace({ root: resolved }), 'utf8');
+  return { root: resolved, ...result };
 }
 
 function frontmatterDescription(content) {
@@ -304,27 +379,18 @@ export async function checkPluginBuild({ root = packageRoot } = {}) {
   try {
     const dir = path.join(temporary, 'plugin');
     await fs.mkdir(dir);
-    let count;
-    try {
-      count = await buildInto({ root: resolved, dir });
-    } catch (error) {
-      return { ok: false, count: 0, failures: [{ message: `Plugin build failed: ${error.message}`, fix: sourceFix }] };
-    }
-    const { failures } = await validatePluginFolder({ root: resolved, dir });
-    const expected = await expectedMarketplace({ root: resolved });
-    const committed = await fs.readFile(path.join(resolved, marketplacePath), 'utf8').catch(() => null);
-    if (committed === null) failures.push({ message: `Marketplace missing: ${marketplacePath}`, fix: writeCommand });
-    else if (committed !== expected) failures.push({ message: `Marketplace drift: ${marketplacePath}`, fix: writeCommand });
+    const { count, failures } = await buildAndValidate({ root: resolved, dir, marketplace: true });
     return { ok: failures.length === 0, count, failures };
   } finally {
     await fs.rm(temporary, { recursive: true, force: true });
   }
 }
 
-function git(args, { cwd, env = process.env }) {
+function git(args, { cwd, env }) {
   const result = spawnSync('git', args, { cwd, env, encoding: 'utf8' });
   if (result.error) throw new Error(`git ${args[0]} failed: ${result.error.message}`);
-  return { status: result.status, stdout: result.stdout.trim(), stderr: result.stderr.trim() };
+  // Only the end is trimmed: `git status --porcelain` lines start with a space.
+  return { status: result.status, stdout: result.stdout.trimEnd(), stderr: result.stderr.trim() };
 }
 
 function gitOk(args, options) {
@@ -333,54 +399,130 @@ function gitOk(args, options) {
   return result.stdout;
 }
 
-// Commits dist/plugin to the local branch `plugin` with plumbing only: a
-// temporary index, the folder as work tree, and update-ref. HEAD, the current
-// branch, the index, the working tree and the git configuration are left
-// alone, and nothing is pushed. The identity is the one git already resolves.
-export async function publishPluginBuild({ root = packageRoot, env = process.env } = {}) {
+// Publishing runs git without the GIT_* variables it inherits: GIT_DIR,
+// GIT_WORK_TREE, GIT_INDEX_FILE and the like could point it at another
+// repository, and GIT_AUTHOR_* or GIT_COMMITTER_* would commit as someone
+// other than the identity it prints. PATH, HOME and the rest are kept.
+function withoutGitVariables(env) {
+  return Object.fromEntries(Object.entries(env).filter(([name]) => !name.startsWith('GIT_')));
+}
+
+// The worktree that has the branch checked out, from `git worktree list --porcelain`.
+function worktreeHolding(worktreeList, branchRef) {
+  let worktree = null;
+  for (const line of worktreeList.split('\n')) {
+    if (line.startsWith('worktree ')) worktree = line.slice('worktree '.length);
+    else if (line === `branch ${branchRef}`) return worktree;
+  }
+  return null;
+}
+
+function commitOf(run, ref) {
+  const result = run(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]);
+  return result.status === 0 ? result.stdout : null;
+}
+
+function publishedVersion(run, commit) {
+  const result = run(['show', `${commit}:.claude-plugin/plugin.json`]);
+  try {
+    return result.status === 0 ? JSON.parse(result.stdout).version : null;
+  } catch {
+    return null;
+  }
+}
+
+// Commits a validated dist/plugin to the local branch `plugin` with plumbing
+// only: a temporary index, the folder as work tree, and update-ref. HEAD, the
+// current branch, the index, the working tree and the git configuration are
+// left alone; nothing is fetched or pushed. It refuses, before building, when
+// the root is not the top level of its own repository, a worktree has the
+// branch checked out, git has no identity, a build input has uncommitted
+// changes, or the local branch does not contain origin/plugin; and, after
+// building, when the build does not validate, the marketplace is out of sync,
+// or new content keeps the published version without sameVersion.
+export async function publishPluginBuild({ root = packageRoot, env = process.env, sameVersion = false, log = () => {} } = {}) {
   const resolved = await resolveKitRoot(root);
-  const gitDir = gitOk(['rev-parse', '--absolute-git-dir'], { cwd: resolved, env });
+  const realRoot = await fs.realpath(resolved);
+  const gitEnv = withoutGitVariables(env);
+  const run = (args) => git(args, { cwd: realRoot, env: gitEnv });
+  const runOk = (args) => gitOk(args, { cwd: realRoot, env: gitEnv });
+
+  const topLevel = run(['rev-parse', '--show-toplevel']);
+  const realTopLevel = topLevel.status === 0 ? await fs.realpath(topLevel.stdout).catch(() => null) : null;
+  if (realTopLevel !== realRoot) {
+    throw new Error(`Refusing to publish: ${resolved} is not the top level of its own git repository (git top level: ${topLevel.status === 0 ? topLevel.stdout : 'none'}). Publish from the kit repository itself.`);
+  }
   const branchRef = `refs/heads/${pluginBranch}`;
-  const head = git(['symbolic-ref', '-q', 'HEAD'], { cwd: resolved, env });
-  if (head.stdout === branchRef) throw new Error(`Refusing to publish: the branch ${pluginBranch} is checked out. Switch to another branch and rerun.`);
+  const holder = worktreeHolding(runOk(['worktree', 'list', '--porcelain']), branchRef);
+  if (holder) throw new Error(`Refusing to publish: the branch ${pluginBranch} is checked out in ${holder}. Switch that worktree to another branch and rerun.`);
 
-  const { dir } = await buildPluginDirectory(resolved);
-  const packageJson = await readPackageJson(resolved);
-  const message = `Publish plugin ${pluginName} ${packageJson.version}`;
-  const parentResult = git(['rev-parse', '--verify', '--quiet', `${branchRef}^{commit}`], { cwd: resolved, env });
-  const parent = parentResult.status === 0 ? parentResult.stdout : null;
+  const name = run(['config', 'user.name']).stdout.trim();
+  const email = run(['config', 'user.email']).stdout.trim();
+  if (!name || !email) throw new Error('Refusing to publish: this repository has no git user.name or user.email. Configure your git identity yourself and rerun; publishing never sets it.');
+  const identity = `${name} <${email}>`;
+  log(`Publishing as ${identity}.`);
 
+  const dirty = runOk(['status', '--porcelain', '--untracked-files=all', '--', ...pluginBuildInputs]);
+  if (dirty) {
+    const paths = dirty.split('\n').map((line) => line.slice(3));
+    throw new Error(`Refusing to publish: uncommitted changes in files the build reads: ${paths.join(', ')}. Commit or discard them and rerun.`);
+  }
+  const source = run(['rev-parse', '--short', 'HEAD']);
+  if (source.status !== 0) throw new Error('Refusing to publish: the repository has no commit to name as the source of the build.');
+
+  const remoteBranch = `${pluginRemote}/${pluginBranch}`;
+  const localTip = commitOf(run, branchRef);
+  const remoteTip = commitOf(run, `refs/remotes/${remoteBranch}`);
+  if (localTip && remoteTip && run(['merge-base', '--is-ancestor', remoteTip, localTip]).status !== 0) {
+    throw new Error(`Refusing to publish: the local branch ${pluginBranch} is behind or diverged from ${remoteBranch}: it does not contain ${remoteTip}. Bring the local branch up to date first, so that it contains ${remoteBranch}, and rerun. Publishing never fetches: ${remoteBranch} is the copy last fetched.`);
+  }
+  const parent = localTip ?? remoteTip;
+  const base = localTip ? pluginBranch : remoteBranch;
+
+  const { dir } = await replacePluginDirectory({ root: resolved, realRoot, marketplace: true });
+  const { version } = await readPackageJson(resolved);
+  const message = `Publish plugin ${pluginName} ${version} from ${source.stdout}`;
+  const gitDir = runOk(['rev-parse', '--absolute-git-dir']);
   const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-plugin-index-'));
   try {
-    const plumbing = { cwd: dir, env: { ...env, GIT_INDEX_FILE: path.join(temporary, 'index') } };
+    const plumbing = { cwd: dir, env: { ...gitEnv, GIT_INDEX_FILE: path.join(temporary, 'index') } };
     const tree = [`--git-dir=${gitDir}`, `--work-tree=${dir}`];
     gitOk([...tree, 'add', '--all', '--force', '--', '.'], plumbing);
     const treeId = gitOk([...tree, 'write-tree'], plumbing);
-    if (parent && gitOk(['rev-parse', `${parent}^{tree}`], { cwd: resolved, env }) === treeId) {
-      return { committed: false, commit: parent, message };
+    if (parent && runOk(['rev-parse', `${parent}^{tree}`]) === treeId) {
+      return { committed: false, commit: parent, base, branchExists: Boolean(localTip), identity, message };
     }
-    const commit = gitOk(['commit-tree', treeId, ...(parent ? ['-p', parent] : []), '-m', message], { cwd: resolved, env });
-    gitOk(['update-ref', '-m', message, branchRef, commit, parent ?? ''], { cwd: resolved, env });
-    return { committed: true, commit, parent, message };
+    if (parent && !sameVersion && publishedVersion(run, parent) === version) {
+      throw new Error(`Refusing to publish: the build differs from the tip of ${base} (${parent}) but keeps its version ${version}. Claude Code pins a plugin to its version, so people who installed ${version} would not receive this change. Raise the version in package.json first (then run ${writeCommand} and commit), or pass --same-version to publish it under ${version} anyway.`);
+    }
+    const committer = { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_NAME: name, GIT_COMMITTER_EMAIL: email };
+    const commit = gitOk(['commit-tree', treeId, ...(parent ? ['-p', parent] : []), '-m', message], { cwd: realRoot, env: { ...gitEnv, ...committer } });
+    runOk(['update-ref', '-m', message, branchRef, commit, localTip ?? '']);
+    return { committed: true, commit, parent, branchExists: true, identity, message };
   } finally {
     await fs.rm(temporary, { recursive: true, force: true });
   }
 }
 
+const usage = 'node scripts/build-plugin.mjs [--write | --publish [--same-version]] [--root <dir>]';
+
 function parseArguments(argv) {
-  const options = { mode: 'check', root: packageRoot };
+  const options = { mode: 'check', root: packageRoot, sameVersion: false };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === '--write' || argument === '--publish') {
       if (options.mode !== 'check') throw new Error('Use only one of --write and --publish.');
       options.mode = argument.slice(2);
+    } else if (argument === '--same-version') {
+      options.sameVersion = true;
     } else if (argument === '--root') {
       if (index + 1 >= argv.length) throw new Error('--root needs a directory: the workflow kit repository to build from.');
       options.root = argv[index += 1];
     } else {
-      throw new Error(`Unknown option ${argument}. Usage: node scripts/build-plugin.mjs [--write | --publish] [--root <dir>]`);
+      throw new Error(`Unknown option ${argument}. Usage: ${usage}`);
     }
   }
+  if (options.sameVersion && options.mode !== 'publish') throw new Error(`--same-version only applies to --publish. Usage: ${usage}`);
   return options;
 }
 
@@ -392,17 +534,16 @@ async function main(argv) {
     return 0;
   }
   if (options.mode === 'publish') {
-    const result = await publishPluginBuild({ root: options.root });
+    const result = await publishPluginBuild({ root: options.root, sameVersion: options.sameVersion, log: (line) => console.log(line) });
     console.log(result.committed
       ? `${result.message}: committed ${result.commit} to the local branch ${pluginBranch}${result.parent ? ` (parent ${result.parent})` : ' (first commit)'}.`
-      : `The local branch ${pluginBranch} already holds this build (${result.commit}); no commit created.`);
-    console.log(`Next step, with explicit approval: git push origin ${pluginBranch}`);
+      : `${result.base} already holds this build (${result.commit}); no commit created.`);
+    if (result.branchExists) console.log(`Next step, with explicit approval: git push ${pluginRemote} ${pluginBranch}`);
     return 0;
   }
   const result = await checkPluginBuild({ root: options.root });
   if (!result.ok) {
-    console.error('Plugin build validation failed:');
-    for (const failure of result.failures) console.error(`- ${failure.message} (fix: ${failure.fix})`);
+    console.error(formatFailures(result.failures));
     return 1;
   }
   console.log(`Plugin build is valid (${result.count} files) and the marketplace is synchronized.`);

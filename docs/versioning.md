@@ -74,17 +74,47 @@ the release checklist.
 
 ## Release gates
 
-After assigning the version, run `node scripts/build-plugin.mjs --write`: the
-plugin marketplace (`.claude-plugin/marketplace.json`) carries the package
-version, so `check:workflow` fails until it is regenerated. The command also
-rebuilds the plugin folder `dist/plugin/`, which is never committed.
+When you raise `package.json.version`, also set the same value as
+`kit_version` in `.agents/workflow-kit/manifest.json` and in its template copy
+(`templates/repo-overlay-fhh-ia-ecosystem-full/.agents/workflow-kit/manifest.json`);
+`check:workflow` fails until both match. Then run
+`node scripts/build-plugin.mjs --write`: the plugin marketplace
+(`.claude-plugin/marketplace.json`) carries the package version, so
+`check:workflow` also fails until it is regenerated. The command also rebuilds
+the plugin folder `dist/plugin/`, which is never committed. It validates a
+fresh build before replacing `dist/plugin/`, so a failed build leaves the
+previous folder as it was.
 
-To publish the plugin `fhh`, run `node scripts/build-plugin.mjs --publish`: it
-commits `dist/plugin/` to the local branch `plugin` without touching the
-current branch, and never pushes. Then push that branch with explicit approval:
-`git push origin plugin`. People who installed the plugin see a kit change only
-when the published version changes, because Claude Code pins a plugin to its
-`version`.
+The marketplace committed in `main` points at the branch `plugin`. That branch
+does not exist on the remote until the first publish and its approved push, so
+the marketplace cannot install the plugin before then.
+
+To publish the plugin `fhh`, commit the release first and then run
+`node scripts/build-plugin.mjs --publish` from the kit repository itself (its
+top level, not a copy inside another repository). It validates the build as
+check mode does and commits `dist/plugin/` to the local branch `plugin`
+without touching the current branch. It never fetches, never pushes and never
+changes the Git configuration. It stops, without committing, when:
+
+- the branch `plugin` is checked out in any worktree of the repository;
+- Git has no `user.name` or `user.email` for the repository (it always prints
+  the identity it commits with);
+- a file the build reads has uncommitted changes (staged, unstaged or
+  untracked); the message names them;
+- the build does not validate, or the marketplace is out of sync;
+- the local branch `plugin` does not contain `origin/plugin` (it is behind or
+  diverged): bring it up to date first;
+- the content changed but the version is the one already published on the
+  branch `plugin`. People who installed the plugin see a kit change only when
+  the published version changes, because Claude Code pins a plugin to its
+  `version`: raise the version first. `--same-version` publishes anyway.
+
+A clone without a local branch `plugin` publishes on top of `origin/plugin`,
+so the commit stays a fast-forward of the remote. That remote-tracking branch
+must be present locally: whoever publishes fetches it first. The commit
+message names the version and the source commit
+(`Publish plugin fhh <version> from <commit>`). Then push the branch with
+explicit approval: `git push origin plugin`.
 
 Every version must pass (CI runs the same set; there `check:templates` runs
 inside `check:workflow`):
