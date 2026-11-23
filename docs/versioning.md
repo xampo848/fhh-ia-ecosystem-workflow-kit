@@ -75,8 +75,16 @@ the release checklist.
 ## Release gates
 
 After assigning the version, run `node scripts/build-plugin.mjs --write`: the
-plugin manifests carry the package version, so `check:workflow` fails until
-they are regenerated.
+plugin marketplace (`.claude-plugin/marketplace.json`) carries the package
+version, so `check:workflow` fails until it is regenerated. The command also
+rebuilds the plugin folder `dist/plugin/`, which is never committed.
+
+To publish the plugin `fhh`, run `node scripts/build-plugin.mjs --publish`: it
+commits `dist/plugin/` to the local branch `plugin` without touching the
+current branch, and never pushes. Then push that branch with explicit approval:
+`git push origin plugin`. People who installed the plugin see a kit change only
+when the published version changes, because Claude Code pins a plugin to its
+`version`.
 
 Every version must pass (CI runs the same set; there `check:templates` runs
 inside `check:workflow`):

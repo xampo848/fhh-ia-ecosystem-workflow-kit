@@ -665,19 +665,20 @@ Esta seccion es el registro durable de cierre: un resumen, no una bitacora. `imp
 
 **Estado**: En progreso (Fase 1 cerrada; Fases 2 y 3 pendientes)
 
-### Fase 1 - Build del plugin (cerrada 2026-11-22)
+### Fase 1 - Build del plugin (cerrada 2026-11-22, con una ronda de reparación)
 
 | Slice | Resultado | Evidencia |
 | --- | --- | --- |
-| P1-S1 | `scripts/build-plugin.mjs` genera y verifica `plugin.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` y 12 skills (11 wrappers y `kit-root`); corre dentro de `check:workflow`; `docs/versioning.md` pide regenerarlo tras asignar la versión | Commit `c07237a`; `node --test test/plugin-build.test.mjs` 6/6 (corrida roja: módulo inexistente); `claude plugin validate .` sin advertencias |
-| P1-S2 | Smoke de la regla de rutas en Claude Code, en un repo de prueba sin copia del kit, con `claude --plugin-dir` | Cinco sesiones de solo lectura: carga las 12 skills `fhh:*`; el modelo carga `fhh:kit-root` y lee instrucciones y router desde el plugin; lee el overlay y un runbook del repo; `/create-prd` va a la skill local y `/fhh:create-prd` al plugin, sin error (S5, S10) |
-| P1-S3 | El build genera 13 agentes de Claude (`agents/`) y 13 de Copilot (`com.github.copilot/agents/`) con el perfil por defecto y un párrafo `Kit location` | Commit `417244c`; `node --test test/plugin-build.test.mjs test/model-profiles.test.mjs` 19/19 (corrida roja: 5 fallan); los renderers del modo repo siguen idénticos byte a byte contra `.claude/agents` y `.github/agents` |
+| P1-S1 | Build de manifiestos y 12 skills (11 wrappers y `kit-root`) dentro de `check:workflow` | Commit `c07237a`; corrida roja: módulo inexistente |
+| P1-S2 | Smoke de la regla de rutas en Claude Code, en un repo de prueba sin copia del kit | Primera corrida sobre la raíz del repo; repetida contra `dist/plugin` tras la ronda (ver abajo) |
+| P1-S3 | 13 agentes de Claude y 13 de Copilot con el perfil por defecto y el párrafo `Kit location` | Commit `417244c`; corrida roja: 5 fallan; renderers del modo repo idénticos byte a byte |
+| P1-R1 | Ronda de reparación 1 de 2 (revisión del orquestador sobre `684d4ec`): D13, regla de rutas única en `src/plugin-mode.mjs`, `author`, nombre de delegados por runtime, symlinks rechazados, borrado acotado a `dist/plugin/`, `--publish` sin tocar el checkout, `files` sin entradas del plugin, `docs/legal/` dentro del plugin (licencias y avisos que `NOTICE` y `THIRD_PARTY_NOTICES.md` citan, exigidos por Apache-2.0) | Commit de la ronda; corridas rojas: import inexistente y referencia legal faltante; 19 mutaciones del código, todas detectadas por `test/plugin-build.test.mjs` |
 
-Criterios: AC-1, AC-2, AC-3 y AC-4 completos con `test/plugin-build.test.mjs` y `npm run check:workflow`; AC-20 parcial (smoke de Claude Code).
-Validaciones: `npm test` 430/430 (los 420 anteriores sin modificar y 10 nuevos); `check`, `check:workflow`, `check:docs` y `check:legal` en verde; `check:release` falla solo porque la versión no se subió.
-No verificado: Copilot (VS Code y CLI; S7, S9); si `${CLAUDE_PLUGIN_ROOT}` se expande en el cuerpo de una skill o de un agente, o se usó el respaldo (ambos llegan a la raíz correcta); los agentes del plugin en una sesión real; en una sesión el agente no leyó el overlay por su cuenta (misma redacción del router en modo repo).
-Hecho aparte: `package.json` agrega `skills/` a `files`, que P1-S1 había omitido.
-
+Smoke contra `dist/plugin` (Claude Code 2.1.142, Sonnet, `--plugin-dir`, solo lectura): carga las 12 skills `fhh:*`; `/fhh:create-prd` lee su `SKILL.md` desde la carpeta del plugin; el modelo carga `fhh:kit-root` y lee instrucciones, índice y router desde el plugin; el contexto y un runbook se leen del repo de prueba; `/create-prd` local y `/fhh:create-prd` conviven sin error.
+Criterios: AC-1, AC-2, AC-3 y AC-4 completos (`test/plugin-build.test.mjs`, `npm run check:workflow`); AC-20 parcial (smoke de Claude Code).
+Validaciones: `npm test` 464/464 (los 420 anteriores sin modificar); `check`, `check:workflow` ("Plugin build is valid (321 files) and the marketplace is synchronized"), `check:docs` y `check:legal` en verde; `check:release` falla solo por la versión; `claude plugin validate .` y `claude plugin validate dist/plugin` sin advertencias.
+Paso de release pendiente: la rama `plugin` no existe todavía en el remoto, así que el marketplace de `main` apunta a una rama sin publicar hasta el primer `--publish` y su push aprobado. `doctor` (Fase 2) y los docs (Fase 3) cubren ese caso.
+No verificado: Copilot (S7, S9, S11, S12, S13); si `${CLAUDE_PLUGIN_ROOT}` se expande o se usó el respaldo (ambos llegan a la raíz correcta); los agentes del plugin en una sesión real; en dos sesiones el agente no leyó el overlay por su cuenta (una buscó el runbook con `find` sin cargar `kit-root`), la misma redacción del router que en modo repo.
 
 | Campo | Evidencia durable |
 | --- | --- |

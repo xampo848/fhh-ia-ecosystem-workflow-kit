@@ -10,7 +10,11 @@
   "plugins": [
     {
       "name": "fhh",
-      "source": "./",
+      "source": {
+        "source": "github",
+        "repo": "xampo848/fhh-ia-ecosystem-workflow-kit",
+        "ref": "plugin"
+      },
       "description": "Workflow kit: routed workflow skills and delegates that run from the plugin while each repository keeps its own project overlay."
     }
   ]
