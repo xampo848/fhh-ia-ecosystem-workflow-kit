@@ -46,15 +46,16 @@ export function formatPluginInstallSteps(runtimes) {
   return `Install the plugin ${pluginName}:\n${lines.join('\n')}\nEach person runs it once per clone of this repository; the repository only declares the plugin.\n`;
 }
 
-// Plugin mode needs at least one runtime and only runtimes with a plugin.
-export function assertPluginRuntimes(runtimes) {
+// Plugin mode needs at least one runtime and only runtimes with a plugin. The
+// stop names the same command in repo mode (init, or update: T3, T14).
+export function assertPluginRuntimes(runtimes, command = 'init') {
   const chosen = runtimes.filter((runtime) => runtime !== 'neutral');
   const withoutPlugin = chosen.filter((runtime) => !pluginRuntimes.includes(runtime));
   if (chosen.length > 0 && withoutPlugin.length === 0) return;
   const problem = chosen.length === 0
     ? 'plugin mode needs --runtime, and no runtime was chosen'
     : `${withoutPlugin.join(', ')} ${withoutPlugin.length === 1 ? 'has' : 'have'} no plugin; plugin mode supports ${pluginRuntimes.join(', ')}`;
-  const repoCommand = `workflow-kit init --mode repo${chosen.length > 0 ? ` --runtime ${chosen.join(',')}` : ''}`;
+  const repoCommand = `workflow-kit ${command} --mode repo${chosen.length > 0 ? ` --runtime ${chosen.join(',')}` : ''}`;
   throw new Error(`Cannot install in plugin mode: ${problem}. Use \`--runtime ${pluginRuntimes.join(',')}\` (or one of them), or install the kit files in the repository with \`${repoCommand}\`. Nothing was written.`);
 }
 

@@ -38,6 +38,8 @@ export async function runUpdateCommand(options, { stdout, stderr }) {
     return 2;
   }
 
+  // options.mode (when given) reaches the planner, which resolves it against
+  // the recorded mode.
   const plan = await buildUpdatePlan({ ...options, toolkitVersion: packageJson.version });
   stdout.write(`${options.apply ? 'Update apply plan' : 'Update dry-run plan'}\n${formatPlan(plan)}\n`);
   if (options.diff) stdout.write(`\nDiff of files that would change:\n${await renderPlanDiffs(plan)}\n`);
@@ -46,6 +48,7 @@ export async function runUpdateCommand(options, { stdout, stderr }) {
 
   const applied = await applyInstallPlan(plan);
   stdout.write(formatUpdateApplySummary(applied));
+  if (plan.nextInstallState.mode === 'plugin') stdout.write(formatPluginInstallSteps(plan.runtimes));
   return 0;
 }
 

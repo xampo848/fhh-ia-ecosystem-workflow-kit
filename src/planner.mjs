@@ -186,6 +186,32 @@ async function assertNoInstallState(targetPath, manifest, { exporting = false } 
   }
 }
 
+const settingsPathsOf = (runtimes) => runtimes.flatMap((runtime) => pluginSettingsPaths[runtime] ?? []);
+
+// The kit default quality gate is not in a plugin-mode repository: the
+// Copilot wrapper takes it from the overlay template of this CLI.
+const packageKitQualityGate = () => fs.readFile(path.join(templatesRoot, overlayTemplatePath, kitQualityGatePath), 'utf8');
+
+// PRD 2.4: without --mode, update keeps the recorded mode (T6, T8). A state
+// without mode, an export, a 1.0.0 state or no state (--adopt-existing)
+// updates as a repo-mode install, as before plugin mode existed.
+function resolveUpdateMode(requestedMode, existingState) {
+  const recordedMode = existingState?.mode === 'plugin' ? 'plugin' : 'repo';
+  const mode = requestedMode ?? recordedMode;
+  if (mode !== recordedMode) stopModeSwitch(requestedMode, existingState);
+  return mode;
+}
+
+// Switching the install mode (T7, T9, and the stops T10, T11, T13) is not in
+// this build yet: the slices that implement the switches replace this stop.
+function stopModeSwitch(requestedMode, existingState) {
+  let current = 'no install state';
+  if (existingState?.schemaVersion === legacyInstallStateSchemaVersion) current = `install-state ${legacyInstallStateSchemaVersion}`;
+  else if (existingState?.mode === 'export') current = 'an export';
+  else if (existingState) current = `${existingState.mode} mode`;
+  throw new Error(`update --mode ${requestedMode} would switch this install (${current}) to ${requestedMode} mode, and switching the install mode is not available in this build of workflow-kit. Run the same command without --mode to update the install as it is. Nothing was written.`);
+}
+
 export async function buildInstallPlan(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   await assertLastApplyFinished(targetPath);
@@ -205,8 +231,7 @@ export async function buildInstallPlan(options = {}) {
   const files = pluginMode
     ? await pluginModeTemplateFiles({ runtimes, manifest, catalog, modelProfiles })
     : await selectedTemplateFiles({ runtimes, overlay });
-  const settingsPaths = pluginMode ? runtimes.flatMap((runtime) => pluginSettingsPaths[runtime] ?? []) : [];
-  await assertPathShapes(targetPath, [...files.map((file) => file.relativePath), gitignorePath, ...settingsPaths]);
+  await assertPathShapes(targetPath, [...files.map((file) => file.relativePath), gitignorePath, ...(pluginMode ? settingsPathsOf(runtimes) : [])]);
   const instructionInspection = await inspectProjectInstructions({ targetPath });
   const migratedInstructions = migratedInstructionContents(instructionInspection);
   const stackPack = normalizeStackPack(options.stack);
@@ -219,9 +244,7 @@ export async function buildInstallPlan(options = {}) {
   if (options.ensureWorkspaceIgnore !== false) {
     operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
   }
-  // The kit default quality gate is not in a plugin-mode repository: the
-  // Copilot wrapper takes it from the overlay template of this CLI.
-  const kitQualityGate = pluginMode ? await fs.readFile(path.join(templatesRoot, overlayTemplatePath, kitQualityGatePath), 'utf8') : undefined;
+  const kitQualityGate = pluginMode ? await packageKitQualityGate() : undefined;
   operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode, kitQualityGate }));
   operations.push(...await buildStackPackOperations({ targetPath, stackPack, previousFiles }));
   if (pluginMode) operations.push(...await planPluginSettings({ targetPath, runtimes }));
@@ -267,16 +290,13 @@ export async function buildUpdatePlan(options = {}) {
   if (!existingState && !options.adoptExisting) {
     throw new Error('No install state found. Run `workflow-kit update --adopt-existing --runtime <list>` first to bootstrap a safe baseline.');
   }
+  const installMode = resolveUpdateMode(options.mode, existingState);
+  // Plugin mode (T8): the same file selection as init --mode plugin.
+  const pluginMode = installMode === 'plugin';
   const runtimes = parseRuntimeList(options.runtime ?? existingState?.runtimes?.join(',') ?? 'neutral');
+  if (pluginMode) assertPluginRuntimes(runtimes, 'update');
   const overlay = normalizeOverlay(options.overlay ?? existingState?.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
-  const files = await selectedTemplateFiles({ runtimes, overlay });
-  // The migration also reads the project index and lists the project skills.
-  const migrating = existingState?.schemaVersion === legacyInstallStateSchemaVersion;
-  // The migration leaves a new path it cannot move to pending (legacy_path_unsupported).
-  const shapedFiles = files.map((file) => file.relativePath).filter((relativePath) => !migrating || !Object.values(manifest.legacy_paths).includes(relativePath));
-  await assertPathShapes(targetPath, [...shapedFiles, gitignorePath, ...(migrating ? [projectIndexPath] : [])],
-    migrating ? [`${manifest.project_root}skills`] : []);
   const catalog = await loadDelegateCatalog();
   const modelProfiles = resolveModelProfiles({
     catalog,
@@ -284,6 +304,15 @@ export async function buildUpdatePlan(options = {}) {
     requested: parseProfileOption(options.profile),
     stored: existingState?.modelProfiles
   });
+  const files = pluginMode
+    ? await pluginModeTemplateFiles({ runtimes, manifest, catalog, modelProfiles })
+    : await selectedTemplateFiles({ runtimes, overlay });
+  // The migration also reads the project index and lists the project skills.
+  const migrating = existingState?.schemaVersion === legacyInstallStateSchemaVersion;
+  // The migration leaves a new path it cannot move to pending (legacy_path_unsupported).
+  const shapedFiles = files.map((file) => file.relativePath).filter((relativePath) => !migrating || !Object.values(manifest.legacy_paths).includes(relativePath));
+  await assertPathShapes(targetPath, [...shapedFiles, gitignorePath, ...(pluginMode ? settingsPathsOf(runtimes) : []), ...(migrating ? [projectIndexPath] : [])],
+    migrating ? [`${manifest.project_root}skills`] : []);
   const instructionInspection = await inspectProjectInstructions({ targetPath });
   const migratedInstructions = migratedInstructionContents(instructionInspection);
   // Installs from before stack packs carried the Rails + React rules inside the
@@ -308,14 +337,17 @@ export async function buildUpdatePlan(options = {}) {
     backupMode,
     catalog,
     modelProfiles,
-    migratedInstructions: { ...migratedInstructions, ...migration?.seedContents }
+    migratedInstructions: { ...migratedInstructions, ...migration?.seedContents },
+    pluginMode
   });
   const shadows = await planEditedDecisions({ operations, edited: options.edited ?? {}, manifest, migration });
   if (migration) await migration.completeOperations(operations, shadows);
   operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
-  operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode }));
+  const kitQualityGate = pluginMode ? await packageKitQualityGate() : undefined;
+  operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode, kitQualityGate }));
   operations.push(...await buildStackPackOperations({ targetPath, stackPack, previousFiles }));
-  const retired = existingState ? await planRetiredFiles({ targetPath, manifest, previousFiles, operations }) : { operations: [], missing: [] };
+  if (pluginMode) operations.push(...await planPluginSettings({ targetPath, runtimes }));
+  const retired = existingState ? await planRetiredFiles({ targetPath, manifest, previousFiles, operations, pluginMode }) : { operations: [], missing: [] };
   operations.push(...retired.operations);
   await finalizeOperations({ targetPath, manifest, operations, previousFiles });
   if (migration) requireMigrationBackups(operations);
@@ -343,7 +375,8 @@ export async function buildUpdatePlan(options = {}) {
     overlay,
     modelProfiles,
     stackPack,
-    toolkitVersion: options.toolkitVersion
+    toolkitVersion: options.toolkitVersion,
+    mode: installMode
   });
 
   return {
@@ -520,7 +553,9 @@ async function finalizeOperations({ targetPath, manifest, operations, previousFi
 // Only kit-owned content can retire: never an adapter, a seed, state, a
 // generated file, the project overlay, a path the migration moves, or a
 // backup. Shipped means any runtime's template, so switching runtimes never
-// deletes the files of the runtime left out.
+// deletes the files of the runtime left out. In plugin mode (PRD 2.4) the kit
+// ships no file in the repository, so only the paths this plan has are live:
+// the agents of a profile that went back to the default retire.
 const retirableClasses = new Set(['kit', 'derived']);
 // The native call returns the letter case stored on disk.
 const realpathNative = promisify(realpathCallback.native);
@@ -534,12 +569,12 @@ function isRetirable(manifest, relativePath) {
 
 // Unedited: deleted with a backup whatever the backup mode. Edited: kept and
 // flagged in the next state. Missing: only its record goes away.
-async function planRetiredFiles({ targetPath, manifest, previousFiles, operations }) {
+async function planRetiredFiles({ targetPath, manifest, previousFiles, operations, pluginMode = false }) {
   // Compared without letter case: on a case-insensitive file system a key
   // that differs from a live path only in case names that same live file.
   const livePaths = new Set([
     ...operations.map((item) => item.relativePath),
-    ...(await selectedTemplateFiles({ runtimes: supportedRuntimes })).map((file) => file.relativePath)
+    ...(pluginMode ? [] : (await selectedTemplateFiles({ runtimes: supportedRuntimes })).map((file) => file.relativePath))
   ]);
   const live = new Set([...livePaths].map((relativePath) => relativePath.toLowerCase()));
   const realTarget = await fs.realpath(targetPath);
