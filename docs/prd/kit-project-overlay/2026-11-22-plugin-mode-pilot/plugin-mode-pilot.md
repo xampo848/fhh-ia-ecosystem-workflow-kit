@@ -667,7 +667,7 @@ _(Vacio = PRD listo para implementar)_
 
 Esta seccion es el registro durable de cierre: un resumen, no una bitacora. `implement-change` la completa antes de eliminar los artefactos temporales de `.ai-work/<prd-slug>/`.
 
-**Estado**: En progreso (Fase 1 cerrada; Fases 2 y 3 pendientes)
+**Estado**: En progreso (Fases 1 y 2 cerradas; Fase 3 pendiente)
 
 ### Fase 1 - Build del plugin (cerrada 2026-11-22, con una ronda de reparación)
 
@@ -683,6 +683,23 @@ Criterios: AC-1, AC-2, AC-3 y AC-4 completos (`test/plugin-build.test.mjs`, `npm
 Validaciones: `npm test` 464/464 (los 420 anteriores sin modificar); `check`, `check:workflow` ("Plugin build is valid (321 files) and the marketplace is synchronized"), `check:docs` y `check:legal` en verde; `check:release` falla solo por la versión; `claude plugin validate .` y `claude plugin validate dist/plugin` sin advertencias.
 Paso de release pendiente: la rama `plugin` no existe todavía en el remoto, así que el marketplace de `main` apunta a una rama sin publicar hasta el primer `--publish` y su push aprobado. `doctor` (Fase 2) y los docs (Fase 3) cubren ese caso.
 No verificado: Copilot (S7, S9, S11, S12, S13); si `${CLAUDE_PLUGIN_ROOT}` se expande o se usó el respaldo (ambos llegan a la raíz correcta); los agentes del plugin en una sesión real; en dos sesiones el agente no leyó el overlay por su cuenta (una buscó el runbook con `find` sin cargar `kit-root`), la misma redacción del router que en modo repo.
+
+### Fase 2 - Modo plugin en el CLI (cerrada 2026-11-24)
+
+| Slice | Resultado | Evidencia |
+| --- | --- | --- |
+| P1-R3 | Tercera ronda de reparación de la Fase 1, autorizada por el usuario: `--publish` construye desde `git archive HEAD`, solo desde un commit contenido en `origin/main`, corre el chequeo legal y exige `kit_version` igual a la versión | Commit `bfeb7c9`; corrida roja: 13 fallan |
+| P2-S1 | `init --mode plugin`: adaptadores con `kit-location`, seeds, wrappers de Copilot, declaración del plugin en los settings, agentes del plugin con perfil no default | Commit `f249463`; corrida roja: 6 de 7 fallan |
+| P2-S2 | `update` conserva el modo plugin, aplica el perfil y su rollback deja el state en plugin | Commit `27c69d9`; corrida roja: 4 fallan |
+| P2-S3 | Cambio repo → plugin, todo o nada, aplicado entero, con rollback byte a byte | Commit `4f9beac`; corrida roja: 5 fallan |
+| P2-S4 | Cambio plugin → repo y las paradas T4, T5, T10, T11, T13, T17 con un comando que funciona | Commit `2ec835a`; corrida roja: 7 fallan |
+| P2-S5 | `doctor` de modos (`mode/*`), ejecutor de `claude plugin list --json` acotado a 5 s y nunca en modo repo; `projectInstructionDiagnostics` recibe el quality gate del CLI (autorizado por el orquestador) | Commit `1f32a30`; corrida roja: 8 de 9 fallan; salida de `doctor` en modo repo idéntica byte a byte |
+| P2-S6 | El TUI pregunta el modo al instalar y conserva el modo al actualizar | Commits `6d901df` y `ddc8e89` (el TUI pasa el ejecutor a `doctor`, para que sus tests no ejecuten el binario real) |
+
+Criterios: AC-5 a AC-19 completos con `test/plugin-mode.test.mjs`, `test/plugin-mode-doctor.test.mjs` y `test/plugin-mode-tui.test.mjs`.
+Validaciones: `npm test` 537/537, con binarios `claude` y `copilot` falsos primero en el PATH que no registran ninguna llamada; los 420 tests de `558e9fb` sin modificar (`git diff --name-only 558e9fb -- test/` solo lista los cuatro archivos nuevos de este PRD); `check`, `check:workflow`, `check:docs` y `check:legal` en verde; `check:release` falla solo por la versión.
+Real: `doctor` sobre una instalación `init --mode plugin --runtime claude,copilot` termina en ok, con `mode/plugin-not-installed` como aviso y la línea informativa de Copilot.
+Límites registrados: R7 (backups del cambio de modo), R8, R9 (adaptadores que el cambio no reescribe), R10 (rutas del kit en `context.md`).
 
 | Campo | Evidencia durable |
 | --- | --- |
