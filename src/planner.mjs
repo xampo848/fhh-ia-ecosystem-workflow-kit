@@ -117,7 +117,7 @@ const pluginAgents = {
   copilot: { pathOf: (slug) => `.github/agents/${slug}.agent.md`, render: renderCopilotAgent }
 };
 
-async function pluginModeTemplateFiles({ runtimes, manifest, catalog, modelProfiles }) {
+export async function pluginModeTemplateFiles({ runtimes, manifest, catalog, modelProfiles }) {
   const entrypoints = new Set(runtimes.flatMap((runtime) => runtimeEntrypoints[runtime] ?? []));
   const files = (await selectedTemplateFiles({ runtimes }))
     .filter((file) => entrypoints.has(file.relativePath) || classifyPath(manifest, file.relativePath)?.class === 'seed');
@@ -195,7 +195,7 @@ const settingsPathsOf = (runtimes) => runtimes.flatMap((runtime) => pluginSettin
 
 // The kit default quality gate is not in a plugin-mode repository: the
 // Copilot wrapper takes it from the overlay template of this CLI.
-const packageKitQualityGate = () => fs.readFile(path.join(templatesRoot, overlayTemplatePath, kitQualityGatePath), 'utf8');
+export const packageKitQualityGate = () => fs.readFile(path.join(templatesRoot, overlayTemplatePath, kitQualityGatePath), 'utf8');
 
 // PRD 2.4: without --mode, update keeps the recorded mode (T6, T8). A state
 // without mode, an export, a 1.0.0 state or no state (--adopt-existing)

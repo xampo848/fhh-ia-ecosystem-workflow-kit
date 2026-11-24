@@ -5,13 +5,19 @@ import path from 'node:path';
 import packageJson from '../package.json' with { type: 'json' };
 import {
   buildUpdatePlan, incompleteApplyMessage, installStateRelativePath, lastApplyProblem, legacyInstallStateSchemaVersion,
-  normalizeOverlay, parseRuntimeList, readManagedInstallState, recordedChecksumOf, selectedTemplateFiles, stackRulesPath, unusableJournalMessage
+  normalizeOverlay, packageKitQualityGate, parseRuntimeList, pluginModeTemplateFiles, readManagedInstallState, recordedChecksumOf,
+  selectedTemplateFiles, stackRulesPath, unusableJournalMessage
 } from './planner.mjs';
 import { applyJournalRelativePath } from './apply.mjs';
-import { classifyPath, currentPathFor, isProjectPath, loadKitManifest } from './kit-manifest.mjs';
+import { classifyPath, currentPathFor, defaultBlockName, isProjectPath, loadKitManifest } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, projectIndexPath, projectIndexTableRows, shadowManifestName, skillsRoot, unquote, walkTree } from './migration.mjs';
-import { supportedRuntimes } from './runtime-matrix.mjs';
+import {
+  claudePluginListHint, claudePluginUpdateCommand, copilotPluginListCommand, inspectInstalledPlugins, inspectPluginSettings, pluginAdapterContent,
+  pluginBranch, pluginDeclarationFragment, pluginId, pluginInstallCommand
+} from './plugin-mode.mjs';
+import { pluginRuntimes, pluginSettingsPaths, supportedRuntimes } from './runtime-matrix.mjs';
 import { validateWorkflowContract } from './workflow-contract/index.mjs';
+import { validateAdapterContracts } from './workflow-contract/adapters.mjs';
 import { loadDelegateCatalog, modelSettingLine, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
 import { projectContextDiagnostics, workspaceDiagnostics } from './workspace-diagnostics.mjs';
 import { projectInstructionDiagnostics } from './project-instructions.mjs';
@@ -36,7 +42,7 @@ async function readOptional(file) {
 // An adapter's own text outside its block is the project's. Only an edit
 // inside the block is reported: the next update restores the block. Pending
 // kit and derived files come from the update plan (pendingDiagnostics).
-async function adapterBlockDiagnostics({ targetPath, manifest, state, files }) {
+async function adapterBlockDiagnostics({ targetPath, manifest, state, files, pluginMode }) {
   // A 1.0.0 state hashed every file whole; the layout migration decides on it.
   if (!state || state.schemaVersion === legacyInstallStateSchemaVersion) return [];
   const diagnostics = [];
@@ -48,10 +54,16 @@ async function adapterBlockDiagnostics({ targetPath, manifest, state, files }) {
     const actual = recordedChecksumOf(manifest, relativePath, 'adapter', content);
     if (actual === null || actual === entry.sha256) continue;
     const template = files.find((file) => file.relativePath === relativePath);
-    if (template && actual === recordedChecksumOf(manifest, relativePath, 'adapter', await fs.readFile(template.sourcePath, 'utf8'))) continue;
+    if (template && actual === recordedChecksumOf(manifest, relativePath, 'adapter', await adapterTemplate(manifest, template, pluginMode))) continue;
     diagnostics.push(warning('boundary/adapter-block-edited', relativePath, 'The workflow-kit block of this adapter was edited. The next update restores the block (with a backup); move your text outside the markers.'));
   }
   return diagnostics;
+}
+
+// The block this CLI writes: in plugin mode it carries the kit-location block.
+async function adapterTemplate(manifest, template, pluginMode) {
+  const content = await fs.readFile(template.sourcePath, 'utf8');
+  return pluginMode ? pluginAdapterContent(content, classifyPath(manifest, template.relativePath)?.block ?? defaultBlockName) : content;
 }
 
 function stateDiagnostics(state) {
@@ -128,11 +140,74 @@ async function pendingDiagnostics({ targetPath, manifest, state, runtimes, overl
   return diagnostics;
 }
 
+async function pathExists(targetPath, relativePath) {
+  try {
+    await fs.lstat(resolveInsideTarget(targetPath, relativePath));
+    return true;
+  } catch (statError) {
+    if (statError.code === 'ENOENT' || statError.code === 'ENOTDIR') return false;
+    throw statError;
+  }
+}
+
+const listedPathsLimit = 10;
+const listPaths = (paths) => (paths.length <= listedPathsLimit
+  ? paths.join(', ')
+  : `${paths.slice(0, listedPathsLimit).join(', ')} and ${paths.length - listedPathsLimit} more`);
+
+// PRD 2.5: one install mode at a time. In plugin mode a kit or derived file
+// the plugin plan does not write is a second copy of the kit (backups and the
+// apply journal are no such path); in repo mode a settings file that turns the
+// plugin on loads the kit twice (an export, a copy of the kit, too).
+async function modeMixDiagnostics({ targetPath, manifest, state, pluginMode, files, shipped }) {
+  if (!state) return [];
+  if (!pluginMode) {
+    return (await inspectPluginSettings({ targetPath, runtimes: pluginRuntimes })).filter((item) => item.enabled)
+      .map((item) => error('mode/repo-and-plugin', item.relativePath, `This install records repo mode (the kit files are in the repository), but this file enables the plugin ${pluginId}, so the kit would load twice. Run \`workflow-kit update --mode plugin\` to use the plugin, or remove ${pluginId} from enabledPlugins in this file to keep repo mode.`));
+  }
+  const planned = new Set(files.map((file) => file.relativePath));
+  const found = [];
+  for (const relativePath of shipped.keys()) {
+    if (planned.has(relativePath) || !['kit', 'derived'].includes(classifyPath(manifest, relativePath)?.class)) continue;
+    if (await pathExists(targetPath, relativePath)) found.push(relativePath);
+  }
+  if (found.length === 0) return [];
+  return [error('mode/repo-and-plugin', installStateRelativePath, `This install records plugin mode, but kit files are in the repository, where plugin mode does not install them, so the kit would load twice: ${listPaths(found)}. Delete them to keep plugin mode (the plugin ${pluginId} delivers them), or run \`workflow-kit update --mode repo\` to keep the kit files in the repository.`)];
+}
+
+// Plugin mode: each recorded plugin runtime's settings file declares the plugin.
+async function declarationDiagnostics({ targetPath, runtimes }) {
+  return (await inspectPluginSettings({ targetPath, runtimes })).filter((item) => !item.declared)
+    .map((item) => warning('mode/plugin-not-declared', item.relativePath, item.exists && !item.valid
+      ? `Not a JSON object workflow-kit can merge into, so the plugin ${pluginId} is not declared and workflow-kit does not touch the file. Fix it and run \`workflow-kit update --apply --yes\`, or add this to it by hand: ${pluginDeclarationFragment()}`
+      : `The plugin ${pluginId} is not declared ${item.exists ? 'in this file' : '(the file is missing)'}, so this runtime does not offer it for this repository. Run \`workflow-kit update --apply --yes\` to declare it.`));
+}
+
+// Plugin mode with Claude: what `claude plugin list --json` says. Only ever a
+// warning: doctor lists plugins, it never installs or updates one.
+async function installedPluginDiagnostics({ targetPath, executor, timeoutMs }) {
+  const settingsPath = pluginSettingsPaths.claude;
+  const install = pluginInstallCommand('claude');
+  const found = await inspectInstalledPlugins({ targetPath, executor, timeoutMs });
+  if (found.status === 'absent') {
+    return [warning('mode/plugin-not-installed', settingsPath, `Claude Code does not list the plugin ${pluginId} as installed, so the kit does not load in this repository. Run \`${install}\`. The marketplace serves the plugin only after the kit's \`${pluginBranch}\` branch is published.`)];
+  }
+  if (found.status === 'unverified') {
+    return [warning('mode/plugin-install-unverified', settingsPath, `Could not check whether Claude Code has the plugin ${pluginId} installed (${found.reason}). Run \`${claudePluginListHint}\` to check, and \`${install}\` if it is missing.`)];
+  }
+  if (found.version !== packageJson.version) {
+    return [warning('mode/plugin-version-mismatch', settingsPath, `Claude Code has the plugin ${pluginId} ${found.version ?? 'without a version'} installed; this workflow-kit CLI is ${packageJson.version}. Run \`${claudePluginUpdateCommand}\`.`)];
+  }
+  return [];
+}
+
 const sha256Pattern = /^[0-9a-f]{64}$/;
 
 // A shadow replaces a kit leaf skill; when the kit file changes, the shadow
 // may miss its fixes. Only shadows listed in the project index take effect.
-async function shadowDiagnostics({ targetPath, manifest, shippedPaths }) {
+// In plugin mode the kit file is not in the repository: the shadow is compared
+// with the one this CLI ships, as the plugin of this version does.
+async function shadowDiagnostics({ targetPath, manifest, shipped, pluginMode }) {
   const index = await readOptional(path.join(targetPath, projectIndexPath));
   const diagnostics = [];
   for (const cells of (index === null ? null : projectIndexTableRows(index, 'Shadows')) ?? []) {
@@ -165,10 +240,12 @@ async function shadowDiagnostics({ targetPath, manifest, shippedPaths }) {
       invalid(`kit_path ${kitPath} is not a kit file`);
       continue;
     }
-    const kitContent = await readOptional(resolveInsideTarget(targetPath, kitPath));
+    const kitContent = pluginMode
+      ? (shipped.has(kitPath) ? await fs.readFile(shipped.get(kitPath), 'utf8') : null)
+      : await readOptional(resolveInsideTarget(targetPath, kitPath));
     if (kitContent === null) {
       // A file the kit still ships is listed under missing files.
-      if (shippedPaths.has(kitPath)) continue;
+      if (shipped.has(kitPath)) continue;
       diagnostics.push(warning('boundary/shadow-outdated', manifestPath, `The shadowed kit file ${kitPath} is gone: the kit no longer ships it. Keep what you still need as a project skill, then remove the shadow and its row in ${projectIndexPath}.`));
     } else if (checksum(kitContent) !== shadow.base_sha256) {
       diagnostics.push(warning('boundary/shadow-outdated', manifestPath, `The kit file ${kitPath} changed since this shadow was made (its sha256 no longer matches base_sha256); compare it with the shadow, refresh the shadow, then update base_sha256.`));
@@ -180,11 +257,11 @@ async function shadowDiagnostics({ targetPath, manifest, shippedPaths }) {
 // A file in the kit skills tree that no template ships and install-state does
 // not record is neither kit nor project. Under a 1.0.0 state the migration
 // plan already lists those.
-async function unownedPathDiagnostics({ targetPath, manifest, state, shippedPaths }) {
+async function unownedPathDiagnostics({ targetPath, manifest, state, shipped }) {
   if (!state || state.schemaVersion === legacyInstallStateSchemaVersion) return [];
   const { files } = await walkTree(targetPath, skillsRoot);
   return files
-    .filter((relativePath) => !relativePath.includes(backupFileMarker) && classifyPath(manifest, relativePath)?.class === 'kit' && !shippedPaths.has(relativePath) && !Object.hasOwn(state.files, relativePath))
+    .filter((relativePath) => !relativePath.includes(backupFileMarker) && classifyPath(manifest, relativePath)?.class === 'kit' && !shipped.has(relativePath) && !Object.hasOwn(state.files, relativePath))
     .map((relativePath) => warning('boundary/unowned-path', relativePath, `This file is neither kit nor project; move it to ${manifest.project_root} (skills go to ${manifest.project_root}skills/<name>/ with a row in ${projectIndexPath}).`));
 }
 
@@ -233,8 +310,16 @@ export async function runDoctor(options = {}) {
   const journalProblem = await lastApplyProblem(targetPath);
   const runtimes = parseRuntimeList(options.runtime ?? storedState?.runtimes?.join(',') ?? 'neutral');
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
-  const files = await selectedTemplateFiles({ runtimes, overlay });
-  const shippedPaths = new Set((await selectedTemplateFiles({ runtimes: supportedRuntimes })).map((file) => file.relativePath));
+  // PRD 2.5: in plugin mode the kit tree is not in the repository; doctor
+  // expects only the files of the plugin plan.
+  const pluginMode = storedState?.mode === 'plugin';
+  const catalog = await loadDelegateCatalog();
+  const modelProfiles = resolveModelProfiles({ catalog, runtimes, stored: storedState?.modelProfiles });
+  const files = pluginMode
+    ? await pluginModeTemplateFiles({ runtimes, manifest, catalog, modelProfiles })
+    : await selectedTemplateFiles({ runtimes, overlay });
+  // Every file this CLI ships, with its source in the package.
+  const shipped = new Map((await selectedTemplateFiles({ runtimes: supportedRuntimes })).map((file) => [file.relativePath, file.sourcePath]));
   const missing = [];
   const present = [];
   // A path doctor cannot read (a file where a folder should be, a folder
@@ -259,8 +344,6 @@ export async function runDoctor(options = {}) {
     }
   }
 
-  const catalog = await loadDelegateCatalog();
-  const modelProfiles = resolveModelProfiles({ catalog, runtimes, stored: storedState?.modelProfiles });
   // A path doctor cannot read (a file where a folder should be, no
   // permission) is a finding of the check that met it, never a crash.
   // A check that meets such a path reports it; a read error without a path
@@ -276,17 +359,27 @@ export async function runDoctor(options = {}) {
     }
   };
   const checks = await Promise.all([
-    async () => (await validateWorkflowContract({ root: targetPath, runtimes })).diagnostics.map(targetRepoContractDiagnostic),
+    pluginMode
+      ? () => validateAdapterContracts({ root: targetPath, runtimes })
+      : async () => (await validateWorkflowContract({ root: targetPath, runtimes })).diagnostics.map(targetRepoContractDiagnostic),
     () => modelProfileDiagnostics({ targetPath, present, catalog, modelProfiles }),
     () => workspaceDiagnostics({ targetPath }),
     () => projectContextDiagnostics({ targetPath }),
-    () => projectInstructionDiagnostics({ targetPath, runtimes }),
+    // The Copilot quality-gate wrapper of a plugin install comes from the kit
+    // quality gate this CLI ships, as the plan writes it.
+    async () => projectInstructionDiagnostics({ targetPath, runtimes, kitQualityGate: pluginMode ? await packageKitQualityGate() : null }),
     () => stackPackDiagnostics({ targetPath, stackPack: storedState?.stackPack }),
-    () => adapterBlockDiagnostics({ targetPath, manifest, state: storedState, files }),
+    () => adapterBlockDiagnostics({ targetPath, manifest, state: storedState, files, pluginMode }),
     () => pendingDiagnostics({ targetPath, manifest, state: storedState, runtimes, overlay, journalProblem }),
-    () => shadowDiagnostics({ targetPath, manifest, shippedPaths }),
-    () => unownedPathDiagnostics({ targetPath, manifest, state: storedState, shippedPaths }),
-    () => symlinkDiagnostics(targetPath, files)
+    () => shadowDiagnostics({ targetPath, manifest, shipped, pluginMode }),
+    () => unownedPathDiagnostics({ targetPath, manifest, state: storedState, shipped }),
+    () => symlinkDiagnostics(targetPath, files),
+    () => modeMixDiagnostics({ targetPath, manifest, state: storedState, pluginMode, files, shipped }),
+    ...(pluginMode ? [() => declarationDiagnostics({ targetPath, runtimes })] : []),
+    // Never in repo mode: the only command doctor runs, and only to read.
+    ...(pluginMode && runtimes.includes('claude')
+      ? [() => installedPluginDiagnostics({ targetPath, executor: options.commandExecutor, timeoutMs: options.pluginCheckTimeoutMs })]
+      : [])
   ].map(guarded));
   const diagnostics = [
     ...checks.flat(),
@@ -302,6 +395,7 @@ export async function runDoctor(options = {}) {
   return {
     ok: missing.length === 0 && !diagnostics.some((item) => item.severity === 'error'),
     targetPath,
+    installMode: pluginMode ? 'plugin' : 'repo',
     runtimes,
     overlay,
     modelProfiles,
@@ -365,6 +459,12 @@ export function formatDoctorResult(result) {
     `Overlay: ${result.overlay}`,
     `Model profiles: ${Object.entries(result.modelProfiles ?? {}).map(([runtime, profile]) => `${runtime}=${profile}`).join(',') || 'none'}`,
     `Stack pack: ${result.stackPack ?? 'none'}`,
+    // Only in plugin mode, so the repo-mode output does not change.
+    ...(result.installMode === 'plugin' ? ['Install mode: plugin'] : []),
+    // Copilot has no documented way to list its installed plugins: a line, not a diagnostic.
+    ...(result.installMode === 'plugin' && result.runtimes.includes('copilot')
+      ? [`Copilot plugin: doctor cannot check it; run \`${copilotPluginListCommand}\` to see it, and \`${pluginInstallCommand('copilot')}\` if it is missing.`]
+      : []),
     result.ok ? 'Doctor: ok' : 'Doctor: failed'
   ];
 

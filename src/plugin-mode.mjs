@@ -4,6 +4,7 @@
 // single source of that identity and of the path rule every plugin text uses
 // verbatim (the `kit-root` skill, the plugin agents and the adapter block of
 // a repository in plugin mode).
+import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
@@ -32,6 +33,9 @@ const installCommands = {
   claude: `claude plugin install ${pluginId} --scope project`,
   copilot: `copilot plugin install ${pluginId}`
 };
+export const claudePluginUpdateCommand = `claude plugin update ${pluginId}`;
+// Copilot has no documented way to read its installed plugins (PRD 2.5).
+export const copilotPluginListCommand = 'copilot plugin list';
 const runtimeLabels = { claude: 'Claude Code', copilot: 'Copilot' };
 
 export function pluginInstallCommand(runtime) {
@@ -87,6 +91,10 @@ const marketplaceDeclaration = () => ({ source: { source: 'github', repo: market
 const declarationKeys = ['extraKnownMarketplaces', 'enabledPlugins'];
 const declarationFragment = () => ({ extraKnownMarketplaces: { [marketplaceName]: marketplaceDeclaration() }, enabledPlugins: { [pluginId]: true } });
 const isKitMarketplace = (settings) => isDeepStrictEqual(settings.extraKnownMarketplaces?.[marketplaceName], marketplaceDeclaration());
+const enablesPlugin = (settings) => settings.enabledPlugins?.[pluginId] === true;
+const isDeclared = (settings) => isKitMarketplace(settings) && enablesPlugin(settings);
+// The fragment to add by hand, on one line so a message can carry it.
+export const pluginDeclarationFragment = () => JSON.stringify(declarationFragment());
 
 // The settings file of each chosen plugin runtime: null when it is missing;
 // `settings: null` when it is not a JSON object whose two declaration keys are
@@ -131,7 +139,7 @@ export async function planPluginSettings({ targetPath, runtimes }) {
       operations.push(invalidSettings(base, existing, 'add this to it'));
       continue;
     }
-    if (isKitMarketplace(settings) && settings.enabledPlugins?.[pluginId] === true) {
+    if (isDeclared(settings)) {
       operations.push({ ...base, operation: 'unchanged', content: existing });
       continue;
     }
@@ -176,6 +184,66 @@ export async function planPluginSettingsRemoval({ targetPath, runtimes }) {
     operations.push({ ...base, operation: 'merge_with_backup', content: serializeLike(existing, cleaned) });
   }
   return operations;
+}
+
+// What doctor reads in each settings file (PRD 2.5): `valid` is false when the
+// file is not a JSON object the kit would merge into; `declared` is the
+// declaration the plan writes; `enabled` is the plugin turned on, whatever
+// marketplace serves it.
+export async function inspectPluginSettings({ targetPath, runtimes }) {
+  return (await readPluginSettings({ targetPath, runtimes })).map(({ base, existing, settings }) => ({
+    relativePath: base.relativePath,
+    exists: existing !== null,
+    valid: settings !== null,
+    declared: settings !== null && isDeclared(settings),
+    enabled: settings !== null && enablesPlugin(settings)
+  }));
+}
+
+// `claude plugin list --json`, the only command doctor runs (PRD 2.5): read
+// only, without a shell, bounded in time.
+export const claudePluginListCommand = Object.freeze({ file: 'claude', args: Object.freeze(['plugin', 'list', '--json']) });
+// What a person runs to check by hand.
+export const claudePluginListHint = 'claude plugin list';
+export const pluginListTimeoutMs = 5000;
+
+// Default command executor: resolves `{ code, stdout }` once the command
+// exits; rejects when it cannot start (ENOENT) or is killed at the timeout.
+export function runCommand(file, args, { cwd, timeoutMs }) {
+  return new Promise((resolve, reject) => {
+    execFile(file, args, { cwd, timeout: timeoutMs, shell: false, windowsHide: true }, (runError, stdout) => {
+      if (runError && typeof runError.code !== 'number') reject(runError);
+      else resolve({ code: runError ? runError.code : 0, stdout });
+    });
+  });
+}
+
+// The plugin as Claude Code lists it: `installed` with its version, `absent`,
+// or `unverified` with the reason. Never throws and never waits longer than
+// `timeoutMs`, whatever the executor does: doctor keeps its own timer.
+export async function inspectInstalledPlugins({ targetPath, executor = runCommand, timeoutMs = pluginListTimeoutMs }) {
+  const { file, args } = claudePluginListCommand;
+  let timer;
+  const timeout = new Promise((resolve) => { timer = setTimeout(() => resolve(null), timeoutMs); });
+  let outcome;
+  try {
+    outcome = await Promise.race([Promise.resolve().then(() => executor(file, [...args], { cwd: targetPath, timeoutMs })), timeout]);
+  } catch (runError) {
+    return { status: 'unverified', reason: runError?.code === 'ENOENT' ? `${file} is not on the PATH` : `${file} could not run (${runError?.code ?? runError?.message ?? 'unknown error'})` };
+  } finally {
+    clearTimeout(timer);
+  }
+  if (outcome === null) return { status: 'unverified', reason: `${file} did not answer within ${timeoutMs / 1000} seconds` };
+  if (outcome?.code !== 0) return { status: 'unverified', reason: `${file} exited with code ${outcome?.code}` };
+  let plugins;
+  try {
+    plugins = JSON.parse(outcome.stdout);
+  } catch {
+    plugins = null;
+  }
+  if (!Array.isArray(plugins)) return { status: 'unverified', reason: `${file} did not answer with a JSON list` };
+  const entry = plugins.find((item) => item?.id === pluginId);
+  return entry ? { status: 'installed', version: entry.version ?? null } : { status: 'absent' };
 }
 
 async function readOptional(file) {
