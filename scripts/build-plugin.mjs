@@ -11,11 +11,13 @@
 //              committed marketplace; never writes into the repository.
 //   --write    build and validate a fresh folder, swap it in for dist/plugin/
 //              and rewrite the marketplace.
-//   --publish  validate like check mode, rebuild dist/plugin/ and commit it to
-//              the local branch `plugin` without touching HEAD, the index or
-//              the working tree. It never pushes, never fetches and never
-//              changes the git configuration. --same-version publishes new
-//              content under the version already published.
+//   --publish  build from the tracked content of HEAD (a commit origin/main
+//              contains), run the legal check on it, validate like check
+//              mode, rebuild dist/plugin/ and commit it to the local branch
+//              `plugin` without touching HEAD, the index or the working tree.
+//              It never pushes, never fetches and never changes the git
+//              configuration. --same-version publishes new content under the
+//              version already published.
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
@@ -32,6 +34,7 @@ import {
 } from '../src/model-profiles.mjs';
 import { marketplaceName, pluginBranch, pluginName, pluginPathRule } from '../src/plugin-mode.mjs';
 import { claudeSkillDescription, claudeSkillEntries, listFiles } from './sync-claude-skills.mjs';
+import { validateLegalReadiness } from './validate-legal-readiness.mjs';
 
 export { marketplaceName, pluginName };
 
@@ -60,6 +63,7 @@ export const pluginBuildInputs = [
   pluginLegalDirectory,
   'scripts/build-plugin.mjs',
   'scripts/sync-claude-skills.mjs',
+  'scripts/validate-legal-readiness.mjs',
   'src/model-profiles.mjs',
   'src/plugin-mode.mjs',
   'src/kit-manifest.mjs',
@@ -69,6 +73,13 @@ const agentPluginsSchema = 'https://agent-plugins.org/schemas/1.0.0/plugin.schem
 const pluginDescription = 'Workflow kit: routed workflow skills and delegates that run from the plugin while each repository keeps its own project overlay.';
 const marketplaceDescription = 'Marketplace of the fhh workflow kit plugin.';
 const pluginRemote = 'origin';
+// --publish only publishes a commit this branch of the remote contains.
+const sourceBranch = 'main';
+// The staging folder of a build is dist/.plugin-build-XXXXXX (mkdtemp adds six
+// characters); a swap moves the previous dist/plugin to that name plus
+// -previous. Only folders of exactly this pattern are ever removed from dist/.
+const stagingPrefix = '.plugin-build-';
+const leftoverPattern = /^\.plugin-build-[A-Za-z0-9]{6}(-previous)?$/;
 const writeCommand = 'node scripts/build-plugin.mjs --write';
 const sourceFix = 'fix the source named in the message (skill registry, delegate catalog, overlay template or kit manifest), then run node scripts/build-plugin.mjs';
 
@@ -291,17 +302,47 @@ async function buildAndValidate({ root, dir, marketplace }) {
   return { count, failures };
 }
 
+// A leftover folder that cannot be removed never fails a build: it is
+// reported with the commands that remove it, from the repository root.
+function leftoverWarning(realRoot, folder, error, context) {
+  const shown = path.relative(realRoot, folder);
+  return `${context}Could not remove ${shown} (${error.code ?? error.message}), a leftover of an earlier build that nothing uses. Restore write permission and delete it: chmod -R u+w ${shown} && rm -rf ${shown}`;
+}
+
+// Removes what a killed build left in dist/: staging folders and previous
+// plugin folders of the pattern above, and nothing else.
+async function removeLeftovers(realRoot, distDir) {
+  const warnings = [];
+  for (const entry of await fs.readdir(distDir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !leftoverPattern.test(entry.name)) continue;
+    const folder = path.join(distDir, entry.name);
+    try {
+      await fs.rm(folder, { recursive: true, force: true });
+    } catch (error) {
+      warnings.push(leftoverWarning(realRoot, folder, error, ''));
+    }
+  }
+  return warnings;
+}
+
 // Builds and validates a fresh folder inside dist/, then swaps it in for
-// dist/plugin with renames and removes the previous folder only after the
-// swap. Any failure removes the fresh folder and leaves dist/plugin as it was.
-async function replacePluginDirectory({ root, realRoot, marketplace }) {
+// dist/plugin with renames and runs afterSwap (the marketplace rewrite). A
+// failure up to there undoes the swap, removes the fresh folder and leaves
+// dist/plugin as it was; only then is the previous folder removed, and a
+// previous folder that cannot be removed is reported, not fatal.
+async function replacePluginDirectory({ root, realRoot, marketplace, afterSwap = async () => {} }) {
   const distDir = await prepareDistDirectory(realRoot);
-  const staging = await fs.mkdtemp(path.join(distDir, '.plugin-build-'));
+  const warnings = await removeLeftovers(realRoot, distDir);
+  const staging = await fs.mkdtemp(path.join(distDir, stagingPrefix));
+  let dir;
+  let count;
+  let previous = null;
   try {
-    const { count, failures } = await buildAndValidate({ root, dir: staging, marketplace });
+    let failures;
+    ({ count, failures } = await buildAndValidate({ root, dir: staging, marketplace }));
     if (failures.length > 0) throw new Error(formatFailures(failures));
-    const dir = (await guardedPath(realRoot, pluginOutputDirectory, 'directory')).target;
-    const previous = existsSync(dir) ? `${staging}-previous` : null;
+    dir = (await guardedPath(realRoot, pluginOutputDirectory, 'directory')).target;
+    previous = existsSync(dir) ? `${staging}-previous` : null;
     if (previous) await fs.rename(dir, previous);
     try {
       await fs.rename(staging, dir);
@@ -309,21 +350,40 @@ async function replacePluginDirectory({ root, realRoot, marketplace }) {
       if (previous) await fs.rename(previous, dir);
       throw error;
     }
-    if (previous) await fs.rm(previous, { recursive: true, force: true });
-    return { dir, count };
+    try {
+      await afterSwap();
+    } catch (error) {
+      await fs.rename(dir, staging);
+      if (previous) await fs.rename(previous, dir);
+      throw error;
+    }
   } finally {
     // After a successful swap the fresh folder is dist/plugin: nothing left.
     await fs.rm(staging, { recursive: true, force: true });
   }
+  if (previous) {
+    try {
+      await fs.rm(previous, { recursive: true, force: true });
+    } catch (error) {
+      warnings.push(leftoverWarning(realRoot, previous, error, `${pluginOutputDirectory} was replaced and ${marketplacePath} is in sync with it. `));
+    }
+  }
+  return { dir, count, warnings };
 }
 
 export async function writePluginBuild({ root = packageRoot } = {}) {
   const resolved = await resolveKitRoot(root);
   const realRoot = await fs.realpath(resolved);
   const marketplace = await guardedPath(realRoot, marketplacePath, 'file');
-  const result = await replacePluginDirectory({ root: resolved, realRoot, marketplace: false });
-  await fs.mkdir(path.dirname(marketplace.target), { recursive: true });
-  await fs.writeFile(marketplace.target, await expectedMarketplace({ root: resolved }), 'utf8');
+  const result = await replacePluginDirectory({
+    root: resolved,
+    realRoot,
+    marketplace: false,
+    afterSwap: async () => {
+      await fs.mkdir(path.dirname(marketplace.target), { recursive: true });
+      await fs.writeFile(marketplace.target, await expectedMarketplace({ root: resolved }), 'utf8');
+    }
+  });
   return { root: resolved, ...result };
 }
 
@@ -348,15 +408,20 @@ export async function validatePluginFolder({ root = packageRoot, dir }) {
     if (generated.has(file) || pluginLegalFiles.includes(file) || file.startsWith(`${pluginLegalDirectory}/`)) continue;
     if (!shipsInPlugin(manifest, file)) fail(`Not a kit or derived file of the kit manifest: ${file}`);
   }
-  for (const file of ['plugin.json', '.claude-plugin/plugin.json']) {
+  // The shipped kit manifest carries the version too: a release raises all three.
+  for (const [label, file, field] of [
+    ['Plugin manifest', 'plugin.json', 'version'],
+    ['Plugin manifest', '.claude-plugin/plugin.json', 'version'],
+    ['Kit manifest', manifestRelativePath, 'kit_version']
+  ]) {
     let version;
     try {
-      version = JSON.parse(await fs.readFile(path.join(dir, file), 'utf8')).version;
+      version = JSON.parse(await fs.readFile(path.join(dir, file), 'utf8'))[field];
     } catch {
-      fail(`Plugin manifest missing or not JSON: ${file}`);
+      fail(`${label} missing or not JSON: ${file}`);
       continue;
     }
-    if (version !== packageJson.version) fail(`Plugin manifest version ${version} is not the package.json version ${packageJson.version}: ${file}`);
+    if (version !== packageJson.version) fail(`${label} ${field} ${version} is not the package.json version ${packageJson.version}: ${file}`);
   }
   for (const file of files.filter((item) => /^skills\/[^/]+\/SKILL\.md$/.test(item))) {
     const content = await fs.readFile(path.join(dir, file), 'utf8');
@@ -431,15 +496,32 @@ function publishedVersion(run, commit) {
   }
 }
 
+// The tracked content of HEAD, exported with `git archive` into a fresh
+// folder: what --publish builds from. Files Git ignores (through .gitignore, a
+// global excludes file or info/exclude) and edits hidden with
+// `git update-index --skip-worktree` are not in it, so the branch `plugin`
+// holds exactly what the source commit its message names holds.
+async function exportHead({ runOk, gitEnv, folder }) {
+  const archive = path.join(folder, 'source.tar');
+  const sourceRoot = path.join(folder, 'source');
+  runOk(['archive', '--format=tar', `--output=${archive}`, 'HEAD']);
+  await fs.mkdir(sourceRoot);
+  const tar = spawnSync('tar', ['-xf', archive, '-C', sourceRoot], { env: gitEnv, encoding: 'utf8' });
+  if (tar.error || tar.status !== 0) throw new Error(`Refusing to publish: could not extract the source commit with tar: ${tar.error?.message ?? tar.stderr.trim()}`);
+  return sourceRoot;
+}
+
 // Commits a validated dist/plugin to the local branch `plugin` with plumbing
 // only: a temporary index, the folder as work tree, and update-ref. HEAD, the
 // current branch, the index, the working tree and the git configuration are
-// left alone; nothing is fetched or pushed. It refuses, before building, when
+// left alone; nothing is fetched or pushed. The build reads the tracked
+// content of HEAD, never the working tree. It refuses, before building, when
 // the root is not the top level of its own repository, a worktree has the
 // branch checked out, git has no identity, a build input has uncommitted
-// changes, or the local branch does not contain origin/plugin; and, after
-// building, when the build does not validate, the marketplace is out of sync,
-// or new content keeps the published version without sameVersion.
+// changes, origin/main is missing or does not contain HEAD, or the local
+// branch does not contain origin/plugin; and, after exporting HEAD, when the
+// legal check fails on it, the build does not validate, the marketplace is out
+// of sync, or new content keeps the published version without sameVersion.
 export async function publishPluginBuild({ root = packageRoot, env = process.env, sameVersion = false, log = () => {} } = {}) {
   const resolved = await resolveKitRoot(root);
   const realRoot = await fs.realpath(resolved);
@@ -458,7 +540,7 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
 
   const name = run(['config', 'user.name']).stdout.trim();
   const email = run(['config', 'user.email']).stdout.trim();
-  if (!name || !email) throw new Error('Refusing to publish: this repository has no git user.name or user.email. Configure your git identity yourself and rerun; publishing never sets it.');
+  if (!name || !email) throw new Error('Refusing to publish: no git identity for this repository. Publishing reads the identity from the repository\'s git configuration (git config user.name and user.email) with a sanitized environment: inherited GIT_* variables are ignored, GIT_AUTHOR_*, GIT_COMMITTER_* and GIT_CONFIG_GLOBAL included. Configure user.name and user.email yourself and rerun; publishing never sets them.');
   const identity = `${name} <${email}>`;
   log(`Publishing as ${identity}.`);
 
@@ -470,6 +552,15 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
   const source = run(['rev-parse', '--short', 'HEAD']);
   if (source.status !== 0) throw new Error('Refusing to publish: the repository has no commit to name as the source of the build.');
 
+  const mainBranch = `${pluginRemote}/${sourceBranch}`;
+  const mainTip = commitOf(run, `refs/remotes/${mainBranch}`);
+  if (!mainTip) {
+    throw new Error(`Refusing to publish: ${mainBranch} is not present locally: fetch it first (git fetch ${pluginRemote} ${sourceBranch}) and rerun. Publishing never fetches, and it only publishes a commit that ${mainBranch} contains.`);
+  }
+  if (run(['merge-base', '--is-ancestor', 'HEAD', mainTip]).status !== 0) {
+    throw new Error(`Refusing to publish: HEAD (${source.stdout}) is not contained in ${mainBranch}. Publish only a released commit: merge it into ${sourceBranch}, fetch, check out a commit that ${mainBranch} contains and rerun. Publishing never fetches: ${mainBranch} is the copy last fetched.`);
+  }
+
   const remoteBranch = `${pluginRemote}/${pluginBranch}`;
   const localTip = commitOf(run, branchRef);
   const remoteTip = commitOf(run, `refs/remotes/${remoteBranch}`);
@@ -479,26 +570,35 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
   const parent = localTip ?? remoteTip;
   const base = localTip ? pluginBranch : remoteBranch;
 
-  const { dir } = await replacePluginDirectory({ root: resolved, realRoot, marketplace: true });
-  const { version } = await readPackageJson(resolved);
-  const message = `Publish plugin ${pluginName} ${version} from ${source.stdout}`;
-  const gitDir = runOk(['rev-parse', '--absolute-git-dir']);
-  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-plugin-index-'));
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-plugin-publish-'));
   try {
+    const sourceRoot = await exportHead({ runOk, gitEnv, folder: temporary });
+    const legal = validateLegalReadiness({ root: sourceRoot });
+    if (!legal.ok) {
+      throw new Error([
+        `Refusing to publish: the legal check (node scripts/validate-legal-readiness.mjs) fails on the source commit ${source.stdout}:`,
+        ...legal.failures.map((failure) => `- ${failure}`),
+        'Fix what it names and commit. After a version raise or any template change, renew remainingInventory (fileCount and pathContentSha256) in docs/legal/overlay-authorship.json as docs/versioning.md explains.'
+      ].join('\n'));
+    }
+    const { dir, warnings } = await replacePluginDirectory({ root: sourceRoot, realRoot, marketplace: true });
+    const { version } = await readPackageJson(sourceRoot);
+    const message = `Publish plugin ${pluginName} ${version} from ${source.stdout}`;
+    const gitDir = runOk(['rev-parse', '--absolute-git-dir']);
     const plumbing = { cwd: dir, env: { ...gitEnv, GIT_INDEX_FILE: path.join(temporary, 'index') } };
     const tree = [`--git-dir=${gitDir}`, `--work-tree=${dir}`];
     gitOk([...tree, 'add', '--all', '--force', '--', '.'], plumbing);
     const treeId = gitOk([...tree, 'write-tree'], plumbing);
     if (parent && runOk(['rev-parse', `${parent}^{tree}`]) === treeId) {
-      return { committed: false, commit: parent, base, branchExists: Boolean(localTip), identity, message };
+      return { committed: false, commit: parent, base, branchExists: Boolean(localTip), identity, message, warnings };
     }
     if (parent && !sameVersion && publishedVersion(run, parent) === version) {
-      throw new Error(`Refusing to publish: the build differs from the tip of ${base} (${parent}) but keeps its version ${version}. Claude Code pins a plugin to its version, so people who installed ${version} would not receive this change. Raise the version in package.json first (then run ${writeCommand} and commit), or pass --same-version to publish it under ${version} anyway.`);
+      throw new Error(`Refusing to publish: the build differs from the tip of ${base} (${parent}) but keeps its version ${version}. Claude Code pins a plugin to its version, so people who installed ${version} would not receive this change. Raise the version first (the release steps of docs/versioning.md: package.json, kit_version, the overlay authorship record, then ${writeCommand}), commit it to ${sourceBranch}, or pass --same-version to publish it under ${version} anyway.`);
     }
     const committer = { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_NAME: name, GIT_COMMITTER_EMAIL: email };
     const commit = gitOk(['commit-tree', treeId, ...(parent ? ['-p', parent] : []), '-m', message], { cwd: realRoot, env: { ...gitEnv, ...committer } });
     runOk(['update-ref', '-m', message, branchRef, commit, localTip ?? '']);
-    return { committed: true, commit, parent, branchExists: true, identity, message };
+    return { committed: true, commit, parent, branchExists: true, identity, message, warnings };
   } finally {
     await fs.rm(temporary, { recursive: true, force: true });
   }
@@ -529,8 +629,9 @@ function parseArguments(argv) {
 async function main(argv) {
   const options = parseArguments(argv);
   if (options.mode === 'write') {
-    const { count } = await writePluginBuild({ root: options.root });
+    const { count, warnings } = await writePluginBuild({ root: options.root });
     console.log(`Wrote ${count} plugin files to ${pluginOutputDirectory}/ and ${marketplacePath}.`);
+    for (const warning of warnings) console.warn(warning);
     return 0;
   }
   if (options.mode === 'publish') {
@@ -539,6 +640,7 @@ async function main(argv) {
       ? `${result.message}: committed ${result.commit} to the local branch ${pluginBranch}${result.parent ? ` (parent ${result.parent})` : ' (first commit)'}.`
       : `${result.base} already holds this build (${result.commit}); no commit created.`);
     if (result.branchExists) console.log(`Next step, with explicit approval: git push ${pluginRemote} ${pluginBranch}`);
+    for (const warning of result.warnings) console.warn(warning);
     return 0;
   }
   const result = await checkPluginBuild({ root: options.root });

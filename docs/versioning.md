@@ -74,33 +74,82 @@ the release checklist.
 
 ## Release gates
 
-When you raise `package.json.version`, also set the same value as
-`kit_version` in `.agents/workflow-kit/manifest.json` and in its template copy
-(`templates/repo-overlay-fhh-ia-ecosystem-full/.agents/workflow-kit/manifest.json`);
-`check:workflow` fails until both match. Then run
-`node scripts/build-plugin.mjs --write`: the plugin marketplace
-(`.claude-plugin/marketplace.json`) carries the package version, so
-`check:workflow` also fails until it is regenerated. The command also rebuilds
-the plugin folder `dist/plugin/`, which is never committed. It validates a
-fresh build before replacing `dist/plugin/`, so a failed build leaves the
-previous folder as it was.
+When you raise `package.json.version`, follow these steps in order:
+
+1. Set the same value as `kit_version` in `.agents/workflow-kit/manifest.json`
+   and in its template copy
+   (`templates/repo-overlay-fhh-ia-ecosystem-full/.agents/workflow-kit/manifest.json`);
+   `check:workflow` fails until both match, and the plugin build refuses a
+   shipped manifest whose `kit_version` is not the package version.
+2. Renew the overlay authorship record. Step 1 changes the overlay template, so
+   `check:legal` fails ("maintainer-attested overlay file inventory changed" or
+   "path/content inventory differs") until `remainingInventory` in
+   `docs/legal/overlay-authorship.json` is updated. Its two fields are
+   `fileCount` (the number of files under the template, without the paths of
+   `externalPathCoverage`) and `pathContentSha256` (the SHA-256 of every such
+   path, `NUL`, the SHA-256 of its content and a newline, in path order). The
+   check does not print the new values; this command, run from the
+   repository root on a checkout without untracked or ignored files under the
+   template, prints them in the format `check:legal` uses:
+
+   ```bash
+   node --input-type=module -e '
+   import { createHash } from "node:crypto";
+   import fs from "node:fs";
+   import path from "node:path";
+   const record = JSON.parse(fs.readFileSync("docs/legal/overlay-authorship.json", "utf8"));
+   const base = record.remainingInventory.path;
+   const skip = record.externalPathCoverage.map((entry) => entry.path);
+   const files = fs.readdirSync(base, { recursive: true }).map((file) => path.join(base, file))
+     .filter((file) => fs.lstatSync(file).isFile() && !skip.some((prefix) => file === prefix || file.startsWith(`${prefix}/`)))
+     .map((file) => path.relative(base, file).split(path.sep).join("/")).sort();
+   const digest = createHash("sha256");
+   for (const file of files) digest.update(file).update("\0").update(createHash("sha256").update(fs.readFileSync(path.join(base, file))).digest("hex")).update("\n");
+   console.log(JSON.stringify({ fileCount: files.length, pathContentSha256: digest.digest("hex") }));
+   '
+   ```
+
+   Copy both values into `remainingInventory` (and `lastVerified`), then run
+   `bun run check:legal`. Renewing the record is a maintainer attestation that
+   the changed template files are authorized for publication; any other
+   template change between releases needs the same renewal.
+3. Run `node scripts/build-plugin.mjs --write`: the plugin marketplace
+   (`.claude-plugin/marketplace.json`) carries the package version, so
+   `check:workflow` also fails until it is regenerated. The command also
+   rebuilds the plugin folder `dist/plugin/`, which is never committed. It
+   validates a fresh build before replacing `dist/plugin/`, so a failed build
+   leaves the previous folder and the marketplace as they were. It removes the
+   folders an interrupted build left in `dist/` (`.plugin-build-*`); one it
+   cannot remove is reported with the commands that remove it.
 
 The marketplace committed in `main` points at the branch `plugin`. That branch
 does not exist on the remote until the first publish and its approved push, so
 the marketplace cannot install the plugin before then.
 
-To publish the plugin `fhh`, commit the release first and then run
+To publish the plugin `fhh`, merge the release into `main`, fetch, check out a
+commit that `origin/main` contains and run
 `node scripts/build-plugin.mjs --publish` from the kit repository itself (its
-top level, not a copy inside another repository). It validates the build as
-check mode does and commits `dist/plugin/` to the local branch `plugin`
-without touching the current branch. It never fetches, never pushes and never
-changes the Git configuration. It stops, without committing, when:
+top level, not a copy inside another repository). It builds from the tracked
+content of `HEAD`, exported with `git archive` into a temporary folder, never
+from the working tree: files Git ignores and edits hidden with
+`git update-index --skip-worktree` are never published. It runs the legal check
+on that content, validates the build as check mode does and commits
+`dist/plugin/` to the local branch `plugin` without touching the current
+branch. It never fetches, never pushes and never changes the Git
+configuration. It stops, without committing, when:
 
 - the branch `plugin` is checked out in any worktree of the repository;
-- Git has no `user.name` or `user.email` for the repository (it always prints
-  the identity it commits with);
+- Git has no `user.name` or `user.email` for the repository: publishing reads
+  them with `git config` and ignores the inherited `GIT_*` variables
+  (`GIT_AUTHOR_*` and `GIT_CONFIG_GLOBAL` included); it always prints the
+  identity it commits with;
 - a file the build reads has uncommitted changes (staged, unstaged or
   untracked); the message names them;
+- `origin/main` is not present locally (fetch it first), or it does not
+  contain `HEAD`: only a commit already on `main` is published;
+- the legal check (`node scripts/validate-legal-readiness.mjs`) fails on the
+  source commit; the message quotes its failures (after a version raise, step 2
+  above);
 - the build does not validate, or the marketplace is out of sync;
 - the local branch `plugin` does not contain `origin/plugin` (it is behind or
   diverged): bring it up to date first;

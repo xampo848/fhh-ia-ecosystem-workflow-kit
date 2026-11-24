@@ -6,6 +6,7 @@
 // reads, never from or into this checkout.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -45,6 +46,9 @@ const pluginAgents = catalog.agents.flatMap((agent) => [
   { runtime: 'claude', agent, path: `agents/${agent.slug}.md` },
   { runtime: 'copilot', agent, path: `com.github.copilot/agents/${agent.slug}.agent.md` }
 ]);
+// --publish runs the legal check, so the fixture also carries the compliance
+// files scripts/validate-legal-readiness.mjs requires.
+const legalCheckFiles = ['.github/CODEOWNERS', '.github/PULL_REQUEST_TEMPLATE.md', 'SECURITY.md', 'GOVERNANCE.md', 'TRADEMARKS.md', 'CODE_OF_CONDUCT.md'];
 const fixtureEntries = [
   'package.json',
   '.agents/skills/registry.json',
@@ -52,7 +56,8 @@ const fixtureEntries = [
   templateRoot,
   '.claude-plugin/marketplace.json',
   'docs/legal',
-  ...pluginLegalFiles
+  ...pluginLegalFiles,
+  ...legalCheckFiles
 ];
 
 async function makeFixture() {
@@ -545,6 +550,18 @@ async function breakAgentSkill(root) {
   await fs.writeFile(file, `${JSON.stringify(edited, null, 2)}\n`, 'utf8');
 }
 const agentSkillMissing = /Agent skill not in the plugin: agents\/turbo-backend\.md -> \.agents\/skills\/missing\/SKILL\.md/;
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const kitManifestFile = `${templateRoot}/.agents/workflow-kit/manifest.json`;
+
+async function setVersion(root, version, { kitManifest = false } = {}) {
+  const file = path.join(root, 'package.json');
+  const edited = JSON.parse(await fs.readFile(file, 'utf8'));
+  await fs.writeFile(file, `${JSON.stringify({ ...edited, version }, null, 2)}\n`, 'utf8');
+  if (!kitManifest) return;
+  const manifestPath = path.join(root, kitManifestFile);
+  const kit = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
+  await fs.writeFile(manifestPath, `${JSON.stringify({ ...kit, kit_version: version }, null, 2)}\n`, 'utf8');
+}
 
 test('a --write that cannot build or does not validate fails and keeps the previous dist/plugin and marketplace, with no temporary folder left', async (t) => {
   const cases = [
@@ -553,7 +570,20 @@ test('a --write that cannot build or does not validate fails and keeps the previ
       arrange: (root) => fs.chmod(path.join(root, templateRoot, '.agents/instructions.md'), 0o000),
       stderr: /Plugin build failed: .*(EACCES|permission denied)/i
     },
-    { name: 'a delegate skill the plugin does not ship', arrange: breakAgentSkill, stderr: agentSkillMissing }
+    { name: 'a delegate skill the plugin does not ship', arrange: breakAgentSkill, stderr: agentSkillMissing },
+    {
+      name: 'a version raised only in package.json',
+      arrange: (root) => setVersion(root, '9.9.9'),
+      stderr: new RegExp(`Kit manifest kit_version ${escapeRegExp(packageJson.version)} is not the package\\.json version 9\\.9\\.9: \\.agents/workflow-kit/manifest\\.json`)
+    },
+    {
+      name: 'a marketplace that cannot be rewritten after the swap (the swap is undone)',
+      arrange: async (root) => {
+        await setVersion(root, '9.9.9', { kitManifest: true });
+        await fs.chmod(path.join(root, '.claude-plugin/marketplace.json'), 0o444);
+      },
+      stderr: /EACCES|permission denied/i
+    }
   ];
   for (const { name, arrange, stderr } of cases) {
     await t.test(name, { skip: process.getuid?.() === 0 && 'root reads unreadable files' }, async () => {
@@ -572,6 +602,38 @@ test('a --write that cannot build or does not validate fails and keeps the previ
       assert.deepEqual(before.dist, ['plugin']);
       assert.match(result.stderr, stderr);
     });
+  }
+});
+
+test('--write removes the folders an interrupted build left in dist/ and nothing else there', async () => {
+  const root = await makeFixture();
+  for (const leftover of ['.plugin-build-Ab12Cd', '.plugin-build-Ab12Cd-previous', '.plugin-builder', 'other']) {
+    await fs.mkdir(path.join(root, 'dist', leftover), { recursive: true });
+    await fs.writeFile(path.join(root, 'dist', leftover, 'file.md'), 'left\n', 'utf8');
+  }
+  await writePluginBuild({ root });
+  assert.deepEqual((await fs.readdir(path.join(root, 'dist'))).sort(), ['.plugin-builder', 'other', 'plugin']);
+});
+
+test('a previous dist/plugin that cannot be removed leaves the new folder and the marketplace in sync and names the folder to remove', { skip: process.getuid?.() === 0 && 'root removes read-only folders' }, async () => {
+  const root = await makeFixture();
+  await writePluginBuild({ root });
+  const locked = path.join(root, 'dist/plugin/skills/kit-root');
+  await fs.chmod(locked, 0o555);
+  try {
+    await setVersion(root, '9.9.9', { kitManifest: true });
+    const result = runCli(['--write', '--root', root]);
+    assert.equal(result.status, 0, result.stderr);
+    const leftover = (await fs.readdir(path.join(root, 'dist'))).filter((entry) => entry !== 'plugin');
+    assert.equal(leftover.length, 1, leftover.join(', '));
+    assert.match(leftover[0], /^\.plugin-build-.*-previous$/);
+    assert.ok(result.stderr.includes(path.join('dist', leftover[0])), result.stderr);
+    assert.match(result.stderr, /chmod -R u\+w/);
+    assert.equal(JSON.parse(await fs.readFile(path.join(root, 'dist/plugin/plugin.json'), 'utf8')).version, '9.9.9');
+    assert.equal(await fs.readFile(path.join(root, '.claude-plugin/marketplace.json'), 'utf8'), await expectedMarketplace({ root }));
+    await fs.chmod(path.join(root, 'dist', leftover[0], 'skills/kit-root'), 0o755);
+  } finally {
+    await fs.chmod(locked, 0o755).catch(() => {});
   }
 });
 
@@ -607,7 +669,31 @@ function gitIn(cwd, env) {
     git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-q', '-m', message, ...(paths.length > 0 ? ['--', ...paths] : []));
   };
   git.refs = () => git('for-each-ref', '--format=%(refname) %(objectname)');
+  // --publish only publishes a commit contained in origin/main: this stands
+  // for the commit being merged and fetched, without any remote traffic.
+  git.land = () => git('update-ref', 'refs/remotes/origin/main', 'HEAD');
   return git;
+}
+
+// Mirrors the inventory scripts/validate-legal-readiness.mjs checks (which
+// --publish runs on the source commit): a fixture that changes the template
+// renews docs/legal/overlay-authorship.json, as a release does.
+async function renewAuthorship(root) {
+  const file = path.join(root, 'docs/legal/overlay-authorship.json');
+  const record = JSON.parse(await fs.readFile(file, 'utf8'));
+  const inventoryRoot = path.join(root, record.remainingInventory.path);
+  const excluded = record.externalPathCoverage.map((coverage) => path.posix.relative(record.remainingInventory.path, coverage.path));
+  const entries = (await fs.readdir(inventoryRoot, { recursive: true, withFileTypes: true }))
+    .filter((entry) => entry.isFile())
+    .map((entry) => path.relative(inventoryRoot, path.join(entry.parentPath ?? entry.path, entry.name)).split(path.sep).join('/'))
+    .filter((relative) => !excluded.some((prefix) => relative === prefix || relative.startsWith(`${prefix}/`)))
+    .sort();
+  const digest = createHash('sha256');
+  for (const relative of entries) {
+    digest.update(relative).update('\0').update(createHash('sha256').update(await fs.readFile(path.join(inventoryRoot, relative))).digest('hex')).update('\n');
+  }
+  record.remainingInventory = { ...record.remainingInventory, fileCount: entries.length, pathContentSha256: digest.digest('hex') };
+  await fs.writeFile(file, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
 }
 
 async function gitFixture({ identity = true } = {}) {
@@ -624,6 +710,7 @@ async function gitFixture({ identity = true } = {}) {
   git('remote', 'add', 'origin', remote);
   git('add', '-A');
   git.commit('Fixture');
+  git.land();
   // Uncommitted work outside the build inputs, which publishing leaves alone.
   await fs.writeFile(path.join(root, 'notes.md'), 'edited, not staged\n', 'utf8');
   await fs.writeFile(path.join(root, 'staged.md'), 'edited and staged\n', 'utf8');
@@ -642,13 +729,14 @@ async function gitFixture({ identity = true } = {}) {
   return { root, env, git, remote, checkout, publish };
 }
 
+// The release steps of docs/versioning.md, then the merge to main.
 async function raiseVersion(root, git, version) {
-  const file = path.join(root, 'package.json');
-  const edited = JSON.parse(await fs.readFile(file, 'utf8'));
-  await fs.writeFile(file, `${JSON.stringify({ ...edited, version }, null, 2)}\n`, 'utf8');
+  await setVersion(root, version, { kitManifest: true });
+  await renewAuthorship(root);
   const write = runCli(['--write', '--root', root]);
   assert.equal(write.status, 0, write.stderr);
-  git.commit(`Release ${version}`, 'package.json', '.claude-plugin/marketplace.json');
+  git.commit(`Release ${version}`, 'package.json', kitManifestFile, 'docs/legal/overlay-authorship.json', '.claude-plugin/marketplace.json');
+  git.land();
 }
 
 test('--publish commits dist/plugin to the local branch plugin as the configured identity, leaves the checkout alone and never pushes', async () => {
@@ -754,12 +842,13 @@ test('--publish ignores the GIT_* variables it inherits: it commits to the kit r
   assert.equal(git('log', '-1', '--format=%an <%ae>|%cn <%ce>', 'plugin'), `${publisherLine}|${publisherLine}`);
 });
 
-test('--publish refuses without a git identity and commits nothing', async () => {
+test('--publish refuses without a git identity in the repository configuration, even with GIT_AUTHOR_* set, and commits nothing', async () => {
   const { git, checkout, publish } = await gitFixture({ identity: false });
   const before = { checkout: await checkout(), refs: git.refs() };
-  const result = publish();
+  const result = publish([], { GIT_AUTHOR_NAME: 'Environment Author', GIT_AUTHOR_EMAIL: 'environment@example.invalid' });
   assert.equal(result.status, 1, result.stdout);
-  assert.match(result.stderr, /no git user\.name or user\.email/);
+  assert.match(result.stderr, /reads the identity from the repository's git configuration \(git config user\.name and user\.email\)/);
+  assert.match(result.stderr, /inherited GIT_\* variables are ignored/);
   assert.deepEqual({ checkout: await checkout(), refs: git.refs() }, before);
 });
 
@@ -781,6 +870,133 @@ test('--publish refuses uncommitted changes in the files the build reads and nam
   assert.equal(git.refs(), before);
 });
 
+// The tree a clean clone of the repository builds from its HEAD.
+async function treeBuiltFromHead(root, env) {
+  const clone = path.join(await makeTempRepo('workflow-kit-plugin-head-'), 'kit');
+  gitIn(path.dirname(clone), env)('clone', '-q', root, clone);
+  await writePluginBuild({ root: clone });
+  const index = path.join(path.dirname(clone), 'index');
+  const git = gitIn(clone, { ...env, GIT_INDEX_FILE: index });
+  git(`--work-tree=${path.join(clone, 'dist/plugin')}`, 'add', '--all', '--force', '--', '.');
+  return git('write-tree');
+}
+
+test('--publish builds from the tracked content of HEAD: ignored files and skip-worktree edits never reach the branch plugin', async (t) => {
+  const router = `${templateRoot}/.agents/skills/00-router`;
+  const plant = async (root, file, content) => {
+    await fs.mkdir(path.dirname(path.join(root, file)), { recursive: true });
+    await fs.writeFile(path.join(root, file), content, 'utf8');
+  };
+  const cases = [
+    {
+      name: 'files the repository .gitignore ignores',
+      arrange: async (root, git) => {
+        await fs.appendFile(path.join(root, '.gitignore'), '*.tgz\n.ai-work/\n', 'utf8');
+        git.commit('Ignore archives and work notes', '.gitignore');
+        git.land();
+        await plant(root, `${router}/leak.tgz`, 'private archive\n');
+        await plant(root, `${router}/.ai-work/notes.md`, 'private notes\n');
+      },
+      hidden: [`${router}/leak.tgz`, `${router}/.ai-work/notes.md`]
+    },
+    {
+      name: 'a file a global excludes file ignores',
+      arrange: async (root, git, env) => {
+        const excludes = path.join(env.HOME, 'global-excludes');
+        await fs.writeFile(excludes, 'private-*.md\n', 'utf8');
+        git('config', '--global', 'core.excludesFile', excludes);
+        await plant(root, `${router}/private-notes.md`, 'private notes\n');
+      },
+      hidden: [`${router}/private-notes.md`]
+    },
+    {
+      name: 'an edit hidden with skip-worktree',
+      arrange: async (root, git) => {
+        await fs.appendFile(path.join(root, instructionsFile), '\nHidden local edit.\n', 'utf8');
+        git('update-index', '--skip-worktree', instructionsFile);
+      },
+      hidden: [instructionsFile]
+    }
+  ];
+  for (const { name, arrange, hidden } of cases) {
+    await t.test(name, async () => {
+      const { root, env, git, publish } = await gitFixture();
+      await arrange(root, git, env);
+      // Git status does not show any of them: the uncommitted-inputs refusal cannot catch them.
+      assert.equal(git('status', '--porcelain', '--untracked-files=all', '--', ...hidden), '');
+      const result = publish();
+      assert.equal(result.status, 0, result.stderr);
+      const published = git('ls-tree', '-r', '--name-only', 'plugin');
+      assert.doesNotMatch(published, /leak\.tgz|\.ai-work|private-notes/);
+      assert.doesNotMatch(git('show', 'plugin:.agents/instructions.md'), /Hidden local edit/);
+      assert.equal(git('rev-parse', 'plugin^{tree}'), await treeBuiltFromHead(root, env));
+    });
+  }
+});
+
+test('--publish publishes only a commit contained in origin/main, as last fetched, and never fetches', async (t) => {
+  const cases = [
+    {
+      name: 'HEAD on a feature commit that origin/main does not contain is refused',
+      arrange: async (root, git) => {
+        await fs.writeFile(path.join(root, 'feature.md'), 'feature\n', 'utf8');
+        git.commit('Feature work', 'feature.md');
+      },
+      refused: /HEAD \([0-9a-f]+\) is not contained in origin\/main/
+    },
+    {
+      name: 'a missing origin/main is refused with the way to get it',
+      arrange: async (root, git) => git('update-ref', '-d', 'refs/remotes/origin/main'),
+      refused: /origin\/main is not present locally: fetch it first/
+    },
+    {
+      name: 'HEAD equal to origin/main publishes',
+      arrange: async () => {}
+    },
+    {
+      name: 'HEAD behind origin/main publishes',
+      arrange: async (root, git) => {
+        const ahead = git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit-tree', 'HEAD^{tree}', '-p', 'HEAD', '-m', 'Ahead');
+        git('update-ref', 'refs/remotes/origin/main', ahead);
+      }
+    }
+  ];
+  for (const { name, arrange, refused } of cases) {
+    await t.test(name, async () => {
+      const { root, git, remote, publish } = await gitFixture();
+      await arrange(root, git);
+      const before = git.refs();
+      const result = publish();
+      if (refused) {
+        assert.equal(result.status, 1, result.stdout);
+        assert.match(result.stderr, refused);
+        assert.match(result.stderr, /never fetches/);
+        assert.equal(git.refs(), before);
+      } else {
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(git('log', '-1', '--format=%s', 'plugin'), `Publish plugin fhh ${packageJson.version} from ${git('rev-parse', '--short', 'HEAD')}`);
+      }
+      assert.equal(spawnSync('git', ['ls-remote', remote], { env: gitless, encoding: 'utf8' }).stdout, '');
+    });
+  }
+});
+
+test('--publish runs the legal check on the source commit and refuses, quoting it, when the overlay authorship record does not match the template', async () => {
+  const { root, git, publish } = await gitFixture();
+  const added = `${templateRoot}/.agents/skills/00-router/added.md`;
+  await fs.writeFile(path.join(root, added), 'A new kit file.\n', 'utf8');
+  git.commit('Add a kit file without renewing the authorship record', added);
+  git.land();
+  const before = git.refs();
+  const result = publish();
+  assert.equal(result.status, 1, result.stdout);
+  assert.match(result.stderr, /legal check/);
+  assert.match(result.stderr, /maintainer-attested overlay file inventory changed/);
+  assert.match(result.stderr, /docs\/legal\/overlay-authorship\.json/);
+  assert.equal(git.refs(), before);
+  assert.equal(git('branch', '--list', 'plugin'), '');
+});
+
 test('--publish refuses a build that does not validate or a marketplace out of sync, and commits nothing', async (t) => {
   const cases = [
     {
@@ -788,14 +1004,17 @@ test('--publish refuses a build that does not validate or a marketplace out of s
       arrange: async (root, git) => {
         await breakAgentSkill(root);
         git.commit('Break the catalog', 'scripts/delegate-agent-catalog.json');
+        git.land();
       },
       stderr: agentSkillMissing
     },
     {
       name: 'a version raised without regenerating the marketplace',
       arrange: async (root, git) => {
-        await fs.writeFile(path.join(root, 'package.json'), `${JSON.stringify({ ...packageJson, version: '9.9.9' }, null, 2)}\n`, 'utf8');
-        git.commit('Raise the version', 'package.json');
+        await setVersion(root, '9.9.9', { kitManifest: true });
+        await renewAuthorship(root);
+        git.commit('Raise the version', 'package.json', kitManifestFile, 'docs/legal/overlay-authorship.json');
+        git.land();
       },
       stderr: /Marketplace drift: \.claude-plugin\/marketplace\.json \(fix: node scripts\/build-plugin\.mjs --write\)/
     }
@@ -819,7 +1038,9 @@ test('--publish refuses new content under the published version unless --same-ve
   assert.equal(publish().status, 0);
   const firstTip = git('rev-parse', 'plugin');
   await fs.appendFile(path.join(root, instructionsFile), '\nA kit change.\n', 'utf8');
-  git.commit('A kit change', instructionsFile);
+  await renewAuthorship(root);
+  git.commit('A kit change', instructionsFile, 'docs/legal/overlay-authorship.json');
+  git.land();
 
   const before = git.refs();
   const refused = publish();
