@@ -621,7 +621,8 @@ export async function runTui(options = {}) {
       const doctorResult = await runDoctor({
         targetPath,
         runtime,
-        overlay
+        overlay,
+        commandExecutor: options.commandExecutor
       });
       write(`${formatDoctorResult(doctorResult)}\n`);
       return {
@@ -1106,7 +1107,8 @@ export async function runTui(options = {}) {
     // Verify the result right away so a broken install or update is visible
     // here and not in the next AI session.
     if (mode !== 'export') {
-      const doctorResult = await runDoctor({ targetPath, runtime, overlay });
+      // options.commandExecutor stands in for the command doctor runs (tests).
+      const doctorResult = await runDoctor({ targetPath, runtime, overlay, commandExecutor: options.commandExecutor });
       const errors = doctorResult.diagnostics.filter((item) => item.severity === 'error');
       const warnings = doctorResult.diagnostics.filter((item) => item.severity !== 'error');
       const healthy = doctorResult.ok;

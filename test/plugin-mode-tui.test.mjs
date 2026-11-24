@@ -51,11 +51,20 @@ async function stateOnDisk(target) {
   return JSON.parse(await fs.readFile(path.join(target, installStateRelativePath), 'utf8'));
 }
 
+// Doctor runs after every apply; in plugin mode it lists the installed Claude
+// plugins. Tests never run the real binary: this double records each call.
+const doctorCalls = [];
+const commandExecutor = async (command, args) => {
+  doctorCalls.push([command, ...args].join(' '));
+  return { code: 0, stdout: '[]' };
+};
+
 async function runInteractive(answers) {
   const prompter = interactivePrompter(answers);
   let output = '';
   const result = await runTui({
     prompter,
+    commandExecutor,
     animate: false,
     color: false,
     env: {},
@@ -142,4 +151,9 @@ test('a scripted install with claude is not asked the install mode and records r
   assert.ok(!output.includes(modeQuestionTitle));
   assert.equal((await stateOnDisk(target)).mode, 'repo');
   assert.ok(!output.includes(claudeInstallCommand));
+});
+
+test('the TUI passes its command executor to doctor, so a plugin-mode apply never runs the real claude binary in tests', () => {
+  assert.ok(doctorCalls.length > 0, 'doctor ran through the injected executor after a plugin-mode apply');
+  assert.ok(doctorCalls.every((call) => call === 'claude plugin list --json'), doctorCalls.join(' | '));
 });
