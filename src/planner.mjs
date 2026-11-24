@@ -4,9 +4,9 @@ import { promisify } from 'node:util';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isSupportedRuntime, pluginSettingsPaths, runtimeEntrypoints, runtimeTemplatePaths, supportedRuntimes } from './runtime-matrix.mjs';
+import { isSupportedRuntime, pluginRuntimes, pluginSettingsPaths, runtimeEntrypoints, runtimeTemplatePaths, supportedRuntimes } from './runtime-matrix.mjs';
 import { defaultProfileFor, loadDelegateCatalog, parseProfileOption, renderClaudeAgent, renderCopilotAgent, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
-import { assertPluginRuntimes, planPluginSettings, pluginAdapterContent, pluginName } from './plugin-mode.mjs';
+import { assertPluginRuntimes, planPluginSettings, planPluginSettingsRemoval, pluginAdapterContent, pluginName } from './plugin-mode.mjs';
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
 import { assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
@@ -172,17 +172,22 @@ async function assertLastApplyFinished(targetPath) {
 // stops init the same way it stops update. An export only refreshes a folder
 // whose state an earlier export wrote (mode "export"); any other state,
 // including one an export from before 0.22.0 wrote, is a maintained install.
-async function assertNoInstallState(targetPath, manifest, { exporting = false } = {}) {
+// init --mode plugin also names the way to plugin mode from that state (T4,
+// T5).
+async function assertNoInstallState(targetPath, manifest, { exporting = false, pluginMode = false, runtime } = {}) {
   const state = await readInstallState(path.join(targetPath, installStateRelativePath), manifest);
   if (exporting && state?.schemaVersion === installStateSchemaVersion && state.mode === 'export') return;
   if (exporting && state) {
     throw new Error(`${installStateRelativePath} ${state.schemaVersion === legacyInstallStateSchemaVersion ? `uses install-state ${legacyInstallStateSchemaVersion}` : `records an install, not an export (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'})`}. If this folder is an export from a workflow-kit version before 0.22.0, export to an empty folder, or remove its ${installStateRelativePath} and export again. If it is a workflow-kit install, export to another folder; \`workflow-kit update\` brings an install to this version. Nothing was written.`);
   }
+  const runtimeList = pluginMode ? pluginRuntimeList(runtime, state?.runtimes) : null;
   if (state?.schemaVersion === legacyInstallStateSchemaVersion) {
-    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run \`workflow-kit update\` to migrate this repository; init would replace project content. Nothing was written.`);
+    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run \`workflow-kit update\` to migrate this repository${pluginMode ? `, then \`${pluginUpdateCommand(runtimeList)}\`` : ''}; init would replace project content. Nothing was written.`);
   }
   if (state) {
-    throw new Error(`${installStateRelativePath} already records an install (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}). Run \`workflow-kit update\` instead (with \`--runtime <list>\`, \`--stack\` or \`--profile\` to change those choices); init would reset the recorded runtimes, stack and profiles and replace pending edited files. Nothing was written.`);
+    let pluginWay = '';
+    if (pluginMode) pluginWay = state.mode === 'export' ? ` ${exportIsACopy(runtimeList)}` : ` To use plugin mode, run \`${pluginUpdateCommand(runtimeList)}\`.`;
+    throw new Error(`${installStateRelativePath} already records an install (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}). Run \`workflow-kit update\` instead (with \`--runtime <list>\`, \`--stack\` or \`--profile\` to change those choices); init would reset the recorded runtimes, stack and profiles and replace pending edited files.${pluginWay} Nothing was written.`);
   }
 }
 
@@ -194,25 +199,37 @@ const packageKitQualityGate = () => fs.readFile(path.join(templatesRoot, overlay
 
 // PRD 2.4: without --mode, update keeps the recorded mode (T6, T8). A state
 // without mode, an export, a 1.0.0 state or no state (--adopt-existing)
-// updates as a repo-mode install, as before plugin mode existed. `switching`:
-// a 2.0.0 repo-mode install moves to plugin mode (T7).
-function resolveUpdateMode(requestedMode, existingState) {
+// updates as a repo-mode install, as before plugin mode existed. `switchTo`:
+// a 2.0.0 repo-mode install moves to plugin mode (T7), or a plugin-mode
+// install to repo mode (T9). Any other switch stops, writes nothing and names
+// the commands that get there (T10, T11, T13).
+function resolveUpdateMode(requestedMode, existingState, runtime) {
   const recordedMode = existingState?.mode === 'plugin' ? 'plugin' : 'repo';
   const mode = requestedMode ?? recordedMode;
-  if (mode === recordedMode) return { mode, switching: false };
-  if (mode === 'plugin' && existingState?.schemaVersion === installStateSchemaVersion && existingState.mode === 'repo') return { mode, switching: true };
-  return stopModeSwitch(requestedMode, existingState);
+  if (mode === recordedMode) return { mode, switchTo: null };
+  // Only a plugin-mode state records another mode than repo.
+  if (mode === 'repo') return { mode, switchTo: 'repo' };
+  const runtimeList = pluginRuntimeList(runtime, existingState?.runtimes);
+  if (!existingState) {
+    throw new Error(`update --adopt-existing --mode plugin: there is no install state to switch from. Run \`workflow-kit update --adopt-existing --runtime ${runtimeList}\` first to bootstrap a safe baseline, then \`${pluginUpdateCommand(runtimeList)}\`. Nothing was written.`);
+  }
+  if (existingState.schemaVersion === legacyInstallStateSchemaVersion) {
+    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}, and its layout migration has to run before a mode switch. Run \`workflow-kit update\` first, then \`${pluginUpdateCommand(runtimeList)}\`. Nothing was written.`);
+  }
+  if (existingState.mode === 'export') {
+    throw new Error(`update --mode plugin: ${installStateRelativePath} records an export. ${exportIsACopy(runtimeList)} Nothing was written.`);
+  }
+  return { mode, switchTo: 'plugin' };
 }
 
-// The other switches (T9, and the stops T10, T11, T13) are not in this build
-// yet: the slice that implements them replaces this stop.
-function stopModeSwitch(requestedMode, existingState) {
-  let current = 'no install state';
-  if (existingState?.schemaVersion === legacyInstallStateSchemaVersion) current = `install-state ${legacyInstallStateSchemaVersion}`;
-  else if (existingState?.mode === 'export') current = 'an export';
-  else if (existingState) current = `${existingState.mode} mode`;
-  throw new Error(`update --mode ${requestedMode} would switch this install (${current}) to ${requestedMode} mode, and switching the install mode is not available in this build of workflow-kit. Run the same command without --mode to update the install as it is. Nothing was written.`);
+// The runtimes a plugin-mode command names in a stop: the plugin runtimes
+// asked for or recorded, or every plugin runtime when there are none.
+function pluginRuntimeList(runtime, recordedRuntimes) {
+  const chosen = parseRuntimeList(runtime ?? recordedRuntimes?.join(',') ?? 'neutral').filter((item) => pluginRuntimes.includes(item));
+  return (chosen.length > 0 ? chosen : pluginRuntimes).join(',');
 }
+const pluginUpdateCommand = (runtimeList) => `workflow-kit update --mode plugin --runtime ${runtimeList}`;
+const exportIsACopy = (runtimeList) => `An exported folder is a copy of the kit, not an install, so it has no install mode: to use plugin mode, install the kit in a repository with \`workflow-kit init --mode plugin --runtime ${runtimeList} --target <repo>\`.`;
 
 export async function buildInstallPlan(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
@@ -220,7 +237,7 @@ export async function buildInstallPlan(options = {}) {
   const manifest = options.manifest ?? await loadKitManifest();
   // An export writes a copy of the kit, not an install someone maintains:
   // exporting again to a folder an export wrote only refreshes that copy.
-  await assertNoInstallState(targetPath, manifest, { exporting: Boolean(options.export) });
+  await assertNoInstallState(targetPath, manifest, { exporting: Boolean(options.export), pluginMode: options.mode === 'plugin', runtime: options.runtime });
   const runtimes = parseRuntimeList(options.runtime ?? 'neutral');
   // Plugin mode (PRD plugin-mode-pilot 2.3): the kit runs as a plugin, so the
   // repository only gets what the plugin cannot deliver.
@@ -292,11 +309,16 @@ export async function buildUpdatePlan(options = {}) {
   if (!existingState && !options.adoptExisting) {
     throw new Error('No install state found. Run `workflow-kit update --adopt-existing --runtime <list>` first to bootstrap a safe baseline.');
   }
-  const { mode: installMode, switching } = resolveUpdateMode(options.mode, existingState);
-  // Plugin mode (T7, T8): the same file selection as init --mode plugin.
+  const { mode: installMode, switchTo } = resolveUpdateMode(options.mode, existingState, options.runtime);
+  // Plugin mode (T7, T8): the same file selection as init --mode plugin. To
+  // repo mode (T9): the file list of a repo-mode update; the settings files
+  // the plugin declaration was written to lose it.
   const pluginMode = installMode === 'plugin';
+  const switching = switchTo === 'plugin';
+  const leavingPlugin = switchTo === 'repo';
   const runtimes = parseRuntimeList(options.runtime ?? existingState?.runtimes?.join(',') ?? 'neutral');
   if (pluginMode) assertPluginRuntimes(runtimes, 'update');
+  const declaredRuntimes = leavingPlugin ? [...new Set([...existingState.runtimes, ...runtimes])] : [];
   const overlay = normalizeOverlay(options.overlay ?? existingState?.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
   const catalog = await loadDelegateCatalog();
@@ -313,7 +335,7 @@ export async function buildUpdatePlan(options = {}) {
   const migrating = existingState?.schemaVersion === legacyInstallStateSchemaVersion;
   // The migration leaves a new path it cannot move to pending (legacy_path_unsupported).
   const shapedFiles = files.map((file) => file.relativePath).filter((relativePath) => !migrating || !Object.values(manifest.legacy_paths).includes(relativePath));
-  await assertPathShapes(targetPath, [...shapedFiles, gitignorePath, ...(pluginMode ? settingsPathsOf(runtimes) : []), ...(migrating ? [projectIndexPath] : [])],
+  await assertPathShapes(targetPath, [...shapedFiles, gitignorePath, ...settingsPathsOf(pluginMode ? runtimes : declaredRuntimes), ...(migrating ? [projectIndexPath] : [])],
     migrating ? [`${manifest.project_root}skills`] : []);
   const instructionInspection = await inspectProjectInstructions({ targetPath });
   const migratedInstructions = migratedInstructionContents(instructionInspection);
@@ -342,7 +364,7 @@ export async function buildUpdatePlan(options = {}) {
     migratedInstructions: { ...migratedInstructions, ...migration?.seedContents },
     pluginMode
   });
-  // A switch decides its pending files once the retired ones are known.
+  // A switch to plugin mode decides its pending files once the retired ones are known.
   const shadows = switching ? [] : await planEditedDecisions({ operations, edited: options.edited ?? {}, manifest, migration });
   if (migration) await migration.completeOperations(operations, shadows);
   operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
@@ -350,6 +372,7 @@ export async function buildUpdatePlan(options = {}) {
   operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode, kitQualityGate }));
   operations.push(...await buildStackPackOperations({ targetPath, stackPack, previousFiles }));
   if (pluginMode) operations.push(...await planPluginSettings({ targetPath, runtimes }));
+  if (leavingPlugin) operations.push(...await planPluginSettingsRemoval({ targetPath, runtimes: declaredRuntimes }));
   const retired = existingState ? await planRetiredFiles({ targetPath, manifest, previousFiles, operations, pluginMode, switching }) : { operations: [], missing: [] };
   operations.push(...retired.operations);
   if (switching) {
@@ -357,11 +380,12 @@ export async function buildUpdatePlan(options = {}) {
     assertModeSwitchSettled(operations);
   }
   await finalizeOperations({ targetPath, manifest, operations, previousFiles });
-  // A switch, like the layout migration, is applied whole and keeps a backup
-  // of everything it replaces, whatever the backup mode: rollback has to be
-  // able to take it back (T16).
-  if (migration || switching) requireMigrationBackups(operations);
-  if (switching) for (const item of operations) item.migration = true;
+  // A switch (either way), like the layout migration, is applied whole and
+  // keeps a backup of everything it replaces, whatever the backup mode:
+  // rollback has to be able to take it back (T16). Only the switch to plugin
+  // mode is all or nothing: leaving it, a pending file stays pending (F2).
+  if (migration || switchTo) requireMigrationBackups(operations);
+  if (switchTo) for (const item of operations) item.migration = true;
   const droppedStatePaths = [...retired.missing, ...(migration?.droppedPaths ?? []), ...(switching ? adaptersLeftBehind(manifest, previousFiles, operations) : [])];
   const layoutMigration = migration?.describe(operations);
   const migrations = describeMigrations({
@@ -395,6 +419,8 @@ export async function buildUpdatePlan(options = {}) {
     targetPath,
     stateFilePath,
     hadExistingState: Boolean(existingState),
+    // The TUI names a switch, not the layout migration, as the block it does not list.
+    modeSwitch: Boolean(switchTo),
     migrations,
     nextInstallState,
     toolkitVersion: options.toolkitVersion ?? null,
@@ -876,7 +902,7 @@ export function formatPlan(plan) {
   for (const item of plan.operations) {
     let note = item.retired ? ` (no longer shipped${item.operation === 'skip_modified' ? '; edited, kept' : ''})` : '';
     if (item.decisions && !migrationListsPending) note = ` (${item.reason}): ${item.decisions.join(' | ')}`;
-    if (item.manualFragment) note = ` (${item.reason}); add this to it by hand:\n${item.manualFragment.replace(/^/gm, '    ')}`;
+    if (item.manualFragment) note = ` (${item.reason}); ${item.manualAction} by hand:\n${item.manualFragment.replace(/^/gm, '    ')}`;
     lines.push(`- ${item.operation}: ${item.relativePath}${note}`);
   }
 

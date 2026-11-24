@@ -86,6 +86,34 @@ const isPlainObject = (value) => value !== null && typeof value === 'object' && 
 const marketplaceDeclaration = () => ({ source: { source: 'github', repo: marketplaceRepository } });
 const declarationKeys = ['extraKnownMarketplaces', 'enabledPlugins'];
 const declarationFragment = () => ({ extraKnownMarketplaces: { [marketplaceName]: marketplaceDeclaration() }, enabledPlugins: { [pluginId]: true } });
+const isKitMarketplace = (settings) => isDeepStrictEqual(settings.extraKnownMarketplaces?.[marketplaceName], marketplaceDeclaration());
+
+// The settings file of each chosen plugin runtime: null when it is missing;
+// `settings: null` when it is not a JSON object whose two declaration keys are
+// objects, so the kit never touches it.
+async function readPluginSettings({ targetPath, runtimes }) {
+  const files = [];
+  for (const runtime of runtimes.filter((item) => pluginRuntimes.includes(item))) {
+    const relativePath = pluginSettingsPaths[runtime];
+    const targetFile = path.join(targetPath, relativePath);
+    const existing = await readOptional(targetFile);
+    let settings = null;
+    if (existing !== null) {
+      try {
+        settings = JSON.parse(existing);
+      } catch {
+        settings = null;
+      }
+      if (!isPlainObject(settings) || declarationKeys.some((key) => settings[key] !== undefined && !isPlainObject(settings[key]))) settings = null;
+    }
+    files.push({ base: { relativePath, targetFile, sourcePath: null }, existing, settings });
+  }
+  return files;
+}
+
+// Keep the file's indentation so the diff shows only the declaration.
+const serializeLike = (existing, settings) => `${JSON.stringify(settings, null, existing.match(/\n([ \t]+)"/)?.[1] ?? 2)}\n`;
+const invalidSettings = (base, existing, manualAction) => ({ ...base, operation: 'skip_unmanaged', content: existing, reason: 'invalid_settings_json', manualFragment: JSON.stringify(declarationFragment(), null, 2), manualAction });
 
 // The settings files are the user's, like .gitignore: their operations have no
 // class and never enter install-state. A valid file only gains the two keys
@@ -94,35 +122,58 @@ const declarationFragment = () => ({ extraKnownMarketplaces: { [marketplaceName]
 // plan shows the fragment to add by hand.
 export async function planPluginSettings({ targetPath, runtimes }) {
   const operations = [];
-  for (const runtime of runtimes.filter((item) => pluginRuntimes.includes(item))) {
-    const relativePath = pluginSettingsPaths[runtime];
-    const targetFile = path.join(targetPath, relativePath);
-    const base = { relativePath, targetFile, sourcePath: null };
-    const existing = await readOptional(targetFile);
+  for (const { base, existing, settings } of await readPluginSettings({ targetPath, runtimes })) {
     if (existing === null) {
       operations.push({ ...base, operation: 'create', content: `${JSON.stringify(declarationFragment(), null, 2)}\n` });
       continue;
     }
-    let settings;
-    try {
-      settings = JSON.parse(existing);
-    } catch {
-      settings = null;
-    }
-    if (!isPlainObject(settings) || declarationKeys.some((key) => settings[key] !== undefined && !isPlainObject(settings[key]))) {
-      operations.push({ ...base, operation: 'skip_unmanaged', content: existing, reason: 'invalid_settings_json', manualFragment: JSON.stringify(declarationFragment(), null, 2) });
+    if (settings === null) {
+      operations.push(invalidSettings(base, existing, 'add this to it'));
       continue;
     }
-    if (isDeepStrictEqual(settings.extraKnownMarketplaces?.[marketplaceName], marketplaceDeclaration()) && settings.enabledPlugins?.[pluginId] === true) {
+    if (isKitMarketplace(settings) && settings.enabledPlugins?.[pluginId] === true) {
       operations.push({ ...base, operation: 'unchanged', content: existing });
       continue;
     }
     const merged = { ...settings };
     merged.extraKnownMarketplaces = { ...settings.extraKnownMarketplaces, [marketplaceName]: marketplaceDeclaration() };
     merged.enabledPlugins = { ...settings.enabledPlugins, [pluginId]: true };
-    // Keep the file's indentation so the diff shows only the declaration.
-    const indent = existing.match(/\n([ \t]+)"/)?.[1] ?? 2;
-    operations.push({ ...base, operation: 'merge_with_backup', content: `${JSON.stringify(merged, null, indent)}\n` });
+    operations.push({ ...base, operation: 'merge_with_backup', content: serializeLike(existing, merged) });
+  }
+  return operations;
+}
+
+// Leaving plugin mode (PRD 2.4, T9): only the plugin entry leaves, and the
+// marketplace entry only while it is the one the kit writes (a marketplace
+// changed by hand is the user's). A declaration key left empty leaves too, as
+// the kit added it; every other key and its order stay, and the file is never
+// deleted, even when it ends up `{}`. Always with a backup; a missing file has
+// nothing to remove; an invalid one is never touched and the plan shows what
+// to remove by hand.
+export async function planPluginSettingsRemoval({ targetPath, runtimes }) {
+  const operations = [];
+  for (const { base, existing, settings } of await readPluginSettings({ targetPath, runtimes })) {
+    if (existing === null) continue;
+    if (settings === null) {
+      operations.push(invalidSettings(base, existing, 'remove this from it'));
+      continue;
+    }
+    const removals = [
+      ...(Object.hasOwn(settings.enabledPlugins ?? {}, pluginId) ? [['enabledPlugins', pluginId]] : []),
+      ...(isKitMarketplace(settings) ? [['extraKnownMarketplaces', marketplaceName]] : [])
+    ];
+    if (removals.length === 0) {
+      operations.push({ ...base, operation: 'unchanged', content: existing });
+      continue;
+    }
+    const cleaned = { ...settings };
+    for (const [key, name] of removals) {
+      const rest = { ...cleaned[key] };
+      delete rest[name];
+      if (Object.keys(rest).length === 0) delete cleaned[key];
+      else cleaned[key] = rest;
+    }
+    operations.push({ ...base, operation: 'merge_with_backup', content: serializeLike(existing, cleaned) });
   }
   return operations;
 }

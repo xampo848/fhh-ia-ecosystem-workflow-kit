@@ -5,6 +5,7 @@ import test from 'node:test';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { runCli } from '../src/cli.mjs';
 import { parseArgs } from '../src/cli/args.mjs';
+import { runDoctor } from '../src/doctor.mjs';
 import { extractManagedBlock } from '../src/kit-manifest.mjs';
 import { loadDelegateCatalog, renderClaudeAgent, renderCopilotAgent } from '../src/model-profiles.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan, installStateRelativePath, selectPlanOperations } from '../src/planner.mjs';
@@ -13,6 +14,7 @@ import { buildInstallPlan, buildUpdatePlan, formatPlan, installStateRelativePath
 import * as pluginMode from '../src/plugin-mode.mjs';
 import { runtimeEntrypoints } from '../src/runtime-matrix.mjs';
 import { validateAdapterContracts } from '../src/workflow-contract/adapters.mjs';
+import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
 import { createMemoryIo, hashTree, makeTempRepo } from './helpers.mjs';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -384,20 +386,13 @@ test('AC-10: update --profile claude=costo writes the 13 plugin-variant agents; 
   assert.deepEqual(Object.keys(state.files).filter((relativePath) => relativePath.startsWith('.claude/agents/')), []);
 });
 
-// T14 and the mode switches this build does not implement yet (P2-S4
-// replaces that stop): each stops, writes nothing and names --mode. The
-// switch repo -> plugin (T7) checks the runtimes as update does.
-test('update stops: a runtime without plugin (T14, also on a switch to plugin), and a mode switch, write nothing', async () => {
-  const exportInstall = async (target) => applyInstallPlan(await buildInstallPlan({ targetPath: target, export: true, ensureWorkspaceIgnore: false, recordJournal: false }));
-  const legacyInstall = (target) => write(target, installStateRelativePath, `${JSON.stringify({ schemaVersion: '1.0.0', files: {} })}\n`);
-  const switchStop = /--mode .*not available in this build/;
+// T14: a runtime without plugin stops update in plugin mode, also on a
+// switch to plugin mode, writes nothing and names the repo-mode command,
+// which works (from a plugin install it is the switch to repo mode, T9).
+test('update stops: a runtime without plugin (T14, also on a switch to plugin) writes nothing and the named command works', async () => {
   const cases = [
     { name: 'T14: --runtime codex on plugin', install: pluginInstall, flags: ['--runtime', 'codex'], names: ['workflow-kit update --mode repo --runtime codex', '--runtime claude,copilot'], next: ['update', '--mode', 'repo', '--runtime', 'codex'] },
-    { name: 'plugin -> repo', install: pluginInstall, flags: ['--mode', 'repo'], names: [switchStop, '(plugin mode)'] },
-    { name: 'T14: repo (codex) -> plugin', install: (target) => repoInstall(target, 'codex'), flags: ['--mode', 'plugin'], names: ['workflow-kit update --mode repo --runtime codex', '--runtime claude,copilot'] },
-    { name: 'export -> plugin', install: exportInstall, flags: ['--mode', 'plugin', '--runtime', 'claude'], names: [switchStop, '(an export)'] },
-    { name: '1.0.0 -> plugin', install: legacyInstall, flags: ['--mode', 'plugin', '--runtime', 'claude'], names: [switchStop, '(install-state 1.0.0)'] },
-    { name: 'no state -> plugin', install: async () => {}, flags: ['--adopt-existing', '--mode', 'plugin', '--runtime', 'claude'], names: [switchStop, '(no install state)'] }
+    { name: 'T14: repo (codex) -> plugin', install: (target) => repoInstall(target, 'codex'), flags: ['--mode', 'plugin'], names: ['workflow-kit update --mode repo --runtime codex', '--runtime claude,copilot'] }
   ];
   for (const { name, install, flags, names, next } of cases) {
     const target = await makeTempRepo();
@@ -405,18 +400,13 @@ test('update stops: a runtime without plugin (T14, also on a switch to plugin), 
     const before = await hashTree(target);
     const stop = await cli(['update', '--target', target, ...flags, '--apply', '--yes']);
     assert.notEqual(stop.code, 0, name);
-    for (const expected of names) {
-      if (typeof expected === 'string') assert.ok(stop.stderr.includes(expected), `${name}: names ${expected}\n${stop.stderr}`);
-      else assert.match(stop.stderr, expected, name);
-    }
+    for (const expected of names) assert.ok(stop.stderr.includes(expected), `${name}: names ${expected}\n${stop.stderr}`);
     assert.match(stop.stderr, /Nothing was written/, name);
     assert.deepEqual(await hashTree(target), before, name);
-    // The named command is a mode switch: until P2-S4 it reaches that stop.
     if (next) {
       const rerun = await cli([...next, '--target', target]);
-      assert.notEqual(rerun.code, 0, `${name}: ${next.join(' ')}`);
-      assert.match(rerun.stderr, switchStop, name);
-      assert.deepEqual(await hashTree(target), before, name);
+      assert.equal(rerun.code, 0, `${name}: ${next.join(' ')}\n${rerun.stderr}`);
+      assert.deepEqual(await hashTree(target), before, `${name}: the dry run writes nothing`);
     }
   }
 });
@@ -610,5 +600,246 @@ test('a switch that leaves copilot out retires its generated wrappers and stops 
     assert.equal(recorded[relativePath].class, 'adapter', relativePath);
     assert.equal(operationFor(plan, relativePath), undefined, `${relativePath} is not touched`);
     assert.equal(plan.nextInstallState.files[relativePath], undefined, `${relativePath} leaves the state`);
+  }
+});
+
+// The tree a rollback of a switch has to give back: everything but the apply
+// journal (the backups an earlier apply left stay as they were).
+async function treeWithoutJournal(target) {
+  return Object.fromEntries(Object.entries(await hashTree(target)).filter(([relativePath]) => relativePath !== '.agents/workflow-kit/last-apply.json'));
+}
+const switchToRepo = (target, ...flags) => cli(['update', '--target', target, '--mode', 'repo', ...flags]);
+
+// AC-13 (PRD 2.4, T9 and T16): the switch writes the repo-mode tree of the
+// recorded runtimes, takes kit-location out of the block, takes only the
+// declaration out of the settings file, and rollback gives the plugin install
+// back byte for byte.
+test('AC-13: update --mode repo on a plugin install writes the repo-mode tree, drops kit-location and only the declaration, records repo, passes doctor, and rollback restores the plugin install', async () => {
+  const target = await makeTempRepo();
+  const ownSettings = `${JSON.stringify({ permissions: { allow: ['Bash(npm test)'] } }, null, 2)}\n`;
+  await write(target, settingsPaths.claude, ownSettings);
+  const init = await cli(['init', '--target', target, '--mode', 'plugin', '--runtime', 'claude', '--apply', '--yes']);
+  assert.equal(init.code, 0, init.stderr);
+  assert.equal(JSON.parse(await read(target, settingsPaths.claude)).enabledPlugins[pluginId], true);
+  const pluginState = await read(target, installStateRelativePath);
+  const before = await treeWithoutJournal(target);
+
+  const switched = await switchToRepo(target, '--apply', '--yes');
+  assert.equal(switched.code, 0, switched.stderr);
+  assert.equal(switched.stdout.includes('Install mode: plugin'), false);
+  assert.equal(switched.stdout.includes(claudeInstall), false, 'no plugin install steps after leaving plugin mode');
+
+  // The kit tree, the adapter and the recorded files are those of a repo-mode init.
+  const repoInit = await makeTempRepo();
+  const reference = await cli(['init', '--target', repoInit, '--runtime', 'claude', '--apply', '--yes']);
+  assert.equal(reference.code, 0, reference.stderr);
+  const [state, referenceState, tree, referenceTree] = [await stateOf(target), await stateOf(repoInit), await hashTree(target), await hashTree(repoInit)];
+  assert.equal(state.mode, 'repo');
+  assert.deepEqual(Object.keys(state.files).sort(), Object.keys(referenceState.files).sort());
+  for (const [relativePath, entry] of Object.entries(referenceState.files)) {
+    assert.deepEqual(state.files[relativePath], entry, relativePath);
+    if (entry.class !== 'seed') assert.equal(tree[relativePath], referenceTree[relativePath], `${relativePath} is the repo-mode file`);
+  }
+  assert.equal(await read(target, 'CLAUDE.md'), await read(repoInit, 'CLAUDE.md'));
+  assert.equal((await read(target, 'CLAUDE.md')).includes(pluginMode.kitLocationBlockName), false);
+  // Only the declaration leaves; the file stays, with the own key byte for byte.
+  assert.equal(await read(target, settingsPaths.claude), ownSettings);
+  assert.equal(backupsOf(tree, settingsPaths.claude).length, 2, 'the init merge and the switch each keep a backup');
+  const doctor = await runDoctor({ targetPath: target });
+  assert.equal(doctor.ok, true, JSON.stringify(doctor.findings ?? doctor, null, 2).slice(0, 2000));
+
+  const rollback = await cli(['rollback', '--target', target, '--apply', '--yes']);
+  assert.equal(rollback.code, 0, rollback.stderr);
+  assert.deepEqual(await treeWithoutJournal(target), before, 'every plugin-mode file back, byte for byte, and no file of the switch left');
+  assert.equal(await read(target, installStateRelativePath), pluginState, 'the plugin-mode state is back');
+});
+
+// T9 with a non-default profile (D2): the recorded plugin-variant agents are
+// replaced by the repo variant of the same profile, with a backup whatever
+// the backup mode, since a switch is applied whole.
+test('a plugin install with a non-default profile switched to repo ends with the repo-variant agents of that profile', async () => {
+  const catalog = await loadDelegateCatalog();
+  const target = await makeTempRepo();
+  await pluginInstall(target, { profile: 'claude=costo' });
+  const repoPlan = await buildInstallPlan({ targetPath: await makeTempRepo(), runtime: 'claude', profile: 'claude=costo' });
+
+  const plan = await buildUpdatePlan({ targetPath: target, mode: 'repo', backupMode: 'none' });
+  assert.equal(plan.modelProfiles.claude, 'costo');
+  for (const agent of catalog.agents) {
+    const relativePath = `.claude/agents/${agent.slug}.md`;
+    const planned = operationFor(plan, relativePath);
+    assert.equal(planned.operation, 'overwrite_with_backup', relativePath);
+    assert.equal(planned.content, operationFor(repoPlan, relativePath).content, `${relativePath} is the repo variant`);
+    assert.notEqual(planned.content, renderClaudeAgent(agent, catalog, 'costo', pluginMode.pluginName), relativePath);
+  }
+  await applyInstallPlan(plan);
+  const state = await stateOf(target);
+  assert.equal(state.mode, 'repo');
+  assert.equal(state.modelProfiles.claude, 'costo');
+  for (const agent of catalog.agents) {
+    const relativePath = `.claude/agents/${agent.slug}.md`;
+    assert.equal(await read(target, relativePath), operationFor(repoPlan, relativePath).content, relativePath);
+    assert.deepEqual(state.files[relativePath], repoPlan.nextInstallState.files[relativePath], relativePath);
+  }
+});
+
+// T9 is not all or nothing (PRD 2.4): a file at a kit path the plugin state
+// does not record stays pending under the F2 rules, and the rest switches.
+test('T9: an unrecorded file at a kit path stays pending with its F2 decisions while the rest switches to repo', async () => {
+  const target = await makeTempRepo();
+  await pluginInstall(target);
+  const own = '# Our own instructions\n';
+  await write(target, '.agents/instructions.md', own);
+
+  const plan = await buildUpdatePlan({ targetPath: target, mode: 'repo' });
+  const pending = operationFor(plan, '.agents/instructions.md');
+  assert.equal(pending.operation, 'skip_modified');
+  assert.equal(pending.reason, 'unrecorded_kit_file');
+  assert.deepEqual(pending.decisions, ['keep', 'discard']);
+  assert.ok(formatPlan(plan).includes('- skip_modified: .agents/instructions.md (unrecorded_kit_file): keep | discard'), formatPlan(plan));
+
+  await applyInstallPlan(plan);
+  assert.equal(await read(target, '.agents/instructions.md'), own);
+  const state = await stateOf(target);
+  assert.equal(state.mode, 'repo');
+  assert.equal(state.files['.agents/instructions.md'], undefined);
+  assert.ok(state.files['.agents/skills/00-router/workflow-router/SKILL.md']);
+});
+
+// PRD 2.4 (T9, "Declaración"): every settings case at the planner that owns
+// it, and the plan line of an invalid file.
+test('T9 settings: only the kit declaration leaves the settings file, other keys and their order stay, the file is never deleted, and an invalid file is left with a note', async () => {
+  const declaration = { source: { source: 'github', repo: pluginMode.marketplaceRepository } };
+  const json = (value, indent = 2) => `${JSON.stringify(value, null, indent)}\n`;
+  const cases = [
+    {
+      name: 'declaration among other keys (4-space indent)',
+      existing: json({ permissions: { allow: ['Bash(npm test)'] }, enabledPlugins: { 'other@market': true, [pluginId]: true }, extraKnownMarketplaces: { market: { source: { source: 'github', repo: 'someone/market' } }, 'fhh-ia-ecosystem': declaration }, model: 'opus' }, 4),
+      operation: 'merge_with_backup',
+      content: json({ permissions: { allow: ['Bash(npm test)'] }, enabledPlugins: { 'other@market': true }, extraKnownMarketplaces: { market: { source: { source: 'github', repo: 'someone/market' } } }, model: 'opus' }, 4)
+    },
+    { name: 'only the declaration', existing: json({ extraKnownMarketplaces: { 'fhh-ia-ecosystem': declaration }, enabledPlugins: { [pluginId]: true } }), operation: 'merge_with_backup', content: '{}\n' },
+    {
+      name: 'a marketplace changed by hand stays; a disabled plugin entry still leaves',
+      existing: json({ extraKnownMarketplaces: { 'fhh-ia-ecosystem': { source: { source: 'github', repo: 'fork/kit' } } }, enabledPlugins: { [pluginId]: false } }),
+      operation: 'merge_with_backup',
+      content: json({ extraKnownMarketplaces: { 'fhh-ia-ecosystem': { source: { source: 'github', repo: 'fork/kit' } } } })
+    },
+    { name: 'no declaration', existing: json({ model: 'opus' }), operation: 'unchanged' },
+    { name: 'missing', existing: null, operation: null },
+    { name: 'invalid JSON', existing: '{ "model": "opus", }\n', operation: 'skip_unmanaged' },
+    { name: 'not an object', existing: '[]\n', operation: 'skip_unmanaged' }
+  ];
+  for (const { name, existing, operation, content } of cases) {
+    const target = await makeTempRepo();
+    if (existing !== null) await write(target, settingsPaths.claude, existing);
+    const operations = await pluginMode.planPluginSettingsRemoval({ targetPath: target, runtimes: ['neutral', 'claude', 'codex'] });
+    if (operation === null) {
+      assert.deepEqual(operations, [], name);
+      continue;
+    }
+    assert.equal(operations.length, 1, name);
+    const [planned] = operations;
+    assert.equal(planned.relativePath, settingsPaths.claude, name);
+    assert.equal(planned.operation, operation, name);
+    if (operation === 'merge_with_backup') assert.equal(planned.content, content, name);
+    else assert.equal(planned.content, existing, name);
+    if (operation === 'skip_unmanaged') {
+      assert.equal(planned.reason, 'invalid_settings_json', name);
+      assert.ok(planned.manualFragment.includes(pluginId), name);
+    }
+  }
+
+  // Wiring: the switch plans the removal and its dry run prints the note.
+  const target = await makeTempRepo();
+  await pluginInstall(target);
+  await write(target, settingsPaths.claude, '{ broken\n');
+  const plan = await buildUpdatePlan({ targetPath: target, mode: 'repo' });
+  assert.equal(operationFor(plan, settingsPaths.claude).operation, 'skip_unmanaged');
+  assert.ok(formatPlan(plan).includes(`- skip_unmanaged: ${settingsPaths.claude} (invalid_settings_json); remove this from it by hand:`), formatPlan(plan));
+});
+
+// A switch is applied whole in both directions, and its plan says so (the
+// TUI names it instead of the layout migration); a normal update and the
+// layout migration do not.
+test('a mode switch plan is flagged and applied whole in both directions; a normal update and the layout migration are not mode switches', async () => {
+  const [repoTarget, pluginTarget, legacyTarget] = [await makeTempRepo(), await makeTempRepo(), await makeTempRepo()];
+  await repoInstall(repoTarget);
+  await pluginInstall(pluginTarget);
+  await installLegacy0181(legacyTarget);
+  for (const [label, plan] of [['repo -> plugin', await buildUpdatePlan({ targetPath: repoTarget, mode: 'plugin' })], ['plugin -> repo', await buildUpdatePlan({ targetPath: pluginTarget, mode: 'repo' })]]) {
+    assert.equal(plan.modeSwitch, true, label);
+    assert.ok(plan.operations.every((item) => item.migration), label);
+    const selected = selectPlanOperations(plan, []);
+    assert.equal(selected.modeSwitch, true, label);
+    assert.deepEqual(selected.operations.map((item) => item.relativePath), plan.operations.map((item) => item.relativePath), label);
+  }
+  for (const [label, plan] of [['plugin update', await buildUpdatePlan({ targetPath: pluginTarget })], ['repo update', await buildUpdatePlan({ targetPath: repoTarget })], ['layout migration', await buildUpdatePlan({ targetPath: legacyTarget })]]) {
+    assert.equal(plan.modeSwitch, false, label);
+  }
+});
+
+// AC-14 (PRD 2.4: T4, T5, T10, T11, T13, T17, and an incomplete apply): each
+// stop writes nothing, names the command that works, and the test runs it.
+// Every named command but the last of a case is applied; the last is a dry run.
+const exportInstall = async (target) => applyInstallPlan(await buildInstallPlan({ targetPath: target, export: true, ensureWorkspaceIgnore: false, recordJournal: false }));
+async function runNamed(text, target, { apply }) {
+  const argv = text.replace(/^workflow-kit /, '').split(' ');
+  const repoIndex = argv.indexOf('<repo>');
+  if (repoIndex >= 0) argv[repoIndex] = await makeTempRepo();
+  if (!argv.includes('--target') && !argv.includes('--output')) argv.push('--target', target);
+  if (apply && !argv.includes('--apply')) argv.push('--apply', '--yes');
+  return cli(argv);
+}
+test('AC-14: T4, T5, T10, T11, T13, T17 and an incomplete apply stop without writing and name a command that works', async () => {
+  const markLastApplyIncomplete = async (target) => {
+    const journal = JSON.parse(await read(target, '.agents/workflow-kit/last-apply.json'));
+    await write(target, '.agents/workflow-kit/last-apply.json', `${JSON.stringify({ ...journal, completed: false })}\n`);
+  };
+  const cases = [
+    { name: 'T4 (repo state)', install: repoInstall, args: ['init', '--mode', 'plugin', '--runtime', 'claude'], names: ['already records an install'], commands: ['workflow-kit update --mode plugin --runtime claude'] },
+    { name: 'T4 (plugin state)', install: pluginInstall, args: ['init', '--mode', 'plugin', '--runtime', 'claude'], names: ['already records an install'], commands: ['workflow-kit update --mode plugin --runtime claude'] },
+    { name: 'T4 (export state)', install: exportInstall, args: ['init', '--mode', 'plugin', '--runtime', 'claude'], names: ['copy of the kit'], commands: ['workflow-kit init --mode plugin --runtime claude --target <repo>'] },
+    { name: 'T5', install: installLegacy0181, args: ['init', '--mode', 'plugin', '--runtime', 'claude'], names: ['install-state 1.0.0', 'then `workflow-kit update --mode plugin --runtime claude`'], commands: ['workflow-kit update', 'workflow-kit update --mode plugin --runtime claude'] },
+    { name: 'T10', install: installLegacy0181, args: ['update', '--mode', 'plugin', '--runtime', 'claude'], names: ['install-state 1.0.0', 'layout migration'], commands: ['workflow-kit update', 'workflow-kit update --mode plugin --runtime claude'] },
+    { name: 'T11', install: exportInstall, args: ['update', '--mode', 'plugin', '--runtime', 'claude'], names: ['copy of the kit'], commands: ['workflow-kit init --mode plugin --runtime claude --target <repo>'] },
+    { name: 'T13', install: async () => {}, args: ['update', '--adopt-existing', '--mode', 'plugin', '--runtime', 'claude'], names: ['no install state'], commands: ['workflow-kit update --adopt-existing --runtime claude', 'workflow-kit update --mode plugin --runtime claude'] },
+    { name: 'T17', install: pluginInstall, args: ['export'], names: ['export to another folder', '`workflow-kit update` brings an install to this version'], commands: ['workflow-kit update'], also: ['workflow-kit export --output <repo>'] },
+    {
+      name: 'incomplete apply',
+      install: async (target) => {
+        await repoInstall(target);
+        const update = await cli(['update', '--target', target, '--profile', 'claude=costo', '--apply', '--yes']);
+        assert.equal(update.code, 0, update.stderr);
+        await markLastApplyIncomplete(target);
+      },
+      args: ['update', '--mode', 'plugin'],
+      names: ['did not finish', 'then run this command again'],
+      commands: ['workflow-kit rollback --apply --yes'],
+      again: true
+    }
+  ];
+  for (const { name, install, args, names, commands, also = [], again } of cases) {
+    const target = await makeTempRepo();
+    await install(target);
+    const before = await hashTree(target);
+    const stopArgs = args[0] === 'export' ? [...args, '--output', target] : [...args, '--target', target];
+    const stop = await cli([...stopArgs, '--apply', '--yes']);
+    assert.notEqual(stop.code, 0, `${name}\n${stop.stdout}`);
+    for (const expected of [...names, ...commands.map((command) => `\`${command}\``), 'Nothing was written']) {
+      assert.ok(stop.stderr.includes(expected), `${name}: names ${expected}\n${stop.stderr}`);
+    }
+    assert.equal(/not available in this build/.test(stop.stderr), false, name);
+    assert.deepEqual(await hashTree(target), before, `${name}: the tree is identical`);
+
+    const run = [...commands, ...also];
+    for (const [index, command] of run.entries()) {
+      const result = await runNamed(command, target, { apply: index < commands.length - 1 });
+      assert.equal(result.code, 0, `${name}: ${command}\n${result.stderr}`);
+    }
+    if (again) {
+      const rerun = await cli([...args, '--target', target]);
+      assert.equal(rerun.code, 0, `${name}: the command again\n${rerun.stderr}`);
+    }
   }
 });

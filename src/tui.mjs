@@ -1018,10 +1018,12 @@ export async function runTui(options = {}) {
         }, () => buildPlan({ edited, backupMode }));
       }
 
-      // The layout migration is applied whole (selectPlanOperations keeps it):
-      // its files are not offered; retired deletes are.
+      // The layout migration and a mode switch are applied whole
+      // (selectPlanOperations keeps them): their files are not offered;
+      // retired deletes are.
       const migrationWrites = plan.operations.filter((item) => item.migration && isWriteOperation(item)).length;
-      if (migrationWrites > 0) write(`${paint.dim(`The layout migration (${migrationWrites} files) is applied as one block and is not listed here.`)}\n`);
+      const wholeBlock = plan.modeSwitch ? 'The mode switch' : 'The layout migration';
+      if (migrationWrites > 0) write(`${paint.dim(`${wholeBlock} (${migrationWrites} files) is applied as one block and is not listed here.`)}\n`);
       const writableOperations = plan.operations.filter((item) => isWriteOperation(item) && !item.migration);
       if (writableOperations.length > 0) {
         const selectedWritablePaths = await prompter.chooseOptions({
