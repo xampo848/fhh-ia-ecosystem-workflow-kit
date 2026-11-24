@@ -42,6 +42,8 @@ async function write(target, relativePath, content) {
 const pluginPlan = (target, extra = {}) => buildInstallPlan({ targetPath: target, mode: 'plugin', ...extra });
 const pluginInstall = async (target, extra = {}) => applyInstallPlan(await pluginPlan(target, { runtime: 'claude', ...extra }));
 const stateOf = async (target) => JSON.parse(await read(target, installStateRelativePath));
+const repoInstall = async (target, runtime = 'claude') => applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime }));
+const backupSuffix = /\.workflow-kit-backup-\d{8}T\d{6}Z$/;
 const writingOperations = (plan) => plan.operations.filter((item) => !['unchanged', 'skip_unmanaged', 'skip_modified', 'adopt_existing'].includes(item.operation));
 async function cli(args) {
   const io = createMemoryIo();
@@ -382,17 +384,17 @@ test('AC-10: update --profile claude=costo writes the 13 plugin-variant agents; 
   assert.deepEqual(Object.keys(state.files).filter((relativePath) => relativePath.startsWith('.claude/agents/')), []);
 });
 
-// T14 and the mode switches this build does not implement yet (P2-S3 and
-// P2-S4 replace that stop): each stops, writes nothing and names --mode.
-test('update stops: a runtime without plugin on a plugin install (T14), and a mode switch, write nothing', async () => {
-  const repoInstall = async (target) => applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+// T14 and the mode switches this build does not implement yet (P2-S4
+// replaces that stop): each stops, writes nothing and names --mode. The
+// switch repo -> plugin (T7) checks the runtimes as update does.
+test('update stops: a runtime without plugin (T14, also on a switch to plugin), and a mode switch, write nothing', async () => {
   const exportInstall = async (target) => applyInstallPlan(await buildInstallPlan({ targetPath: target, export: true, ensureWorkspaceIgnore: false, recordJournal: false }));
   const legacyInstall = (target) => write(target, installStateRelativePath, `${JSON.stringify({ schemaVersion: '1.0.0', files: {} })}\n`);
   const switchStop = /--mode .*not available in this build/;
   const cases = [
     { name: 'T14: --runtime codex on plugin', install: pluginInstall, flags: ['--runtime', 'codex'], names: ['workflow-kit update --mode repo --runtime codex', '--runtime claude,copilot'], next: ['update', '--mode', 'repo', '--runtime', 'codex'] },
     { name: 'plugin -> repo', install: pluginInstall, flags: ['--mode', 'repo'], names: [switchStop, '(plugin mode)'] },
-    { name: 'repo -> plugin', install: repoInstall, flags: ['--mode', 'plugin', '--runtime', 'claude'], names: [switchStop, '(repo mode)'] },
+    { name: 'T14: repo (codex) -> plugin', install: (target) => repoInstall(target, 'codex'), flags: ['--mode', 'plugin'], names: ['workflow-kit update --mode repo --runtime codex', '--runtime claude,copilot'] },
     { name: 'export -> plugin', install: exportInstall, flags: ['--mode', 'plugin', '--runtime', 'claude'], names: [switchStop, '(an export)'] },
     { name: '1.0.0 -> plugin', install: legacyInstall, flags: ['--mode', 'plugin', '--runtime', 'claude'], names: [switchStop, '(install-state 1.0.0)'] },
     { name: 'no state -> plugin', install: async () => {}, flags: ['--adopt-existing', '--mode', 'plugin', '--runtime', 'claude'], names: [switchStop, '(no install state)'] }
@@ -449,4 +451,164 @@ test('T6 guard: update on a repo-mode install plans the same with or without --m
   const exported = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: exported, export: true, ensureWorkspaceIgnore: false, recordJournal: false }));
   assert.equal((await buildUpdatePlan({ targetPath: exported })).nextInstallState.mode, 'repo');
+});
+
+// The tree a rollback has to give back: everything but the apply journal and
+// the backup files.
+async function treeWithoutBackups(target) {
+  return Object.fromEntries(Object.entries(await hashTree(target))
+    .filter(([relativePath]) => !relativePath.includes('.workflow-kit-backup-') && relativePath !== '.agents/workflow-kit/last-apply.json'));
+}
+const backupsOf = (tree, relativePath) => Object.keys(tree).filter((key) => key.startsWith(`${relativePath}.workflow-kit-backup-`) && backupSuffix.test(key));
+const switchToPlugin = (target, ...flags) => cli(['update', '--target', target, '--mode', 'plugin', ...flags]);
+const claudeTemplate = () => fs.readFile(path.join(runtimeTemplates, adapterTemplates['CLAUDE.md']), 'utf8');
+
+// AC-11 (PRD 2.4, T7 and T16): with nothing edited the switch deletes the
+// recorded kit tree with backups, whatever the backup mode, and the journal
+// takes it back byte for byte.
+test('AC-11: update --mode plugin on an unedited repo install retires every recorded kit and derived file with a backup, and rollback restores the tree and the repo-mode state', async () => {
+  const fresh = await makeTempRepo();
+  const pluginState = (await pluginPlan(fresh, { runtime: 'claude' })).nextInstallState;
+  for (const backupMode of ['required', 'none']) {
+    const target = await makeTempRepo();
+    const init = await cli(['init', '--target', target, '--runtime', 'claude', '--apply', '--yes']);
+    assert.equal(init.code, 0, init.stderr);
+    // A file in a kit folder that the state does not record is never deleted.
+    await write(target, '.agents/skills/team-own/SKILL.md', '# Our own skill\n');
+    const repoState = await read(target, installStateRelativePath);
+    const retiredPaths = Object.entries(JSON.parse(repoState).files).filter(([, entry]) => ['kit', 'derived'].includes(entry.class)).map(([relativePath]) => relativePath);
+    assert.ok(retiredPaths.includes('.agents/instructions.md') && retiredPaths.includes('.claude/agents/turbo-backend.md'), backupMode);
+    const before = await treeWithoutBackups(target);
+
+    const switched = await switchToPlugin(target, '--backup-mode', backupMode, '--apply', '--yes');
+    assert.equal(switched.code, 0, `${backupMode}: ${switched.stderr}`);
+    assert.match(switched.stdout, /^Install mode: plugin$/m);
+    const after = await hashTree(target);
+    for (const relativePath of retiredPaths) {
+      assert.equal(after[relativePath], undefined, `${backupMode}: ${relativePath} is gone`);
+      const backups = backupsOf(after, relativePath);
+      assert.equal(backups.length, 1, `${backupMode}: ${relativePath} has one backup`);
+      assert.equal(after[backups[0]], before[relativePath], `${backupMode}: the backup of ${relativePath} is the file`);
+    }
+    assert.equal(await read(target, 'CLAUDE.md'), pluginMode.pluginAdapterContent(await claudeTemplate(), managedBlockName), backupMode);
+    assert.equal(backupsOf(after, 'CLAUDE.md').length, 1, `${backupMode}: the adapter keeps a backup even with --backup-mode none`);
+    assert.equal(Object.keys(after).filter((key) => backupSuffix.test(key)).length, retiredPaths.length + 1, `${backupMode}: one backup per retired file plus CLAUDE.md`);
+    assert.equal(JSON.parse(await read(target, settingsPaths.claude)).enabledPlugins[pluginId], true, backupMode);
+    assert.equal(await read(target, '.agents/skills/team-own/SKILL.md'), '# Our own skill\n', backupMode);
+    const state = await stateOf(target);
+    assert.equal(state.mode, 'plugin', backupMode);
+    assert.deepEqual(Object.keys(state.files).sort(), Object.keys(pluginState.files).sort(), `${backupMode}: only the plugin-mode files`);
+    assert.deepEqual(state.files['CLAUDE.md'], pluginState.files['CLAUDE.md'], backupMode);
+
+    const rollback = await cli(['rollback', '--target', target, '--apply', '--yes']);
+    assert.equal(rollback.code, 0, `${backupMode}: ${rollback.stderr}`);
+    assert.deepEqual(await treeWithoutBackups(target), before, `${backupMode}: every file back, byte for byte`);
+    assert.deepEqual(Object.keys(await hashTree(target)).filter((key) => key.includes('.workflow-kit-backup-')), [], backupMode);
+    assert.equal(await read(target, installStateRelativePath), repoState, `${backupMode}: the repo-mode state is back`);
+  }
+});
+
+// AC-12 (PRD 2.4, D5): an edited kit file stops the whole switch; only
+// discard settles it, and its backup keeps the edit.
+test('AC-12: an edited kit file stops the switch without writing; --edited <path>=discard deletes it keeping the edit in its backup; keep, shadow and split are rejected naming discard', async () => {
+  const target = await makeTempRepo();
+  await repoInstall(target);
+  const edited = '.agents/skills/00-router/workflow-router/SKILL.md';
+  const editedContent = `${await read(target, edited)}\nOur team rule.\n`;
+  await write(target, edited, editedContent);
+  const before = await hashTree(target);
+
+  for (const flags of [[], ['--apply', '--yes']]) {
+    const stop = await switchToPlugin(target, ...flags);
+    const label = flags.length > 0 ? 'apply' : 'dry run';
+    assert.notEqual(stop.code, 0, label);
+    for (const expected of [`- ${edited} `, 'workflow-kit update --mode plugin --edited <path>=discard', 'workflow-kit update --mode plugin --edited all=discard', 'project shadow (.agents/kit-boundary.md)', 'Nothing was written']) {
+      assert.ok(stop.stderr.includes(expected), `${label}: names ${expected}\n${stop.stderr}`);
+    }
+    assert.deepEqual(await hashTree(target), before, label);
+  }
+  for (const decision of ['keep', 'shadow', 'split']) {
+    const rejected = await switchToPlugin(target, '--edited', `${edited}=${decision}`, '--apply', '--yes');
+    assert.notEqual(rejected.code, 0, decision);
+    assert.ok(rejected.stderr.includes(`Invalid --edited ${edited}=${decision}`) && rejected.stderr.includes('Valid decisions: discard.'), `${decision}\n${rejected.stderr}`);
+    assert.deepEqual(await hashTree(target), before, decision);
+  }
+
+  const discard = await switchToPlugin(target, '--edited', `${edited}=discard`, '--apply', '--yes');
+  assert.equal(discard.code, 0, discard.stderr);
+  assert.equal(await exists(target, edited), false);
+  const backups = (await fs.readdir(path.dirname(path.join(target, edited)))).filter((file) => file.startsWith('SKILL.md.workflow-kit-backup-'));
+  assert.equal(backups.length, 1);
+  assert.equal(await read(target, path.join(path.dirname(edited), backups[0])), editedContent);
+  const state = await stateOf(target);
+  assert.equal(state.mode, 'plugin');
+  assert.equal(state.files[edited], undefined);
+});
+
+// All or nothing (D5) beyond the retired files: a file the plugin plan would
+// write that stays pending stops the switch and names what settles it.
+test('all or nothing: a pending adapter stops the switch, naming its decisions or the fix by hand, and writes nothing', async () => {
+  const ownText = '# Our CLAUDE.md\n\nNo markers here.\n';
+  const cases = [
+    { name: 'recorded CLAUDE.md without markers', setup: (target) => write(target, 'CLAUDE.md', ownText), flags: [], names: ['- CLAUDE.md (unmarked_adapter): discard\n', '--edited all=discard'], settle: ['--edited', 'all=discard'] },
+    { name: 'unrecorded AGENTS.md with its markers out of order', setup: (target) => write(target, 'AGENTS.md', `<!-- ${managedBlockName}:end -->\nOur agents.\n<!-- ${managedBlockName}:start -->\n`), flags: ['--runtime', 'claude,copilot'], names: ['- AGENTS.md (invalid_managed_block): no --edited decision applies; fix its workflow-kit markers by hand'] }
+  ];
+  for (const { name, setup, flags, names, settle } of cases) {
+    const target = await makeTempRepo();
+    await repoInstall(target);
+    await setup(target);
+    const before = await hashTree(target);
+    const stop = await switchToPlugin(target, ...flags, '--apply', '--yes');
+    assert.notEqual(stop.code, 0, name);
+    for (const expected of [...names, 'applied whole', 'Nothing was written']) assert.ok(stop.stderr.includes(expected), `${name}: names ${expected}\n${stop.stderr}`);
+    assert.deepEqual(await hashTree(target), before, name);
+    if (settle) {
+      const settled = await switchToPlugin(target, ...flags, ...settle, '--apply', '--yes');
+      assert.equal(settled.code, 0, `${name}: ${settled.stderr}`);
+      assert.equal(await read(target, 'CLAUDE.md'), pluginMode.pluginAdapterContent(await claudeTemplate(), managedBlockName), name);
+      const backup = (await fs.readdir(target)).find((file) => file.startsWith('CLAUDE.md.workflow-kit-backup-'));
+      assert.equal(await read(target, backup), ownText, `${name}: the backup keeps the own text`);
+      assert.equal((await stateOf(target)).mode, 'plugin', name);
+    }
+  }
+});
+
+// A partial selection (the TUI) can never leave both modes: every operation of
+// a switch is kept, as the layout migration keeps its own.
+test('a mode switch is applied whole: an empty selection keeps every operation and applies like the full plan', async () => {
+  const shape = (plan) => plan.operations.map(({ relativePath, operation }) => ({ relativePath, operation }));
+  const [full, selected] = [await makeTempRepo(), await makeTempRepo()];
+  await repoInstall(full);
+  await repoInstall(selected);
+  const fullPlan = await buildUpdatePlan({ targetPath: full, mode: 'plugin' });
+  const selectedPlan = selectPlanOperations(await buildUpdatePlan({ targetPath: selected, mode: 'plugin' }), []);
+  assert.ok(fullPlan.operations.length > 0);
+  assert.deepEqual(shape(selectedPlan), shape(fullPlan));
+  assert.deepEqual(selectedPlan.nextInstallState.files, fullPlan.nextInstallState.files);
+  assert.equal(selectedPlan.nextInstallState.mode, 'plugin');
+
+  await applyInstallPlan(fullPlan);
+  await applyInstallPlan(selectedPlan);
+  const normalized = async (target) => Object.fromEntries(Object.entries(await projectTree(target)).map(([key, value]) => [key.replace(backupSuffix, '.workflow-kit-backup'), value]));
+  assert.deepEqual(await normalized(selected), await normalized(full));
+  assert.deepEqual((await stateOf(selected)).files, (await stateOf(full)).files);
+});
+
+// T7 with a runtime left out: the generated Copilot wrappers retire with the
+// rest of the kit tree; the adapters the plugin plan does not write stay as
+// they are and leave the state.
+test('a switch that leaves copilot out retires its generated wrappers and stops recording its adapters', async () => {
+  const target = await makeTempRepo();
+  await repoInstall(target, 'claude,copilot');
+  const recorded = (await stateOf(target)).files;
+  const wrappers = Object.keys(recorded).filter((relativePath) => relativePath.startsWith('.github/instructions/') && recorded[relativePath].class === 'derived');
+  assert.ok(wrappers.length > 0);
+  const plan = await buildUpdatePlan({ targetPath: target, mode: 'plugin', runtime: 'claude' });
+  for (const relativePath of wrappers) assert.equal(operationFor(plan, relativePath)?.operation, 'delete_with_backup', relativePath);
+  const leftBehind = ['.github/copilot-instructions.md', '.github/instructions/ai-workflow.instructions.md', 'AGENTS.md', 'docs/README.md'];
+  for (const relativePath of leftBehind) {
+    assert.equal(recorded[relativePath].class, 'adapter', relativePath);
+    assert.equal(operationFor(plan, relativePath), undefined, `${relativePath} is not touched`);
+    assert.equal(plan.nextInstallState.files[relativePath], undefined, `${relativePath} leaves the state`);
+  }
 });

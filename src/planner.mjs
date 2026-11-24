@@ -194,16 +194,18 @@ const packageKitQualityGate = () => fs.readFile(path.join(templatesRoot, overlay
 
 // PRD 2.4: without --mode, update keeps the recorded mode (T6, T8). A state
 // without mode, an export, a 1.0.0 state or no state (--adopt-existing)
-// updates as a repo-mode install, as before plugin mode existed.
+// updates as a repo-mode install, as before plugin mode existed. `switching`:
+// a 2.0.0 repo-mode install moves to plugin mode (T7).
 function resolveUpdateMode(requestedMode, existingState) {
   const recordedMode = existingState?.mode === 'plugin' ? 'plugin' : 'repo';
   const mode = requestedMode ?? recordedMode;
-  if (mode !== recordedMode) stopModeSwitch(requestedMode, existingState);
-  return mode;
+  if (mode === recordedMode) return { mode, switching: false };
+  if (mode === 'plugin' && existingState?.schemaVersion === installStateSchemaVersion && existingState.mode === 'repo') return { mode, switching: true };
+  return stopModeSwitch(requestedMode, existingState);
 }
 
-// Switching the install mode (T7, T9, and the stops T10, T11, T13) is not in
-// this build yet: the slices that implement the switches replace this stop.
+// The other switches (T9, and the stops T10, T11, T13) are not in this build
+// yet: the slice that implements them replaces this stop.
 function stopModeSwitch(requestedMode, existingState) {
   let current = 'no install state';
   if (existingState?.schemaVersion === legacyInstallStateSchemaVersion) current = `install-state ${legacyInstallStateSchemaVersion}`;
@@ -290,8 +292,8 @@ export async function buildUpdatePlan(options = {}) {
   if (!existingState && !options.adoptExisting) {
     throw new Error('No install state found. Run `workflow-kit update --adopt-existing --runtime <list>` first to bootstrap a safe baseline.');
   }
-  const installMode = resolveUpdateMode(options.mode, existingState);
-  // Plugin mode (T8): the same file selection as init --mode plugin.
+  const { mode: installMode, switching } = resolveUpdateMode(options.mode, existingState);
+  // Plugin mode (T7, T8): the same file selection as init --mode plugin.
   const pluginMode = installMode === 'plugin';
   const runtimes = parseRuntimeList(options.runtime ?? existingState?.runtimes?.join(',') ?? 'neutral');
   if (pluginMode) assertPluginRuntimes(runtimes, 'update');
@@ -340,18 +342,27 @@ export async function buildUpdatePlan(options = {}) {
     migratedInstructions: { ...migratedInstructions, ...migration?.seedContents },
     pluginMode
   });
-  const shadows = await planEditedDecisions({ operations, edited: options.edited ?? {}, manifest, migration });
+  // A switch decides its pending files once the retired ones are known.
+  const shadows = switching ? [] : await planEditedDecisions({ operations, edited: options.edited ?? {}, manifest, migration });
   if (migration) await migration.completeOperations(operations, shadows);
   operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
   const kitQualityGate = pluginMode ? await packageKitQualityGate() : undefined;
   operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode, kitQualityGate }));
   operations.push(...await buildStackPackOperations({ targetPath, stackPack, previousFiles }));
   if (pluginMode) operations.push(...await planPluginSettings({ targetPath, runtimes }));
-  const retired = existingState ? await planRetiredFiles({ targetPath, manifest, previousFiles, operations, pluginMode }) : { operations: [], missing: [] };
+  const retired = existingState ? await planRetiredFiles({ targetPath, manifest, previousFiles, operations, pluginMode, switching }) : { operations: [], missing: [] };
   operations.push(...retired.operations);
+  if (switching) {
+    await planEditedDecisions({ operations, edited: options.edited ?? {}, manifest, switching });
+    assertModeSwitchSettled(operations);
+  }
   await finalizeOperations({ targetPath, manifest, operations, previousFiles });
-  if (migration) requireMigrationBackups(operations);
-  const droppedStatePaths = [...retired.missing, ...(migration?.droppedPaths ?? [])];
+  // A switch, like the layout migration, is applied whole and keeps a backup
+  // of everything it replaces, whatever the backup mode: rollback has to be
+  // able to take it back (T16).
+  if (migration || switching) requireMigrationBackups(operations);
+  if (switching) for (const item of operations) item.migration = true;
+  const droppedStatePaths = [...retired.missing, ...(migration?.droppedPaths ?? []), ...(switching ? adaptersLeftBehind(manifest, previousFiles, operations) : [])];
   const layoutMigration = migration?.describe(operations);
   const migrations = describeMigrations({
     operations,
@@ -453,9 +464,12 @@ function chooseEditedDecisions(validByPath, edited) {
 
 // Applies the chosen decisions to the pending operations; the ones left
 // pending carry their valid decisions for the dry run. Returns the shadows
-// the project index has to list.
-async function planEditedDecisions({ operations, edited, manifest, migration }) {
-  const pending = operations.filter((item) => item.operation === 'skip_modified' && pendingEditReasons.has(item.reason));
+// the project index has to list. In a switch to plugin mode (T7) an edited
+// retired file is pending too, and only discard settles it (deleted with a
+// backup that keeps the edit); keep settles nothing there, since the switch
+// is applied whole.
+async function planEditedDecisions({ operations, edited, manifest, migration, switching = false }) {
+  const pending = operations.filter((item) => item.operation === 'skip_modified' && (pendingEditReasons.has(item.reason) || (switching && item.retired)));
   const validByPath = new Map();
   const shadowTargets = new Map();
   const splitContents = new Map();
@@ -467,7 +481,7 @@ async function planEditedDecisions({ operations, edited, manifest, migration }) 
       const split = splitUnmarkedAdapter(await fs.readFile(item.targetFile, 'utf8'), item.content, blockName);
       if (split !== null) splitContents.set(item.relativePath, split);
     }
-    const applies = { keep: true, discard: true, shadow: Boolean(shadow), split: splitContents.has(item.relativePath) };
+    const applies = { keep: !switching, discard: true, shadow: Boolean(shadow), split: splitContents.has(item.relativePath) };
     validByPath.set(item.relativePath, editedDecisions.filter((decision) => applies[decision]));
   }
   const chosen = chooseEditedDecisions(validByPath, edited);
@@ -478,6 +492,12 @@ async function planEditedDecisions({ operations, edited, manifest, migration }) 
       item.decisions = validByPath.get(item.relativePath);
       continue;
     }
+    delete item.reason;
+    // The apply deletes it only while it still has the content the plan saw.
+    if (item.retired) {
+      Object.assign(item, { operation: 'delete_with_backup', content: null, recordedChecksum: item.existingChecksum });
+      continue;
+    }
     if (decision === 'split') item.content = splitContents.get(item.relativePath);
     if (decision === 'shadow') {
       const shadow = shadowTargets.get(item.relativePath);
@@ -485,7 +505,6 @@ async function planEditedDecisions({ operations, edited, manifest, migration }) 
       operations.push(...migration.shadowOperations(shadow));
       item.migration = true;
     }
-    delete item.reason;
     Object.assign(item, { operation: 'overwrite_with_backup', stateChecksum: recordedChecksumOf(manifest, item.relativePath, item.class, item.content) });
   }
   return shadows;
@@ -555,21 +574,24 @@ async function finalizeOperations({ targetPath, manifest, operations, previousFi
 // backup. Shipped means any runtime's template, so switching runtimes never
 // deletes the files of the runtime left out. In plugin mode (PRD 2.4) the kit
 // ships no file in the repository, so only the paths this plan has are live:
-// the agents of a profile that went back to the default retire.
+// the agents of a profile that went back to the default retire. A switch to
+// plugin mode (T7) also retires the generated derived files the plan does not
+// write (the Copilot wrappers of a runtime left out).
 const retirableClasses = new Set(['kit', 'derived']);
 // The native call returns the letter case stored on disk.
 const realpathNative = promisify(realpathCallback.native);
 
-function isRetirable(manifest, relativePath) {
+function isRetirable(manifest, relativePath, { switching = false } = {}) {
   if (relativePath.includes(backupFileMarker) || isProjectPath(manifest, relativePath)) return false;
   if (Object.hasOwn(manifest.legacy_paths, relativePath)) return false;
   const entry = classifyPath(manifest, relativePath);
-  return !entry?.generated && retirableClasses.has(entry?.class ?? null);
+  return (switching || !entry?.generated) && retirableClasses.has(entry?.class ?? null);
 }
 
 // Unedited: deleted with a backup whatever the backup mode. Edited: kept and
-// flagged in the next state. Missing: only its record goes away.
-async function planRetiredFiles({ targetPath, manifest, previousFiles, operations, pluginMode = false }) {
+// flagged in the next state (in a switch, pending until discarded). Missing:
+// only its record goes away.
+async function planRetiredFiles({ targetPath, manifest, previousFiles, operations, pluginMode = false, switching = false }) {
   // Compared without letter case: on a case-insensitive file system a key
   // that differs from a live path only in case names that same live file.
   const livePaths = new Set([
@@ -580,7 +602,7 @@ async function planRetiredFiles({ targetPath, manifest, previousFiles, operation
   const realTarget = await fs.realpath(targetPath);
   const retired = { operations: [], missing: [] };
   for (const [relativePath, recorded] of Object.entries(previousFiles)) {
-    if (!isRetirable(manifest, relativePath)) continue;
+    if (!isRetirable(manifest, relativePath, { switching })) continue;
     if (livePaths.has(relativePath)) continue;
     // Same file as a live path in another letter case: only the stale key goes.
     if (live.has(relativePath.toLowerCase())) {
@@ -609,6 +631,33 @@ async function planRetiredFiles({ targetPath, manifest, previousFiles, operation
     }
   }
   return retired;
+}
+
+// T7 is all or nothing (D5): a file the switch leaves pending would leave the
+// repository in both modes, so the switch stops before anything is written
+// and names what settles each file.
+const switchCommand = 'workflow-kit update --mode plugin';
+function assertModeSwitchSettled(operations) {
+  const pending = operations.filter((item) => item.operation === 'skip_modified' || (item.operation === 'skip_unmanaged' && item.reason === 'invalid_managed_block'));
+  if (pending.length === 0) return;
+  const lines = pending.map((item) => {
+    const what = item.retired ? 'edited kit file; the switch deletes it' : item.reason;
+    const settle = item.decisions?.length > 0 ? item.decisions.join(' | ') : 'no --edited decision applies; fix its workflow-kit markers by hand';
+    return `- ${item.relativePath} (${what}): ${settle}`;
+  });
+  throw new Error([
+    `update --mode plugin switches this install from repo mode to plugin mode, and a switch is applied whole, so each file below needs a decision first.`,
+    ...lines,
+    `Run \`${switchCommand} --edited <path>=discard\` for each file (or another decision listed for it), or \`${switchCommand} --edited all=discard\` for all of them; a discarded file keeps a backup next to it. To keep an edit of a kit file, move it first to a project shadow (.agents/kit-boundary.md), then switch. Nothing was written.`
+  ].join('\n'));
+}
+
+// A recorded adapter the plugin plan does not write (the docs/README.md block,
+// the entrypoint of a runtime left out) leaves the state of a switch: the kit
+// no longer manages it, and its file stays as it is.
+function adaptersLeftBehind(manifest, previousFiles, operations) {
+  const planned = new Set(operations.map((item) => item.relativePath));
+  return Object.keys(previousFiles).filter((relativePath) => !planned.has(relativePath) && classifyPath(manifest, relativePath)?.class === 'adapter');
 }
 
 async function readOptional(file) {
