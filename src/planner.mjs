@@ -4,8 +4,9 @@ import { promisify } from 'node:util';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isSupportedRuntime, runtimeTemplatePaths, supportedRuntimes } from './runtime-matrix.mjs';
-import { loadDelegateCatalog, parseProfileOption, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
+import { isSupportedRuntime, pluginSettingsPaths, runtimeEntrypoints, runtimeTemplatePaths, supportedRuntimes } from './runtime-matrix.mjs';
+import { defaultProfileFor, loadDelegateCatalog, parseProfileOption, renderClaudeAgent, renderCopilotAgent, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
+import { assertPluginRuntimes, planPluginSettings, pluginAdapterContent, pluginName } from './plugin-mode.mjs';
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
 import { assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
@@ -15,13 +16,17 @@ import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutM
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
+const overlayTemplatePath = 'repo-overlay-fhh-ia-ecosystem-full';
 export const installStateRelativePath = '.agents/workflow-kit/install-state.json';
 const installStateSchemaVersion = '2.0.0';
 export const legacyInstallStateSchemaVersion = '1.0.0';
 const oneTimeLegacyDocsMapPath = 'docs/workflow/migration/legacy-docs-map.md';
-// The only planned path without a manifest class: it stays user-owned and the
-// kit only appends the manifest's ignore entries to it.
+// Planned paths without a manifest class: they stay user-owned, never enter
+// install-state, and the kit only merges into them (.gitignore gets the
+// manifest's ignore entries; in plugin mode a settings file gets the plugin
+// declaration).
 const gitignorePath = '.gitignore';
+const userOwnedPaths = new Set([gitignorePath, ...Object.values(pluginSettingsPaths)]);
 // Operations that leave the file as it is on disk.
 const nonWritingOperations = new Set(['skip_unmanaged', 'skip_modified', 'unchanged', 'adopt_existing']);
 
@@ -86,7 +91,7 @@ async function collectTemplateFiles(templateRelativePath) {
 }
 
 export async function selectedTemplateFiles({ runtimes = ['neutral'], overlay = 'fhh-ia-ecosystem-full' } = {}) {
-  const selected = await collectTemplateFiles('repo-overlay-fhh-ia-ecosystem-full');
+  const selected = await collectTemplateFiles(overlayTemplatePath);
 
   for (const runtime of runtimes) {
     if (runtime === 'neutral') continue;
@@ -101,6 +106,31 @@ export async function selectedTemplateFiles({ runtimes = ['neutral'], overlay = 
   }
 
   return [...deduped.values()].sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+}
+
+// Plugin mode (PRD plugin-mode-pilot 2.3): the chosen runtimes' entrypoints
+// and the overlay seeds. A runtime whose profile is not the catalog default
+// also gets the delegate agents, rendered in the plugin variant with that
+// profile; with the default profile the plugin's own agents apply (D2).
+const pluginAgents = {
+  claude: { pathOf: (slug) => `.claude/agents/${slug}.md`, render: renderClaudeAgent },
+  copilot: { pathOf: (slug) => `.github/agents/${slug}.agent.md`, render: renderCopilotAgent }
+};
+
+async function pluginModeTemplateFiles({ runtimes, manifest, catalog, modelProfiles }) {
+  const entrypoints = new Set(runtimes.flatMap((runtime) => runtimeEntrypoints[runtime] ?? []));
+  const files = (await selectedTemplateFiles({ runtimes }))
+    .filter((file) => entrypoints.has(file.relativePath) || classifyPath(manifest, file.relativePath)?.class === 'seed');
+  // `neutral` may come along with a plugin runtime; it has no agents.
+  for (const runtime of runtimes.filter((item) => Object.hasOwn(pluginAgents, item))) {
+    const profile = modelProfiles[runtime];
+    if (profile === defaultProfileFor(catalog, runtime)) continue;
+    const { pathOf, render } = pluginAgents[runtime];
+    for (const agent of catalog.agents) {
+      files.push({ relativePath: pathOf(agent.slug), sourcePath: null, content: render(agent, catalog, profile, pluginName) });
+    }
+  }
+  return files.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 }
 
 // What the apply journal says about the last init or update: null when there
@@ -164,26 +194,37 @@ export async function buildInstallPlan(options = {}) {
   // exporting again to a folder an export wrote only refreshes that copy.
   await assertNoInstallState(targetPath, manifest, { exporting: Boolean(options.export) });
   const runtimes = parseRuntimeList(options.runtime ?? 'neutral');
+  // Plugin mode (PRD plugin-mode-pilot 2.3): the kit runs as a plugin, so the
+  // repository only gets what the plugin cannot deliver.
+  const pluginMode = options.mode === 'plugin';
+  if (pluginMode) assertPluginRuntimes(runtimes);
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
-  const files = await selectedTemplateFiles({ runtimes, overlay });
-  await assertPathShapes(targetPath, [...files.map((file) => file.relativePath), gitignorePath]);
   const catalog = await loadDelegateCatalog();
   const modelProfiles = resolveModelProfiles({ catalog, runtimes, requested: parseProfileOption(options.profile) });
+  const files = pluginMode
+    ? await pluginModeTemplateFiles({ runtimes, manifest, catalog, modelProfiles })
+    : await selectedTemplateFiles({ runtimes, overlay });
+  const settingsPaths = pluginMode ? runtimes.flatMap((runtime) => pluginSettingsPaths[runtime] ?? []) : [];
+  await assertPathShapes(targetPath, [...files.map((file) => file.relativePath), gitignorePath, ...settingsPaths]);
   const instructionInspection = await inspectProjectInstructions({ targetPath });
   const migratedInstructions = migratedInstructionContents(instructionInspection);
   const stackPack = normalizeStackPack(options.stack);
   const previousFiles = {};
 
   const operations = await planTemplateFiles({
-    targetPath, files, manifest, mode: 'init', previousFiles, backupMode, catalog, modelProfiles, migratedInstructions
+    targetPath, files, manifest, mode: 'init', previousFiles, backupMode, catalog, modelProfiles, migratedInstructions, pluginMode
   });
-  operations.push(...await buildOneTimeDocsMigrationOperations({ targetPath, previousFiles }));
+  if (!pluginMode) operations.push(...await buildOneTimeDocsMigrationOperations({ targetPath, previousFiles }));
   if (options.ensureWorkspaceIgnore !== false) {
     operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
   }
-  operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode }));
+  // The kit default quality gate is not in a plugin-mode repository: the
+  // Copilot wrapper takes it from the overlay template of this CLI.
+  const kitQualityGate = pluginMode ? await fs.readFile(path.join(templatesRoot, overlayTemplatePath, kitQualityGatePath), 'utf8') : undefined;
+  operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode, kitQualityGate }));
   operations.push(...await buildStackPackOperations({ targetPath, stackPack, previousFiles }));
+  if (pluginMode) operations.push(...await planPluginSettings({ targetPath, runtimes }));
   await finalizeOperations({ targetPath, manifest, operations });
 
   const nextInstallState = buildNextInstallState({
@@ -194,7 +235,7 @@ export async function buildInstallPlan(options = {}) {
     modelProfiles,
     stackPack,
     toolkitVersion: options.toolkitVersion,
-    mode: options.export ? 'export' : 'repo'
+    mode: options.export ? 'export' : pluginMode ? 'plugin' : 'repo'
   });
 
   return {
@@ -466,7 +507,7 @@ async function requireBackupForUnrecordedContent({ targetPath, manifest, operati
 // Retired operations already carry their class.
 async function finalizeOperations({ targetPath, manifest, operations, previousFiles = {} }) {
   for (const item of operations) {
-    if (item.class === undefined && item.relativePath !== gitignorePath) item.class = classifyOrThrow(manifest, item.relativePath).class;
+    if (item.class === undefined && !userOwnedPaths.has(item.relativePath)) item.class = classifyOrThrow(manifest, item.relativePath).class;
   }
   operations.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
   // Before reading what the writes replace.
@@ -557,11 +598,17 @@ async function planTemplateFiles(context) {
       throw new Error(`Refusing to plan write outside target: ${file.relativePath}`);
     }
 
-    const templateContent = await fs.readFile(file.sourcePath, 'utf8');
+    // A file with content is rendered already (a plugin-mode agent); in plugin
+    // mode an adapter's block also carries the kit-location block.
+    const sourceContent = file.content ?? await fs.readFile(file.sourcePath, 'utf8');
+    const templateContent = context.pluginMode && entry.class === 'adapter'
+      ? pluginAdapterContent(sourceContent, entry.block ?? defaultBlockName)
+      : sourceContent;
     const planned = classPlanners[entry.class]({
       ...context,
       entry,
       templateContent,
+      rendered: file.content !== undefined,
       existingContent: await readOptional(targetFile),
       recorded: context.previousFiles[file.relativePath] ?? null,
       base: {
@@ -586,8 +633,8 @@ const classPlanners = {
 
 // kit and derived: the kit owns the whole file. A file changed since the
 // recorded install is a local edit and is only replaced by an --edited decision.
-function planOwnedFile({ base, templateContent, existingContent, recorded, mode, backupMode, catalog, modelProfiles }) {
-  const content = renderDelegateAdapterForPath(base.relativePath, catalog, modelProfiles)?.content ?? templateContent;
+function planOwnedFile({ base, templateContent, rendered, existingContent, recorded, mode, backupMode, catalog, modelProfiles }) {
+  const content = (rendered ? null : renderDelegateAdapterForPath(base.relativePath, catalog, modelProfiles)?.content) ?? templateContent;
   const plan = (operation, extra = {}) => ({ ...base, operation, content, stateChecksum: computeChecksum(content), ...extra });
   if (existingContent === null) return plan('create');
   // Content that already equals what this version would write is not a local
@@ -719,6 +766,8 @@ export function formatPlan(plan) {
   const lines = [
     `Target: ${plan.targetPath}`,
     `Mode: ${plan.mode ?? 'init'}`,
+    // Only in plugin mode, so the repo-mode output does not change.
+    ...(plan.nextInstallState?.mode === 'plugin' ? ['Install mode: plugin'] : []),
     `Toolkit version: ${plan.toolkitVersion ?? 'unknown'}`,
     `Target managed version: ${plan.previousToolkitVersion ?? 'none recorded'}`,
     `Runtimes: ${plan.runtimes.join(',')}`,
@@ -743,6 +792,7 @@ export function formatPlan(plan) {
   for (const item of plan.operations) {
     let note = item.retired ? ` (no longer shipped${item.operation === 'skip_modified' ? '; edited, kept' : ''})` : '';
     if (item.decisions && !migrationListsPending) note = ` (${item.reason}): ${item.decisions.join(' | ')}`;
+    if (item.manualFragment) note = ` (${item.reason}); add this to it by hand:\n${item.manualFragment.replace(/^/gm, '    ')}`;
     lines.push(`- ${item.operation}: ${item.relativePath}${note}`);
   }
 
@@ -929,7 +979,7 @@ function migratedInstructionContents(inspection) {
 // Copilot loads instructions from .github/instructions/. Generate those files
 // from the kit default and the neutral files as they will be after this plan
 // is applied.
-function projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode }) {
+function projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode, kitQualityGate: packageKitQualityGate }) {
   if (!runtimes.includes('copilot')) return [];
   const contentAfterPlan = (relativePath, current) => {
     const planned = operations.find((item) => item.relativePath === relativePath);
@@ -939,7 +989,7 @@ function projectInstructionWrapperOperations({ targetPath, runtimes, operations,
   for (const name of projectInstructionNames) {
     neutralContents[name] = contentAfterPlan(neutralInstructionPath(name), instructionInspection[name].neutral);
   }
-  const kitQualityGate = contentAfterPlan(kitQualityGatePath, instructionInspection['quality-gate'].kitDefault);
+  const kitQualityGate = packageKitQualityGate ?? contentAfterPlan(kitQualityGatePath, instructionInspection['quality-gate'].kitDefault);
   // Record the generated content so install-state tracks these files and
   // doctor flags a hand edit instead of an old template checksum.
   return planCopilotWrappers({ targetPath, inspection: instructionInspection, neutralContents, kitQualityGate, backupMode })

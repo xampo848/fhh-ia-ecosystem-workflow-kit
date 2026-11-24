@@ -20,3 +20,12 @@ export const supportedRuntimes = Object.freeze(Object.keys(runtimeTemplatePaths)
 export function isSupportedRuntime(runtime) {
   return supportedRuntimes.includes(runtime);
 }
+
+// Plugin mode (PRD plugin-mode-pilot 2.3): the runtimes that can load the kit
+// as a plugin, and the settings file where a repository declares it.
+export const pluginRuntimes = Object.freeze(['claude', 'copilot']);
+
+export const pluginSettingsPaths = Object.freeze({
+  claude: '.claude/settings.json',
+  copilot: '.github/copilot/settings.json'
+});

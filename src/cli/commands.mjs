@@ -2,6 +2,7 @@ import path from 'node:path';
 import { applyInstallPlan } from '../apply.mjs';
 import { formatDoctorResult, runDoctor } from '../doctor.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan } from '../planner.mjs';
+import { formatPluginInstallSteps } from '../plugin-mode.mjs';
 import { renderPlanDiffs } from '../plan-insight.mjs';
 import { applyRollbackPlan, buildRollbackPlan, formatRollbackPlan, summarizeRollback } from '../rollback.mjs';
 import { runTui } from '../tui.mjs';
@@ -17,7 +18,8 @@ export async function runInitCommand(options, { stdout, stderr }) {
     return 2;
   }
 
-  const plan = await buildInstallPlan({ ...options, toolkitVersion: packageJson.version });
+  // options.mode (repo by default, or plugin) reaches the planner as given.
+  const plan = await buildInstallPlan({ ...options, mode: options.mode ?? 'repo', toolkitVersion: packageJson.version });
   stdout.write(`${options.apply ? 'Apply plan' : 'Dry-run plan'}\n${formatPlan(plan)}\n`);
   if (options.diff) stdout.write(`\nDiff of files that would change:\n${await renderPlanDiffs(plan)}\n`);
 
@@ -25,6 +27,7 @@ export async function runInitCommand(options, { stdout, stderr }) {
 
   const applied = await applyInstallPlan(plan);
   stdout.write(formatInitApplySummary(applied));
+  if (plan.nextInstallState.mode === 'plugin') stdout.write(formatPluginInstallSteps(plan.runtimes));
   return 0;
 }
 

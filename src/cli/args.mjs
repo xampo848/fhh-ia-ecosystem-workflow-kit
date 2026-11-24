@@ -1,7 +1,8 @@
 import { editedDecisions } from '../planner.mjs';
+import { installModes } from '../plugin-mode.mjs';
 
 export function printHelp() {
-  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--diff] [--backup-mode required|none]\n  workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--diff] [--adopt-existing] [--backup-mode required|none] [--edited <path>=<decision>]... [--edited all=<decision>]\n  workflow-kit upgrade [--ref <git-ref>] [--package-manager bun] [--dry-run] [--apply --yes]\n  workflow-kit export [--output <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--backup-mode required|none]\n  workflow-kit doctor [--target <path>] [--runtime <list>]\n  workflow-kit rollback [--target <path>] [--dry-run] [--apply --yes]\n  workflow-kit tui\n  workflow-kit --help | --version\n\nCommands:\n  init      Install the workflow into a project\n  update    Update the workflow installed in a project to this workflow-kit version\n  upgrade   Update workflow-kit itself (this tool) on this machine; projects are not changed\n  export    Write the workflow files into a folder without touching any project\n  doctor    Check the workflow installed in a project (read-only)\n  rollback  Undo the last init or update applied to a project\n  tui       Guided menu for all of the above\n\nWithout --apply --yes every command is a dry run and writes nothing.\nupdate --edited decides on a file the dry run lists as pending (repeat the flag per file, or use all=):\nkeep leaves it as it is, discard takes the kit version, shadow moves the edit to a project shadow (only while\nmigrating from install-state 1.0.0), split keeps the own lines of an adapter without markers below the new block.\n`;
+  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--mode repo|plugin] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--diff] [--backup-mode required|none]\n  workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--mode repo|plugin] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--diff] [--adopt-existing] [--backup-mode required|none] [--edited <path>=<decision>]... [--edited all=<decision>]\n  workflow-kit upgrade [--ref <git-ref>] [--package-manager bun] [--dry-run] [--apply --yes]\n  workflow-kit export [--output <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--backup-mode required|none]\n  workflow-kit doctor [--target <path>] [--runtime <list>]\n  workflow-kit rollback [--target <path>] [--dry-run] [--apply --yes]\n  workflow-kit tui\n  workflow-kit --help | --version\n\nCommands:\n  init      Install the workflow into a project\n  update    Update the workflow installed in a project to this workflow-kit version\n  upgrade   Update workflow-kit itself (this tool) on this machine; projects are not changed\n  export    Write the workflow files into a folder without touching any project\n  doctor    Check the workflow installed in a project (read-only)\n  rollback  Undo the last init or update applied to a project\n  tui       Guided menu for all of the above\n\nWithout --apply --yes every command is a dry run and writes nothing.\nupdate --edited decides on a file the dry run lists as pending (repeat the flag per file, or use all=):\nkeep leaves it as it is, discard takes the kit version, shadow moves the edit to a project shadow (only while\nmigrating from install-state 1.0.0), split keeps the own lines of an adapter without markers below the new block.\n--mode repo (the default for init) installs the kit files in the project. --mode plugin (runtimes claude, copilot)\ninstalls only the adapters, the project overlay and the plugin declaration: the kit runs as the plugin fhh,\nwhich each person installs once per clone.\n`;
 }
 
 const valueFlags = {
@@ -13,8 +14,37 @@ const valueFlags = {
   '--package-manager': 'packageManager',
   '--backup-mode': 'backupMode',
   '--profile': 'profile',
-  '--stack': 'stack'
+  '--stack': 'stack',
+  '--mode': 'mode'
 };
+
+// --mode chooses where the kit lives (PRD plugin-mode-pilot 2.4) and only
+// init and update install anything.
+const modeCommands = ['init', 'update'];
+
+// A shell-ready command line, so a stop can name the command that works.
+function commandLine(args) {
+  return ['workflow-kit', ...args].map((arg) => (/^[\w@%+=:,./-]+$/.test(arg) ? arg : `'${arg.replaceAll("'", "'\\''")}'`)).join(' ');
+}
+
+function withoutMode(args) {
+  return args.filter((arg, index) => arg !== '--mode' && args[index - 1] !== '--mode');
+}
+
+function assertModeOption(command, rest, mode) {
+  const valid = `Valid values: ${installModes.join(', ')}; --mode applies only to ${modeCommands.join(' and ')}.`;
+  if (command === 'export') {
+    throw new Error(`export has no install mode: it writes a copy of the kit into a folder. Run \`workflow-kit export --output <path>\` without --mode. Nothing was written.`);
+  }
+  if (!modeCommands.includes(command)) {
+    throw new Error(`--mode does not apply to ${command}. ${valid} Run \`${commandLine([command, ...withoutMode(rest)])}\` without it. Nothing was written.`);
+  }
+  if (!installModes.includes(mode)) {
+    const repoArgs = [...rest];
+    repoArgs[repoArgs.lastIndexOf('--mode') + 1] = 'repo';
+    throw new Error(`Unsupported --mode value "${mode}". ${valid} For example: \`${commandLine([command, ...repoArgs])}\`. Nothing was written.`);
+  }
+}
 
 // --edited <path>=<decision> or all=<decision>; the planner checks that the
 // decision applies to that path.
@@ -62,6 +92,8 @@ export function parseArgs(argv) {
     else if (arg === '--help' || arg === '-h') options.help = true;
     else throw new Error(`Unknown argument: ${arg}`);
   }
+
+  if (options.mode !== undefined) assertModeOption(first, rest, options.mode);
 
   if (explicitDryRun && options.apply) {
     throw new Error('Use either --dry-run or --apply, not both. Nothing was written.');
