@@ -7,9 +7,11 @@ import { writingOperations } from './fs-safety.mjs';
 import { formatDoctorResult, runDoctor } from './doctor.mjs';
 import { lineDiff } from './plan-insight.mjs';
 import { buildInstallPlan, buildUpdatePlan, detectStackPack, formatPlan, readManagedInstallState, selectPlanOperations } from './planner.mjs';
+import { formatPluginInstallSteps } from './plugin-mode.mjs';
 import {
   createCapabilityGuide,
   defaultIntentFor,
+  installModeQuestion,
   installPackageDetails,
   modelProfileQuestions,
   stackPackQuestion,
@@ -549,9 +551,10 @@ export async function runTui(options = {}) {
   const commandExists = options.commandExists ?? defaultCommandExists;
   const runCommand = options.runCommand ?? defaultRunCommand;
   const runUpgradeExecutor = options.runUpgradeExecutor ?? runUpgradePlan;
+  // options.prompter stands in for the interactive prompter (tests).
   const prompter = scriptedMode
     ? createScriptedPrompter({ ask: options.ask, write, paint })
-    : createInteractivePrompter();
+    : options.prompter ?? createInteractivePrompter();
 
   try {
     await animateIntro(write, paint, { animate, profile: introProfile });
@@ -872,6 +875,20 @@ export async function runTui(options = {}) {
 
     }
 
+    // PRD plugin-mode-pilot 2.6: an interactive install asks the install mode
+    // when every chosen runtime has a plugin. Scripted runs keep repo; update
+    // keeps the recorded mode (the planner reads it from install-state).
+    let installMode;
+    const modeQuestion = mode === 'install' && !scriptedMode ? installModeQuestion(runtime) : null;
+    if (modeQuestion) {
+      installMode = await prompter.chooseOption({
+        title: modeQuestion.title,
+        options: modeQuestion.options,
+        defaultIndex: modeQuestion.defaultIndex,
+        defaultValue: modeQuestion.options[modeQuestion.defaultIndex].value
+      });
+    }
+
     // D-07: ask the billing model once per subscription-capable runtime on
     // install/export; update keeps the profile stored in install-state.
     const profile = mode === 'update'
@@ -944,6 +961,7 @@ export async function runTui(options = {}) {
         overlay,
         profile,
         stack,
+        mode: installMode,
         export: mode === 'export',
         ensureWorkspaceIgnore: mode !== 'export',
         recordJournal: mode !== 'export',
@@ -1096,6 +1114,9 @@ export async function runTui(options = {}) {
       }
       if (!healthy || warnings.length > 0) write(`${paint.dim('Run workflow-kit doctor --target <repo> for the full messages.')}\n`);
     }
+
+    // Plugin mode: the repository only declares the plugin; print how to install it.
+    if (plan.nextInstallState?.mode === 'plugin') write(formatPluginInstallSteps(plan.runtimes));
 
     let capabilityInstallResult = null;
     if (shouldAutoInstallCapabilities) {
