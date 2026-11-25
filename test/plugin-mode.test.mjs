@@ -287,6 +287,21 @@ test('AC-8: an invalid --mode value names dry-run commands that keep the recorde
       install: async () => {},
       args: ['init', '--mode', 'Plugin', '--runtime', 'claude'],
       commands: (target) => ['repo', 'plugin'].map((mode) => `workflow-kit init --target ${target} --runtime claude --mode ${mode}`)
+    },
+    {
+      // A runtime without a plugin rules plugin mode out (T3): only repo works.
+      name: 'init with a runtime that has no plugin',
+      install: async () => {},
+      args: ['init', '--mode', 'Plugin', '--runtime', 'codex'],
+      commands: (target) => [`workflow-kit init --target ${target} --runtime codex --mode repo`]
+    },
+    {
+      // On a plugin install a runtime without a plugin stops update (T14): the
+      // suggestion keeps the recorded runtimes instead.
+      name: 'update on a plugin install with a runtime that has no plugin',
+      install: pluginInstall,
+      args: ['update', '--mode', 'plugn', '--runtime', 'claude,codex'],
+      commands: (target) => [`workflow-kit update --target ${target}`]
     }
   ];
   for (const { name, install, args, commands } of cases) {
