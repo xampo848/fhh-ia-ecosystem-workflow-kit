@@ -27,7 +27,9 @@ export const pluginId = `${pluginName}@${marketplaceName}`;
 export const marketplaceRepository = packageJson.workflowKit.repository;
 export const installModes = Object.freeze(['repo', 'plugin']);
 export const kitLocationBlockName = 'workflow-kit:kit-location';
-const kitRootSkill = `${pluginName}:kit-root`;
+// Claude Code prefixes plugin skills with the plugin name; Copilot CLI lists
+// them without a prefix (P3-S2 smoke), so the adapter names both.
+const kitRootSkill = `the skill \`kit-root\` of the plugin \`${pluginName}\` (\`${pluginName}:kit-root\` in Claude Code, \`kit-root\` in Copilot)`;
 
 const installCommands = {
   claude: `claude plugin install ${pluginId} --scope project`,
@@ -70,9 +72,9 @@ function kitLocationBlock() {
   const { start, end } = blockMarkers(kitLocationBlockName);
   return [
     start,
-    `Kit location: the workflow kit runs as the plugin \`${pluginName}\`, so the kit files are not in this repository. Before N2/N3 work, or before reading a kit path, load the skill \`${kitRootSkill}\`: it gives the kit root.`,
+    `Kit location: the workflow kit runs as the plugin \`${pluginName}\`, so the kit files are not in this repository. Before N2/N3 work, or before reading a kit path, load ${kitRootSkill}: it gives the kit root.`,
     pluginPathRule,
-    `If the skill \`${kitRootSkill}\` is not available, the plugin is not installed: do only N0 work and tell the user the install command (\`${installCommands.claude}\` in Claude Code, \`${installCommands.copilot}\` in Copilot).`,
+    `If that skill is not available, the plugin is not installed: do only N0 work and tell the user the install command (\`${installCommands.claude}\` in Claude Code, \`${installCommands.copilot}\` in Copilot).`,
     end
   ].join('\n');
 }

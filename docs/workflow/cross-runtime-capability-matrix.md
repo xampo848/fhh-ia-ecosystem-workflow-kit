@@ -60,7 +60,7 @@ statuses above. It is separate from the delegation baseline.
 | --- | --- | --- |
 | Claude Code | supported | `observed` by a smoke: the plugin loads, its skills are `fhh:*`, `fhh:kit-root` gives the kit root, and the overlay is read from the repository |
 | VS Code Copilot | supported format | `documented` only, not verified here |
-| Copilot CLI | supported format | `documented` only, not verified here |
+| Copilot CLI | supported format | partly `observed` by a smoke (CLI 1.0.51, model gpt-4.1, the only one available to the test account): the plugin loads with `--plugin-dir`; its skills are listed without a prefix (`kit-root`, `create-prd`); only `kit-root` is visible to the model; the adapter's kit-location instruction reaches the model, and `kit-root` gives the kit root when it is invoked. gpt-4.1 did not load `kit-root` by itself, nor find the router or a runbook, so routing is not verified; stronger models were not available to test |
 | Copilot cloud agent | not verified | `unknown` |
 | Codex, Cursor | not supported yet | planned for a future phase |
 | Antigravity, opencode | repo mode only | no plugin mode |
@@ -74,9 +74,11 @@ Not verified for Copilot (assumptions of the pilot):
   marketplace declared in the repository.
 - S11: that Copilot follows a marketplace whose plugin points at another branch
   (`plugin`).
-- S12: that Copilot respects `disable-model-invocation` on a plugin skill; if
-  not, it may load the 11 workflow wrappers on its own.
-- S13: whether Copilot prefixes the names of a plugin's agents.
+- S12: observed in Copilot CLI (the model sees only `kit-root`); not checked in
+  VS Code.
+- S13: Copilot CLI lists plugin skills without a prefix, so the adapter names
+  the skill both ways (`fhh:kit-root` in Claude Code, `kit-root` in Copilot);
+  whether Copilot prefixes a plugin's agents is not verified.
 
 One documented Copilot CLI fact: when a project or personal skill has the same
 name as a plugin skill, the project or personal skill wins and the plugin's is

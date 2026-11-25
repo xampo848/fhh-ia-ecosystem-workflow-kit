@@ -157,7 +157,9 @@ test('AC-6: the adapters carry the template block plus kit-location, keep own te
       const location = extractManagedBlock(block, 'workflow-kit:kit-location').block;
       assert.ok(block.startsWith(`<!-- ${managedBlockName}:start -->\n${location}`), `${name}: ${relativePath}`);
       assert.equal(expected.replace(`${location}\n`, '').replace(`<!-- ${managedBlockName}:start -->\n\n`, `<!-- ${managedBlockName}:start -->\n`), template, `${name}: ${relativePath}`);
-      for (const required of ['`fhh`', 'fhh:kit-root', pluginMode.pluginPathRule, claudeInstall, copilotInstall, 'N0']) {
+      // Each runtime names the skill its own way (P3-S2 smoke): Claude Code
+      // prefixes plugin skills, Copilot CLI lists them without a prefix.
+      for (const required of ['`fhh`', '`fhh:kit-root` in Claude Code', '`kit-root` in Copilot', pluginMode.pluginPathRule, claudeInstall, copilotInstall, 'N0']) {
         assert.ok(location.includes(required), `${name}: ${relativePath} kit-location names ${required}`);
       }
       if (own === null) assert.equal(written, expected, `${name}: ${relativePath}`);
