@@ -139,7 +139,7 @@ installed version, so a mistyped ref or a network failure changes nothing. To
 pin a release, pass its tag (see [Versioning](versioning.md)):
 
 ```bash
-workflow-kit upgrade --ref v0.22.0-manifest-updater --apply --yes
+workflow-kit upgrade --ref v0.23.0-plugin-mode --apply --yes
 ```
 
 After that, run `update` in each project you manage to bring its workflow to
@@ -409,7 +409,7 @@ only when a new version is published, never by following `main`. The release
 steps are in [Versioning](versioning.md).
 
 Everyone who runs `workflow-kit` on a plugin-mode repository needs a CLI with
-plugin mode (the release that ships this pilot or a later one; run
+plugin mode (`0.23.0-plugin-mode` or later; run
 `workflow-kit upgrade --apply --yes` first). An older CLI reads the state as a
 repo-mode install, and its `update` reinstalls the kit files in the
 repository; `doctor` then reports `mode/repo-and-plugin`, and
