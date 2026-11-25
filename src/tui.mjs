@@ -7,7 +7,7 @@ import { writingOperations } from './fs-safety.mjs';
 import { formatDoctorResult, runDoctor } from './doctor.mjs';
 import { lineDiff } from './plan-insight.mjs';
 import { buildInstallPlan, buildUpdatePlan, detectStackPack, formatPlan, readManagedInstallState, selectPlanOperations } from './planner.mjs';
-import { formatPluginInstallSteps } from './plugin-mode.mjs';
+import { formatPluginInstallSteps, pluginName } from './plugin-mode.mjs';
 import {
   createCapabilityGuide,
   defaultIntentFor,
@@ -1152,11 +1152,13 @@ export async function runTui(options = {}) {
       }
     }
 
-    write(`${paint.dim(mode === 'update'
-      ? "The project's workflow files now match this workflow-kit version."
-      : mode === 'export'
-        ? 'The output directory now contains the complete FHH IA Ecosystem workflow package.'
-        : 'The target repository now has the complete FHH IA Ecosystem workflow package installed.') }\n`);
+    // F9: in plugin mode the kit is not in the repository; the repository only
+    // declares the plugin, whose install command is printed above.
+    let closingLine = 'The target repository now has the complete FHH IA Ecosystem workflow package installed.';
+    if (mode === 'update') closingLine = "The project's workflow files now match this workflow-kit version.";
+    else if (mode === 'export') closingLine = 'The output directory now contains the complete FHH IA Ecosystem workflow package.';
+    else if (plan.nextInstallState?.mode === 'plugin') closingLine = `The repository is set up for the plugin ${pluginName}; install the plugin with the command printed above.`;
+    write(`${paint.dim(closingLine)}\n`);
     return {
       code: 0,
       applied: true,

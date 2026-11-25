@@ -9,16 +9,16 @@ import {
   selectedTemplateFiles, stackRulesPath, unusableJournalMessage
 } from './planner.mjs';
 import { applyJournalRelativePath } from './apply.mjs';
-import { classifyPath, currentPathFor, defaultBlockName, isProjectPath, loadKitManifest } from './kit-manifest.mjs';
+import { classifyPath, currentPathFor, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, projectIndexPath, projectIndexTableRows, shadowManifestName, skillsRoot, unquote, walkTree } from './migration.mjs';
 import {
-  claudePluginListHint, claudePluginUpdateCommand, copilotPluginListCommand, inspectInstalledPlugins, inspectPluginSettings, pluginAdapterContent,
-  pluginBranch, pluginDeclarationFragment, pluginId, pluginInstallCommand
+  claudePluginEnableCommand, claudePluginListHint, claudePluginUpdateCommand, copilotPluginListCommand, inspectInstalledPlugins, inspectPluginSettings,
+  kitMarketplaceEntry, marketplaceEntryKey, pluginAdapterContent, pluginBranch, pluginDeclarationFragment, pluginEntryKey, pluginId, pluginInstallCommand
 } from './plugin-mode.mjs';
-import { pluginRuntimes, pluginSettingsPaths, supportedRuntimes } from './runtime-matrix.mjs';
+import { pluginRuntimes, pluginSettingsPaths, runtimeEntrypoints, supportedRuntimes } from './runtime-matrix.mjs';
 import { validateWorkflowContract } from './workflow-contract/index.mjs';
 import { validateAdapterContracts } from './workflow-contract/adapters.mjs';
-import { loadDelegateCatalog, modelSettingLine, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
+import { generatedMarker, loadDelegateCatalog, modelSettingLine, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
 import { projectContextDiagnostics, workspaceDiagnostics } from './workspace-diagnostics.mjs';
 import { projectInstructionDiagnostics } from './project-instructions.mjs';
 import { findSymlinkInPath, resolveInsideTarget } from './fs-safety.mjs';
@@ -158,29 +158,88 @@ const listPaths = (paths) => (paths.length <= listedPathsLimit
 // PRD 2.5: one install mode at a time. In plugin mode a kit or derived file
 // the plugin plan does not write is a second copy of the kit (backups and the
 // apply journal are no such path); in repo mode a settings file that turns the
-// plugin on loads the kit twice (an export, a copy of the kit, too).
+// plugin on loads the kit twice (an export, a copy of the kit, too). A
+// settings file doctor cannot read is skipped there: repo mode never needed
+// it (F4). Under the agents folders only a repo-mode agent, which carries the
+// generator marker, is such a copy; a project agent with a kit slug, or an
+// edited plugin agent kept by an update, is not (R11).
+const agentFolders = ['.claude/agents/', '.github/agents/'];
 async function modeMixDiagnostics({ targetPath, manifest, state, pluginMode, files, shipped }) {
   if (!state) return [];
   if (!pluginMode) {
-    return (await inspectPluginSettings({ targetPath, runtimes: pluginRuntimes })).filter((item) => item.enabled)
-      .map((item) => error('mode/repo-and-plugin', item.relativePath, `This install records repo mode (the kit files are in the repository), but this file enables the plugin ${pluginId}, so the kit would load twice. Run \`workflow-kit update --mode plugin\` to use the plugin, or remove ${pluginId} from enabledPlugins in this file to keep repo mode.`));
+    return (await inspectPluginSettings({ targetPath, runtimes: pluginRuntimes, tolerant: true })).filter((item) => item.enabled)
+      .map((item) => error('mode/repo-and-plugin', item.relativePath, `This install records ${state.mode === 'export' ? 'an export (a copy of the kit files in this folder)' : 'repo mode (the kit files are in the repository)'}, but this file enables the plugin ${pluginId}, so the kit would load twice. ${repoAndPluginWayOut(state, item.relativePath)}`));
   }
   const planned = new Set(files.map((file) => file.relativePath));
   const found = [];
   for (const relativePath of shipped.keys()) {
     if (planned.has(relativePath) || !['kit', 'derived'].includes(classifyPath(manifest, relativePath)?.class)) continue;
-    if (await pathExists(targetPath, relativePath)) found.push(relativePath);
+    if (!await pathExists(targetPath, relativePath)) continue;
+    if (agentFolders.some((folder) => relativePath.startsWith(folder)) && !(await readOptional(resolveInsideTarget(targetPath, relativePath)))?.includes(generatedMarker)) continue;
+    found.push(relativePath);
   }
   if (found.length === 0) return [];
   return [error('mode/repo-and-plugin', installStateRelativePath, `This install records plugin mode, but kit files are in the repository, where plugin mode does not install them, so the kit would load twice: ${listPaths(found)}. Delete them to keep plugin mode (the plugin ${pluginId} delivers them), or run \`workflow-kit update --mode repo\` to keep the kit files in the repository.`)];
 }
 
-// Plugin mode: each recorded plugin runtime's settings file declares the plugin.
+// F7: `update --mode plugin` works only from a 2.0.0 install (not an export)
+// whose every recorded runtime has a plugin; otherwise the way out is the
+// key to remove by hand.
+function repoAndPluginWayOut(state, relativePath) {
+  const recorded = state.runtimes.filter((runtime) => runtime !== 'neutral');
+  const switchable = state.schemaVersion !== legacyInstallStateSchemaVersion && state.mode !== 'export'
+    && recorded.length > 0 && recorded.every((runtime) => pluginRuntimes.includes(runtime));
+  const byHand = `remove ${pluginEntryKey} from ${relativePath}`;
+  return switchable
+    ? `Run \`workflow-kit update --mode plugin\` to use the plugin, or ${byHand} to keep repo mode.`
+    : `To keep the kit files in ${state.mode === 'export' ? 'this folder' : 'the repository'}, ${byHand} by hand: ${state.mode === 'export' ? 'an export has no install mode to switch' : `this install cannot switch to plugin mode as it is (runtimes: ${state.runtimes.join(', ')}${state.schemaVersion === legacyInstallStateSchemaVersion ? `; install-state ${legacyInstallStateSchemaVersion}` : ''})`}.`;
+}
+
+// Plugin mode: each recorded plugin runtime's settings file declares the
+// plugin, unless the project decided otherwise in it (D15): that choice is
+// named, with what to change for the kit's value.
 async function declarationDiagnostics({ targetPath, runtimes }) {
-  return (await inspectPluginSettings({ targetPath, runtimes })).filter((item) => !item.declared)
-    .map((item) => warning('mode/plugin-not-declared', item.relativePath, item.exists && !item.valid
+  const diagnostics = [];
+  for (const item of await inspectPluginSettings({ targetPath, runtimes })) {
+    if (item.disabledByProject) {
+      diagnostics.push(warning('mode/plugin-disabled-by-project', item.relativePath, `The project turned the plugin ${pluginId} off in this file (${pluginEntryKey} is false), so this runtime does not load the kit; workflow-kit leaves that choice as it is. To use the kit, set ${pluginEntryKey} to true.`));
+    }
+    if (item.marketplaceCustomized) {
+      diagnostics.push(warning('mode/marketplace-customized', item.relativePath, `${marketplaceEntryKey} in this file is not the kit's entry, so the plugin comes from that marketplace; workflow-kit leaves that choice as it is. To use the kit's marketplace, set it to ${kitMarketplaceEntry()}.`));
+    }
+    if (item.declared || item.disabledByProject || item.marketplaceCustomized) continue;
+    diagnostics.push(warning('mode/plugin-not-declared', item.relativePath, item.exists && !item.valid
       ? `Not a JSON object workflow-kit can merge into, so the plugin ${pluginId} is not declared and workflow-kit does not touch the file. Fix it and run \`workflow-kit update --apply --yes\`, or add this to it by hand: ${pluginDeclarationFragment()}`
       : `The plugin ${pluginId} is not declared ${item.exists ? 'in this file' : '(the file is missing)'}, so this runtime does not offer it for this repository. Run \`workflow-kit update --apply --yes\` to declare it.`));
+  }
+  return diagnostics;
+}
+
+// D16: an entrypoint with a workflow-kit block that neither a recorded
+// runtime nor install-state claims (a runtime left out by an update, or a
+// switch) is a project file the kit no longer refreshes. The finding names
+// the update that takes it back (for the runtimes it most likely belongs to:
+// the ones with most such entrypoints) and that deleting it drops it. A file
+// doctor cannot read is skipped.
+async function untrackedAdapterDiagnostics({ targetPath, manifest, state, pluginMode }) {
+  if (!state) return [];
+  const recorded = state.runtimes.filter((runtime) => runtime !== 'neutral');
+  const claimed = new Set(recorded.flatMap((runtime) => runtimeEntrypoints[runtime] ?? []));
+  const untracked = new Set();
+  for (const relativePath of new Set(Object.values(runtimeEntrypoints).flat())) {
+    if (claimed.has(relativePath) || Object.hasOwn(state.files, relativePath) || classifyPath(manifest, relativePath)?.class !== 'adapter') continue;
+    const content = await readOptional(resolveInsideTarget(targetPath, relativePath)).catch(() => null);
+    if (content !== null && !extractManagedBlock(content, classifyPath(manifest, relativePath)?.block ?? defaultBlockName).error) untracked.add(relativePath);
+  }
+  const keepCommand = (runtime) => `workflow-kit update${pluginMode && !pluginRuntimes.includes(runtime) ? ' --mode repo' : ''} --runtime ${[...recorded, runtime].join(',')}`;
+  return [...untracked].sort().map((relativePath) => {
+    const candidates = supportedRuntimes.filter((runtime) => !recorded.includes(runtime) && runtimeEntrypoints[runtime].includes(relativePath));
+    const score = (runtime) => runtimeEntrypoints[runtime].filter((item) => untracked.has(item)).length;
+    const best = Math.max(...candidates.map(score));
+    const commands = candidates.filter((runtime) => score(runtime) === best).map((runtime) => `\`${keepCommand(runtime)}\``);
+    const keep = commands.length > 1 ? `${commands.slice(0, -1).join(', ')} or ${commands.at(-1)}` : commands[0];
+    return warning('mode/adapter-not-tracked', relativePath, `This entrypoint has a workflow-kit block, but its runtime is not recorded in install-state, so workflow-kit no longer refreshes it. To keep it, run ${keep}; to drop it, delete the file.`);
+  });
 }
 
 // Plugin mode with Claude: what `claude plugin list --json` says. Only ever a
@@ -195,10 +254,14 @@ async function installedPluginDiagnostics({ targetPath, executor, timeoutMs }) {
   if (found.status === 'unverified') {
     return [warning('mode/plugin-install-unverified', settingsPath, `Could not check whether Claude Code has the plugin ${pluginId} installed (${found.reason}). Run \`${claudePluginListHint}\` to check, and \`${install}\` if it is missing.`)];
   }
-  if (found.version !== packageJson.version) {
-    return [warning('mode/plugin-version-mismatch', settingsPath, `Claude Code has the plugin ${pluginId} ${found.version ?? 'without a version'} installed; this workflow-kit CLI is ${packageJson.version}. Run \`${claudePluginUpdateCommand}\`.`)];
+  const diagnostics = [];
+  if (found.enabled === false) {
+    diagnostics.push(warning('mode/plugin-disabled', settingsPath, `Claude Code lists the plugin ${pluginId} as installed but disabled, so the kit does not load in this repository. Run \`${claudePluginEnableCommand}\`.`));
   }
-  return [];
+  if (found.version !== packageJson.version) {
+    diagnostics.push(warning('mode/plugin-version-mismatch', settingsPath, `Claude Code has the plugin ${pluginId} ${found.version ?? 'without a version'} installed; this workflow-kit CLI is ${packageJson.version}. Run \`${claudePluginUpdateCommand}\`.`));
+  }
+  return diagnostics;
 }
 
 const sha256Pattern = /^[0-9a-f]{64}$/;
@@ -375,6 +438,7 @@ export async function runDoctor(options = {}) {
     () => unownedPathDiagnostics({ targetPath, manifest, state: storedState, shipped }),
     () => symlinkDiagnostics(targetPath, files),
     () => modeMixDiagnostics({ targetPath, manifest, state: storedState, pluginMode, files, shipped }),
+    () => untrackedAdapterDiagnostics({ targetPath, manifest, state: storedState, pluginMode }),
     ...(pluginMode ? [() => declarationDiagnostics({ targetPath, runtimes })] : []),
     // Never in repo mode: the only command doctor runs, and only to read.
     ...(pluginMode && runtimes.includes('claude')

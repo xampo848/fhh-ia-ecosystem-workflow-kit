@@ -2,6 +2,7 @@
 // real `init --mode plugin` in temporary repositories; the `claude` binary is
 // always an executor double, so no test runs a runtime CLI.
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -11,9 +12,11 @@ import { applyJournalRelativePath } from '../src/apply.mjs';
 import { runCli } from '../src/cli.mjs';
 import { formatDoctorResult, runDoctor } from '../src/doctor.mjs';
 import { installStateRelativePath } from '../src/planner.mjs';
+import { pluginListTimeoutMs } from '../src/plugin-mode.mjs';
 import { createMemoryIo, hashTree, makeTempRepo } from './helpers.mjs';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const adapterTemplate = (relativePath) => fs.readFile(path.join(root, 'templates', 'runtime-adapters', relativePath), 'utf8');
 const kitTemplate = (relativePath) => fs.readFile(path.join(root, 'templates', 'repo-overlay-fhh-ia-ecosystem-full', relativePath), 'utf8');
 const pluginId = 'fhh@fhh-ia-ecosystem';
 const claudeInstall = 'claude plugin install fhh@fhh-ia-ecosystem --scope project';
@@ -48,6 +51,8 @@ const installed = (version) => answers(JSON.stringify([
   ...(version ? [{ id: pluginId, version, scope: 'project', enabled: true }] : [])
 ]));
 const doctor = (target, executor, extra = {}) => runDoctor({ targetPath: target, commandExecutor: executor, ...extra });
+const kitMarketplace = { source: { source: 'github', repo: packageJson.workflowKit.repository } };
+const settingsJson = (value) => `${JSON.stringify(value, null, 2)}\n`;
 const findings = (result, prefix) => result.diagnostics.filter((item) => item.code.startsWith(prefix));
 function assertFinding(result, code, relativePath, messages, severity) {
   const finding = result.diagnostics.find((item) => item.code === code && item.path === relativePath);
@@ -133,17 +138,44 @@ test('AC-15: the backups and the apply journal a switch to plugin mode leaves ar
   assert.equal(result.ok, true, JSON.stringify(result.diagnostics, null, 2));
 });
 
-test('AC-15: state repo with a settings file that enables the plugin is mode/repo-and-plugin naming update --mode plugin', async () => {
-  const target = await install('claude', 'repo');
-  await write(target, '.claude/settings.json', `${JSON.stringify({ enabledPlugins: { [pluginId]: true } }, null, 2)}\n`);
-  const { calls, executor } = executorDouble(installed(packageJson.version));
+// AC-15 and F7: the command named is one that works for the recorded
+// runtimes; when there is none, the finding names the key to remove by hand.
+// The test runs whichever it names.
+test('AC-15: state repo with a settings file that enables the plugin is mode/repo-and-plugin, naming a command that works or the key to remove by hand', async () => {
+  const exportFolder = async () => {
+    const target = await makeTempRepo();
+    const exported = await cli(['export', '--output', target, '--runtime', 'claude', '--apply', '--yes']);
+    assert.equal(exported.code, 0, exported.stderr);
+    return target;
+  };
+  const cases = [
+    { name: 'claude', setup: () => install('claude', 'repo'), command: 'workflow-kit update --mode plugin' },
+    { name: 'claude,codex (codex has no plugin)', setup: () => install('claude,codex', 'repo'), command: null },
+    { name: 'export (a copy of the kit)', setup: exportFolder, command: null }
+  ];
+  const key = `enabledPlugins["${pluginId}"]`;
+  for (const { name, setup, command } of cases) {
+    const target = await setup();
+    await write(target, '.claude/settings.json', settingsJson({ permissions: { allow: [] }, enabledPlugins: { [pluginId]: true } }));
+    const { calls, executor } = executorDouble(installed(packageJson.version));
 
-  const result = await doctor(target, executor);
+    const result = await doctor(target, executor);
 
-  assertFinding(result, 'mode/repo-and-plugin', '.claude/settings.json', [pluginId, 'workflow-kit update --mode plugin'], 'error');
-  assert.equal(result.ok, false);
-  assert.ok(formatDoctorResult(result).split('\n').includes('Doctor: failed'));
-  assert.deepEqual(calls, [], 'repo mode never runs the claude binary');
+    const finding = assertFinding(result, 'mode/repo-and-plugin', '.claude/settings.json', [pluginId, key], 'error');
+    assert.equal(result.ok, false, name);
+    assert.deepEqual(calls, [], `${name}: repo mode never runs the claude binary`);
+    if (command) {
+      assert.ok(finding.message.includes(`\`${command}\``), `${name}: ${finding.message}`);
+      const switched = await cli([...command.replace(/^workflow-kit /, '').split(' '), '--target', target, '--apply', '--yes']);
+      assert.equal(switched.code, 0, `${name}: ${switched.stderr}`);
+    } else {
+      assert.equal(finding.message.includes('update --mode plugin'), false, `${name}: ${finding.message}`);
+      const settings = JSON.parse(await read(target, '.claude/settings.json'));
+      delete settings.enabledPlugins[pluginId];
+      await write(target, '.claude/settings.json', settingsJson(settings));
+    }
+    assert.deepEqual(findings(await doctor(target, executor), 'mode/repo-and-plugin'), [], `${name}: settled`);
+  }
 });
 
 // AC-16: every outcome of `claude plugin list --json` is a warning with its
@@ -160,7 +192,8 @@ test('AC-16: what claude plugin list answers becomes a warning with its command,
     { name: 'not JSON', respond: answers('Plugins:\n- fhh'), code: 'mode/plugin-install-unverified', messages: ['claude plugin list', claudeInstall] },
     { name: 'non-zero exit', respond: answers('', 1), code: 'mode/plugin-install-unverified', messages: ['claude plugin list', claudeInstall] },
     { name: 'JSON that is not a list', respond: answers('{"plugins":[]}'), code: 'mode/plugin-install-unverified', messages: ['claude plugin list', claudeInstall] },
-    { name: 'cannot run', respond: () => Promise.reject(Object.assign(new Error('spawn claude EACCES'), { code: 'EACCES' })), code: 'mode/plugin-install-unverified', messages: ['EACCES', claudeInstall] }
+    { name: 'cannot run', respond: () => Promise.reject(Object.assign(new Error('spawn claude EACCES'), { code: 'EACCES' })), code: 'mode/plugin-install-unverified', messages: ['EACCES', claudeInstall] },
+    { name: 'installed but turned off', respond: answers(JSON.stringify([{ id: pluginId, version: packageJson.version, scope: 'project', enabled: false }])), code: 'mode/plugin-disabled', messages: [`claude plugin enable ${pluginId}`] }
   ];
   for (const { name, respond, code, messages } of cases) {
     const { calls, executor } = executorDouble(respond);
@@ -239,4 +272,136 @@ test('AC-19: doctor on a repo-mode install runs no command and prints no install
     'Diagnostics:'
   ]);
   assert.deepEqual(result.diagnostics.map((item) => item.code), ['project-context/not-initialized']);
+});
+
+// D15: a value the project chose in its settings file is reported as that
+// choice, with what to change for the kit's value, not as a missing declaration.
+test('D15: a plugin the project turned off or its own marketplace entry is named as the project\'s choice, not as mode/plugin-not-declared', async () => {
+  const fork = { source: { source: 'github', repo: 'fork/kit' } };
+  const disabled = ['mode/plugin-disabled-by-project', [`enabledPlugins["${pluginId}"]`, 'true']];
+  const customized = ['mode/marketplace-customized', ['extraKnownMarketplaces["fhh-ia-ecosystem"]', JSON.stringify(kitMarketplace)]];
+  const cases = [
+    { name: 'plugin turned off', settings: { extraKnownMarketplaces: { 'fhh-ia-ecosystem': kitMarketplace }, enabledPlugins: { [pluginId]: false } }, expected: [disabled] },
+    { name: 'own marketplace', settings: { extraKnownMarketplaces: { 'fhh-ia-ecosystem': fork }, enabledPlugins: { [pluginId]: true } }, expected: [customized] },
+    { name: 'both', settings: { extraKnownMarketplaces: { 'fhh-ia-ecosystem': fork }, enabledPlugins: { [pluginId]: false } }, expected: [customized, disabled] }
+  ];
+  const target = await install('claude');
+  const { executor } = executorDouble(installed(packageJson.version));
+  for (const { name, settings, expected } of cases) {
+    await write(target, '.claude/settings.json', settingsJson(settings));
+
+    const result = await doctor(target, executor);
+
+    assert.deepEqual(findings(result, 'mode/').map((item) => item.code).sort(), expected.map(([code]) => code).sort(), name);
+    for (const [code, messages] of expected) assertFinding(result, code, '.claude/settings.json', messages, 'warning');
+    assert.equal(result.ok, true, name);
+  }
+});
+
+// R11: in plugin mode a file under the agents folders is a second copy of the
+// kit only when it is a repo-mode agent, which carries the generator marker.
+test('R11: in plugin mode only an agent with the repo-mode generator marker is mode/repo-and-plugin', async () => {
+  const cases = [
+    { name: 'repo-mode Claude agent', setup: async (target) => write(target, '.claude/agents/turbo-backend.md', await adapterTemplate('claude/.claude/agents/turbo-backend.md')), mixed: ['.claude/agents/turbo-backend.md'] },
+    { name: 'repo-mode Copilot agent', setup: async (target) => write(target, '.github/agents/turbo-backend.agent.md', await adapterTemplate('copilot/.github/agents/turbo-backend.agent.md')), mixed: ['.github/agents/turbo-backend.agent.md'] },
+    { name: 'project agent with a kit slug', setup: (target) => write(target, '.claude/agents/turbo-backend.md', '---\nname: turbo-backend\ndescription: Our own backend agent.\n---\nOur rules.\n'), mixed: [] },
+    {
+      name: 'edited plugin-variant agent kept when the profile went back to the default',
+      setup: async (target) => {
+        assert.equal((await cli(['update', '--target', target, '--profile', 'claude=costo', '--apply', '--yes'])).code, 0);
+        await fs.appendFile(path.join(target, '.claude/agents/turbo-backend.md'), '\nOur extra rule.\n');
+        assert.equal((await cli(['update', '--target', target, '--profile', 'claude=calidad', '--apply', '--yes'])).code, 0);
+      },
+      mixed: [],
+      pending: '.claude/agents/turbo-backend.md'
+    }
+  ];
+  const { executor } = executorDouble(installed(packageJson.version));
+  for (const { name, setup, mixed, pending } of cases) {
+    const target = await install('claude,copilot');
+    await setup(target);
+
+    const result = await doctor(target, executor);
+
+    const mix = findings(result, 'mode/repo-and-plugin');
+    if (mixed.length === 0) {
+      assert.deepEqual(mix, [], name);
+      assert.equal(result.ok, true, `${name}: ${JSON.stringify(result.diagnostics, null, 2)}`);
+    } else {
+      assert.equal(mix.length, 1, name);
+      for (const relativePath of mixed) assert.ok(mix[0].message.includes(relativePath), `${name}: ${mix[0].message}`);
+    }
+    if (pending) assertFinding(result, 'boundary/pending-retired_edited', pending, [], 'warning');
+  }
+});
+
+// F5: the default executor, against a `claude` that ignores SIGTERM and keeps
+// a child holding its output open. The CLI runs as a separate process so a
+// hang shows up as a process that does not exit.
+test('F5: with the real command executor, doctor exits soon after its timeout when claude ignores SIGTERM', { timeout: pluginListTimeoutMs + 20000 }, async () => {
+  const target = await install('claude');
+  const bin = await makeTempRepo('workflow-kit-fake-claude-');
+  const callLog = path.join(bin, 'calls.log');
+  await fs.writeFile(path.join(bin, 'claude'), `#!/bin/sh\necho "$*" >> '${callLog}'\ntrap '' TERM\nwhile true; do sleep 30; done\n`, { mode: 0o755 });
+  const limit = pluginListTimeoutMs + 5000;
+  const started = Date.now();
+  const child = spawn(process.execPath, [path.join(root, 'bin', 'workflow-kit.mjs'), 'doctor', '--target', target], {
+    env: { ...process.env, PATH: `${bin}${path.delimiter}${process.env.PATH}` },
+    detached: true,
+    stdio: ['ignore', 'pipe', 'pipe']
+  });
+  let stdout = '';
+  child.stdout.on('data', (chunk) => { stdout += chunk; });
+  const exited = await new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(false), limit);
+    child.on('close', (code) => { clearTimeout(timer); resolve(code); });
+  });
+  const elapsed = Date.now() - started;
+  // The whole process group: the CLI if it hangs, and the fake claude.
+  try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already gone */ }
+
+  assert.notEqual(exited, false, `doctor still running after ${limit} ms`);
+  assert.equal(exited, 0, stdout);
+  assert.ok(elapsed >= pluginListTimeoutMs && elapsed < limit, `${elapsed} ms`);
+  assert.match(stdout, /\[mode\/plugin-install-unverified\]/);
+  assert.equal((await read(bin, 'calls.log')).trim(), 'plugin list --json');
+});
+
+// F4: in repo mode the settings files are read only to find the plugin turned
+// on; one doctor cannot read adds nothing to the result. `.github` as a file
+// also blocks the Copilot wrapper path the project-instructions check reads:
+// those two findings are what doctor of 558e9fb (before plugin mode) reports
+// for that tree, checked by running it on the same repository.
+test('F4: in repo mode a plugin settings file doctor cannot read adds nothing to the result, as before plugin mode', async () => {
+  const cases = [
+    {
+      name: 'settings without read permission',
+      setup: async (target) => {
+        await write(target, '.claude/settings.json', settingsJson({ enabledPlugins: { [pluginId]: true } }));
+        await fs.chmod(path.join(target, '.claude/settings.json'), 0o000);
+      },
+      before: []
+    },
+    { name: 'a folder at the settings path', setup: (target) => fs.mkdir(path.join(target, '.claude/settings.json'), { recursive: true }), before: [] },
+    {
+      name: '.github is a file',
+      setup: (target) => write(target, '.github', 'not a folder\n'),
+      before: [['boundary/update-plan-failed', installStateRelativePath], ['managed/path-unreadable', '.github/instructions/quality-gate.instructions.md']]
+    }
+  ];
+  const codeAndPath = (items) => items.map((item) => [item.code, item.path]).sort();
+  for (const { name, setup, before } of cases) {
+    const target = await install('claude', 'repo');
+    const { calls, executor } = executorDouble(installed(packageJson.version));
+    const baseline = await doctor(target, executor);
+    await setup(target);
+
+    const result = await doctor(target, executor);
+
+    assert.deepEqual(codeAndPath(result.diagnostics), codeAndPath([...baseline.diagnostics, ...before.map(([code, relativePath]) => ({ code, path: relativePath }))]), name);
+    assert.deepEqual(result.missing, baseline.missing, name);
+    assert.equal(result.ok, before.length === 0, name);
+    if (before.length === 0) assert.equal(formatDoctorResult(result), formatDoctorResult(baseline), name);
+    assert.deepEqual(calls, [], name);
+  }
 });

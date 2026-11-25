@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isSupportedRuntime, pluginRuntimes, pluginSettingsPaths, runtimeEntrypoints, runtimeTemplatePaths, supportedRuntimes } from './runtime-matrix.mjs';
 import { defaultProfileFor, loadDelegateCatalog, parseProfileOption, renderClaudeAgent, renderCopilotAgent, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
-import { assertPluginRuntimes, planPluginSettings, planPluginSettingsRemoval, pluginAdapterContent, pluginName } from './plugin-mode.mjs';
+import { assertPluginRuntimes, kitLocationBlockName, planPluginSettings, planPluginSettingsRemoval, pluginAdapterContent, pluginName, runtimesDeclaringPlugin } from './plugin-mode.mjs';
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
 import { assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
@@ -20,6 +20,8 @@ const overlayTemplatePath = 'repo-overlay-fhh-ia-ecosystem-full';
 export const installStateRelativePath = '.agents/workflow-kit/install-state.json';
 const installStateSchemaVersion = '2.0.0';
 export const legacyInstallStateSchemaVersion = '1.0.0';
+// "repo" and "plugin" are installs; "export" is a copy of the kit.
+const readableInstallModes = Object.freeze(['repo', 'export', 'plugin']);
 const oneTimeLegacyDocsMapPath = 'docs/workflow/migration/legacy-docs-map.md';
 // Planned paths without a manifest class: they stay user-owned, never enter
 // install-state, and the kit only merges into them (.gitignore gets the
@@ -118,9 +120,19 @@ const pluginAgents = {
 };
 
 export async function pluginModeTemplateFiles({ runtimes, manifest, catalog, modelProfiles }) {
+  return [...await pluginModeBaseFiles({ runtimes, manifest }), ...pluginProfileAgentFiles({ runtimes, catalog, modelProfiles })]
+    .sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+}
+
+// The files that do not depend on the profile: entrypoints and seeds.
+async function pluginModeBaseFiles({ runtimes, manifest }) {
   const entrypoints = new Set(runtimes.flatMap((runtime) => runtimeEntrypoints[runtime] ?? []));
-  const files = (await selectedTemplateFiles({ runtimes }))
+  return (await selectedTemplateFiles({ runtimes }))
     .filter((file) => entrypoints.has(file.relativePath) || classifyPath(manifest, file.relativePath)?.class === 'seed');
+}
+
+function pluginProfileAgentFiles({ runtimes, catalog, modelProfiles }) {
+  const files = [];
   // `neutral` may come along with a plugin runtime; it has no agents.
   for (const runtime of runtimes.filter((item) => Object.hasOwn(pluginAgents, item))) {
     const profile = modelProfiles[runtime];
@@ -130,7 +142,23 @@ export async function pluginModeTemplateFiles({ runtimes, manifest, catalog, mod
       files.push({ relativePath: pathOf(agent.slug), sourcePath: null, content: render(agent, catalog, profile, pluginName) });
     }
   }
-  return files.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+  return files;
+}
+
+// The paths a plan writes are checked before --profile is parsed, as before
+// plugin mode (558e9fb): a path problem is reported first. The profile agents
+// of plugin mode are known only with the profile, so their paths are checked
+// once it is parsed.
+async function resolveProfilesAndAgents({ targetPath, runtimes, files, pluginMode, requested, stored }) {
+  const catalog = await loadDelegateCatalog();
+  const modelProfiles = resolveModelProfiles({ catalog, runtimes, requested, stored });
+  if (pluginMode) {
+    const agents = pluginProfileAgentFiles({ runtimes, catalog, modelProfiles });
+    await assertPathShapes(targetPath, agents.map((file) => file.relativePath));
+    files.push(...agents);
+    files.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+  }
+  return { catalog, modelProfiles };
 }
 
 // What the apply journal says about the last init or update: null when there
@@ -182,11 +210,11 @@ async function assertNoInstallState(targetPath, manifest, { exporting = false, p
   }
   const runtimeList = pluginMode ? pluginRuntimeList(runtime, state?.runtimes) : null;
   if (state?.schemaVersion === legacyInstallStateSchemaVersion) {
-    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run \`workflow-kit update\` to migrate this repository${pluginMode ? `, then \`${pluginUpdateCommand(runtimeList)}\`` : ''}; init would replace project content. Nothing was written.`);
+    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run \`workflow-kit update\` to migrate this repository${pluginMode ? `, then \`${pluginUpdateCommand(runtimeList)}\`` : ''}; init would replace project content.${pluginMode ? leftOutNote(runtimeList, state.runtimes) : ''} Nothing was written.`);
   }
   if (state) {
     let pluginWay = '';
-    if (pluginMode) pluginWay = state.mode === 'export' ? ` ${exportIsACopy(runtimeList)}` : ` To use plugin mode, run \`${pluginUpdateCommand(runtimeList)}\`.`;
+    if (pluginMode) pluginWay = state.mode === 'export' ? ` ${exportIsACopy(runtimeList)}` : ` To use plugin mode, run \`${pluginUpdateCommand(runtimeList)}\`.${leftOutNote(runtimeList, state.runtimes)}`;
     throw new Error(`${installStateRelativePath} already records an install (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}). Run \`workflow-kit update\` instead (with \`--runtime <list>\`, \`--stack\` or \`--profile\` to change those choices); init would reset the recorded runtimes, stack and profiles and replace pending edited files.${pluginWay} Nothing was written.`);
   }
 }
@@ -214,7 +242,7 @@ function resolveUpdateMode(requestedMode, existingState, runtime) {
     throw new Error(`update --adopt-existing --mode plugin: there is no install state to switch from. Run \`workflow-kit update --adopt-existing --runtime ${runtimeList}\` first to bootstrap a safe baseline, then \`${pluginUpdateCommand(runtimeList)}\`. Nothing was written.`);
   }
   if (existingState.schemaVersion === legacyInstallStateSchemaVersion) {
-    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}, and its layout migration has to run before a mode switch. Run \`workflow-kit update\` first, then \`${pluginUpdateCommand(runtimeList)}\`. Nothing was written.`);
+    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}, and its layout migration has to run before a mode switch. Run \`workflow-kit update\` first, then \`${pluginUpdateCommand(runtimeList)}\`.${leftOutNote(runtimeList, existingState.runtimes)} Nothing was written.`);
   }
   if (existingState.mode === 'export') {
     throw new Error(`update --mode plugin: ${installStateRelativePath} records an export. ${exportIsACopy(runtimeList)} Nothing was written.`);
@@ -229,6 +257,15 @@ function pluginRuntimeList(runtime, recordedRuntimes) {
   return (chosen.length > 0 ? chosen : pluginRuntimes).join(',');
 }
 const pluginUpdateCommand = (runtimeList) => `workflow-kit update --mode plugin --runtime ${runtimeList}`;
+// F6: a recorded runtime the named plugin-mode command does not keep leaves
+// the install with it (D16), so the stop says so.
+function leftOutNote(runtimeList, recordedRuntimes = []) {
+  const kept = runtimeList.split(',');
+  const leftOut = recordedRuntimes.filter((item) => item !== 'neutral' && !kept.includes(item));
+  if (leftOut.length === 0) return '';
+  const its = leftOut.length === 1 ? 'its' : 'their';
+  return ` That command leaves ${leftOut.join(', ')} out of the install: ${its} kit files are deleted with a backup, and ${its} adapters stay in the repository as project files, which doctor lists.`;
+}
 const exportIsACopy = (runtimeList) => `An exported folder is a copy of the kit, not an install, so it has no install mode: to use plugin mode, install the kit in a repository with \`workflow-kit init --mode plugin --runtime ${runtimeList} --target <repo>\`.`;
 
 export async function buildInstallPlan(options = {}) {
@@ -245,12 +282,9 @@ export async function buildInstallPlan(options = {}) {
   if (pluginMode) assertPluginRuntimes(runtimes);
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
-  const catalog = await loadDelegateCatalog();
-  const modelProfiles = resolveModelProfiles({ catalog, runtimes, requested: parseProfileOption(options.profile) });
-  const files = pluginMode
-    ? await pluginModeTemplateFiles({ runtimes, manifest, catalog, modelProfiles })
-    : await selectedTemplateFiles({ runtimes, overlay });
+  const files = pluginMode ? await pluginModeBaseFiles({ runtimes, manifest }) : await selectedTemplateFiles({ runtimes, overlay });
   await assertPathShapes(targetPath, [...files.map((file) => file.relativePath), gitignorePath, ...(pluginMode ? settingsPathsOf(runtimes) : [])]);
+  const { catalog, modelProfiles } = await resolveProfilesAndAgents({ targetPath, runtimes, files, pluginMode, requested: parseProfileOption(options.profile) });
   const instructionInspection = await inspectProjectInstructions({ targetPath });
   const migratedInstructions = migratedInstructionContents(instructionInspection);
   const stackPack = normalizeStackPack(options.stack);
@@ -318,25 +352,27 @@ export async function buildUpdatePlan(options = {}) {
   const leavingPlugin = switchTo === 'repo';
   const runtimes = parseRuntimeList(options.runtime ?? existingState?.runtimes?.join(',') ?? 'neutral');
   if (pluginMode) assertPluginRuntimes(runtimes, 'update');
-  const declaredRuntimes = leavingPlugin ? [...new Set([...existingState.runtimes, ...runtimes])] : [];
+  // D16: the runtimes whose settings lose the kit's declaration. Leaving
+  // plugin mode: the recorded ones, the requested ones and any whose file
+  // declares the plugin. In plugin mode: a recorded runtime that leaves.
+  const recordedRuntimes = existingState?.runtimes ?? [];
+  const droppedRuntimes = recordedRuntimes.filter((item) => item !== 'neutral' && !runtimes.includes(item));
+  const declaringRuntimes = leavingPlugin || (pluginMode && existingState?.mode === 'plugin') ? await runtimesDeclaringPlugin({ targetPath }) : [];
+  const settingsCleanup = leavingPlugin
+    ? [...new Set([...recordedRuntimes, ...runtimes, ...declaringRuntimes])]
+    : declaringRuntimes.filter((item) => droppedRuntimes.includes(item));
   const overlay = normalizeOverlay(options.overlay ?? existingState?.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
-  const catalog = await loadDelegateCatalog();
-  const modelProfiles = resolveModelProfiles({
-    catalog,
-    runtimes,
-    requested: parseProfileOption(options.profile),
-    stored: existingState?.modelProfiles
-  });
-  const files = pluginMode
-    ? await pluginModeTemplateFiles({ runtimes, manifest, catalog, modelProfiles })
-    : await selectedTemplateFiles({ runtimes, overlay });
+  const files = pluginMode ? await pluginModeBaseFiles({ runtimes, manifest }) : await selectedTemplateFiles({ runtimes, overlay });
   // The migration also reads the project index and lists the project skills.
   const migrating = existingState?.schemaVersion === legacyInstallStateSchemaVersion;
   // The migration leaves a new path it cannot move to pending (legacy_path_unsupported).
   const shapedFiles = files.map((file) => file.relativePath).filter((relativePath) => !migrating || !Object.values(manifest.legacy_paths).includes(relativePath));
-  await assertPathShapes(targetPath, [...shapedFiles, gitignorePath, ...settingsPathsOf(pluginMode ? runtimes : declaredRuntimes), ...(migrating ? [projectIndexPath] : [])],
+  await assertPathShapes(targetPath, [...shapedFiles, gitignorePath, ...settingsPathsOf(pluginMode ? runtimes : settingsCleanup), ...(migrating ? [projectIndexPath] : [])],
     migrating ? [`${manifest.project_root}skills`] : []);
+  const { catalog, modelProfiles } = await resolveProfilesAndAgents({
+    targetPath, runtimes, files, pluginMode, requested: parseProfileOption(options.profile), stored: existingState?.modelProfiles
+  });
   const instructionInspection = await inspectProjectInstructions({ targetPath });
   const migratedInstructions = migratedInstructionContents(instructionInspection);
   // Installs from before stack packs carried the Rails + React rules inside the
@@ -372,12 +408,17 @@ export async function buildUpdatePlan(options = {}) {
   operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode, kitQualityGate }));
   operations.push(...await buildStackPackOperations({ targetPath, stackPack, previousFiles }));
   if (pluginMode) operations.push(...await planPluginSettings({ targetPath, runtimes }));
-  if (leavingPlugin) operations.push(...await planPluginSettingsRemoval({ targetPath, runtimes: declaredRuntimes }));
-  const retired = existingState ? await planRetiredFiles({ targetPath, manifest, previousFiles, operations, pluginMode, switching }) : { operations: [], missing: [] };
+  if (settingsCleanup.length > 0) operations.push(...await planPluginSettingsRemoval({ targetPath, runtimes: settingsCleanup }));
+  const untracked = leavingPlugin ? await planKitLocationCleanup({ targetPath, manifest, operations }) : [];
+  operations.push(...untracked);
+  // A runtime that leaves a plugin install also takes the generated files of
+  // that runtime (the Copilot wrappers), as a switch to plugin mode does.
+  const retireGenerated = switching || (pluginMode && droppedRuntimes.length > 0);
+  const retired = existingState ? await planRetiredFiles({ targetPath, manifest, previousFiles, operations, pluginMode, switching: retireGenerated }) : { operations: [], missing: [] };
   operations.push(...retired.operations);
   if (switching) {
     await planEditedDecisions({ operations, edited: options.edited ?? {}, manifest, switching });
-    assertModeSwitchSettled(operations);
+    assertModeSwitchSettled(operations, options.runtime === undefined ? '' : ` --runtime ${runtimes.join(',')}`);
   }
   await finalizeOperations({ targetPath, manifest, operations, previousFiles });
   // A switch (either way), like the layout migration, is applied whole and
@@ -386,7 +427,12 @@ export async function buildUpdatePlan(options = {}) {
   // mode is all or nothing: leaving it, a pending file stays pending (F2).
   if (migration || switchTo) requireMigrationBackups(operations);
   if (switchTo) for (const item of operations) item.migration = true;
-  const droppedStatePaths = [...retired.missing, ...(migration?.droppedPaths ?? []), ...(switching ? adaptersLeftBehind(manifest, previousFiles, operations) : [])];
+  const droppedStatePaths = [
+    ...retired.missing,
+    ...(migration?.droppedPaths ?? []),
+    ...(pluginMode && existingState ? adaptersLeftBehind(manifest, previousFiles, operations) : []),
+    ...untracked.map((item) => item.relativePath)
+  ];
   const layoutMigration = migration?.describe(operations);
   const migrations = describeMigrations({
     operations,
@@ -661,9 +707,10 @@ async function planRetiredFiles({ targetPath, manifest, previousFiles, operation
 
 // T7 is all or nothing (D5): a file the switch leaves pending would leave the
 // repository in both modes, so the switch stops before anything is written
-// and names what settles each file.
+// and names what settles each file: one command with an --edited flag per
+// file (F8), which can be run as printed.
 const switchCommand = 'workflow-kit update --mode plugin';
-function assertModeSwitchSettled(operations) {
+function assertModeSwitchSettled(operations, runtimeFlag = '') {
   const pending = operations.filter((item) => item.operation === 'skip_modified' || (item.operation === 'skip_unmanaged' && item.reason === 'invalid_managed_block'));
   if (pending.length === 0) return;
   const lines = pending.map((item) => {
@@ -671,19 +718,47 @@ function assertModeSwitchSettled(operations) {
     const settle = item.decisions?.length > 0 ? item.decisions.join(' | ') : 'no --edited decision applies; fix its workflow-kit markers by hand';
     return `- ${item.relativePath} (${what}): ${settle}`;
   });
+  const command = `${switchCommand}${runtimeFlag}`;
+  const discardable = pending.filter((item) => item.decisions?.includes('discard'));
+  const fixByHand = discardable.length < pending.length ? 'Fix the markers of each file no --edited decision applies to, then run' : 'Run';
+  const perFile = discardable.length > 0
+    ? `${fixByHand} \`${command} ${discardable.map((item) => `--edited ${item.relativePath}=discard`).join(' ')}\` (one \`--edited <path>=<decision>\` per file, all in the same command; another decision listed for a file can replace discard), or \`${command} --edited all=discard\` for all of them; a discarded file keeps a backup next to it.`
+    : 'Fix the markers of each file by hand, then switch.';
   throw new Error([
     `update --mode plugin switches this install from repo mode to plugin mode, and a switch is applied whole, so each file below needs a decision first.`,
     ...lines,
-    `Run \`${switchCommand} --edited <path>=discard\` for each file (or another decision listed for it), or \`${switchCommand} --edited all=discard\` for all of them; a discarded file keeps a backup next to it. To keep an edit of a kit file, move it first to a project shadow (.agents/kit-boundary.md), then switch. Nothing was written.`
+    `${perFile} To keep an edit of a kit file, move it first to a project shadow (.agents/kit-boundary.md), then switch. Nothing was written.`
   ].join('\n'));
 }
 
 // A recorded adapter the plugin plan does not write (the docs/README.md block,
-// the entrypoint of a runtime left out) leaves the state of a switch: the kit
-// no longer manages it, and its file stays as it is.
+// the entrypoint of a runtime left out) leaves the state of a plugin install:
+// the kit no longer manages it, and its file stays as it is (R9, D16).
 function adaptersLeftBehind(manifest, previousFiles, operations) {
   const planned = new Set(operations.map((item) => item.relativePath));
   return Object.keys(previousFiles).filter((relativePath) => !planned.has(relativePath) && classifyPath(manifest, relativePath)?.class === 'adapter');
+}
+
+// D16: leaving plugin mode, an entrypoint on disk that the plan does not write
+// (a runtime left out in the same command, or earlier) and that still carries
+// the kit-location block gets the repo-mode block of its template, with a
+// backup, and leaves the state as a file of the project (R9). A file that
+// cannot be read, or whose managed block is not valid, stays as it is.
+async function planKitLocationCleanup({ targetPath, manifest, operations }) {
+  const planned = new Set(operations.map((item) => item.relativePath));
+  const templates = new Map((await selectedTemplateFiles({ runtimes: supportedRuntimes })).map((file) => [file.relativePath, file.sourcePath]));
+  const cleanup = [];
+  for (const relativePath of new Set(Object.values(runtimeEntrypoints).flat())) {
+    const entry = classifyPath(manifest, relativePath);
+    if (planned.has(relativePath) || entry?.class !== 'adapter' || !templates.has(relativePath)) continue;
+    const targetFile = resolveInsideTarget(targetPath, relativePath);
+    const existing = await readOptional(targetFile).catch(() => null);
+    if (existing === null || extractManagedBlock(existing, kitLocationBlockName).error) continue;
+    const content = replaceManagedBlock(existing, await fs.readFile(templates.get(relativePath), 'utf8'), entry.block ?? defaultBlockName);
+    if (content === null) continue;
+    cleanup.push({ relativePath, targetFile, sourcePath: templates.get(relativePath), class: 'adapter', operation: 'overwrite_with_backup', content, untracked: true });
+  }
+  return cleanup;
 }
 
 async function readOptional(file) {
@@ -901,7 +976,9 @@ export function formatPlan(plan) {
   const migrationListsPending = (plan.migrations ?? []).some((migration) => migration.id === layoutMigrationId);
   for (const item of plan.operations) {
     let note = item.retired ? ` (no longer shipped${item.operation === 'skip_modified' ? '; edited, kept' : ''})` : '';
+    if (item.untracked) note = ' (kit-location removed; leaves the install as a project file)';
     if (item.decisions && !migrationListsPending) note = ` (${item.reason}): ${item.decisions.join(' | ')}`;
+    if (item.note) note = ` (${item.reason}): ${item.note}`;
     if (item.manualFragment) note = ` (${item.reason}); ${item.manualAction} by hand:\n${item.manualFragment.replace(/^/gm, '    ')}`;
     lines.push(`- ${item.operation}: ${item.relativePath}${note}`);
   }
@@ -935,6 +1012,11 @@ async function readInstallState(stateFilePath, manifest) {
   }
   if (![legacyInstallStateSchemaVersion, installStateSchemaVersion].includes(parsed.schemaVersion)) {
     throw unusable(`uses schema ${parsed.schemaVersion ?? 'unknown'}, and this CLI reads ${legacyInstallStateSchemaVersion} and ${installStateSchemaVersion}`);
+  }
+  // A mode this CLI does not know is never read as repo: the install it
+  // describes is not one this CLI can update.
+  if (Object.hasOwn(parsed, 'mode') && !readableInstallModes.includes(parsed.mode)) {
+    throw unusable(`records the install mode ${JSON.stringify(parsed.mode)}, and this CLI reads ${readableInstallModes.join(', ')}`);
   }
   const legacy = parsed.schemaVersion === legacyInstallStateSchemaVersion;
   const files = {};
@@ -1003,6 +1085,8 @@ function buildNextInstallState({ previousState, operations, droppedPaths = [], r
       files[item.relativePath] = { ...files[item.relativePath], retired: true };
       continue;
     }
+    // An adapter the kit hands back to the project (D16) stays out.
+    if (item.untracked) continue;
     // .gitignore has no class and stays user-owned; skipped files keep what
     // the previous state recorded.
     if (!item.class || item.class === 'state') continue;

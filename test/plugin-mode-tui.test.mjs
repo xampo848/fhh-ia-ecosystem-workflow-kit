@@ -13,6 +13,10 @@ import { makeTempRepo } from './helpers.mjs';
 
 const modeQuestionTitle = installModeQuestion('claude').title;
 const claudeInstallCommand = pluginInstallCommand('claude');
+// F9: the closing line of a repo-mode install, which a plugin-mode install
+// must not print (the kit is not in the repository).
+const repoInstalledLine = 'The target repository now has the complete FHH IA Ecosystem workflow package installed.';
+const pluginReadyLine = 'The repository is set up for the plugin fhh; install the plugin with the command printed above.';
 
 // The interactive prompter answers like inquirer does: a value per question.
 // An answer is a value, or a function of the question; a question without an
@@ -103,6 +107,9 @@ test('AC-18: an interactive plugin install and a TUI update, both with a partial
   assert.equal(await exists('.agents/project/frontend.md'), false, 'the deselected file is not written');
   assert.equal((await stateOnDisk(target)).mode, 'plugin');
   assert.ok(install.output.includes(claudeInstallCommand), 'the install command is printed');
+  assert.ok(install.output.includes(pluginReadyLine), install.output.slice(-600));
+  assert.equal(install.output.includes(repoInstalledLine), false, 'a plugin install does not say the package is in the repository');
+  assert.ok(install.output.indexOf(claudeInstallCommand) < install.output.indexOf(pluginReadyLine), 'the closing line comes after the install command');
 
   const update = await runInteractive({
     'Elige una opción': 'update',
@@ -151,6 +158,8 @@ test('a scripted install with claude is not asked the install mode and records r
   assert.ok(!output.includes(modeQuestionTitle));
   assert.equal((await stateOnDisk(target)).mode, 'repo');
   assert.ok(!output.includes(claudeInstallCommand));
+  assert.ok(output.includes(repoInstalledLine), 'a repo install keeps its closing line');
+  assert.equal(output.includes(pluginReadyLine), false);
 });
 
 test('the TUI passes its command executor to doctor, so a plugin-mode apply never runs the real claude binary in tests', () => {

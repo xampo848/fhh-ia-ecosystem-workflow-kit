@@ -34,6 +34,7 @@ const installCommands = {
   copilot: `copilot plugin install ${pluginId}`
 };
 export const claudePluginUpdateCommand = `claude plugin update ${pluginId}`;
+export const claudePluginEnableCommand = `claude plugin enable ${pluginId}`;
 // Copilot has no documented way to read its installed plugins (PRD 2.5).
 export const copilotPluginListCommand = 'copilot plugin list';
 const runtimeLabels = { claude: 'Claude Code', copilot: 'Copilot' };
@@ -93,18 +94,38 @@ const declarationFragment = () => ({ extraKnownMarketplaces: { [marketplaceName]
 const isKitMarketplace = (settings) => isDeepStrictEqual(settings.extraKnownMarketplaces?.[marketplaceName], marketplaceDeclaration());
 const enablesPlugin = (settings) => settings.enabledPlugins?.[pluginId] === true;
 const isDeclared = (settings) => isKitMarketplace(settings) && enablesPlugin(settings);
+// D15: what a project decided in its settings file stays. A plugin entry set
+// to false, or a marketplace entry other than the kit's (a fork, an own ref),
+// is never replaced, and leaving plugin mode only removes an entry that is
+// the kit's.
+const disabledByProject = (settings) => settings.enabledPlugins?.[pluginId] === false;
+const marketplaceCustomized = (settings) => settings.extraKnownMarketplaces?.[marketplaceName] !== undefined && !isKitMarketplace(settings);
+// Something leaving plugin mode removes: an entry the kit writes.
+const carriesKitEntry = (settings) => enablesPlugin(settings) || isKitMarketplace(settings);
+// The two keys as a person finds them in the file.
+export const pluginEntryKey = `enabledPlugins["${pluginId}"]`;
+export const marketplaceEntryKey = `extraKnownMarketplaces["${marketplaceName}"]`;
+export const kitMarketplaceEntry = () => JSON.stringify(marketplaceDeclaration());
 // The fragment to add by hand, on one line so a message can carry it.
 export const pluginDeclarationFragment = () => JSON.stringify(declarationFragment());
 
 // The settings file of each chosen plugin runtime: null when it is missing;
 // `settings: null` when it is not a JSON object whose two declaration keys are
-// objects, so the kit never touches it.
-async function readPluginSettings({ targetPath, runtimes }) {
+// objects, so the kit never touches it. `tolerant`: a file that cannot be read
+// (no permission, a folder at its path, a file where a folder of its path
+// should be) counts as missing, for the reads that only look for the plugin.
+async function readPluginSettings({ targetPath, runtimes, tolerant = false }) {
   const files = [];
   for (const runtime of runtimes.filter((item) => pluginRuntimes.includes(item))) {
     const relativePath = pluginSettingsPaths[runtime];
     const targetFile = path.join(targetPath, relativePath);
-    const existing = await readOptional(targetFile);
+    let existing;
+    try {
+      existing = await readOptional(targetFile);
+    } catch (readError) {
+      if (!tolerant) throw readError;
+      existing = null;
+    }
     let settings = null;
     if (existing !== null) {
       try {
@@ -114,7 +135,7 @@ async function readPluginSettings({ targetPath, runtimes }) {
       }
       if (!isPlainObject(settings) || declarationKeys.some((key) => settings[key] !== undefined && !isPlainObject(settings[key]))) settings = null;
     }
-    files.push({ base: { relativePath, targetFile, sourcePath: null }, existing, settings });
+    files.push({ runtime, base: { relativePath, targetFile, sourcePath: null }, existing, settings });
   }
   return files;
 }
@@ -123,11 +144,22 @@ async function readPluginSettings({ targetPath, runtimes }) {
 const serializeLike = (existing, settings) => `${JSON.stringify(settings, null, existing.match(/\n([ \t]+)"/)?.[1] ?? 2)}\n`;
 const invalidSettings = (base, existing, manualAction) => ({ ...base, operation: 'skip_unmanaged', content: existing, reason: 'invalid_settings_json', manualFragment: JSON.stringify(declarationFragment(), null, 2), manualAction });
 
+// D15: the plan line of a settings file the project decided on.
+function projectChoice(base, existing, settings) {
+  const choices = [
+    ...(disabledByProject(settings) ? [['plugin_disabled_by_project', `${pluginEntryKey} is false, the project turned the plugin off (set it to true to load the kit)`]] : []),
+    ...(marketplaceCustomized(settings) ? [['marketplace_customized', `${marketplaceEntryKey} is the project's own entry (set it to ${kitMarketplaceEntry()} to use the kit's)`]] : [])
+  ];
+  if (choices.length === 0) return null;
+  return { ...base, operation: 'skip_unmanaged', content: existing, reason: choices[0][0], note: `the project's choice, left as it is: ${choices.map(([, text]) => text).join('; ')}` };
+}
+
 // The settings files are the user's, like .gitignore: their operations have no
 // class and never enter install-state. A valid file only gains the two keys
 // (other keys and their order stay) and always keeps a backup; a file that is
 // not a JSON object, or whose two keys are not objects, is never touched: the
-// plan shows the fragment to add by hand.
+// plan shows the fragment to add by hand. A file where the project turned the
+// plugin off or uses its own marketplace entry is not touched either (D15).
 export async function planPluginSettings({ targetPath, runtimes }) {
   const operations = [];
   for (const { base, existing, settings } of await readPluginSettings({ targetPath, runtimes })) {
@@ -137,6 +169,11 @@ export async function planPluginSettings({ targetPath, runtimes }) {
     }
     if (settings === null) {
       operations.push(invalidSettings(base, existing, 'add this to it'));
+      continue;
+    }
+    const choice = projectChoice(base, existing, settings);
+    if (choice) {
+      operations.push(choice);
       continue;
     }
     if (isDeclared(settings)) {
@@ -151,13 +188,13 @@ export async function planPluginSettings({ targetPath, runtimes }) {
   return operations;
 }
 
-// Leaving plugin mode (PRD 2.4, T9): only the plugin entry leaves, and the
-// marketplace entry only while it is the one the kit writes (a marketplace
-// changed by hand is the user's). A declaration key left empty leaves too, as
-// the kit added it; every other key and its order stay, and the file is never
-// deleted, even when it ends up `{}`. Always with a backup; a missing file has
-// nothing to remove; an invalid one is never touched and the plan shows what
-// to remove by hand.
+// Leaving plugin mode (PRD 2.4, T9), or a runtime leaving a plugin install
+// (D16): only the entries the kit writes leave, the plugin turned on and the
+// kit's marketplace entry (D15: what the project changed is the project's). A
+// declaration key left empty leaves too, as the kit added it; every other key
+// and its order stay, and the file is never deleted, even when it ends up
+// `{}`. Always with a backup; a missing file has nothing to remove; an invalid
+// one is never touched and the plan shows what to remove by hand.
 export async function planPluginSettingsRemoval({ targetPath, runtimes }) {
   const operations = [];
   for (const { base, existing, settings } of await readPluginSettings({ targetPath, runtimes })) {
@@ -167,7 +204,7 @@ export async function planPluginSettingsRemoval({ targetPath, runtimes }) {
       continue;
     }
     const removals = [
-      ...(Object.hasOwn(settings.enabledPlugins ?? {}, pluginId) ? [['enabledPlugins', pluginId]] : []),
+      ...(enablesPlugin(settings) ? [['enabledPlugins', pluginId]] : []),
       ...(isKitMarketplace(settings) ? [['extraKnownMarketplaces', marketplaceName]] : [])
     ];
     if (removals.length === 0) {
@@ -186,17 +223,29 @@ export async function planPluginSettingsRemoval({ targetPath, runtimes }) {
   return operations;
 }
 
+// D16: the plugin runtimes whose settings file carries an entry the kit
+// writes, whatever the state records; a file that cannot be read carries none.
+export async function runtimesDeclaringPlugin({ targetPath }) {
+  return (await readPluginSettings({ targetPath, runtimes: pluginRuntimes, tolerant: true }))
+    .filter(({ settings }) => settings !== null && carriesKitEntry(settings))
+    .map(({ runtime }) => runtime);
+}
+
 // What doctor reads in each settings file (PRD 2.5): `valid` is false when the
 // file is not a JSON object the kit would merge into; `declared` is the
 // declaration the plan writes; `enabled` is the plugin turned on, whatever
-// marketplace serves it.
-export async function inspectPluginSettings({ targetPath, runtimes }) {
-  return (await readPluginSettings({ targetPath, runtimes })).map(({ base, existing, settings }) => ({
+// marketplace serves it; `disabledByProject` and `marketplaceCustomized` are
+// the project's choices the kit leaves as they are (D15). `tolerant`: a file
+// that cannot be read reads as missing.
+export async function inspectPluginSettings({ targetPath, runtimes, tolerant = false }) {
+  return (await readPluginSettings({ targetPath, runtimes, tolerant })).map(({ base, existing, settings }) => ({
     relativePath: base.relativePath,
     exists: existing !== null,
     valid: settings !== null,
     declared: settings !== null && isDeclared(settings),
-    enabled: settings !== null && enablesPlugin(settings)
+    enabled: settings !== null && enablesPlugin(settings),
+    disabledByProject: settings !== null && disabledByProject(settings),
+    marketplaceCustomized: settings !== null && marketplaceCustomized(settings)
   }));
 }
 
@@ -208,32 +257,51 @@ export const claudePluginListHint = 'claude plugin list';
 export const pluginListTimeoutMs = 5000;
 
 // Default command executor: resolves `{ code, stdout }` once the command
-// exits; rejects when it cannot start (ENOENT) or is killed at the timeout.
+// exits; rejects when it cannot start (ENOENT) or at the timeout. At the
+// timeout the command is killed with SIGKILL (a SIGTERM can be ignored), and
+// its pipes are closed and released, so nothing it left behind (a child
+// still holding its output) keeps this process alive.
 export function runCommand(file, args, { cwd, timeoutMs }) {
   return new Promise((resolve, reject) => {
-    execFile(file, args, { cwd, timeout: timeoutMs, shell: false, windowsHide: true }, (runError, stdout) => {
+    let settled = false;
+    let timer;
+    const child = execFile(file, args, { cwd, timeout: timeoutMs, killSignal: 'SIGKILL', shell: false, windowsHide: true }, (runError, stdout) => {
+      clearTimeout(timer);
+      if (settled) return;
+      settled = true;
       if (runError && typeof runError.code !== 'number') reject(runError);
       else resolve({ code: runError ? runError.code : 0, stdout });
     });
+    timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      child.kill('SIGKILL');
+      for (const stream of [child.stdin, child.stdout, child.stderr]) stream?.destroy();
+      child.unref();
+      reject(Object.assign(new Error(`${file} did not answer within ${timeoutMs / 1000} seconds`), { code: 'ETIMEDOUT' }));
+    }, timeoutMs);
   });
 }
 
-// The plugin as Claude Code lists it: `installed` with its version, `absent`,
-// or `unverified` with the reason. Never throws and never waits longer than
-// `timeoutMs`, whatever the executor does: doctor keeps its own timer.
+// The plugin as Claude Code lists it: `installed` with its version and
+// whether it is enabled, `absent`, or `unverified` with the reason. Never
+// throws and never waits longer than `timeoutMs`, whatever the executor does:
+// doctor keeps its own timer.
 export async function inspectInstalledPlugins({ targetPath, executor = runCommand, timeoutMs = pluginListTimeoutMs }) {
   const { file, args } = claudePluginListCommand;
+  const timedOut = { status: 'unverified', reason: `${file} did not answer within ${timeoutMs / 1000} seconds` };
   let timer;
   const timeout = new Promise((resolve) => { timer = setTimeout(() => resolve(null), timeoutMs); });
   let outcome;
   try {
     outcome = await Promise.race([Promise.resolve().then(() => executor(file, [...args], { cwd: targetPath, timeoutMs })), timeout]);
   } catch (runError) {
+    if (runError?.code === 'ETIMEDOUT') return timedOut;
     return { status: 'unverified', reason: runError?.code === 'ENOENT' ? `${file} is not on the PATH` : `${file} could not run (${runError?.code ?? runError?.message ?? 'unknown error'})` };
   } finally {
     clearTimeout(timer);
   }
-  if (outcome === null) return { status: 'unverified', reason: `${file} did not answer within ${timeoutMs / 1000} seconds` };
+  if (outcome === null) return timedOut;
   if (outcome?.code !== 0) return { status: 'unverified', reason: `${file} exited with code ${outcome?.code}` };
   let plugins;
   try {
@@ -243,7 +311,7 @@ export async function inspectInstalledPlugins({ targetPath, executor = runComman
   }
   if (!Array.isArray(plugins)) return { status: 'unverified', reason: `${file} did not answer with a JSON list` };
   const entry = plugins.find((item) => item?.id === pluginId);
-  return entry ? { status: 'installed', version: entry.version ?? null } : { status: 'absent' };
+  return entry ? { status: 'installed', version: entry.version ?? null, enabled: entry.enabled !== false } : { status: 'absent' };
 }
 
 async function readOptional(file) {

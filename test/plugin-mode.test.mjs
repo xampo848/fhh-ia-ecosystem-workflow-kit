@@ -14,7 +14,9 @@ import { buildInstallPlan, buildUpdatePlan, formatPlan, installStateRelativePath
 import * as pluginMode from '../src/plugin-mode.mjs';
 import { runtimeEntrypoints } from '../src/runtime-matrix.mjs';
 import { validateAdapterContracts } from '../src/workflow-contract/adapters.mjs';
+import packageJson from '../package.json' with { type: 'json' };
 import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
+import { collectRepoModePlans, planShape, fixturePath as repoModePlansFixture } from './fixtures/plugin-mode/repo-mode-plans.mjs';
 import { createMemoryIo, hashTree, makeTempRepo } from './helpers.mjs';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -40,6 +42,19 @@ async function write(target, relativePath, content) {
   const file = path.join(target, relativePath);
   await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.writeFile(file, content, 'utf8');
+}
+// Doctor in plugin mode lists the installed Claude plugins; tests never run
+// the real binary: this double answers that this CLI's version is installed.
+const listsCurrentPlugin = async () => ({ code: 0, stdout: JSON.stringify([{ id: pluginId, version: packageJson.version, enabled: true }]) });
+// D16: each path is reported as an untracked adapter naming the command that
+// keeps it, and the deletion that drops it; nothing else is untracked.
+function assertUntracked(result, relativePaths, keepCommand) {
+  const untracked = result.diagnostics.filter((item) => item.code === 'mode/adapter-not-tracked');
+  assert.deepEqual(untracked.map((item) => item.path).sort(), [...relativePaths].sort(), JSON.stringify(result.diagnostics, null, 2));
+  for (const item of untracked) {
+    assert.equal(item.severity, 'warning', item.path);
+    assert.ok(item.message.includes(`\`${keepCommand}\``) && /delete/i.test(item.message), `${item.path}: ${item.message}`);
+  }
 }
 const pluginPlan = (target, extra = {}) => buildInstallPlan({ targetPath: target, mode: 'plugin', ...extra });
 const pluginInstall = async (target, extra = {}) => applyInstallPlan(await pluginPlan(target, { runtime: 'claude', ...extra }));
@@ -178,18 +193,15 @@ test('AC-7: the settings declaration is created, merged keeping other keys and o
         model: 'opus'
       }
     },
-    {
-      name: 'plugin disabled',
-      existing: `${JSON.stringify({ enabledPlugins: { [pluginId]: false } })}\n`,
-      operation: 'merge_with_backup',
-      expected: { enabledPlugins: { [pluginId]: true }, extraKnownMarketplaces: declared.extraKnownMarketplaces }
-    },
+    // D15: what the project decided stays, and the plan says why.
+    { name: 'plugin disabled by the project', existing: `${JSON.stringify({ enabledPlugins: { [pluginId]: false } })}\n`, operation: 'skip_unmanaged', reason: 'plugin_disabled_by_project', note: `enabledPlugins["${pluginId}"]` },
+    { name: 'own marketplace entry', existing: `${JSON.stringify({ extraKnownMarketplaces: { 'fhh-ia-ecosystem': { source: { source: 'github', repo: 'fork/kit' } } } }, null, 2)}\n`, operation: 'skip_unmanaged', reason: 'marketplace_customized', note: 'extraKnownMarketplaces["fhh-ia-ecosystem"]' },
     { name: 'already declared', existing: `${JSON.stringify({ theme: 'dark', ...declared }, null, 2)}\n`, operation: 'unchanged' },
-    { name: 'invalid JSON', existing: '{ "enabledPlugins": ', operation: 'skip_unmanaged' },
-    { name: 'JSON array', existing: '[]\n', operation: 'skip_unmanaged' },
-    { name: 'enabledPlugins is not an object', existing: '{ "enabledPlugins": ["x"] }\n', operation: 'skip_unmanaged' }
+    { name: 'invalid JSON', existing: '{ "enabledPlugins": ', operation: 'skip_unmanaged', reason: 'invalid_settings_json' },
+    { name: 'JSON array', existing: '[]\n', operation: 'skip_unmanaged', reason: 'invalid_settings_json' },
+    { name: 'enabledPlugins is not an object', existing: '{ "enabledPlugins": ["x"] }\n', operation: 'skip_unmanaged', reason: 'invalid_settings_json' }
   ];
-  for (const { name, existing, backupMode, operation, expected } of cases) {
+  for (const { name, existing, backupMode, operation, reason, note, expected } of cases) {
     const target = await makeTempRepo();
     if (existing !== null) await write(target, settingsPaths.claude, existing);
     const plan = await pluginPlan(target, { runtime: 'claude', backupMode });
@@ -213,12 +225,13 @@ test('AC-7: the settings declaration is created, merged keeping other keys and o
       assert.equal(backups.length, 1, `${name}: always keeps a backup`);
     }
     if (operation === 'skip_unmanaged') {
-      assert.equal(planned.reason, 'invalid_settings_json', name);
+      assert.equal(planned.reason, reason, name);
       const output = formatPlan(plan);
-      const line = `- skip_unmanaged: ${settingsPaths.claude} (invalid_settings_json)`;
+      const line = `- skip_unmanaged: ${settingsPaths.claude} (${reason})`;
       assert.ok(output.includes(line), output);
-      const fragment = output.slice(output.indexOf(line) + line.length).split('\nSummary:')[0];
-      assert.deepEqual(JSON.parse(fragment.slice(fragment.indexOf('{'), fragment.lastIndexOf('}') + 1)), declared, `${name}: the fragment to add by hand`);
+      const rest = output.slice(output.indexOf(line) + line.length).split('\nSummary:')[0];
+      if (note) assert.ok(rest.split('\n')[0].includes(note), `${name}: the plan line names ${note}\n${output}`);
+      else assert.deepEqual(JSON.parse(rest.slice(rest.indexOf('{'), rest.lastIndexOf('}') + 1)), declared, `${name}: the fragment to add by hand`);
     }
     assert.equal(JSON.parse(await read(target, installStateRelativePath)).files[settingsPaths.claude], undefined, name);
   }
@@ -280,19 +293,26 @@ test('a non-default profile at init writes the 13 plugin-variant agents of that 
   }
 });
 
-// AC-19 guard: without --mode (or with --mode repo) init plans exactly what it
-// planned before plugin mode existed.
-test('AC-19 guard: init without --mode and with --mode repo produce the same repo-mode plan', async () => {
+// AC-19 and T6 guards: the repo-mode plans of init and of the update that
+// follows it, without --mode and with --mode repo, are those of commit 558e9fb
+// (the last one before plugin mode): operation, path and class of every file,
+// for claude, copilot and claude,codex. The fixture comes from running that
+// commit's own modules, exported with `git archive 558e9fb`; its header says
+// how to regenerate it.
+const repoModeFixture = async () => JSON.parse(await fs.readFile(repoModePlansFixture, 'utf8'));
+const sourceRoot = path.join(root, 'src');
+
+test('AC-19 guard: init and update without --mode and with --mode repo plan what 558e9fb planned', async () => {
+  const fixture = await repoModeFixture();
+  for (const planOptions of [{}, { mode: 'repo' }]) {
+    assert.deepEqual(await collectRepoModePlans(sourceRoot, makeTempRepo, planOptions), fixture, JSON.stringify(planOptions));
+  }
   const target = await makeTempRepo();
-  const shape = (plan) => plan.operations.map(({ relativePath, operation, class: fileClass, content }) => ({ relativePath, operation, fileClass, content }));
-  const without = await buildInstallPlan({ targetPath: target, runtime: 'claude,copilot', profile: 'claude=costo' });
-  const repo = await buildInstallPlan({ targetPath: target, runtime: 'claude,copilot', profile: 'claude=costo', mode: 'repo' });
-  assert.deepEqual(shape(repo), shape(without));
-  assert.equal(without.nextInstallState.mode, 'repo');
-  assert.equal(formatPlan(without).includes('Install mode'), false);
-  assert.ok(operationFor(without, '.agents/instructions.md'));
-  assert.equal(operationFor(without, settingsPaths.claude), undefined);
-  assert.equal(blockOf(operationFor(without, 'CLAUDE.md').content).includes('kit-location'), false);
+  const plan = await buildInstallPlan({ targetPath: target, runtime: 'claude,copilot', profile: 'claude=costo' });
+  assert.equal(plan.nextInstallState.mode, 'repo');
+  assert.equal(formatPlan(plan).includes('Install mode'), false);
+  assert.equal(operationFor(plan, settingsPaths.claude), undefined);
+  assert.equal(blockOf(operationFor(plan, 'CLAUDE.md').content).includes('kit-location'), false);
 });
 
 // AC-9 (PRD 2.4, T8): update keeps the recorded plugin mode, a second run has
@@ -411,32 +431,22 @@ test('update stops: a runtime without plugin (T14, also on a switch to plugin) w
   }
 });
 
-// T6 guard: a repo-mode install updates as before plugin mode existed,
-// whether it was installed with or without --mode repo, updated with or
-// without it, or its state has no mode; an export still updates to repo.
-test('T6 guard: update on a repo-mode install plans the same with or without --mode repo and for a state without mode', async () => {
-  const shape = (plan) => plan.operations.map(({ relativePath, operation, class: fileClass, content }) => ({ relativePath, operation, fileClass, content }));
-  const install = async (mode) => {
+// T6 guard: a repo-mode install whose state has no mode updates as 558e9fb
+// did, and an export still updates to repo mode.
+test('T6 guard: update on a repo-mode state without mode plans what 558e9fb planned; an export updates to repo', async () => {
+  const fixture = await repoModeFixture();
+  for (const runtime of Object.keys(fixture.update)) {
     const target = await makeTempRepo();
-    await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude,copilot', profile: 'claude=costo', mode }));
-    return target;
-  };
-  const target = await install(undefined);
-  const baseline = await buildUpdatePlan({ targetPath: target });
-  assert.equal(baseline.nextInstallState.mode, 'repo');
-  assert.equal(formatPlan(baseline).includes('Install mode'), false);
-  assert.ok(operationFor(baseline, '.agents/instructions.md'));
-  assert.equal(operationFor(baseline, settingsPaths.claude), undefined);
-  assert.equal(blockOf(await read(target, 'CLAUDE.md')).includes('kit-location'), false);
-
-  const withRepoMode = await buildUpdatePlan({ targetPath: await install('repo'), mode: 'repo' });
-  assert.deepEqual(shape(withRepoMode), shape(baseline));
-  const { mode, ...withoutMode } = await stateOf(target);
-  assert.equal(mode, 'repo');
-  await write(target, installStateRelativePath, `${JSON.stringify(withoutMode, null, 2)}\n`);
-  const stateWithoutMode = await buildUpdatePlan({ targetPath: target });
-  assert.deepEqual(shape(stateWithoutMode), shape(baseline));
-  assert.equal(stateWithoutMode.nextInstallState.mode, 'repo');
+    await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime }));
+    assert.equal(blockOf(await read(target, runtimeEntrypoints[runtime.split(',')[0]][0])).includes('kit-location'), false, runtime);
+    const { mode, ...withoutMode } = await stateOf(target);
+    assert.equal(mode, 'repo', runtime);
+    await write(target, installStateRelativePath, `${JSON.stringify(withoutMode, null, 2)}\n`);
+    const plan = await buildUpdatePlan({ targetPath: target });
+    assert.deepEqual(planShape(plan), fixture.update[runtime], runtime);
+    assert.equal(plan.nextInstallState.mode, 'repo', runtime);
+    assert.equal(formatPlan(plan).includes('Install mode'), false, runtime);
+  }
 
   const exported = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: exported, export: true, ensureWorkspaceIgnore: false, recordJournal: false }));
@@ -498,41 +508,52 @@ test('AC-11: update --mode plugin on an unedited repo install retires every reco
   }
 });
 
-// AC-12 (PRD 2.4, D5): an edited kit file stops the whole switch; only
-// discard settles it, and its backup keeps the edit.
-test('AC-12: an edited kit file stops the switch without writing; --edited <path>=discard deletes it keeping the edit in its backup; keep, shadow and split are rejected naming discard', async () => {
+// AC-12 (PRD 2.4, D5) and F8: edited kit files stop the whole switch; only
+// discard settles them, and each backup keeps its edit. The stop prints one
+// command that settles every file, and that command, run as printed, works.
+test('AC-12: edited kit files stop the switch without writing; the printed command (one --edited per file) deletes them keeping each edit in its backup; keep, shadow and split are rejected naming discard', async () => {
   const target = await makeTempRepo();
   await repoInstall(target);
-  const edited = '.agents/skills/00-router/workflow-router/SKILL.md';
-  const editedContent = `${await read(target, edited)}\nOur team rule.\n`;
-  await write(target, edited, editedContent);
+  const edited = ['.agents/instructions.md', '.agents/skills/00-router/workflow-router/SKILL.md'];
+  const editedContents = {};
+  for (const relativePath of edited) {
+    editedContents[relativePath] = `${await read(target, relativePath)}\nOur team rule.\n`;
+    await write(target, relativePath, editedContents[relativePath]);
+  }
   const before = await hashTree(target);
+  const printedCommand = `workflow-kit update --mode plugin ${edited.map((relativePath) => `--edited ${relativePath}=discard`).join(' ')}`;
 
+  let stopMessage = '';
   for (const flags of [[], ['--apply', '--yes']]) {
     const stop = await switchToPlugin(target, ...flags);
     const label = flags.length > 0 ? 'apply' : 'dry run';
     assert.notEqual(stop.code, 0, label);
-    for (const expected of [`- ${edited} `, 'workflow-kit update --mode plugin --edited <path>=discard', 'workflow-kit update --mode plugin --edited all=discard', 'project shadow (.agents/kit-boundary.md)', 'Nothing was written']) {
+    for (const expected of [...edited.map((relativePath) => `- ${relativePath} `), `\`${printedCommand}\``, 'one `--edited <path>=<decision>` per file, all in the same command', 'workflow-kit update --mode plugin --edited all=discard', 'project shadow (.agents/kit-boundary.md)', 'Nothing was written']) {
       assert.ok(stop.stderr.includes(expected), `${label}: names ${expected}\n${stop.stderr}`);
     }
     assert.deepEqual(await hashTree(target), before, label);
+    stopMessage = stop.stderr;
   }
   for (const decision of ['keep', 'shadow', 'split']) {
-    const rejected = await switchToPlugin(target, '--edited', `${edited}=${decision}`, '--apply', '--yes');
+    const rejected = await switchToPlugin(target, '--edited', `${edited[1]}=${decision}`, '--edited', `${edited[0]}=discard`, '--apply', '--yes');
     assert.notEqual(rejected.code, 0, decision);
-    assert.ok(rejected.stderr.includes(`Invalid --edited ${edited}=${decision}`) && rejected.stderr.includes('Valid decisions: discard.'), `${decision}\n${rejected.stderr}`);
+    assert.ok(rejected.stderr.includes(`Invalid --edited ${edited[1]}=${decision}`) && rejected.stderr.includes('Valid decisions: discard.'), `${decision}\n${rejected.stderr}`);
     assert.deepEqual(await hashTree(target), before, decision);
   }
 
-  const discard = await switchToPlugin(target, '--edited', `${edited}=discard`, '--apply', '--yes');
+  // The command exactly as the stop printed it.
+  const [, command] = stopMessage.match(/`(workflow-kit update --mode plugin(?: --edited \S+=discard)+)`/);
+  const discard = await runNamed(command, target, { apply: true });
   assert.equal(discard.code, 0, discard.stderr);
-  assert.equal(await exists(target, edited), false);
-  const backups = (await fs.readdir(path.dirname(path.join(target, edited)))).filter((file) => file.startsWith('SKILL.md.workflow-kit-backup-'));
-  assert.equal(backups.length, 1);
-  assert.equal(await read(target, path.join(path.dirname(edited), backups[0])), editedContent);
   const state = await stateOf(target);
   assert.equal(state.mode, 'plugin');
-  assert.equal(state.files[edited], undefined);
+  for (const relativePath of edited) {
+    assert.equal(await exists(target, relativePath), false, relativePath);
+    const backups = (await fs.readdir(path.dirname(path.join(target, relativePath)))).filter((file) => file.startsWith(`${path.basename(relativePath)}.workflow-kit-backup-`));
+    assert.equal(backups.length, 1, relativePath);
+    assert.equal(await read(target, path.join(path.dirname(relativePath), backups[0])), editedContents[relativePath], relativePath);
+    assert.equal(state.files[relativePath], undefined, relativePath);
+  }
 });
 
 // All or nothing (D5) beyond the retired files: a file the plugin plan would
@@ -601,6 +622,15 @@ test('a switch that leaves copilot out retires its generated wrappers and stops 
     assert.equal(operationFor(plan, relativePath), undefined, `${relativePath} is not touched`);
     assert.equal(plan.nextInstallState.files[relativePath], undefined, `${relativePath} leaves the state`);
   }
+
+  // On disk: the switch applies, the adapters left behind are untouched, and
+  // doctor passes, listing each entrypoint of copilot as untracked.
+  const adaptersBefore = Object.fromEntries(await Promise.all(leftBehind.map(async (relativePath) => [relativePath, await read(target, relativePath)])));
+  await applyInstallPlan(plan);
+  for (const relativePath of leftBehind) assert.equal(await read(target, relativePath), adaptersBefore[relativePath], relativePath);
+  const result = await runDoctor({ targetPath: target, commandExecutor: listsCurrentPlugin });
+  assert.equal(result.ok, true, JSON.stringify(result.diagnostics, null, 2));
+  assertUntracked(result, runtimeEntrypoints.copilot, 'workflow-kit update --runtime claude,copilot');
 });
 
 // The tree a rollback of a switch has to give back: everything but the apply
@@ -719,9 +749,15 @@ test('T9 settings: only the kit declaration leaves the settings file, other keys
       content: json({ permissions: { allow: ['Bash(npm test)'] }, enabledPlugins: { 'other@market': true }, extraKnownMarketplaces: { market: { source: { source: 'github', repo: 'someone/market' } } }, model: 'opus' }, 4)
     },
     { name: 'only the declaration', existing: json({ extraKnownMarketplaces: { 'fhh-ia-ecosystem': declaration }, enabledPlugins: { [pluginId]: true } }), operation: 'merge_with_backup', content: '{}\n' },
+    // D15: only an entry equal to the kit's leaves.
     {
-      name: 'a marketplace changed by hand stays; a disabled plugin entry still leaves',
+      name: 'a marketplace changed by hand and a plugin the project turned off both stay',
       existing: json({ extraKnownMarketplaces: { 'fhh-ia-ecosystem': { source: { source: 'github', repo: 'fork/kit' } } }, enabledPlugins: { [pluginId]: false } }),
+      operation: 'unchanged'
+    },
+    {
+      name: 'the enabled plugin leaves; a marketplace changed by hand stays',
+      existing: json({ extraKnownMarketplaces: { 'fhh-ia-ecosystem': { source: { source: 'github', repo: 'fork/kit' } } }, enabledPlugins: { [pluginId]: true } }),
       operation: 'merge_with_backup',
       content: json({ extraKnownMarketplaces: { 'fhh-ia-ecosystem': { source: { source: 'github', repo: 'fork/kit' } } } })
     },
@@ -841,5 +877,164 @@ test('AC-14: T4, T5, T10, T11, T13, T17 and an incomplete apply stop without wri
       const rerun = await cli([...args, '--target', target]);
       assert.equal(rerun.code, 0, `${name}: the command again\n${rerun.stderr}`);
     }
+  }
+});
+
+// D16 (PRD 5): a runtime that leaves takes its declaration and its profile
+// agents with it; its adapters stay as project files, out of the state.
+const allEntrypoints = [...new Set(Object.values(runtimeEntrypoints).flat())];
+const repoTemplateBlock = async (relativePath) => blockOf(await fs.readFile(path.join(runtimeTemplates, adapterTemplates[relativePath]), 'utf8'));
+const declaresPlugin = async (target, relativePath) => Object.hasOwn(JSON.parse(await read(target, relativePath)).enabledPlugins ?? {}, pluginId);
+
+test('F2 (D16): dropping copilot in plugin mode removes its declaration and agents and untracks its adapters; switching to repo afterwards passes doctor', async () => {
+  const target = await makeTempRepo();
+  const init = await cli(['init', '--target', target, '--mode', 'plugin', '--runtime', 'claude,copilot', '--profile', 'copilot=calidad', '--apply', '--yes']);
+  assert.equal(init.code, 0, init.stderr);
+  const copilotAdapters = runtimeEntrypoints.copilot;
+  const adaptersBefore = Object.fromEntries(await Promise.all(copilotAdapters.map(async (relativePath) => [relativePath, await read(target, relativePath)])));
+
+  const drop = await cli(['update', '--target', target, '--runtime', 'claude', '--apply', '--yes']);
+  assert.equal(drop.code, 0, drop.stderr);
+  assert.equal(await declaresPlugin(target, settingsPaths.copilot), false, 'the copilot declaration leaves; the file stays');
+  assert.equal(await declaresPlugin(target, settingsPaths.claude), true);
+  const agents = await fs.readdir(path.join(target, '.github', 'agents'));
+  assert.ok(agents.length === 13 && agents.every((file) => file.includes('.workflow-kit-backup-')), agents.join(', '));
+  let state = await stateOf(target);
+  assert.deepEqual([state.mode, state.runtimes], ['plugin', ['claude']]);
+  for (const relativePath of copilotAdapters) {
+    assert.equal(await read(target, relativePath), adaptersBefore[relativePath], `${relativePath} stays as it is`);
+    assert.equal(state.files[relativePath], undefined, `${relativePath} leaves the state`);
+  }
+  const pluginDoctor = await runDoctor({ targetPath: target, commandExecutor: listsCurrentPlugin });
+  assert.equal(pluginDoctor.ok, true, JSON.stringify(pluginDoctor.diagnostics, null, 2));
+  assertUntracked(pluginDoctor, copilotAdapters, 'workflow-kit update --runtime claude,copilot');
+
+  const back = await cli(['update', '--target', target, '--mode', 'repo', '--apply', '--yes']);
+  assert.equal(back.code, 0, back.stderr);
+  state = await stateOf(target);
+  assert.deepEqual([state.mode, state.runtimes], ['repo', ['claude']]);
+  for (const relativePath of allEntrypoints) {
+    if (await exists(target, relativePath)) assert.equal((await read(target, relativePath)).includes(pluginMode.kitLocationBlockName), false, relativePath);
+  }
+  const result = await runDoctor({ targetPath: target });
+  assert.equal(result.ok, true, JSON.stringify(result.diagnostics, null, 2));
+  assert.deepEqual(result.diagnostics.filter((item) => item.code === 'mode/repo-and-plugin'), []);
+  assertUntracked(result, copilotAdapters, 'workflow-kit update --runtime claude,copilot');
+});
+
+test('F3 (D16): leaving plugin mode with another runtime list takes kit-location out of every adapter, untracks the ones left out, and doctor names the command that keeps them', async () => {
+  const cases = [
+    { init: 'claude,copilot', runtime: 'claude', untracked: runtimeEntrypoints.copilot, keep: 'claude,copilot' },
+    { init: 'claude', runtime: 'codex', untracked: ['CLAUDE.md'], keep: 'codex,claude' }
+  ];
+  for (const { init, runtime, untracked, keep } of cases) {
+    const label = `${init} -> repo ${runtime}`;
+    const target = await makeTempRepo();
+    const installed = await cli(['init', '--target', target, '--mode', 'plugin', '--runtime', init, '--apply', '--yes']);
+    assert.equal(installed.code, 0, installed.stderr);
+
+    const switched = await switchToRepo(target, '--runtime', runtime, '--apply', '--yes');
+    assert.equal(switched.code, 0, `${label}: ${switched.stderr}`);
+    for (const relativePath of allEntrypoints) {
+      if (await exists(target, relativePath)) assert.equal((await read(target, relativePath)).includes(pluginMode.kitLocationBlockName), false, `${label}: ${relativePath}`);
+    }
+    const state = await stateOf(target);
+    for (const relativePath of untracked) {
+      assert.equal(blockOf(await read(target, relativePath)), await repoTemplateBlock(relativePath), `${label}: ${relativePath} has the repo-mode block`);
+      assert.equal(state.files[relativePath], undefined, `${label}: ${relativePath} leaves the state`);
+    }
+    for (const name of init.split(',')) assert.equal(await declaresPlugin(target, settingsPaths[name]), false, `${label}: ${settingsPaths[name]}`);
+    const result = await runDoctor({ targetPath: target });
+    assert.equal(result.ok, true, `${label}: ${JSON.stringify(result.diagnostics, null, 2)}`);
+    assertUntracked(result, untracked, `workflow-kit update --runtime ${keep}`);
+
+    const kept = await cli(['update', '--target', target, '--runtime', keep, '--apply', '--yes']);
+    assert.equal(kept.code, 0, `${label}: ${kept.stderr}`);
+    assertUntracked(await runDoctor({ targetPath: target }), [], 'none');
+  }
+});
+
+// F6: the stops that send an install with a runtime without plugin to plugin
+// mode say what happens to that runtime; the test runs the named commands and
+// doctor then lists the adapter left behind.
+test('F6: T4, T5 and T10 for an install with codex say the named command leaves codex out, and after it doctor lists its adapter as untracked', async () => {
+  const legacy = (target) => installLegacy0181(target, { runtimes: ['claude', 'codex'] });
+  const switchCommand = 'workflow-kit update --mode plugin --runtime claude';
+  const cases = [
+    { name: 'T4', install: (target) => repoInstall(target, 'claude,codex'), args: ['init', '--mode', 'plugin', '--runtime', 'claude'], commands: [switchCommand] },
+    { name: 'T5', install: legacy, args: ['init', '--mode', 'plugin', '--runtime', 'claude'], commands: ['workflow-kit update', switchCommand] },
+    { name: 'T10', install: legacy, args: ['update', '--mode', 'plugin', '--runtime', 'claude'], commands: ['workflow-kit update', switchCommand] }
+  ];
+  for (const { name, install, args, commands } of cases) {
+    const target = await makeTempRepo();
+    await install(target);
+    const before = await hashTree(target);
+    const stop = await cli([...args, '--target', target, '--apply', '--yes']);
+    assert.notEqual(stop.code, 0, name);
+    for (const expected of [`\`${switchCommand}\``, 'leaves codex out of the install', 'with a backup', 'project files', 'Nothing was written']) {
+      assert.ok(stop.stderr.includes(expected), `${name}: names ${expected}\n${stop.stderr}`);
+    }
+    assert.deepEqual(await hashTree(target), before, name);
+
+    for (const command of commands) {
+      const result = await runNamed(command, target, { apply: true });
+      assert.equal(result.code, 0, `${name}: ${command}\n${result.stderr}`);
+    }
+    const state = await stateOf(target);
+    assert.deepEqual([state.mode, state.runtimes], ['plugin', ['claude']], name);
+    const doctor = await runDoctor({ targetPath: target, commandExecutor: listsCurrentPlugin });
+    assert.equal(doctor.ok, true, `${name}: ${JSON.stringify(doctor.diagnostics, null, 2)}`);
+    assertUntracked(doctor, ['AGENTS.md'], 'workflow-kit update --mode repo --runtime claude,codex');
+  }
+});
+
+// F4: as in 558e9fb, a path the plan cannot write is reported before a
+// --profile value is parsed; plugin mode checks the agent paths of a profile
+// once it knows them.
+test('F4: a path problem is reported before an invalid --profile, in init and update, and plugin mode checks its profile agent paths', async () => {
+  const cases = [
+    { name: 'init (repo)', setup: (target) => write(target, 'docs', 'a file\n'), args: ['init', '--runtime', 'claude', '--profile', 'claude=bogus'], problem: 'docs is a file, not a folder' },
+    {
+      name: 'update (repo)',
+      setup: async (target) => {
+        await repoInstall(target);
+        await fs.rm(path.join(target, 'docs'), { recursive: true });
+        await write(target, 'docs', 'a file\n');
+      },
+      args: ['update', '--profile', 'claude=bogus'],
+      problem: 'docs is a file, not a folder'
+    },
+    { name: 'init --mode plugin', setup: (target) => write(target, '.claude', 'a file\n'), args: ['init', '--mode', 'plugin', '--runtime', 'claude', '--profile', 'claude=bogus'], problem: '.claude is a file, not a folder' },
+    { name: 'init --mode plugin, profile agents', setup: (target) => write(target, '.claude/agents', 'a file\n'), args: ['init', '--mode', 'plugin', '--runtime', 'claude', '--profile', 'claude=costo'], problem: '.claude/agents is a file, not a folder' }
+  ];
+  for (const { name, setup, args, problem } of cases) {
+    const target = await makeTempRepo();
+    await setup(target);
+    const before = await hashTree(target);
+    const result = await cli([...args, '--target', target]);
+    assert.notEqual(result.code, 0, name);
+    assert.ok(result.stderr.includes(problem), `${name}\n${result.stderr}`);
+    assert.equal(result.stderr.includes('--profile'), false, `${name}: the path comes first\n${result.stderr}`);
+    assert.deepEqual(await hashTree(target), before, name);
+  }
+});
+
+// An install-state whose mode this CLI does not know is never read as repo.
+test('an install-state with an unknown mode is unusable: init and update stop naming it, doctor reports it, and the state is not rewritten', async () => {
+  for (const mode of ['hybrid', 42]) {
+    const target = await makeTempRepo();
+    await repoInstall(target);
+    await write(target, installStateRelativePath, `${JSON.stringify({ ...(await stateOf(target)), mode }, null, 2)}\n`);
+    const before = await hashTree(target);
+    for (const args of [['update'], ['update', '--mode', 'plugin', '--runtime', 'claude'], ['update', '--mode', 'repo'], ['init', '--runtime', 'claude']]) {
+      const stop = await cli([...args, '--target', target, '--apply', '--yes']);
+      assert.notEqual(stop.code, 0, `${mode}: ${args.join(' ')}`);
+      assert.ok(stop.stderr.includes(`mode ${JSON.stringify(mode)}`), `${mode}: ${args.join(' ')}\n${stop.stderr}`);
+      assert.deepEqual(await hashTree(target), before, `${mode}: ${args.join(' ')}`);
+    }
+    const doctor = await runDoctor({ targetPath: target });
+    const finding = doctor.diagnostics.find((item) => item.code === 'managed/install-state-unusable');
+    assert.ok(finding?.message.includes(`mode ${JSON.stringify(mode)}`), `${mode}: ${JSON.stringify(doctor.diagnostics, null, 2)}`);
+    assert.equal(doctor.ok, false, String(mode));
   }
 });
