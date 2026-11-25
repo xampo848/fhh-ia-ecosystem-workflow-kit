@@ -173,21 +173,24 @@ export function createCapabilityGuide({ capability, scope, intent, runtimes }) {
     runtimeHint: `Detected runtimes: ${[...runtimes].join(', ') || 'neutral'}`
   };
 }
+// Plain words for the tiers: a small model (Haiku), a mid-size one (Sonnet,
+// or Codex with medium reasoning) and the most capable one (Opus, or Codex
+// with the highest reasoning).
 const MODEL_PROFILE_OPTIONS = [
   {
     value: 'calidad',
     label: 'Suscripción (perfil calidad)',
-    description: 'Claude Pro/Max o ChatGPT: Sonnet/GPT Sol por defecto y Opus/GPT Sol extra-high para implementar; nunca modelos chicos.'
+    description: 'Claude Pro/Max o ChatGPT: modelo mediano (Sonnet, o Codex con razonamiento medio) por defecto y el más capaz (Opus, o Codex con el razonamiento más alto) para implementar, QA y planificar; nunca modelos chicos.'
   },
   {
     value: 'equilibrado',
     label: 'Suscripción con límites ajustados (perfil equilibrado)',
-    description: 'Si alcanzas los límites semanales a menudo: Opus/extra-high solo para planificar y QA final; implementación, tests y contratos en Sonnet/medium. Nunca modelos chicos.'
+    description: 'Si alcanzas los límites semanales a menudo: el modelo más capaz solo para planificar y para el QA final; implementación, tests y revisión de contratos con el modelo mediano. Nunca modelos chicos.'
   },
   {
     value: 'costo',
     label: 'API por token (perfil costo)',
-    description: 'Pago por uso: modelos chicos para lectura, validación y documentación; Grande solo ante riesgos críticos.'
+    description: 'Pago por uso: modelos chicos (Haiku o similar) para leer, validar y documentar; el más capaz solo ante riesgos críticos (seguridad, migraciones, contratos públicos).'
   }
 ];
 

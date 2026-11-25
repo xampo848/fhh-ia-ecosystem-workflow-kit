@@ -555,3 +555,23 @@ test('tui preselects the costo profile when an API key is present and installs m
   const state = JSON.parse(await fs.readFile(path.join(target, '.agents/workflow-kit/install-state.json'), 'utf8'));
   assert.deepEqual(state.modelProfiles, { claude: 'costo' });
 });
+
+// Without a terminal every prompt ends at once; that is not a cancel by the
+// user, and exit 0 would read as success in a script.
+test('tui with stdin at end of file or a pipe exits 2 and says it needs a terminal', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const bin = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'bin', 'workflow-kit.mjs');
+  const cwd = await makeTempRepo();
+  for (const input of [{ stdio: ['ignore', 'pipe', 'pipe'] }, { input: '1\n' }]) {
+    const result = spawnSync(process.execPath, [bin, 'tui'], { cwd, encoding: 'utf8', env: { ...process.env, NODE_NO_WARNINGS: '1' }, timeout: 20000, ...input });
+    assert.equal(result.status, 2, result.stdout + result.stderr);
+    assert.match(result.stderr, /^workflow-kit tui needs an interactive terminal \(stdin is not one\)\. In scripts, use the commands instead/m);
+    assert.doesNotMatch(result.stdout + result.stderr, /Canceled by user/);
+  }
+  assert.deepEqual(await fs.readdir(cwd), []);
+
+  const errors = [];
+  const result = await runTui({ write: () => {}, writeError: (text) => errors.push(text), stdin: { isTTY: false } });
+  assert.deepEqual(result, { code: 2, applied: false });
+  assert.equal(errors.length, 1);
+});

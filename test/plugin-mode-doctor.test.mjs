@@ -110,7 +110,7 @@ test('AC-15: state plugin with a kit file in the repository is mode/repo-and-plu
 
   const result = await doctor(target, executor);
 
-  assertFinding(result, 'mode/repo-and-plugin', installStateRelativePath, ['.agents/instructions.md', 'workflow-kit update --mode repo'], 'error');
+  assertFinding(result, 'mode/repo-and-plugin', installStateRelativePath, ['.agents/instructions.md', `\`workflow-kit update --target ${target} --mode repo\``], 'error');
   assert.equal(result.ok, false);
   assert.ok(formatDoctorResult(result).split('\n').includes('Doctor: failed'));
 
@@ -150,7 +150,7 @@ test('AC-15: state repo with a settings file that enables the plugin is mode/rep
     return target;
   };
   const cases = [
-    { name: 'claude', setup: () => install('claude', 'repo'), command: 'workflow-kit update --mode plugin' },
+    { name: 'claude', setup: () => install('claude', 'repo'), command: (target) => `workflow-kit update --target ${target} --mode plugin` },
     { name: 'claude,codex (codex has no plugin)', setup: () => install('claude,codex', 'repo'), command: null },
     { name: 'export (a copy of the kit)', setup: exportFolder, command: null }
   ];
@@ -166,8 +166,8 @@ test('AC-15: state repo with a settings file that enables the plugin is mode/rep
     assert.equal(result.ok, false, name);
     assert.deepEqual(calls, [], `${name}: repo mode never runs the claude binary`);
     if (command) {
-      assert.ok(finding.message.includes(`\`${command}\``), `${name}: ${finding.message}`);
-      const switched = await cli([...command.replace(/^workflow-kit /, '').split(' '), '--target', target, '--apply', '--yes']);
+      assert.ok(finding.message.includes(`\`${command(target)}\``), `${name}: ${finding.message}`);
+      const switched = await cli([...command(target).replace(/^workflow-kit /, '').split(' '), '--apply', '--yes']);
       assert.equal(switched.code, 0, `${name}: ${switched.stderr}`);
     } else {
       assert.equal(finding.message.includes('update --mode plugin'), false, `${name}: ${finding.message}`);
@@ -218,12 +218,12 @@ test('AC-16: a recorded plugin runtime whose settings lack the declaration, or a
 
   const result = await doctor(target, executor);
 
-  assertFinding(result, 'mode/plugin-not-declared', '.claude/settings.json', ['workflow-kit update --apply --yes'], 'warning');
+  assertFinding(result, 'mode/plugin-not-declared', '.claude/settings.json', [`\`workflow-kit update --target ${target} --apply --yes\``], 'warning');
   assertFinding(result, 'mode/plugin-not-declared', '.github/copilot/settings.json', ['"enabledPlugins"', pluginId], 'warning');
   assert.equal(result.ok, true);
 
   await fs.rm(path.join(target, '.claude/settings.json'));
-  assertFinding(await doctor(target, executor), 'mode/plugin-not-declared', '.claude/settings.json', ['the file is missing', 'workflow-kit update --apply --yes'], 'warning');
+  assertFinding(await doctor(target, executor), 'mode/plugin-not-declared', '.claude/settings.json', ['the file is missing', `\`workflow-kit update --target ${target} --apply --yes\``], 'warning');
 });
 
 test('AC-16: Copilot alone gets the informational line, no diagnostic and no command run', async () => {
@@ -299,7 +299,7 @@ test('AC-19: in repo mode an untracked adapter is mode/adapter-not-tracked only 
       assert.equal(formatDoctorResult(result), formatDoctorResult(baseline), name);
       continue;
     }
-    const finding = assertFinding(result, 'mode/adapter-not-tracked', 'AGENTS.md', ['does not track or refresh it', '`workflow-kit update --runtime claude,codex`', 'delete the file'], 'warning');
+    const finding = assertFinding(result, 'mode/adapter-not-tracked', 'AGENTS.md', ['does not track or refresh it', `\`workflow-kit update --target ${target} --runtime claude,codex\``, 'delete the file'], 'warning');
     assert.equal(finding.message.includes('no longer'), false, finding.message);
     assert.deepEqual(result.diagnostics.filter((item) => item !== finding), baseline.diagnostics, name);
   }
@@ -486,9 +486,9 @@ test('N4: doctor --runtime copilot on a claude plugin install names the update t
 
   const result = await doctor(target, executor, { runtime: 'claude,copilot' });
 
-  const finding = assertFinding(result, 'mode/plugin-not-declared', '.github/copilot/settings.json', ['`workflow-kit update --runtime claude,copilot --apply --yes`'], 'warning');
+  const finding = assertFinding(result, 'mode/plugin-not-declared', '.github/copilot/settings.json', [`\`workflow-kit update --target ${target} --runtime claude,copilot --apply --yes\``], 'warning');
   const [, command] = finding.message.match(/`(workflow-kit update [^`]+)`/);
-  const update = await cli([...command.replace(/^workflow-kit /, '').split(' '), '--target', target]);
+  const update = await cli(command.replace(/^workflow-kit /, '').split(' '));
   assert.equal(update.code, 0, update.stderr);
   assert.equal(findings(await doctor(target, executor, { runtime: 'claude,copilot' }), 'mode/plugin-not-declared').length, 0);
 });
@@ -519,4 +519,104 @@ test('P11: a named pipe at .claude/settings.json does not hang doctor in repo mo
   const init = await cli(['init', '--target', target, '--mode', 'plugin', '--runtime', 'claude']);
   assert.notEqual(init.code, 0);
   assert.match(init.stderr, /\.claude\/settings\.json: it is not a regular file/);
+});
+
+// Item 5: in plugin mode the kit-location block is the only text that tells
+// the agent where the kit is; losing it is a plugin-mode failure, with the
+// command that restores it, and that command works as printed.
+test('plugin mode: an adapter whose block lost the kit-location block is mode/kit-location-missing, and the printed update restores it', async () => {
+  const target = await install('claude,copilot');
+  const { executor } = executorDouble(installed(packageJson.version));
+  const { start, end } = { start: `<!-- ${kitLocationBlockName}:start -->`, end: `<!-- ${kitLocationBlockName}:end -->` };
+  const original = await read(target, 'CLAUDE.md');
+  const cut = original.slice(0, original.indexOf(start)) + original.slice(original.indexOf(end) + end.length + 1);
+  await write(target, 'CLAUDE.md', cut);
+
+  const result = await doctor(target, executor);
+
+  const finding = assertFinding(result, 'mode/kit-location-missing', 'CLAUDE.md', ['no workflow-kit:kit-location block', 'never told where the kit is', `\`workflow-kit update --target ${target} --apply --yes\``], 'error');
+  assert.equal(result.ok, false);
+  assert.deepEqual(findings(result, 'mode/kit-location-missing').map((item) => item.path), ['CLAUDE.md'], 'the other adapters keep it');
+  const [, command] = finding.message.match(/`(workflow-kit [^`]+)`/);
+  const update = await cli(command.replace(/^workflow-kit /, '').split(' '));
+  assert.equal(update.code, 0, update.stderr);
+  assert.ok((await read(target, 'CLAUDE.md')).includes(start));
+  const after = await doctor(target, executor);
+  assert.equal(after.ok, true, JSON.stringify(after.diagnostics, null, 2));
+  assert.deepEqual(findings(after, 'mode/kit-location-missing'), []);
+});
+
+test('plugin mode: a plugin entry that is null or a string next to the project marketplace is reported as not enabled, in doctor and in the plan', async () => {
+  const fork = { source: { source: 'github', repo: 'fork/kit' } };
+  const target = await install('claude');
+  const { executor } = executorDouble(installed(packageJson.version));
+  for (const value of [null, 'yes']) {
+    await write(target, '.claude/settings.json', settingsJson({ extraKnownMarketplaces: { 'fhh-ia-ecosystem': fork }, enabledPlugins: { [pluginId]: value } }));
+    const result = await doctor(target, executor);
+    assertFinding(result, 'mode/marketplace-customized', '.claude/settings.json', [`enabledPlugins["${pluginId}"] is ${JSON.stringify(value)}, not true, so the plugin is not enabled: set it to true to load it.`], 'warning');
+    const plan = await cli(['update', '--target', target]);
+    assert.match(plan.stdout, new RegExp(`enabledPlugins\\["${pluginId}"\\] is ${JSON.stringify(value).replace(/"/g, '"')}, not true, so the plugin is not enabled`), String(value));
+  }
+});
+
+test('plugin mode: a plugin with the same version number and another suffix does not get a plugin update as the only advice', async () => {
+  const target = await install('claude');
+  const core = packageJson.version.match(/^\d+\.\d+\.\d+/)[0];
+  const { executor } = executorDouble(installed(`${core}-another-build`));
+  const finding = assertFinding(await doctor(target, executor), 'mode/plugin-version-mismatch', '.claude/settings.json', [`Both are ${core} with another suffix, so doctor cannot tell which build is newer`, `claude plugin update ${pluginId}`, 'workflow-kit upgrade --apply --yes'], 'warning');
+  assert.ok(finding.message.includes(`\`cd ${target} && claude plugin update ${pluginId}\``), finding.message);
+});
+
+// Claude's project-scope commands act on the folder they run in.
+test('plugin mode: the claude commands doctor prints run in the target', async () => {
+  const target = await install('claude');
+  const absent = assertFinding(await doctor(target, executorDouble(installed(null)).executor), 'mode/plugin-not-installed', '.claude/settings.json', [`\`cd ${target} && ${claudeInstall}\``], 'warning');
+  assert.ok(absent);
+  assertFinding(await doctor(target, executorDouble(answers('', 1)).executor), 'mode/plugin-install-unverified', '.claude/settings.json', [`\`cd ${target} && claude plugin list\``, `\`cd ${target} && ${claudeInstall}\``], 'warning');
+  assertFinding(await doctor(target, executorDouble(answers(JSON.stringify([{ id: pluginId, version: packageJson.version, enabled: false }]))).executor), 'mode/plugin-disabled', '.claude/settings.json', [`\`cd ${target} && claude plugin enable ${pluginId}\``], 'warning');
+});
+
+test('plugin mode: an empty or blank settings file is filled with the declaration (with a backup), not reported as invalid', async () => {
+  for (const content of ['', '  \n\t\n']) {
+    const target = await install('claude');
+    await write(target, '.claude/settings.json', content);
+    const { executor } = executorDouble(installed(packageJson.version));
+    const result = await doctor(target, executor);
+    assertFinding(result, 'mode/plugin-not-declared', '.claude/settings.json', ['is not declared in this file', `\`workflow-kit update --target ${target} --apply --yes\``], 'warning');
+    assert.equal(result.diagnostics.find((item) => item.code === 'mode/plugin-not-declared').message.includes('Not a JSON object'), false);
+    const update = await cli(['update', '--target', target, '--apply', '--yes']);
+    assert.equal(update.code, 0, update.stderr);
+    assert.deepEqual(JSON.parse(await read(target, '.claude/settings.json')), { extraKnownMarketplaces: { 'fhh-ia-ecosystem': kitMarketplace }, enabledPlugins: { [pluginId]: true } }, JSON.stringify(content));
+    assert.equal((await fs.readdir(path.join(target, '.claude'))).some((name) => name.startsWith('settings.json.workflow-kit-backup-')), true, 'the empty file has a backup');
+    assert.equal(findings(await doctor(target, executor), 'mode/plugin-not-declared').length, 0);
+  }
+});
+
+test('plugin mode: a settings file with a repeated key is never rewritten, and plan and doctor name the key', async () => {
+  const target = await install('claude');
+  const content = `{\n  "enabledPlugins": { "other@market": true },\n  "enabledPlugins": { "${pluginId}": false }\n}\n`;
+  await write(target, '.claude/settings.json', content);
+  const { executor } = executorDouble(installed(packageJson.version));
+
+  const result = await doctor(target, executor);
+  assertFinding(result, 'mode/plugin-not-declared', '.claude/settings.json', ['The key enabledPlugins appears more than once', 'keep only the last one', `\`workflow-kit update --target ${target} --apply --yes\``], 'warning');
+  const update = await cli(['update', '--target', target, '--apply', '--yes']);
+  assert.equal(update.code, 0, update.stderr);
+  assert.match(update.stdout, /\.claude\/settings\.json \(duplicate_settings_key\): the key enabledPlugins appears more than once/);
+  assert.equal(await read(target, '.claude/settings.json'), content, 'other@market stays');
+});
+
+test('a claude plugin list above 1 MB is read, not reported as a failure to run', async () => {
+  const { runCommand, inspectInstalledPlugins } = await import('../src/plugin-mode.mjs');
+  // About 6 MB, written by the child itself (an argument that size is too long).
+  const script = `process.stdout.write('[' + Array(200000).fill('{"id":"x@y","version":"1.0.0"}').join(',') + ',{"id":"${pluginId}","version":"${packageJson.version}","enabled":true}]')`;
+  const executor = (file, args, options) => runCommand(process.execPath, ['-e', script], options);
+  assert.deepEqual(await inspectInstalledPlugins({ targetPath: process.cwd(), executor, timeoutMs: 20000 }), { status: 'installed', version: packageJson.version, enabled: true });
+});
+
+test('init --mode plugin --apply says the install commands fail until the plugin branch is published', async () => {
+  const target = await makeTempRepo();
+  const init = await cli(['init', '--target', target, '--mode', 'plugin', '--runtime', 'claude', '--apply', '--yes']);
+  assert.equal(init.code, 0, init.stderr);
+  assert.match(init.stdout, new RegExp(`- Claude Code: ${claudeInstall}\\nEach person runs it once per clone of this repository; the repository only declares the plugin\\.\\nThe marketplace serves the plugin only after the kit's \`plugin\` branch is published; until then these commands fail\\.\\n`));
 });

@@ -21,7 +21,7 @@ export async function runCli(argv = process.argv.slice(2), io = {}) {
   }
 
   if (options.help || !options.command) {
-    stdout.write(`${printHelp()}\n`);
+    stdout.write(`${printHelp(options.command)}\n`);
     return 0;
   }
 

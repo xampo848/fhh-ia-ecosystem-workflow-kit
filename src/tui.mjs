@@ -49,10 +49,10 @@ import { buildUpgradePlan, commandExists as upgradeCommandExists, currentToolkit
 
 const RUNTIME_OPTIONS = [
   { value: 'neutral', label: 'No extra adapters', description: 'Install full workflow content without runtime adapters.' },
-  { value: 'codex', label: 'Codex', description: 'Full workflow + Codex adapter.' },
-  { value: 'copilot', label: 'GitHub Copilot', description: 'Full workflow + Copilot adapter.' },
-  { value: 'claude', label: 'Claude Code', description: 'Full workflow + Claude adapter.' },
-  { value: 'antigravity', label: 'Antigravity', description: 'Full workflow + Antigravity adapter.' },
+  { value: 'codex', label: 'Codex', description: 'Adds the Codex adapter, which points Codex at the workflow.' },
+  { value: 'copilot', label: 'GitHub Copilot', description: 'Adds the Copilot adapter, which points Copilot at the workflow (in the repository, or as a plugin if you choose plugin mode next).' },
+  { value: 'claude', label: 'Claude Code', description: 'Adds the Claude Code adapter, which points Claude Code at the workflow (in the repository, or as a plugin if you choose plugin mode next).' },
+  { value: 'antigravity', label: 'Antigravity', description: 'Adds the Antigravity adapter, which points Antigravity at the workflow.' },
   { value: 'all', label: 'Install all adapters', description: 'Codex, GitHub Copilot, Claude Code and Antigravity.' },
   { value: 'custom', label: 'Custom list', description: 'Type your own comma-separated runtime list.' }
 ];
@@ -119,12 +119,12 @@ function explainExistingRepoBehavior(write, paint) {
 // all of them, or one per file offering only the decisions that apply to it.
 const EDITED_FILES_QUESTION = 'Some workflow files in this project have your own edits. What should the update do with them?';
 const EDITED_FILES_OPTIONS = [
-  { value: 'keep', label: 'Keep my edits (recommended)', description: 'Every edited file stays as it is and stays pending; the update changes nothing in them.' },
+  { value: 'keep', label: 'Keep my edits (recommended)', description: 'Every edited file stays as it is; the update changes nothing in them and the next update lists them again.' },
   { value: 'replace-all', label: 'Replace all edited files with the kit version', description: 'Every edited kit file gets the kit version. An adapter without markers keeps your own text outside the new markers, or stays pending when that is not possible (for example Windows line endings). A backup copy of your version is saved first.' },
   { value: 'file-by-file', label: 'Decide file by file', description: 'One question per edited file, with only the choices that apply to it and a short diff.' }
 ];
 const EDITED_DECISION_OPTIONS = {
-  keep: () => ({ label: 'Keep my edits in this file', description: 'The file stays as it is and stays pending.' }),
+  keep: () => ({ label: 'Keep my edits in this file', description: 'The file stays as it is; the next update lists it again.' }),
   discard: () => ({ label: 'Take the kit version', description: 'The file gets the kit version; a backup copy of your version is saved first.' }),
   shadow: (relativePath) => ({
     label: 'Move my version to a project shadow',
@@ -551,6 +551,15 @@ export async function runTui(options = {}) {
   const commandExists = options.commandExists ?? defaultCommandExists;
   const runCommand = options.runCommand ?? defaultRunCommand;
   const runUpgradeExecutor = options.runUpgradeExecutor ?? runUpgradePlan;
+  // The menu reads a terminal: without one (stdin at end of file, a pipe or
+  // /dev/null) every prompt would end at once and look like a cancel with
+  // exit 0, which a script reads as success.
+  const input = options.stdin ?? process.stdin;
+  if (!scriptedMode && !options.prompter && !input.isTTY) {
+    const writeError = options.writeError ?? ((message) => process.stderr.write(message));
+    writeError('workflow-kit tui needs an interactive terminal (stdin is not one). In scripts, use the commands instead: init, update, export, doctor, rollback or upgrade (see workflow-kit --help). Nothing was written.\n');
+    return { code: 2, applied: false };
+  }
   // options.prompter stands in for the interactive prompter (tests).
   const prompter = scriptedMode
     ? createScriptedPrompter({ ask: options.ask, write, paint })

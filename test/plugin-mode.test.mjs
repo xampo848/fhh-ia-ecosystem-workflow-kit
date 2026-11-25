@@ -54,7 +54,9 @@ function assertUntracked(result, relativePaths, keepCommand) {
   assert.deepEqual(untracked.map((item) => item.path).sort(), [...relativePaths].sort(), JSON.stringify(result.diagnostics, null, 2));
   for (const item of untracked) {
     assert.equal(item.severity, 'warning', item.path);
-    assert.ok(item.message.includes(`\`${keepCommand}\``) && /delete/i.test(item.message), `${item.path}: ${item.message}`);
+    // Doctor names the absolute target right after the subcommand.
+    const named = keepCommand.replace(/^workflow-kit update/, `workflow-kit update --target ${result.targetPath}`);
+    assert.ok(item.message.includes(`\`${named}\``) && /delete/i.test(item.message), `${item.path}: ${item.message}`);
   }
 }
 const pluginPlan = (target, extra = {}) => buildInstallPlan({ targetPath: target, mode: 'plugin', ...extra });
