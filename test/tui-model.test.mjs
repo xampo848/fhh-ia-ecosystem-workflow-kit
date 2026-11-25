@@ -13,22 +13,22 @@ import {
 
 test('installPackageDetails returns recommended metadata for full overlay', () => {
   assert.deepEqual(installPackageDetails('fhh-ia-ecosystem-full'), {
-    label: 'Full FHH IA Ecosystem (recommended)',
-    summary: 'Full FHH IA Ecosystem flow selected (recommended).',
+    label: 'FHH IA Ecosystem completo (recomendado)',
+    summary: 'Flujo completo de FHH IA Ecosystem elegido (recomendado).',
     tone: 'copper'
   });
 });
 
 test('installPackageDetails returns error metadata for unsupported overlays', () => {
   assert.deepEqual(installPackageDetails('starter'), {
-    label: 'Full FHH IA Ecosystem (recommended)',
-    summary: 'Unsupported overlay "starter" requested.',
+    label: 'FHH IA Ecosystem completo (recomendado)',
+    summary: 'Se pidió un overlay no soportado: "starter".',
     tone: 'copperInk'
   });
 
   assert.deepEqual(installPackageDetails('none'), {
-    label: 'Full FHH IA Ecosystem (recommended)',
-    summary: 'Unsupported overlay "none" requested.',
+    label: 'FHH IA Ecosystem completo (recomendado)',
+    summary: 'Se pidió un overlay no soportado: "none".',
     tone: 'copperInk'
   });
 });
@@ -68,7 +68,7 @@ test('createCapabilityGuide builds context7 guidance with official source and ru
   assert.equal(guide.source, 'upstash/context7 (packages/mcp/README.md)');
   assert.equal(guide.scope, 'hybrid');
   assert.equal(guide.intent, 'attach-only');
-  assert.equal(guide.runtimeHint, 'Detected runtimes: codex, copilot');
+  assert.equal(guide.runtimeHint, 'Runtimes detectados: codex, copilot');
   assert.match(guide.commands.join('\n'), /@upstash\/context7-mcp/);
 });
 
@@ -81,7 +81,7 @@ test('createCapabilityGuide builds engram guidance with memory tool effect', () 
   });
 
   assert.equal(guide.source, 'gentleman-programming/engram (docs/INSTALLATION.md + docs/AGENT-SETUP.md)');
-  assert.match(guide.effect, /durable memory tools/);
+  assert.match(guide.effect, /herramientas de memoria persistente/);
   assert.match(guide.commands.join('\n'), /engram setup codex/);
 });
 

@@ -36,10 +36,10 @@ export function selectedCapabilityList(values) {
 
 export function installPackageDetails(overlay) {
   return {
-    label: 'Full FHH IA Ecosystem (recommended)',
+    label: 'FHH IA Ecosystem completo (recomendado)',
     summary: overlay === 'fhh-ia-ecosystem-full'
-      ? 'Full FHH IA Ecosystem flow selected (recommended).'
-      : `Unsupported overlay "${overlay}" requested.`,
+      ? 'Flujo completo de FHH IA Ecosystem elegido (recomendado).'
+      : `Se pidió un overlay no soportado: "${overlay}".`,
     tone: overlay === 'fhh-ia-ecosystem-full' ? 'copper' : 'copperInk'
   };
 }
@@ -87,28 +87,28 @@ export function createCapabilityGuide({ capability, scope, intent, runtimes }) {
 
     return {
       source: 'upstash/context7 (packages/mcp/README.md)',
-      effect: 'Adds Context7 docs tools (resolve-library-id + get-library-docs).',
+      effect: 'Agrega las herramientas de documentación de Context7 (resolve-library-id + get-library-docs).',
       commands,
       notes: [
-        'Node.js >= 18 is required by Context7 MCP.',
-        'Use official source by default unless user requests another source.'
+        'Context7 MCP necesita Node.js >= 18.',
+        'Usa la fuente oficial salvo que pidas otra.'
       ],
       scope,
       intent,
-      runtimeHint: `Detected runtimes: ${[...runtimes].join(', ') || 'neutral'}`
+      runtimeHint: `Runtimes detectados: ${[...runtimes].join(', ') || 'neutral'}`
     };
   }
 
   if (capability === 'engram') {
     const commands = [
-      'Install Engram binary (macOS/Linux):',
+      'Instala el binario de Engram (macOS/Linux):',
       'brew install gentleman-programming/tap/engram',
       '',
-      'Then setup by runtime:',
+      'Luego configúralo por runtime:',
       'engram setup codex',
       'engram setup vscode-copilot',
       '',
-      'Workspace MCP alternative (.vscode/mcp.json):',
+      'Alternativa: MCP del workspace (.vscode/mcp.json):',
       '{',
       '  "servers": {',
       '    "engram": {',
@@ -118,38 +118,38 @@ export function createCapabilityGuide({ capability, scope, intent, runtimes }) {
       '  }',
       '}',
       '',
-      'CLI one-liner:',
+      'En una línea, desde la CLI:',
       'code --add-mcp "{\"name\":\"engram\",\"command\":\"engram\",\"args\":[\"mcp\"]}"'
     ];
 
     return {
       source: 'gentleman-programming/engram (docs/INSTALLATION.md + docs/AGENT-SETUP.md)',
-      effect: 'Enables durable memory tools (mem_save, mem_search, mem_context, mem_session_summary).',
+      effect: 'Habilita las herramientas de memoria persistente (mem_save, mem_search, mem_context, mem_session_summary).',
       commands,
       notes: [
-        'For Codex/Copilot/VS Code, Engram MCP runs as stdio via engram mcp.',
-        'No install command should run without explicit approval.'
+        'En Codex, Copilot y VS Code, Engram MCP corre por stdio con engram mcp.',
+        'Ningún comando de instalación debe correr sin tu aprobación explícita.'
       ],
       scope,
       intent,
-      runtimeHint: `Detected runtimes: ${[...runtimes].join(', ') || 'neutral'}`
+      runtimeHint: `Runtimes detectados: ${[...runtimes].join(', ') || 'neutral'}`
     };
   }
 
   const commands = [
-    'Run official installer (with UI):',
+    'Ejecuta el instalador oficial (con UI):',
     'curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash -s -- --ui',
     '',
-    'Configure detected coding agents:',
+    'Configura los agentes detectados:',
     'codebase-memory-mcp install',
     '',
-    'Index the current project:',
+    'Indexa el proyecto actual:',
     'codebase-memory-mcp cli index_repository --repo-path /absolute/path/to/repo',
     '',
-    'Optional quick config:',
+    'Configuración rápida opcional:',
     'codebase-memory-mcp config set auto_index true',
     '',
-    'Manual MCP entry example:',
+    'Ejemplo de entrada MCP manual:',
     '{',
     '  "mcpServers": {',
     '    "codebase-memory-mcp": {',
@@ -162,15 +162,15 @@ export function createCapabilityGuide({ capability, scope, intent, runtimes }) {
 
   return {
     source: 'DeusData/codebase-memory-mcp (install.sh + README.md)',
-    effect: 'Adds structural code graph MCP tools for indexing/search/trace.',
+    effect: 'Agrega herramientas MCP de grafo de código para indexar, buscar y trazar.',
     commands,
     notes: [
-      'Installer mutates local agent configs; confirm scope before running.',
-      'Restart the coding agent after install/setup.'
+      'El instalador modifica la configuración local de los agentes; confirma el alcance antes de ejecutarlo.',
+      'Reinicia el agente después de instalar o configurar.'
     ],
     scope,
     intent,
-    runtimeHint: `Detected runtimes: ${[...runtimes].join(', ') || 'neutral'}`
+    runtimeHint: `Runtimes detectados: ${[...runtimes].join(', ') || 'neutral'}`
   };
 }
 // Plain words for the tiers: a small model (Haiku), a mid-size one (Sonnet,

@@ -18,13 +18,13 @@ function isYes(value) {
 async function chooseScriptedOption({ ask, write, paint, title, options, defaultIndex = 0 }) {
   write(`${paint.bold(title)}\n`);
   options.forEach((option, index) => {
-    const defaultMark = index === defaultIndex ? paint.dim(' (default)') : '';
+    const defaultMark = index === defaultIndex ? paint.dim(' (por defecto)') : '';
     write(`  ${index + 1}) ${option.label}${defaultMark}\n`);
     if (option.description) write(`     ${paint.dim(option.description)}\n`);
   });
 
   while (true) {
-    const answer = valueOrDefault(await ask(`Choose [${defaultIndex + 1}]: `), String(defaultIndex + 1));
+    const answer = valueOrDefault(await ask(`Elige [${defaultIndex + 1}]: `), String(defaultIndex + 1));
     const numeric = Number.parseInt(answer, 10);
 
     if (!Number.isNaN(numeric) && numeric >= 1 && numeric <= options.length) {
@@ -38,21 +38,21 @@ async function chooseScriptedOption({ ask, write, paint, title, options, default
       return byValue.value;
     }
 
-    write(`${paint.copperInk('Invalid choice. Please select one of the listed options.')}\n`);
+    write(`${paint.copperInk('Opción no válida. Elige una de las opciones de la lista.')}\n`);
   }
 }
 
 async function chooseScriptedOptions({ ask, write, paint, title, options, defaultValues = [] }) {
   write(`${paint.bold(title)}\n`);
   options.forEach((option, index) => {
-    const defaultMark = defaultValues.includes(option.value) ? paint.dim(' (default)') : '';
+    const defaultMark = defaultValues.includes(option.value) ? paint.dim(' (por defecto)') : '';
     write(`  ${index + 1}) ${option.label}${defaultMark}\n`);
     if (option.description) write(`     ${paint.dim(option.description)}\n`);
   });
 
   while (true) {
     const fallback = defaultValues.length > 0 ? defaultValues.join(',') : '';
-    const answer = valueOrDefault(await ask(`Choose one or more [${fallback || 'none'}]: `), fallback);
+    const answer = valueOrDefault(await ask(`Elige una o más [${fallback || 'ninguna'}]: `), fallback);
     const tokens = answer.split(',').map((item) => item.trim()).filter(Boolean);
     const values = tokens.flatMap((token) => {
       const numeric = Number.parseInt(token, 10);
@@ -67,7 +67,7 @@ async function chooseScriptedOptions({ ask, write, paint, title, options, defaul
       return [...new Set(values)];
     }
 
-    write(`${paint.copperInk('Invalid choice. Use one or more listed numbers or values, separated by commas.')}\n`);
+    write(`${paint.copperInk('Opción no válida. Usa uno o más números o valores de la lista, separados por comas.')}\n`);
   }
 }
 

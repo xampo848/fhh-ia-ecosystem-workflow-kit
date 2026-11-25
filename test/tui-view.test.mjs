@@ -50,7 +50,7 @@ test('renderStageHeader writes chip, progress bar and subtitle', () => {
     subtitle: 'Select runtime surfaces.'
   });
 
-  assert.match(output, /STEP 2/);
+  assert.match(output, /PASO 2/);
   assert.match(output, /Runtime adapters/);
   assert.match(output, /2\/5/);
   assert.match(output, /Select runtime surfaces\./);
@@ -66,7 +66,7 @@ test('renderStageHeader omits subtitle line when none is provided', () => {
     title: 'Target selection'
   });
 
-  assert.match(output, /STEP 1/);
+  assert.match(output, /PASO 1/);
   assert.match(output, /Target selection/);
   assert.match(output, /1\/3/);
   assert.equal((output.match(/\n/g) ?? []).length, 3);
@@ -139,12 +139,12 @@ test('renderSummary groups the layout migration with its pending files and notes
   const header = lines.findIndex((line) => line.includes('Move to the kit and project overlay layout.'));
   assert.ok(header > -1, output);
   assert.deepEqual(lines.slice(header + 1, header + 4), [
-    '    - pending .agents/instructions.md (edited_kit_file): keep | discard',
-    '    - pending .agents/skills/06-patterns/local/router-copy/ (kit_skill_name)',
-    '    - note: `retry-policy` row: class written as Pattern'
+    '    - pendiente .agents/instructions.md (edited_kit_file): keep | discard',
+    '    - pendiente .agents/skills/06-patterns/local/router-copy/ (kit_skill_name)',
+    '    - nota: `retry-policy` row: class written as Pattern'
   ]);
-  assert.match(output, /Delete \(backup kept\) +: 2/);
-  assert.match(output, /\[ 2 backup delete \]/);
+  assert.match(output, /Borrar \(con backup\) +: 2/);
+  assert.match(output, /\[ 2 borrar con backup \]/);
 });
 
 test('colorizeFullPlanPreview tones a delete like the other writes', () => {
