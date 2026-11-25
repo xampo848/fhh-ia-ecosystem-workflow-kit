@@ -3,7 +3,7 @@
 **Ticket**: Épica `kit-project-overlay`, fase F1, fila 1 de la cola de PRDs
 **Autor**: Agente (sesión F1)
 **Fecha**: 2026-11-21
-**Estado**: En revision
+**Estado**: Cerrada (PR #80, `0.20.0-kit-overlay-contract`, squash `7a1f91c`, integrada en `main` el 2026-11-21)
 
 ---
 
@@ -145,13 +145,13 @@ Hoy un proyecto extiende el kit editando archivos del kit en el lugar, y nada es
 
 | Categoria | Descripcion | Caso de uso vinculado | Capa duena | Validacion | Estado |
 | --- | --- | --- | --- | --- | --- |
-| Datos vacios | Repo sin `.agents/project/index.md` ni `routing.md`: el kit lo trata como vacío y no falla | UC-5 | Router (contrato) + validador | L18 + test de fixture sin overlay | Pending |
-| Limites | El core del router está en 196 de 200 líneas: lo nuevo va a una referencia y el core suma ≤ 4 líneas | UC-3 | Router | `validate-skill-size` | Pending |
-| Errores | Una fila de `index.md` apunta a un archivo que no existe, o un shadow sin `shadow.json` | UC-4 | Validador | Test | Pending |
-| Permisos/tenancy | `routing.md` intenta quitar la confirmación de una acción irreversible o saltear el gate: se ignora y se avisa | UC-3 | Router | L20 | Pending |
-| Concurrencia/orden | Una skill del proyecto con el mismo nombre que una del kit: gana la del kit y se avisa. Para reemplazarla, se usa shadow. | UC-2, UC-4 | Router + validador | L19 + test de colisión | Pending |
-| Rollout/rollback | Hasta F2, una instalación 0.19 conserva el default completo en su `.agents/project/quality-gate.md` y además lee `.agents/delegation/quality-gate.md`, así que las reglas quedan duplicadas. Es seguro: duplicar no relaja ninguna regla, y el default nuevo (0.19.0) llega igual. F2 reduce ese archivo a los agregados del proyecto. | UC-5 | Lectores del quality gate | Revisión de los lectores: cargan los dos archivos y ninguno pide ignorar el default | Pending |
-| Rollout/rollback | Instalación 0.19 que actualiza: los adaptadores sin editar reciben los marcadores (el hash coincide). Los editados quedan en `skip_modified` como hoy, sin pérdida. Rollback con `workflow-kit rollback` como siempre. | UC-5 | Actualizador existente (sin cambios) | `npm test` (`test/upgrade-e2e.test.mjs` sigue en verde) | Pending |
+| Datos vacios | Repo sin `.agents/project/index.md` ni `routing.md`: el kit lo trata como vacío y no falla | UC-5 | Router (contrato) + validador | L18 + test de fixture sin overlay | Verified (test del fixture; L18 por smoke manual en Claude Code) |
+| Limites | El core del router está en 196 de 200 líneas: lo nuevo va a una referencia y el core suma ≤ 4 líneas | UC-3 | Router | `validate-skill-size` | Verified (el core del router tiene 199 líneas hoy) |
+| Errores | Una fila de `index.md` apunta a un archivo que no existe, o un shadow sin `shadow.json` | UC-4 | Validador | Test | Verified |
+| Permisos/tenancy | `routing.md` intenta quitar la confirmación de una acción irreversible o saltear el gate: se ignora y se avisa | UC-3 | Router | L20 | Verified por smoke manual en Claude Code (sin test automático) |
+| Concurrencia/orden | Una skill del proyecto con el mismo nombre que una del kit: gana la del kit y se avisa. Para reemplazarla, se usa shadow. | UC-2, UC-4 | Router + validador | L19 + test de colisión | Verified (test de colisión; L19 por smoke manual en Claude Code) |
+| Rollout/rollback | Hasta F2, una instalación 0.19 conserva el default completo en su `.agents/project/quality-gate.md` y además lee `.agents/delegation/quality-gate.md`, así que las reglas quedan duplicadas. Es seguro: duplicar no relaja ninguna regla, y el default nuevo (0.19.0) llega igual. F2 reduce ese archivo a los agregados del proyecto. | UC-5 | Lectores del quality gate | Revisión de los lectores: cargan los dos archivos y ninguno pide ignorar el default | Verified por revisión (QA `qa-relampago`, sección 10) |
+| Rollout/rollback | Instalación 0.19 que actualiza: los adaptadores sin editar reciben los marcadores (el hash coincide). Los editados quedan en `skip_modified` como hoy, sin pérdida. Rollback con `workflow-kit rollback` como siempre. | UC-5 | Actualizador existente (sin cambios) | `npm test` (`test/upgrade-e2e.test.mjs` sigue en verde) | Verified |
 
 ### 2.7 Contrato Visual (UI lock)
 
@@ -338,14 +338,16 @@ _(Vacio = PRD listo para implementar)_
 
 ## 8. Definition of Done Global
 
-- [ ] Todas las fases completadas
-- [ ] `npm test` en verde
-- [ ] `npm run check:workflow` y `npm run check:release` en verde
-- [ ] `git diff --stat main -- src bin` vacío
-- [ ] Espejo `.agents/` = plantilla
-- [ ] Todo AC tiene al menos un caso de uso vinculado y todo caso de uso tiene al menos un AC vinculado
-- [ ] Todo caso de uso tiene al menos un test en la Estrategia de Tests
-- [ ] La Matriz de Edge Cases cubre las seis categorias obligatorias
+Marcado el 2026-11-25 contra `main` (`9d3b917`) y contra la evidencia de la sección 10. Cada casilla nombra qué la prueba.
+
+- [x] Todas las fases completadas (sección 10: Fases 1 y 2, cerradas el 2026-11-21)
+- [x] `npm test` en verde (349/349 al cerrar; el CI del PR #80 pasó en verde, y la suite de `main` en `9d3b917` pasó en el CI del PR #83)
+- [x] `npm run check:workflow` y `npm run check:release` en verde (CI del PR #80; `check:workflow` corre hoy el validador `validate-kit-boundary`)
+- [x] `git diff --stat main -- src bin` vacío (`git diff --stat 67c2ec5 7a1f91c -- src bin` no lista nada)
+- [x] Espejo `.agents/` = plantilla (`check:workflow` y `check:templates`)
+- [x] Todo AC tiene al menos un caso de uso vinculado y todo caso de uso tiene al menos un AC vinculado (secciones 2.3, 2.4 y 9)
+- [x] Todo caso de uso tiene al menos un test en la Estrategia de Tests (sección 2.5)
+- [x] La Matriz de Edge Cases cubre las seis categorias obligatorias (sección 2.6)
 
 ---
 
@@ -353,16 +355,16 @@ _(Vacio = PRD listo para implementar)_
 
 | Acceptance criterion | Caso de uso | Phase / slice | Test evidence | Edge case(s) | Validation evidence | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| AC-1 | UC-1 | P1-S1 | `test/kit-boundary.test.mjs` | Datos vacíos | `validate-kit-boundary` | Pending |
-| AC-2 | UC-2, UC-3, UC-4 | P1-S1 | `test/kit-boundary.test.mjs` | — | Revisión | Pending |
-| AC-3 | UC-7 | P1-S2 | `test/kit-boundary.test.mjs` | Rollout/rollback | `check:workflow` | Pending |
-| AC-4 | UC-6 | P1-S3 | `test/kit-boundary.test.mjs` | Errores | `check:workflow` | Pending |
-| AC-5 | UC-3, UC-4 | P2-S1 | L16, L17, L19, L20 | Permisos, Concurrencia | Smoke en el PR | Pending |
-| AC-6 | UC-5 | P2-S1 | L18 + fixture sin overlay | Datos vacíos | `npm test` | Pending |
-| AC-7 | UC-5 | P1-S3 | Validador | — | `check:workflow` | Pending |
-| AC-8 | UC-5 | P1-S3 | Validador | — | `check:workflow` | Pending |
-| AC-9 | UC-2 | P2-S2 | L17 | — | Revisión | Pending |
-| AC-10 | UC-1 | P2-S3 | Suite completa | — | Comandos de cierre | Pending |
+| AC-1 | UC-1 | P1-S1 | `test/kit-boundary.test.mjs` | Datos vacíos | `validate-kit-boundary` | Verified |
+| AC-2 | UC-2, UC-3, UC-4 | P1-S1 | `test/kit-boundary.test.mjs` | — | Revisión | Verified |
+| AC-3 | UC-7 | P1-S2 | `test/kit-boundary.test.mjs` | Rollout/rollback | `check:workflow` | Verified |
+| AC-4 | UC-6 | P1-S3 | `test/kit-boundary.test.mjs` | Errores | `check:workflow` | Verified |
+| AC-5 | UC-3, UC-4 | P2-S1 | L16, L17, L19, L20 | Permisos, Concurrencia | Smoke en el PR | Verified por smoke manual (lectores ciegos en Claude Code; Codex y Copilot no se corrieron) |
+| AC-6 | UC-5 | P2-S1 | L18 + fixture sin overlay | Datos vacíos | `npm test` | Verified (test del fixture sin overlay); L18 por smoke manual en Claude Code |
+| AC-7 | UC-5 | P1-S3 | Validador | — | `check:workflow` | Verified |
+| AC-8 | UC-5 | P1-S3 | Validador | — | `check:workflow` | Verified |
+| AC-9 | UC-2 | P2-S2 | L17 | — | Revisión | Verified por revisión y smoke manual en Claude Code (L17) |
+| AC-10 | UC-1 | P2-S3 | Suite completa | — | Comandos de cierre | Verified (comandos de cierre de la sección 10; CI del PR #80) |
 
 ---
 

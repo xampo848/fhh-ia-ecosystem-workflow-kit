@@ -3,7 +3,7 @@
 **Ticket**: Épica `kit-project-overlay`, fase F3, fila 3 de la cola de PRDs
 **Autor**: Agente (sesión F3)
 **Fecha**: 2026-11-21
-**Estado**: Aprobado (usuario, 2026-11-21)
+**Estado**: Cerrada (aprobado por el usuario el 2026-11-21; integrada en `main` por el PR #81, `0.21.0-project-runbooks`, squash `45e3797`)
 
 ---
 
@@ -56,7 +56,7 @@ Un proyecto tiene procedimientos operativos propios: pase a staging o preprod, r
 
 ### Contrato entre Fases
 
-**Ledger leido**: `docs/epics/kit-project-overlay/kit-project-overlay-ledger.md` (todas las filas en `Pendiente`; F1 se cerró en su propio PRD)
+**Ledger leido**: `docs/epics/kit-project-overlay/kit-project-overlay-ledger.md` (al escribir este PRD, todas las filas estaban en `Pendiente` y F1 se había cerrado en su propio PRD; hoy el ledger las muestra cerradas)
 **PRD anterior en la cola**: `docs/prd/kit-project-overlay/2026-11-21-kit-overlay-contract/kit-overlay-contract.md`
 
 **Precondiciones**:
@@ -407,9 +407,9 @@ _(Vacio = PRD listo para implementar)_
 ## 8. Definition of Done Global
 
 - [x] Todas las fases completadas
-- [x] `npm test`, `check:workflow`, `check:legal` y `check:docs` en verde; `check:release` queda en verde cuando el orquestador asigne la versión
+- [x] `npm test`, `check:workflow`, `check:legal` y `check:docs` en verde; `check:release` falló en la rama de la fase solo por la versión, y quedó en verde cuando el orquestador asignó `0.21.0-project-runbooks` en el PR #81 (CI del PR en verde)
 - [x] Smoke L12 y L21–L26 con lector ciego registrado
-- [x] `git diff --stat main -- src bin` vacío; versión y `CHANGELOG.md` sin tocar
+- [x] `git diff --stat main -- src bin` vacío; versión y `CHANGELOG.md` sin tocar en la rama de la fase (los agregó el orquestador en el PR #81; `git diff --stat 7a1f91c 45e3797 -- src bin` no lista nada)
 - [x] Espejo `.agents/` = plantilla
 - [x] Todo AC tiene al menos un caso de uso vinculado y todo caso de uso tiene al menos un AC vinculado
 - [x] Todo caso de uso tiene al menos un test en la Estrategia de Tests
@@ -444,11 +444,11 @@ _(Vacio = PRD listo para implementar)_
 | Campo | Evidencia durable |
 | --- | --- |
 | Cambios entregados | Clase `Runbook` en el catálogo del proyecto: contrato `.agents/kit-boundary.md` (sección "Runbooks", formato del catálogo y layout). `validateProjectOverlay` valida clase, ruta, carpeta = `name` y secciones (`runbookSections`). `sync-skill-registry` rechaza `Runbook` en el registry del kit; `registry.schema.json` enumera las 6 clases del kit; fila `Runbook` en el vocabulario de `registry.md`. Plantilla neutral `06-patterns/authoring/runbook-template.md`. `validate-stack-neutrality` revisa `06-patterns/authoring/`. Reglas de ejecución en `reference/project-overlay.md` ("Runbooks"). Celda de la fila 137 del core del router: cambiaron dos celdas (Signals y Primary action), no una como decía Q9; el core sigue en 199 líneas. El matcher lee solo filas `Pattern`. Regla de captura en `.agents/instructions.md` (`## Project runbooks`). Variante runbook en `add-project-pattern` y su trigger en `registry.md`. Evals L21–L26. `docs/extending-the-workflow.md` (sección "Project runbooks"). Espejo de la plantilla y digest de `docs/legal/overlay-authorship.json` renovados. |
-| Criterios de aceptacion | AC-1..AC-13 COMPLETE. AC-13: `check:release` falla solo porque falta subir la versión, que asigna el orquestador fuera de este run; la versión y `CHANGELOG.md` no se tocaron. |
-| Validaciones ejecutadas | `npm test` 351/351; `check:workflow`, `check:legal` y `check:docs` PASS; `check:release` pendiente del bump de versión; `verify-prd-index` rc=0; `git diff --stat main -- src bin package.json CHANGELOG.md` vacío; espejo igual salvo `install-state.json`. |
+| Criterios de aceptacion | AC-1..AC-13 COMPLETE. AC-13: en la rama de la fase `check:release` falló solo porque faltaba subir la versión, que asigna el orquestador fuera de este run; la versión y `CHANGELOG.md` no se tocaron en la rama. El orquestador las agregó en el PR #81 (`0.21.0-project-runbooks`) y el CI del PR, que corre `check:release`, pasó en verde. |
+| Validaciones ejecutadas | `npm test` 351/351; `check:workflow`, `check:legal` y `check:docs` PASS; `check:release` pendiente del bump de versión en la rama (resuelto en el PR #81, ver AC-13); `verify-prd-index` rc=0; `git diff --stat main -- src bin package.json CHANGELOG.md` vacío; espejo igual salvo `install-state.json`. |
 | Smoke (lector ciego) | Claude Code, una sesión nueva por prompt, sobre fixtures con overlay y runbooks: L12, L21, L21b (dos runbooks coinciden: pregunta), L22, L23, L24 (también repetida sobre el texto final, con "sáltate eso"), L25 y L26, todas PASS. Codex y Copilot no se corrieron. |
 | Calidad y QA | Quality gate del kit aplicado. QA independiente (`qa-relampago`): la primera pasada dio `ready_to_close: no` (1 high, 3 medium, 7 low); la re-entrada acotada dio `ready_to_close: yes`, sin hallazgos bloqueantes. |
-| Referencia de cambio | Rama `claude/f3-project-runbooks-2ddc74`: 45e157a (PRD), bdc6e51 (fase 1), 96426da (P2-S1, P2-S2), fbcd058 (P2-S3), 7794697 (reparación de QA) y el commit de cierre. Sin push ni PR. |
+| Referencia de cambio | Rama `claude/f3-project-runbooks-2ddc74`: 45e157a (PRD), bdc6e51 (fase 1), 96426da (P2-S1, P2-S2), fbcd058 (P2-S3), 7794697 (reparación de QA) y el commit de cierre. Integrada en `main` por el PR #81 (squash `45e3797`, 2026-11-21), con la versión y el `CHANGELOG.md` agregados por el orquestador. |
 | Riesgos o waivers | Un runbook mal formado en un repo instalado solo lo detecta el router hasta que el `doctor` de F2 reutilice `validateProjectOverlay`. Un secreto podría commitearse si el usuario aprueba sin leer (mitigado: placeholder y un sí sobre el contenido mostrado; L23 PASS). N0/N1 no ofrecen captura (documentado). Un diff capturado y aprobado puede cambiar precondiciones: es contenido del equipo, no un bypass del kit. Gaps de los lectores fuera de alcance: no hay etiqueta de traza para direct-action ni para un runbook sin decidir; un "sí" sin nombrar la ruta (router `SKILL.md:103-104`). |
 | Checks reutilizados | Ninguno |
 | Iteraciones y causa | 1 ronda de QA. `error de implementacion`: índice del PRD comprimido y fila de test del archivo faltante. `hueco del PRD` menor: el caso de dos coincidencias sin fixture, y dos aclaraciones del smoke ("aunque el usuario lo pida" y los placeholders). |

@@ -1,6 +1,6 @@
 # Epic: Kit sellado + overlay del proyecto, modo plugin y runbooks de proyecto
 
-**Estado**: Borrador
+**Estado**: Completado con pendientes (2026-11-25). Las fases F1 a F4 están integradas en `main` (`0.23.0-plugin-mode`) y las 13 invariantes están cerradas en el [ledger](kit-project-overlay-ledger.md). Pendientes: la rama `plugin` no está publicada (la instalación del plugin falla hasta entonces), no hay tags de versión después de `v0.17.3-contract-gaps` y quedan follow-ups de los PRDs 2 y 4. Estado por fase en la sección 9.
 **Apetito**: Multi-cycle (supuesto: ver P9)
 **Limite de inversion**: Cuatro PRDs, uno por fase. Cada uno debe caber en un ciclo de `create-prd` → `implement-change` → `document-development`. Si una fase no cabe, se recorta su alcance y la fecha no se mueve.
 **Autor**: Agente (sesión de arquitectura del kit)
@@ -10,15 +10,15 @@
 **Ledger**: [kit-project-overlay-ledger.md](kit-project-overlay-ledger.md)
 **Mejoras que cubre**: #1 separar kit y proyecto (prio 0), #2 plugin o MCP instalable (prio 1), #3 aprendizaje de procesos del proyecto (prio 0)
 
-> **Gate de inicio:** no empieza ninguna implementación de esta épica hasta que estén integradas en `main` estas tres mejoras: #6 reglas de tests, #4 lock visual y #5 textos del TUI.
+> **Gate de inicio (cumplido):** no empezaba ninguna implementación de esta épica hasta que estuvieran integradas en `main` estas tres mejoras: #6 reglas de tests, #4 lock visual y #5 textos del TUI.
 >
-> Estado al 2026-11-21:
-> - #6 entró en 0.19.0 y #5 en 0.19.1.
-> - #4 está en el PR #78 (0.19.2). Agrega el lock visual como sub-bloque del Contrato Visual 2.7 de `create-prd`.
+> Estado al 2026-11-25:
+> - #6 entró en 0.19.0 (PR #76), #5 en 0.19.1 (PR #77) y #4 en 0.19.2 (PR #78), todas antes del primer commit de F1.
+> - La épica se ejecutó en cuatro PRs: F1 en #80 (0.20.0), F3 en #81 (0.21.0), F2 en #82 (0.22.0) y F4 en #83 (0.23.0).
 >
 > Por qué el gate:
-> - F1 choca con #6 y #4: comparten `.agents/**`, `templates/**`, `registry.cache.json` y el espejo de las plantillas.
-> - F2 choca con #5: comparten `src/tui.mjs`, `src/tui/view.mjs` y `src/doctor.mjs`.
+> - F1 chocaba con #6 y #4: comparten `.agents/**`, `templates/**`, `registry.cache.json` y el espejo de las plantillas.
+> - F2 chocaba con #5: comparten `src/tui.mjs`, `src/tui/view.mjs` y `src/doctor.mjs`.
 >
 > Ninguna fase de esta épica edita archivos de `create-prd` ni del lock visual.
 >
@@ -56,9 +56,17 @@ Importa ahora por dos razones. El estándar Agent Plugins 1.0 (agosto de 2026) y
 | ------- | -------- | -------- | ------------ |
 | Archivos del proyecto escritos, movidos o borrados por `update` | Sin medir. Los catálogos y los adaptadores mezclan contenido. | 0 | Test e2e de upgrade con un overlay editado (`test/upgrade-e2e.test.mjs`) |
 | Archivos del kit editados que quedan en `skip_modified` después de migrar | Cada archivo editado queda congelado | 0. Cada uno pasa a ser shadow o extend, o se descarta. | Dry-run de la migración sobre un fixture con ediciones |
-| Archivos que el kit escribe en el repo en modo plugin (Claude) | ~289 en modo repo | ≤ 5: el adaptador, `.claude/settings.json`, `install-state.json` y el overlay inicial | Conteo del plan de `init --mode plugin` |
+| Archivos que el kit posee y actualiza en el repo en modo plugin (Claude) | ~289 en modo repo (298 medidos en `558e9fb`) | ≤ 5: el adaptador, `.claude/settings.json` e `install-state.json`. Los seeds del overlay se crean una vez, pasan a ser del proyecto y se informan aparte (decisión D6 del PRD 4, usuario, 2026-11-22). | Conteo del plan de `init --mode plugin` por clase (`test/plugin-mode.test.mjs`, AC-5) |
 | Procedimientos operativos guardados como runbook | 0. La clase no existe. | Al menos 1 runbook capturado con confirmación en un repo piloto | Revisión del overlay del piloto |
 | Acciones irreversibles ejecutadas sin confirmación por medio de un runbook | No aplica | 0 | Evals del router (`router-evals.md`) |
+
+**Resultado al cierre (2026-11-25):**
+
+- Archivos del proyecto tocados por `update`: 0 con state v2 (test e2e y fixture 0.18.1 de F2; AC-9 de F4 en modo plugin). Excepción aprobada: solo la migración desde un state v1 escribe en el overlay (CR-F2-01).
+- Editados que quedan en `skip_modified` tras migrar: ninguno sin decisión; cada uno se ofrece como `shadow`, `split`, `keep` o `discard` (`test/migration.test.mjs`). `keep` no se recuerda y el archivo se lista en cada `update`.
+- Modo plugin (Claude): 3 archivos que el kit posee (`CLAUDE.md`, `.claude/settings.json`, `install-state.json`); 6 con Copilot y 8 con los dos.
+- Runbook capturado con confirmación en un repo piloto: **no medido en un repo real**. Solo se probó con fixtures y lectores ciegos de Claude Code (evals L23 y L26 de F3); falta un repo piloto.
+- Acciones irreversibles sin confirmación por medio de un runbook: 0 en las evals L22 y L25 sobre Claude Code; Codex y Copilot no se corrieron.
 
 ## 3. Alcance
 
@@ -221,7 +229,7 @@ Detalle completo en el [evidence pack](kit-project-overlay-evidence.md).
 | Interoperabilidad | Copilot y Codex leen el formato `.claude-plugin`. | https://code.visualstudio.com/docs/copilot/customization/agent-plugins · https://developers.openai.com/codex/plugins/build.md |
 | MCP | Los prompts no son skills. Sirve como componente, no como canal. | https://code.claude.com/docs/en/mcp |
 
-Hay filas marcadas como *sin verificar* en el evidence pack. Se confirman al iniciar el PRD de F4 (ver P7).
+Hay filas marcadas como *sin verificar* en el evidence pack. El PRD de F4 las verificó o las dejó como supuesto (sección 2.12 de ese PRD; ver P7); el evidence pack lo registra.
 
 ### Evidence Pack
 
@@ -344,6 +352,15 @@ Cómo cada fase deja el path vivo usable:
 | F3 Runbooks de proyecto | Medium | Clase `Runbook`, plantilla, variante en `add-project-pattern`, ruteo de frases operativas, `confirm: required` y ciclo de captura con confirmación. | F1. Puede ir en paralelo con F2. P1 resuelta. | Un runbook que se salta la confirmación | Las evals del router cubren el ruteo operativo, la confirmación irreversible y "capturar sin escribir sin un sí". El validador de neutralidad pasa. |
 | F4 Modo plugin (piloto Claude + Copilot) | Medium | El build genera `plugin.json` y `.claude-plugin` desde el árbol del kit. `init` y `update` funcionan con `--mode plugin`. `doctor` verifica los modos. Hay docs. | F2. P2, P6, P7 y P8 resueltas. | Precedencia o nombres distintos entre runtimes | Smoke test en Claude Code y en VS Code Copilot: las skills cargan, el overlay se lee y no hay duplicados. El repo en modo plugin tiene ≤ 5 archivos del kit. |
 
+### Estado por fase
+
+| Fase | PRD | Estado | Versión y PR | Notas |
+| ---- | --- | ------ | ------------ | ----- |
+| F1 Contrato kit/overlay | [kit-overlay-contract.md](../../prd/kit-project-overlay/2026-11-21-kit-overlay-contract/kit-overlay-contract.md) | Cerrada | `0.20.0-kit-overlay-contract`, PR #80 | Codex y Copilot no corrieron las evals L16–L20. |
+| F2 Actualizador por manifiesto + migración | [manifest-updater.md](../../prd/kit-project-overlay/2026-11-21-manifest-updater/manifest-updater.md) | Cerrada | `0.22.0-manifest-updater`, PR #82 | Excepción CR-F2-01; follow-ups abiertos en la sección 10 del PRD. |
+| F3 Runbooks de proyecto | [project-runbooks.md](../../prd/kit-project-overlay/2026-11-21-project-runbooks/project-runbooks.md) | Cerrada | `0.21.0-project-runbooks`, PR #81 | Smoke solo en Claude Code. |
+| F4 Modo plugin (piloto Claude + Copilot) | [plugin-mode-pilot.md](../../prd/kit-project-overlay/2026-11-22-plugin-mode-pilot/plugin-mode-pilot.md) | Cerrada con riesgos abiertos | `0.23.0-plugin-mode`, PR #83 | Rama `plugin` sin publicar; VS Code sin ejecutar. |
+
 ### Bets o fases futuras fuera del apetito actual
 
 | Fase futura | Por que se difiere | Senal para retomarla |
@@ -389,6 +406,8 @@ Estas listas son la estimación del diseño. Cada PRD hijo la confirma en su dis
 
 ## 12. Preguntas Abiertas
 
+> Estado al 2026-11-25: todas están resueltas. P1, P3, P5 y P10 en el PRD 1; P4 en el PRD 2; P2, P6, P7 y P8 en el PRD 4 (decisiones D1 a D4 y supuestos S1 a S13); P9 sigue como supuesto vigente. La tabla conserva el texto original.
+
 | # | Pregunta | Bloquea | Decision requerida |
 | - | -------- | ------- | ------------------ |
 | P1 | ¿Codex y Copilot descubren de forma nativa skills en `.agents/project/skills/**`, o solo en `.agents/skills/**`? Si no, ¿alcanza con que los runbooks se ruteen por el router? | Si, F1 y F3 | Ubicación física de las skills del proyecto y si se necesitan stubs de descubrimiento |
@@ -412,11 +431,11 @@ Estas listas son la estimación del diseño. Cada PRD hijo la confirma en su dis
 
 ## 14. Ledger de Cierre de Fases (obligatorio)
 
-Archivo complementario: [kit-project-overlay-ledger.md](kit-project-overlay-ledger.md), creado junto con esta épica. Tiene una fila por invariante y una por PRD, todas en `Pendiente`. `document-development` actualiza las filas que corresponden al cerrar cada PRD hijo. La épica no se marca `Completado` hasta que cada invariante diga `Cumplido` o `Cumplido con excepcion aprobada`.
+Archivo complementario: [kit-project-overlay-ledger.md](kit-project-overlay-ledger.md), creado junto con esta épica. Tiene una fila por invariante y una por PRD; `document-development` actualiza las filas que corresponden al cerrar cada PRD hijo. La épica no se marca `Completado` hasta que cada invariante diga `Cumplido` o `Cumplido con excepcion aprobada`. Al 2026-11-25 las 13 invariantes están cerradas (12 `Cumplido` y 1 `Cumplido con excepcion aprobada`, INV-OWN-01) y las 4 filas de PRD dicen `Cerrado`, por eso el estado de la épica es `Completado con pendientes`: los pendientes no son invariantes (rama `plugin`, tags y follow-ups) y están en el ledger.
 
 ## 15. Handoff a Create PRD
 
-**Primer PRD recomendado**: PRD 1 — Contrato kit/overlay (solo después del gate `INV-SEQ-01`)
+**Primer PRD recomendado** (cerrado: los cuatro PRDs están implementados): PRD 1 — Contrato kit/overlay (solo después del gate `INV-SEQ-01`)
 
 **Prompt sugerido**:
 

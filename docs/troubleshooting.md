@@ -107,7 +107,10 @@ A delegate agent's model setting (`model:` in `.claude/agents`, the model list
 in `.github/agents`, or `model_reasoning_effort` in `.codex/agents`) does not
 match the profile stored in `.agents/workflow-kit/install-state.json`. This
 usually means a manual edit or a copy from another project. Do not fix the
-agent by hand; regenerate it:
+agent by hand; run the fix `doctor` prints. It is one command that carries the
+absolute `--target` and, for an agent that the update plan holds as an edited
+kit file, the `--edited <path>=discard` decision, so it runs as printed from
+any folder. The generic form is:
 
 ```bash
 workflow-kit update --target /path/to/repo --profile claude=calidad --apply --yes
@@ -188,7 +191,12 @@ pending. `update --diff` shows the difference beforehand.
 
 The kit owns a closed list of paths (`.agents/workflow-kit/manifest.json`);
 the project owns `.agents/project/`. `doctor` reads the same plan `update`
-would build and names what is pending and how to resolve it.
+would build and names what is pending and how to resolve it. For each pending
+file the message gives one runnable command per decision, with the absolute
+`--target` quoted for the shell and the `--edited <path>=<decision>` already
+filled in (`keep`, `discard`, and `shadow` or `split` when they apply), each
+with what it does; they are dry runs, so add `--apply --yes` after reading the
+plan. Run the one you want as printed, from any folder.
 
 | Code | Severity | Meaning | Action |
 | --- | --- | --- | --- |
@@ -206,6 +214,9 @@ would build and names what is pending and how to resolve it.
 | `boundary/pending-unmarked_adapter` | warning | an adapter has no `workflow-kit:managed` block and was edited | `--edited <path>=<decision>` with `keep` or `discard`, or `split` when offered |
 | `boundary/pending-retired_edited` | warning | the kit no longer ships this file and you edited it | delete it, or keep it as project content outside the kit folders |
 | `boundary/pending-symlink`, `-project_skill_exists`, `-kit_skill_name`, `-invalid_skill_name`, `-mixed_with_kit_files`, `-binary_file` | warning | an own skill could not move to the overlay during the migration | follow the step in the message, move the folder by hand to `.agents/project/skills/<name>/` and add its row to `.agents/project/index.md` |
+| `target/not-found` | error | `--target` is not a folder, or does not exist | check `--target`: `doctor` checks the folder of a project where workflow-kit is installed |
+| `managed/file-empty` | error | a kit file or adapter is empty, so the agent finds no rules in it | run the `update` command in the message: it takes the kit version back, with a backup |
+| `mode/kit-location-missing` | error | plugin mode: an adapter's workflow-kit block lost its `kit-location` block | run the `update` command in the message; it restores the block with a backup |
 | `boundary/pending-legacy_path_unsupported` | warning | the legacy context is not UTF-8 text or a folder is in the way | fix the file, then run `update` |
 | `boundary/pending-catalog_row_not_moved` | warning | a project row of an old catalog could not be moved | add it to `.agents/project/index.md` by hand |
 | `boundary/adapter-block-edited` | warning | the text inside an adapter's `workflow-kit:managed` block was edited | the next `update` restores the block; keep your text outside the markers |
@@ -221,7 +232,35 @@ Things to know:
   it stops and asks for `update` (with `--runtime`, `--stack` or
   `--profile` to change those choices; the TUI Install stops the same way).
 - After an apply that stopped halfway, `init` and `update` refuse to run until
-  `rollback` undoes it, so its journal is never overwritten.
+  `rollback` undoes it, so its journal is never overwritten. The journal is
+  written before the first write of a run and marked finished only at the end,
+  so an interrupt leaves a recorded unfinished run: Ctrl-C or `SIGTERM` lets
+  the file being written finish and exits with code 130 (143 for `SIGTERM`; a
+  second signal stops at once), and a killed process leaves the same journal.
+  The message is "The last workflow-kit apply did not finish";
+  `workflow-kit rollback --apply --yes` undoes exactly that run, and files it
+  never reached stay as they are.
+- A rollback that stopped halfway (even a killed one) is recorded too: `init`
+  and `update` stop with "A workflow-kit rollback … did not finish" and `doctor`
+  reports `managed/apply-incomplete` until you run
+  `workflow-kit rollback --apply --yes` again, which finishes it.
+- One run at a time: an apply or rollback holds
+  `.agents/workflow-kit/apply.lock` while it writes. A second one stops with
+  "Another workflow-kit run is changing this repository"; wait for the first
+  and run it again. A dry run and `doctor` are not stopped by the lock. A lock
+  whose process is gone, whose process id now belongs to another process, or
+  that is empty is taken over by the next run. A lock that cannot be proved
+  stale (it has no start time, or the system cannot tell) stays, and the
+  message says to remove `.agents/workflow-kit/apply.lock` only if you are sure
+  no workflow-kit command is running on that repository (for example after a
+  crash); then delete the file and run the command again.
+- "changed after this plan was made": another run changed the repository
+  between your plan and your write. Nothing was written; run the command again
+  so it plans from the repository as it is now. The same stop applies to
+  `rollback`, which never undoes a run other than the one it planned.
+- A state from a newer kit: when `install-state.json` was written by a newer
+  workflow-kit than the CLI you run, `update` stops and asks for
+  `workflow-kit upgrade --apply --yes` first; run that, then `update` again.
 - Empty folders inside an own skill are not recreated by the migration.
 - A file where the plan needs a folder (for example `docs`, `.agents/project`
   or `.agents/project/skills` as a file), or a folder where it writes a file
@@ -328,8 +367,11 @@ workflow-kit rollback --target /path/to/repo --apply --yes
 
 `rollback` undoes only the last applied `init` or `update`: it restores the
 files that run changed from their backups, removes the files that run created,
-and restores the previous `.agents/workflow-kit/install-state.json`. Files
-written with `--backup-mode none` have no backup and cannot be restored.
+the folders that run created (a folder you had before stays, even when empty),
+and restores the previous `.agents/workflow-kit/install-state.json`. Rolling
+back an unfinished run always clears its journal, even when every file it wrote
+was already removed by hand. Files written with `--backup-mode none` have no
+backup and cannot be restored.
 
 Manual fallback: review both versions and copy the backup over the file
 yourself, then re-run dry-run before applying again.

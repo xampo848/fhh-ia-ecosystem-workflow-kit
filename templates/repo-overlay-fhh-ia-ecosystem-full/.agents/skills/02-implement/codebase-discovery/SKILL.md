@@ -57,7 +57,7 @@ Use an index-first strategy:
 
 Load project docs only when directly relevant to the touched surface, and only
 the ones the project declares: the architecture and pattern docs listed in
-`.agents/project/context.md` (legacy: `.agents/project-context.md`), the paths mapped in `.agents/project/paths.json`,
+`.agents/project/context.md` (legacy: `.agents/project-context.md`), the paths mapped in `.agents/project/paths.json` (an older seed can still map `project-context` to the legacy `.agents/project-context.md`: when that file is missing, use `.agents/project/context.md`),
 and `docs/patterns/**` when present. Never assume a doc exists; a listed path
 that is missing is recorded under `project_context_gaps`.
 

@@ -21,31 +21,23 @@ older binary.
 ## Rollout channels
 
 - **`main`:** `workflow-kit upgrade --apply --yes` installs the latest merged
-  version.
-- **Pinned tag:** `workflow-kit upgrade --ref <tag> --apply --yes`. Pinned tags
-  are the better choice for coordinated team rollouts.
+  version. This is the supported channel for every version after `0.17.3`.
+- **Pinned ref:** `workflow-kit upgrade --ref <ref> --apply --yes`. `<ref>` is a
+  tag, a branch or a commit of the toolkit repository. Pinning is the better
+  choice for coordinated team rollouts; use a tag when the version has one and
+  the full 40-character commit hash when it does not.
 
 A tag is the version with a `v` prefix and points at the commit on `main` that
-released it. Tags of the current lines:
+released it. **Tags are created only when the maintainer approves them**
+([RELEASE.md](../RELEASE.md)), and the remote has none after `0.17.3`. A pin
+such as `--ref v0.23.0-plugin-mode` fails today because that tag does not
+exist; use the commit in the second table instead.
+
+### Versions that have a tag
 
 | Tag | Notes |
 | --- | --- |
-| `v0.23.3-strict-cli` | current |
-| `v0.23.2-apply-recovery` | |
-| `v0.23.1-script-guards` | |
-| `v0.23.0-plugin-mode` | |
-| `v0.22.0-manifest-updater` | |
-| `v0.21.0-project-runbooks` | |
-| `v0.20.0-kit-overlay-contract` | |
-| `v0.19.2-visual-lock` | |
-| `v0.19.1-tui-option-clarity` | |
-| `v0.19.0-test-design` | |
-| `v0.18.1-orchestrator-reads` | |
-| `v0.18.0-equilibrado-profile` | |
-| `v0.17.6-bounded-output` | |
-| `v0.17.5-slice-checkpoint` | |
-| `v0.17.4-usage-measurement` | |
-| `v0.17.3-contract-gaps` | |
+| `v0.17.3-contract-gaps` | latest tag |
 | `v0.17.2-catalog-rows` | |
 | `v0.17.1-stack-detection` | |
 | `v0.17.0-audit-hardening` | |
@@ -54,17 +46,74 @@ released it. Tags of the current lines:
 | `v0.16.0-safe-update` | |
 | `v0.10.0-implement-change` | |
 | `v0.7.40-contextual-model-selection` | last `0.7.x` |
+| `v0.7.33-create-prd-cost-efficiency` | |
+| `v0.7.26-runtime-native-agents` | |
+| `v0.7.19-tui-selective-apply` | |
+| `v0.7.4-public-install-export` | |
 
 Versions `0.8.0`, `0.9.0` and `0.11.0`–`0.15.0` were merged inside larger pull
 requests and have no commit of their own on `main`, so they have no tag; pin
-the next tagged version instead. Older `0.7.x` tags are on the
-[Releases page](https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/releases).
+the next tagged version instead.
+
+### Versions without a tag yet
+
+These versions are merged on `main`; each commit is the squash merge that
+released it. Pin one with its full hash, for example
+`workflow-kit upgrade --ref 558e9fb96792ae962bac1e3886c83dc0f3923cb8 --apply --yes`
+or `bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#<hash>`.
+`upgrade` checks the ref before it removes the installed version: a branch or tag by name, and a full
+40-character commit hash by fetching that commit. A short commit hash is
+accepted only when it is the tip of a branch or tag, so use the full hash.
+
+| Version | Commit on `main` |
+| --- | --- |
+| `0.23.3-strict-cli` | `96ec070136314053080535e3c40ce73c874268d7` |
+| `0.23.2-apply-recovery` | `0699ed2ec7e45ad0937a2f315b31aabc2938951d` |
+| `0.23.1-script-guards` | `f0bfc61123e866d9b258212f3224f4a8a6bff229` |
+| `0.23.0-plugin-mode` | `9d3b917dfda54b7494d3d2a18dd1eb479e4bdb6d` |
+| `0.22.0-manifest-updater` | `558e9fb96792ae962bac1e3886c83dc0f3923cb8` |
+| `0.21.0-project-runbooks` | `45e37975a133e1cfc76b93a0e0047e4536ccf2dc` |
+| `0.20.0-kit-overlay-contract` | `7a1f91c5fc65b7406b0161c284bf7c01b4f722ab` |
+| `0.19.2-visual-lock` | `3e233f4ea641f5101d820ad02abc43a1f6bfd5be` |
+| `0.19.1-tui-option-clarity` | `737bd36000dd71d008636481acbd3e75dfb22c46` |
+| `0.19.0-test-design` | `9901069873bb910141139b7c4504ca6b4de2f78a` |
+| `0.18.1-orchestrator-reads` | `f5ddeb070c846d0c599b2443dcbe4c1e0da45460` |
+| `0.18.0-equilibrado-profile` | `ad1d9b882826f88347a6d03d31c17b754e56719e` |
+| `0.17.6-bounded-output` | `e4a660db57a85b939483caa31604f9cc5df2ed56` |
+| `0.17.5-slice-checkpoint` | `1c766cd4b6a7693ad133ff5611146118b216717f` |
+| `0.17.4-usage-measurement` | `fd1d055c7c58991d29b20bc1b156c0b2c9dbc2ef` |
+
+When the maintainer creates tags for these versions, they take the names in the
+first column with a `v` prefix, and the release steps in
+[RELEASE.md](../RELEASE.md) update this page.
 
 ## What requires a version bump
 
 `bun run check:release` fails when `.agents/**`, `templates/**`, `src/**`,
 `bin/**`, `scripts/**`, or the CI workflow changed without a
 `package.json.version` bump.
+
+The gate compares your branch with a base: it finds the merge base of `HEAD`
+and `RELEASE_BASE_REF`, lists the files changed since then (committed, staged,
+unstaged and untracked; a file moved out of those paths counts), and reads
+`package.json` at that merge base. It fails when one of those paths changed and
+the `X.Y.Z` part of the version does not rise above the base's: a lower
+`X.Y.Z` fails, and so does the same `X.Y.Z` with a different suffix, because
+changing only the suffix is not a bump.
+
+- `RELEASE_BASE_REF` chooses the base. Locally it defaults to `origin/main`
+  when that ref exists (what CI compares with), and to `main` otherwise, so a
+  stale local `main` cannot pass a change that CI rejects; set it to another
+  ref when you branch from something else, for example
+  `RELEASE_BASE_REF=origin/release bun run check:release`. CI sets it to
+  `origin/<target branch>` on a pull request, and to the previous tip of `main`
+  on a push (`.github/workflows/ci.yml`).
+- Where the base cannot be resolved (not a git repository, no merge base, an
+  unreadable `package.json`), the check is skipped with a notice when you run
+  it locally. In CI (`CI` set) the same situation fails the check, which is why
+  CI checks out the full history (`fetch-depth: 0`).
+- It is skipped with a notice when the base is the null commit of a first push
+  of a branch.
 
 - Patch: fixes downstream repos should consume, and documentation-only fixes.
 - Minor: a new user-visible command or flow (for example `rollback` or a new
@@ -99,10 +148,12 @@ When you raise `package.json.version`, follow these steps in order:
 
    After reviewing the template changes, copy both values into
    `remainingInventory`, set the top-level `lastVerified` field of the same
-   file to the date of the renewal (by hand: `check:legal` does not check that
-   date), then run `bun run check:legal`. Renewing the record is a maintainer
-   attestation that the changed template files are authorized for publication;
-   any other template change between releases needs the same renewal.
+   file to the date of the renewal, then run `bun run check:legal`. Only the
+   two `remainingInventory` values are enforced: `check:legal` passes with an
+   old `lastVerified`, so that date is a convention kept by hand, not a gate.
+   Renewing the record is a maintainer attestation that the changed template
+   files are authorized for publication; any other template change between
+   releases needs the same renewal.
 3. Run `node scripts/build-plugin.mjs --write`: the plugin marketplace
    (`.claude-plugin/marketplace.json`) carries the package version, so
    `check:workflow` also fails until it is regenerated. The command also
@@ -160,8 +211,8 @@ It stops, without committing, when:
   identity it commits with;
 - a file the build reads has uncommitted changes (staged, unstaged or
   untracked); the message names them;
-- `origin/main` is not present locally (fetch it first), or it does not
-  contain `HEAD`: only a commit already on `main` is published;
+- `origin/main` is not present locally (run `git fetch origin` first), or it
+  does not contain `HEAD`: only a commit already on `main` is published;
 - the legal check (`node scripts/validate-legal-readiness.mjs`) fails on the
   source commit; the message quotes its failures (after a version raise, step 2
   above);
@@ -202,4 +253,5 @@ bun run check:release
 ```
 
 Publishing a tag or release remains approval-gated even when all checks pass;
-see [RELEASE.md](../RELEASE.md).
+see [RELEASE.md](../RELEASE.md). A version can be released on `main` without a
+tag (see "Rollout channels").
