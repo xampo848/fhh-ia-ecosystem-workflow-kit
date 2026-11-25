@@ -124,6 +124,13 @@ When you raise `package.json.version`, follow these steps in order:
    folders an interrupted build left in `dist/` (`.plugin-build-*`); one it
    cannot remove is reported with the commands that remove it.
 
+A template change can also break the repo-mode guard of
+`test/plugin-mode.test.mjs`, which compares the repo-mode plans with a fixture
+generated from commit `558e9fb`. When the change to the repo-mode plan is
+intended, regenerate the fixture with the command in the header of
+`test/fixtures/plugin-mode/repo-mode-plans.mjs`, pointed at the new base
+commit, and review its diff before committing it.
+
 The marketplace committed in `main` points at the branch `plugin`. That branch
 does not exist on the remote until the first publish and its approved push, so
 the marketplace cannot install the plugin before then.

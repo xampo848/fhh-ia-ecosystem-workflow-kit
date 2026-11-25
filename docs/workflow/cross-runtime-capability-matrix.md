@@ -60,7 +60,7 @@ statuses above. It is separate from the delegation baseline.
 | --- | --- | --- |
 | Claude Code | supported | `observed` by a smoke: the plugin loads, its skills are `fhh:*`, `fhh:kit-root` gives the kit root, and the overlay is read from the repository |
 | VS Code Copilot | supported format | `documented` only, not verified here |
-| Copilot CLI | supported format | partly `observed` by a smoke (CLI 1.0.51, model gpt-4.1, the only one available to the test account): the plugin loads with `--plugin-dir`; its skills are listed without a prefix (`kit-root`, `create-prd`); only `kit-root` is visible to the model; the adapter's kit-location instruction reaches the model, and `kit-root` gives the kit root when it is invoked. with the entry points named in the adapter, gpt-4.1 names the right router path but answers without reading any file, so routing is not verified; stronger models were not available to test |
+| Copilot CLI | supported format | partly `observed` by a smoke (CLI 1.0.51, model gpt-4.1, the only one available to the test account): the plugin loads with `--plugin-dir`; its skills are listed without a prefix (`kit-root`, `create-prd`); only `kit-root` is visible to the model; the adapter's kit-location instruction reaches the model, and `kit-root` gives the kit root when it is invoked. With the entry points named in the adapter, gpt-4.1 names the right router path but answers without reading any file, so routing is not verified; stronger models were not available to test |
 | Copilot cloud agent | not verified | `unknown` |
 | Codex, Cursor | not supported yet | planned for a future phase |
 | Antigravity, opencode | repo mode only | no plugin mode |

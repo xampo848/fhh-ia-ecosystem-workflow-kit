@@ -9,8 +9,9 @@ plugin mode (pilot; Claude Code and GitHub Copilot, the kit runs as the plugin
 `fhh`). See [Quickstart, plugin mode](quickstart.md#11-plugin-mode-pilot),
 [GitHub install](github-install.md) and the
 [capability matrix](workflow/cross-runtime-capability-matrix.md#plugin-mode).
-In plugin mode this file keeps the block below, and its links resolve under the
-kit root.
+In a repository installed in plugin mode, its own `docs/README.md` keeps the
+kit's docs-workflow block, and the links in that block resolve under the kit
+root (the plugin folder).
 
 <!-- workflow-kit:docs-workflow:start -->
 ## Workflow Documentation (workflow-kit)

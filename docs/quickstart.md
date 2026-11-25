@@ -405,6 +405,13 @@ fail. Claude Code pins a plugin to its version, so people see a kit change
 only when a new version is published, never by following `main`. The release
 steps are in [Versioning](versioning.md).
 
+Everyone who runs `workflow-kit` on a plugin-mode repository needs a CLI with
+plugin mode (the release that ships this pilot or a later one; run
+`workflow-kit upgrade --apply --yes` first). An older CLI reads the state as a
+repo-mode install, and its `update` reinstalls the kit files in the
+repository; `doctor` then reports `mode/repo-and-plugin`, and
+`workflow-kit update --mode plugin` with a current CLI repairs it.
+
 ### `doctor` in plugin mode
 
 `doctor` expects only the plugin-mode files. It runs

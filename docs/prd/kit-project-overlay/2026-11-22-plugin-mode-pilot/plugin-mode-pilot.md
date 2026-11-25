@@ -222,6 +222,10 @@ En modo plugin, `doctor` espera solo los archivos del plan de plugin, valida los
 | `mode/plugin-not-installed` | warning | Claude: `claude plugin list --json` no lista el ID | `claude plugin install fhh@fhh-ia-ecosystem --scope project` |
 | `mode/plugin-version-mismatch` | warning | Claude: la versión instalada no es la del CLI | `claude plugin update fhh@fhh-ia-ecosystem` |
 | `mode/plugin-install-unverified` | warning | Claude: no se pudo comprobar (no hay `claude` en el PATH, no respondió en el tiempo máximo, salida que no es JSON o código de salida distinto de 0) | `claude plugin list` y `claude plugin install fhh@fhh-ia-ecosystem --scope project` |
+| `mode/plugin-disabled` | warning | Claude: el plugin está instalado pero `claude plugin list --json` lo lista con `enabled: false` | `claude plugin enable fhh@fhh-ia-ecosystem` |
+| `mode/plugin-disabled-by-project` | warning | State `plugin` y el archivo de settings del proyecto tiene `enabledPlugins["fhh@fhh-ia-ecosystem"]` en `false` (D15) | La clave y el valor que el proyecto debe cambiar si quiere el del kit |
+| `mode/marketplace-customized` | warning | State `plugin` y `extraKnownMarketplaces["fhh-ia-ecosystem"]` difiere de la entrada del kit (D15) | La entrada del kit, si el proyecto la quiere |
+| `mode/adapter-not-tracked` | warning | Un adaptador con bloque gestionado de un runtime que el state no registra: en modo plugin, siempre; en modo repo, solo si todavía lleva el bloque `kit-location` (D16) | `workflow-kit update --runtime <registrados,ese runtime>` para conservarlo, o borrar el archivo |
 
 Binario externo: `doctor` ejecuta `claude plugin list --json` solo cuando el state es `plugin` y el runtime `claude` está elegido; nunca en modo repo. Espera como máximo 5 segundos. Binario ausente, cuelgue, salida que no es JSON o código distinto de 0 terminan en `mode/plugin-install-unverified`; ninguno hace fallar ni colgar a `doctor`. La lectura es una función inyectable (`inspectInstalledPlugins`, con su ejecutor de comandos también inyectable); los tests siempre pasan un doble.
 
@@ -570,6 +574,9 @@ flowchart TD
 - Cambio de modo desde el TUI.
 - Decisión `shadow` durante el cambio repo → plugin (hoy vive en la migración de F2).
 - Fijar el marketplace a un tag cuando el repo tenga tags de versión.
+- Que `check:legal` imprima los valores esperados de `docs/legal/overlay-authorship.json`, para que `docs/versioning.md` deje de repetir el algoritmo del digest (hallazgo QA-8; los validadores están fuera de F4).
+- Guarda de `main` de los scripts del kit bajo rutas con symlink: varios validadores terminan en 0 sin ejecutar (hallazgo de la ronda de publicación; fuera de F4).
+- Ruteo en Copilot con un modelo más capaz que gpt-4.1, y prueba en VS Code.
 
 ---
 
