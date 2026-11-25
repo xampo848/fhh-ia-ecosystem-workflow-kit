@@ -56,7 +56,7 @@ conflictos en todos los demás lotes.
 | 4 | Validación sin duplicar | U-13, IA-09, IA-10 | Lote 3 | Hecho (mergeado en #62). U-13: hallazgos aprobados el 2026-11-10; no se elimina ningún check y C1 se aplicó en el PR de cierre | #62 |
 | 6 | Calidad de PRD y PR | U-07, U-06, U-01, U-05, D-25 | — (paralelizable) | Hecho (mergeado en #62) | #62 |
 | 7 | Runtimes y estructura | U-15, U-02 (solo si D-27 encuentra fallas), U-20, U-14, U-10, IA-12, U-19c | Lotes 1–6 | Hecho (mergeado en #62). U-15 y U-02 quedan en `Verificar`: la verificación en Codex y Copilot está diferida (sección 8) | #62 |
-| 8 | Cierre: documentación, actualización segura y release | D-33 | Lote 7 | Hecho (mergeado en #62). El piloto real en ooh-backoffice es manual y condiciona el release, no el cierre (sección 8) | #62 |
+| 8 | Cierre: documentación, actualización segura y release | D-33 | Lote 7 | Hecho (mergeado en #62). El piloto real es manual y condiciona el release, no el cierre (sección 8) | #62 |
 
 ## 3. Inventario de ítems
 
@@ -535,28 +535,28 @@ conflictos en todos los demás lotes.
     Esto también ataca U-17: el contrato completo en cambios chicos es parte
     del ciclo perfeccionista.
 
-    > Corrección tras el diagnóstico del Lote 3: en ooh-backoffice los PRDs
+    > Corrección tras el diagnóstico del Lote 3: en el proyecto piloto los PRDs
     > chicos no mostraron cierres pesados; el peso vino de unidades grandes y
     > autónomas. D-10 sigue siendo válida por ahorro de contexto, pero **no es
     > la causa principal de U-17**. Esa se trata en D-11.
 - Decisión del usuario: aprobada (2026-11-10).
 
-### Diagnóstico para el Lote 3 (ooh-backoffice, 2026-11-10)
+### Diagnóstico para el Lote 3 (proyecto piloto, 2026-11-10)
 
 Revisión de solo lectura de los 10 `_meta/` que siguen en
-`ooh-repos/ooh-backoffice/docs/prd/**` y de `log/ds04-s5-history/`. La
+`<proyecto>/docs/prd/**` y de `log/<historial-PRD-A>/`. La
 mayor parte de `_meta/` está en `.gitignore`, así que las duraciones salen de
 mtimes y fechas internas: son un techo, no tiempo activo.
 
 | PRD | Estado | `_meta` | Sección 10 / tracker (líneas) | Señales |
 | --- | --- | --- | --- | --- |
-| ds-04 anunciantes | cerrado, `_meta` sin borrar | 23 archivos, 256 KB, 22 locks | 985 / 1059 | 36 delegation envelopes, 17 de 48 handoffs BLOCKED, ledger con 25 de 27 hallazgos reparados; `log/ds04-s5-history` = 352 archivos (11 MB), 3 rondas de runtime + 1 recovery para **una** slice, 28 scripts de diagnóstico ad hoc |
-| ds-14 campañas edición | abierto (`ready_to_close: no`) | 32 archivos, 952 KB, 29 handoffs | 220 / — | 6 rondas de QA o reparación; cada corrida E2E completa tarda ~13,6 min por siembra y purga; la misma suite se reejecuta muchas veces |
-| ds-11 cotizaciones | cerrado, `_meta` sin borrar | 13 archivos, 268 KB | 217 / — | — |
-| ds-07, ds-08 soportes | cerrados con reentradas | `locks/` vacíos | 310 y 473 / — | 14 y 24 menciones de reentrada |
-| ds-05, ds-06, ds-runtime-lifecycle | cerrados | 4–20 KB | 13–77 de tracker | sin loops; ds-runtime-lifecycle canceló un carril E2E por decisión del usuario |
+| PRD-A | cerrado, `_meta` sin borrar | 23 archivos, 256 KB, 22 locks | 985 / 1059 | 36 delegation envelopes, 17 de 48 handoffs BLOCKED, ledger con 25 de 27 hallazgos reparados; `log/<historial-PRD-A>` = 352 archivos (11 MB), 3 rondas de runtime + 1 recovery para **una** slice, 28 scripts de diagnóstico ad hoc |
+| PRD-B | abierto (`ready_to_close: no`) | 32 archivos, 952 KB, 29 handoffs | 220 / — | 6 rondas de QA o reparación; cada corrida E2E completa tarda ~13,6 min por siembra y purga; la misma suite se reejecuta muchas veces |
+| PRD-G | cerrado, `_meta` sin borrar | 13 archivos, 268 KB | 217 / — | — |
+| PRD-E, PRD-F | cerrados con reentradas | `locks/` vacíos | 310 y 473 / — | 14 y 24 menciones de reentrada |
+| PRD-C, PRD-D, PRD-H | cerrados | 4–20 KB | 13–77 de tracker | sin loops; PRD-H canceló un carril E2E por decisión del usuario |
 | item-description | **bloqueado** | 11 archivos | 277 / 164 | `independent_qa: BLOCKED_MODEL`: no se pudo lanzar el modelo de QA |
-| informe-anunciante | abierto | 6 archivos | 18 / 177 | espera datos reales y CI |
+| PRD-I | abierto | 6 archivos | 18 / 177 | espera datos reales y CI |
 
 Hallazgos:
 
@@ -576,7 +576,7 @@ Hallazgos:
 Matices respecto a las hipótesis:
 
 - Los PRDs **chicos** no mostraron cierres pesados. El peso viene de
-  unidades **grandes y autónomas** (ds-04 y ds-14 con `autonomous-safe` y
+  unidades **grandes y autónomas** (PRD-A y PRD-B con `autonomous-safe` y
   `premium`). Por eso el tamaño del PRD también es parte del problema.
 - No hay un loop puro de reintentos sobre la misma falla. Hay muchas rondas
   distintas sin tope y reparación del entorno dentro del alcance.
@@ -609,7 +609,7 @@ Matices respecto a las hipótesis:
      justifique.
   5. **Diagnóstico acotado.** Los scripts de diagnóstico ad hoc y las
      corridas de "runtime N" para entender un fallo cuentan como rondas
-     (punto 1). En ds-04 hubo 28 scripts y 3 rondas de runtime para una sola
+     (punto 1). En PRD-A hubo 28 scripts y 3 rondas de runtime para una sola
      slice.
 - Decisión del usuario: aprobada (2026-11-10).
 
@@ -645,7 +645,7 @@ Matices respecto a las hipótesis:
 ### D-13 · Tracker y sección 10 compactos (IA-11, U-16, Lote 3)
 
 - Estado: **Decidida** (2026-11-10)
-- Base: hallazgo 2 del diagnóstico. En ds-04 el tracker llegó a 1059 líneas
+- Base: hallazgo 2 del diagnóstico. En PRD-A el tracker llegó a 1059 líneas
   y la sección 10 a 985, porque cada writer, reentrada o reparación **agrega**
   un bloque en vez de **actualizar** el estado. Además, el punto 11 del
   contrato de cierre exige listar cada fila del ledger de hallazgos en el PRD.
@@ -674,9 +674,9 @@ Matices respecto a las hipótesis:
 
 - Estado: **Decidida** (2026-11-10): opción **B**
 - Base: hallazgo 1 del diagnóstico. 4 PRDs cerrados siguen con `_meta/`.
-  Parte está ignorada por git y parte versionada (ds-14 con 32 archivos y
-  ds-11 con 13 dentro del repo). El cierre se declara "local", antes del
-  merge, y el borrado se olvida. `log/ds04-s5-history` (11 MB) está fuera de
+  Parte está ignorada por git y parte versionada (PRD-B con 32 archivos y
+  PRD-G con 13 dentro del repo). El cierre se declara "local", antes del
+  merge, y el borrado se olvida. `log/<historial-PRD-A>` (11 MB) está fuera de
   `_meta/` y no lo cubre ninguna regla.
 - Opciones:
   - A. Mantener `_meta/` dentro de la carpeta del PRD y agregar un check que
@@ -684,7 +684,7 @@ Matices respecto a las hipótesis:
   - B. Mover **todo** el trabajo temporal de la IA a un solo directorio
     ignorado por git, por ejemplo `.ai-work/<prd>/` en la raíz del repo, que
     incluye tracker, locks, handoffs y logs de evidencia como los de
-    `log/ds04-s5-history`.
+    `log/<historial-PRD-A>`.
 - Recomendación de la IA: **B**, con estas reglas:
   1. El PRD solo guarda lo durable (la sección 10). Nada temporal entra en
      `docs/` ni en un PR. Es lo que buscaba #41 ("artefactos efímeros"), pero
@@ -698,7 +698,7 @@ Matices respecto a las hipótesis:
      archivarlo.
   4. Un PRD abierto o bloqueado conserva su espacio de trabajo. Eso es
      legítimo, y el doctor solo lo hace visible.
-  5. La limpieza de lo que ya quedó en ooh-backoffice es una tarea aparte en
+  5. La limpieza de lo que ya quedó en el proyecto piloto es una tarea aparte en
      ese proyecto, no parte de este lote.
 - Decisión del usuario: aprobada (2026-11-10), opción B.
 
@@ -711,12 +711,12 @@ Matices respecto a las hipótesis:
     (objetivo, criterios de aceptación, archivos propios y prohibidos,
     lecturas, predecesores, contrato) y que ya están en el lock del slice.
   - Regla general: "cualquier campo requerido faltante = `blocked` y el
-    orquestador se detiene". En ds-04 hubo 17 handoffs BLOCKED de 48. Un
+    orquestador se detiene". En PRD-A hubo 17 handoffs BLOCKED de 48. Un
     campo de contabilidad faltante bloquea igual que la falta de evidencia
     real.
   - Los handoffs no tienen un formato para logs. Los resultados de
     validación viajan como texto libre y los logs completos terminan en el
-    contexto o en `log/` (11 MB en ds-04).
+    contexto o en `log/` (11 MB en PRD-A).
 - Propuesta de la IA:
   1. **El delegado devuelve solo lo nuevo.** El handoff referencia el
      `execution_lock_id` y el `slice_id`, e informa `resolved_model` con su
@@ -747,10 +747,10 @@ Matices respecto a las hipótesis:
     `_meta/orchestration.md`, que se borra al cerrar (y con D-14 pasa a
     `.ai-work/`). Lo aprendido sobre el proyecto **se pierde en cada cierre**.
   - Los proyectos ya tienen documentación útil que se puede referenciar
-    (ooh-backoffice: `docs/foundations/ARCHITECTURE.md`, `DOMAIN_MODEL.md`,
+    (por ejemplo `docs/foundations/ARCHITECTURE.md`, `DOMAIN_MODEL.md`,
     `docs/patterns/**`).
   - Las peculiaridades del entorno (siembra lenta, puerto 3114, E2E de ~13
-    min, marcador de BD de test) se redescubrieron en ds-04 y ds-14.
+    min, marcador de BD de test) se redescubrieron en PRD-A y PRD-B.
 - Propuesta de la IA:
   1. **Un solo archivo persistente por proyecto**, `.agents/project-context.md`,
      versionado y revisable por humanos, con un máximo de 200 líneas. Lleva:
@@ -927,8 +927,8 @@ Matices respecto a las hipótesis:
   - Las etapas que validan hoy son: implementador, testinator-5000,
     guardia-contrato, lint-ranger, validation-runner, qa-relampago y el
     cierre de `implement-prd`.
-  - Hay datos reales en ooh-backoffice: ds-04 (tracker de 1059 líneas,
-    sección 10 de 985 líneas, 352 archivos de historial), ds-14 (6 rondas
+  - Hay datos reales en el proyecto piloto: PRD-A (tracker de 1059 líneas,
+    sección 10 de 985 líneas, 352 archivos de historial), PRD-B (6 rondas
     de QA) y PRDs chicos. Muchos `_meta/` se borraron, así que la evidencia
     es parcial.
   - El Lote 3 (D-11) ya resuelve parte del problema: E2E completa una sola
@@ -937,8 +937,8 @@ Matices respecto a las hipótesis:
   1. **Matriz declarada.** Desde los `SKILL.md` de cada etapa se registra qué
      dice verificar: tipo de check (tests unitarios, contrato, lint, tipos,
      E2E, criterios de aceptación, revisión de diff), comando y alcance.
-  2. **Matriz observada.** Sobre 3 PRDs de ooh-backoffice (ds-04 grande,
-     ds-14 con muchas rondas de QA y uno chico o mediano) se extrae cada
+  2. **Matriz observada.** Sobre 3 PRDs del proyecto piloto (PRD-A grande,
+     PRD-B con muchas rondas de QA y uno chico o mediano) se extrae cada
      check que realmente corrió: etapa, comando, alcance, versión del código
      y resultado. La versión del código sale del commit o del orden de
      ediciones: si entre dos corridas no se editó ningún archivo del
@@ -987,7 +987,7 @@ Matices respecto a las hipótesis:
      - **"Sin cambios" es un resultado válido:** si no hay duplicados claros,
        U-13 cierra sin tocar skills.
   10. **Prueba contra defectos reales.**
-      - Del historial de ds-04 y ds-14 se extraen las fallas que detectó cada
+      - Del historial de PRD-A y PRD-B se extraen las fallas que detectó cada
         etapa (qué check, en qué ronda). Ningún cambio se aplica si alguna
         de esas fallas dejaría de ser detectada por la matriz nueva.
       - Se buscan commits de arreglo posteriores al merge de esos PRDs. Un
@@ -1017,7 +1017,7 @@ Matices respecto a las hipótesis:
     pero no define qué es fresca. Cada etapa decide por su cuenta y vuelve a
     correr.
   - Tras cada reparación, el skill pide "una revisión QA fresca" completa
-    (línea 63). En ds-14 eso fueron 6 revisiones completas.
+    (línea 63). En PRD-B eso fueron 6 revisiones completas.
   - D-19 (punto 9) ya fija las salvaguardas: reutilizar en vez de borrar,
     huella, slices críticos excluidos y modo sombra. D-20 define el
     mecanismo concreto.
@@ -1393,20 +1393,20 @@ Matices respecto a las hipótesis:
     u ownership, "no por cuota de slices". **No existe un límite para el PRD
     completo**: nada obliga a convertir un PRD grande en épica con PRDs
     hijos.
-  - Medición aproximada en ooh-backoffice (conteo con regex sobre los PRDs;
+  - Medición aproximada en el proyecto piloto (conteo con regex sobre los PRDs;
     son órdenes de magnitud, no cifras exactas):
 
     | PRD | Líneas | Criterios | Slices aprox. | Fases | Resultado |
     | --- | --- | --- | --- | --- | --- |
-    | ds-05 contactos | 366 | 12 | ~4 | 3 | sin loops |
-    | ds-06 medios | 404 | 18 | ~14 | 3 | sin loops |
-    | ds-07 soportes consulta | 660 | 23 | ~15 | 3 | 14 reentradas |
-    | ds-08 soportes edición | 893 | 27 | ~8 | 3 | 24 reentradas |
-    | ds-14 campañas edición | 530 | 15 | ~7–20 | 3 | 6 rondas de QA, abierto |
-    | ds-04 anunciantes | 1266 | 14 | ~10 | 3 | 3 rondas de runtime, 17 handoffs BLOCKED |
+    | PRD-C | 366 | 12 | ~4 | 3 | sin loops |
+    | PRD-D | 404 | 18 | ~14 | 3 | sin loops |
+    | PRD-E | 660 | 23 | ~15 | 3 | 14 reentradas |
+    | PRD-F | 893 | 27 | ~8 | 3 | 24 reentradas |
+    | PRD-B | 530 | 15 | ~7–20 | 3 | 6 rondas de QA, abierto |
+    | PRD-A | 1266 | 14 | ~10 | 3 | 3 rondas de runtime, 17 handoffs BLOCKED |
 
   - Lectura: los PRDs con más de ~20 criterios o más de ~600 líneas
-    concentran las reentradas. ds-04 muestra además que un PRD con pocos
+    concentran las reentradas. PRD-A muestra además que un PRD con pocos
     criterios igual se vuelve pesado cuando concentra riesgos (entorno,
     runtime) y corre en `autonomous-safe`. El tamaño es un factor, no el
     único.
@@ -1479,7 +1479,7 @@ Matices respecto a las hipótesis:
      dividir, la ejecución fase por fase con pausas pasa a ser la opción
      **recomendada**, no una obligación. Si el usuario elige autónomo:
      - la IA muestra antes, en una línea, las señales de tamaño que se
-       cumplen y el riesgo (los casos ds-04 y ds-14);
+       cumplen y el riesgo (los casos PRD-A y PRD-B);
      - al terminar cada fase se escribe igual un **resumen de checkpoint** en
        la sección 10, sin detenerse, para que el usuario pueda revisarlo
        cuando quiera;
@@ -1523,7 +1523,7 @@ Matices respecto a las hipótesis:
        Code y Copilot. Confirma que la invocación explícita sigue
        funcionando.
      - **B · Ejecución real:** la próxima implementación N2 o N3 en
-       ooh-backoffice con Copilot. Al cerrar, el verificador cruza **cada**
+       el proyecto piloto con Copilot. Al cerrar, el verificador cruza **cada**
        delegación con el log de Copilot y produce una tabla `rol | modelo
        esperado | modelo ejecutado | veredicto`.
   3. **La tabla de modelos ejecutados pasa a ser parte del cierre en
@@ -1593,7 +1593,7 @@ Matices respecto a las hipótesis:
      - **smoke controlado:** sondas de solo lectura a 3 agentes de distinto
        tier, comprobando el modelo ejecutado en el registro de sesión de
        Codex;
-     - **ejecución real:** una implementación N2 o N3 en ooh-backoffice con
+     - **ejecución real:** una implementación N2 o N3 en el proyecto piloto con
        Codex. Al cerrar se registran qué delegaciones corrieron como
        subagente y cuáles inline, y con qué modelo.
   6. **Paridad de flujos:** los ~10 prompts de prueba de D-01 (punto 7) se
@@ -1640,7 +1640,7 @@ Matices respecto a las hipótesis:
   5. **Sin saltos silenciosos.** Si el quality gate no está configurado, el
      trace lo dice ("quality gate: no configurado") en vez de omitirlo. En
      slices de N3 eso se trata como parada.
-  6. **Migración segura de proyectos existentes** (ooh-backoffice tiene sus
+  6. **Migración segura de proyectos existentes** (el proyecto piloto tiene sus
      instrucciones en `.github/instructions/`): `workflow-kit update` propone
      mover el contenido a la ubicación neutral y regenerar los wrappers,
      mostrando el diff y pidiendo confirmación. Nunca sobrescribe contenido
@@ -1699,12 +1699,12 @@ Matices respecto a las hipótesis:
   4. **Stack pack "rails-react" para no perder nada.** Las reglas que salen
      del núcleo se empaquetan en un template de stack que `init` y `update`
      ofrecen instalar, con confirmación. Los proyectos FHH (como
-     ooh-backoffice) lo instalan y quedan con **exactamente las mismas
+     el proyecto piloto) lo instalan y quedan con **exactamente las mismas
      reglas** que hoy. Otros stacks parten de instrucciones neutrales.
   5. **Garantía de que no se pierde ninguna regla**, mismo mecanismo que
      D-18: cada regla del inventario clasificada como "proyecto" o
      "comando" debe aparecer en el stack pack. Un check lo verifica. En
-     ooh-backoffice se compara el conjunto de reglas efectivas antes y
+     el proyecto piloto se compara el conjunto de reglas efectivas antes y
      después de migrar.
   6. **Check automático:** `check:workflow` falla si un skill núcleo nombra
      un framework fuera de una lista permitida o sin la marca de ejemplo.
@@ -1866,13 +1866,13 @@ Matices respecto a las hipótesis:
        migrar.
   4. **Pruebas de actualización:**
      - tests de extremo a extremo que parten de un proyecto con la estructura
-       de la versión anterior (incluido un caso como ooh-backoffice, con
+       de la versión anterior (incluido un caso como el proyecto piloto, con
        instrucciones propias en `.github/instructions/`), actualizan y
        verifican que `doctor` quede limpio y que el contenido propio se
        conserve;
      - los mismos tests para cada runtime (Claude Code, Codex, Copilot,
        Antigravity).
-  5. **Piloto real antes del release:** se actualiza ooh-backoffice en una
+  5. **Piloto real antes del release:** se actualiza el proyecto piloto en una
      rama, se corre un flujo N2 completo y recién entonces se publica.
   6. **Versión y notas de release:** los cambios rompen rutas instaladas,
      así que corresponde una versión mayor (o el salto que defina
@@ -1907,8 +1907,8 @@ discuta.
 | 2026-11-10 | 4 | U-13, IA-09, IA-10 | #62 | `validation-fingerprint.mjs` calcula la huella (archivos del alcance, lockfiles, configuración, código generado, migraciones, versiones) y decide reutilizar: solo typecheck, suites unitarias y build; ampliación de alcance solo en lint y tipos; nunca integración, E2E, slices críticos ni la suite del cierre; arranca en modo sombra (D-20, IA-09). QA incremental: primera completa, reentrada enfocada con radio de impacto determinístico, gatillos de revisión completa, cobertura acumulada y calibración única (IA-10). U-13: matriz declarada publicada; la matriz observada y sus hallazgos esperan aprobación uno a uno (D-19). Versión `0.13.0-validation-reuse`. | `node --test` 234/234; todos los `check:*` OK. Ningún check se eliminó. |
 | 2026-11-10 | 6 | U-07, U-06, U-01, U-05, D-25 | #62 | `create-prd`: ronda de casos borde por confirmación, presupuesto de preguntas (~10 por ronda, máximo 3 rondas), inventario de incógnitas con prueba exploratoria aprobada por el usuario, secciones nuevas `2.8 Supuestos e integraciones` y `2.9 Que queda obsoleto`, causa de iteración en la sección 10 (D-21, D-22); señales de tamaño con `prd-size-signals.mjs` y propuesta de dividir con 2 o más (D-25); lo obsoleto y los supuestos se siguen en Discovery, slicing y QA con búsqueda de verificación; `solution-sketch` con caminos de UI opcionales ofrecidos al entrar (vista nueva, crítica, diseño del equipo, sin parte visual), mockups HTML en dos etapas y máximo 3 rondas visuales (D-23); `pr-comments-resolution` evalúa cada comentario antes de ofrecer opciones, con veredicto, respuestas con fundamento aprobadas por el usuario, triage y regla de simetría en critical-stance (D-24); versión `0.14.0-prd-pr-quality`. | `node --test` 239/239; todos los `check:*` OK. |
 | 2026-11-10 | 7 | U-20, U-14, U-10, IA-12, U-15, U-19c | #62 | Instrucciones del proyecto en `.agents/project/` (quality gate, backend, frontend, `paths.json`), con copia generada para Copilot que conserva `applyTo`, migración de instrucciones escritas a mano con respaldo, regla de no saltar el quality gate en silencio y `validate-neutral-paths.mjs` (D-29); reglas de Rails y React fuera de las skills núcleo y dentro del stack pack `rails-react`, que las instalaciones previas reciben por defecto, con inventario de 28 reglas y `validate-stack-neutrality.mjs` (D-30); ningún archivo propio de skill supera 200 líneas, con 3 excepciones justificadas y `validate-skill-size.mjs` (D-31); notas docentes selectivas con preferencia por proyecto (D-32); reglas de delegación por runtime, sin caída silenciosa a inline, y guía de verificación para Codex (D-28); skills nativas de Claude Code con `disable-model-invocation` (U-19c); runtime `opencode` vía `AGENTS.md`; versión `0.15.0-neutral-structure`. | `node --test` 256/256; todos los `check:*` OK. Smoke de update desde 0.7.40 con instrucciones propias en `.github/instructions/`. |
-| 2026-11-10 | 8 | D-33 | #62 | El plan de `init` y `update` lista las migraciones que lleva (idempotentes: desaparecen una vez aplicadas) y `--diff` muestra el diff de cada archivo que cambiaría, incluidos los editados localmente; el TUI pregunta el stack pack al instalar y corre `doctor` después de aplicar; tests de actualización de punta a punta desde la estructura antigua para Claude Code, Codex, Copilot, Antigravity y los tres juntos (contenido propio conservado, `doctor` sin errores, segundo update sin escrituras); pasada de documentación (README, guías, runbooks, plantilla de instrucciones, slides) con búsqueda de nombres y rutas obsoletas; `CHANGELOG.md`; versión `0.16.0-safe-update`. | `node --test` 264/264 en serie; todos los `check:*` OK. Vista previa en seco contra ooh-backoffice (sin escribir): 54 archivos nuevos, 73 actualizados con respaldo, 1 protegido. |
-| 2026-11-10 | Cierre | Pendientes posteriores (sección 8), U-13 (C1) | PR de cierre (rama `docs/roadmap-cierre`) | Hallazgos de U-13 aprobados y C1 aplicado en la ronda de casos borde de `create-prd`; guía del piloto manual en ooh-backoffice, escrita a partir de un ensayo sobre una copia; dos correcciones encontradas en ese ensayo (un archivo protegido que ya es igual a la versión nueva queda `unchanged`; `doctor` avisa `skills/local-catalog-missing-skill`); sección "Per-project setup after installing" en el README y punteros en las guías; verificaciones de Copilot y Codex diferidas; versión `0.16.1-roadmap-closure`. | `node --test` 266/266 en serie; todos los `check:*` OK. Ensayo sobre la copia: `doctor` sin errores, reglas de proyecto idénticas, segundo update sin escrituras. El piloto real sigue sin ejecutarse. |
+| 2026-11-10 | 8 | D-33 | #62 | El plan de `init` y `update` lista las migraciones que lleva (idempotentes: desaparecen una vez aplicadas) y `--diff` muestra el diff de cada archivo que cambiaría, incluidos los editados localmente; el TUI pregunta el stack pack al instalar y corre `doctor` después de aplicar; tests de actualización de punta a punta desde la estructura antigua para Claude Code, Codex, Copilot, Antigravity y los tres juntos (contenido propio conservado, `doctor` sin errores, segundo update sin escrituras); pasada de documentación (README, guías, runbooks, plantilla de instrucciones, slides) con búsqueda de nombres y rutas obsoletas; `CHANGELOG.md`; versión `0.16.0-safe-update`. | `node --test` 264/264 en serie; todos los `check:*` OK. Vista previa en seco contra el proyecto piloto (sin escribir): 54 archivos nuevos, 73 actualizados con respaldo, 1 protegido. |
+| 2026-11-10 | Cierre | Pendientes posteriores (sección 8), U-13 (C1) | PR de cierre (rama `docs/roadmap-cierre`) | Hallazgos de U-13 aprobados y C1 aplicado en la ronda de casos borde de `create-prd`; guía del piloto manual en el proyecto piloto, escrita a partir de un ensayo sobre una copia; dos correcciones encontradas en ese ensayo (un archivo protegido que ya es igual a la versión nueva queda `unchanged`; `doctor` avisa `skills/local-catalog-missing-skill`); sección "Per-project setup after installing" en el README y punteros en las guías; verificaciones de Copilot y Codex diferidas; versión `0.16.1-roadmap-closure`. | `node --test` 266/266 en serie; todos los `check:*` OK. Ensayo sobre la copia: `doctor` sin errores, reglas de proyecto idénticas, segundo update sin escrituras. El piloto real sigue sin ejecutarse. |
 
 Proceso (2026-11-10):
 
@@ -1927,12 +1927,12 @@ Proceso (2026-11-10):
 
 Hallazgos del Lote 8:
 
-- **La vista previa en ooh-backoffice encontró un caso real:** sus
+- **La vista previa en el proyecto piloto encontró un caso real:** sus
   instrucciones de Copilot usan `applyTo` como lista YAML de varias líneas y
   la primera versión solo leía el formato de una línea, así que no regeneraba
   esos archivos. Ahora el frontmatter se conserva tal cual (test agregado).
 - **Piloto (D-33, punto 5):** es manual y lo ejecuta el usuario con la
-  [guía del piloto](2026-11-10-piloto-ooh-backoffice.md). Condiciona el
+  [guía del piloto](2026-11-10-pilot-project-guide.md). Condiciona el
   release, no el cierre de la implementación (sección 8).
 - **No se implementó** un asistente de fusión línea a línea en el TUI: para un
   archivo editado, el TUI ofrece proteger o sobrescribir con respaldo, y
@@ -1978,12 +1978,12 @@ Hallazgos del Lote 7:
 Hallazgos del Lote 4:
 
 - **U-13 no recomienda eliminar ningún check.** En ~300 ejecuciones de 3 PRDs
-  de ooh-backoffice hubo ~19 duplicados exactos y ~23 solapamientos, casi
+  del proyecto piloto hubo ~19 duplicados exactos y ~23 solapamientos, casi
   todos re-ejecuciones de suites caras sobre contenido idéntico. Ninguna
   repetición sobre contenido idéntico detectó un defecto de producto. La
   reutilización por huella (IA-09) cubre esos casos sin borrar nada. Detalle y
   hallazgos por aprobar en `docs/plans/2026-11-10-u13-validation-coverage-matrix.md`.
-- **Un defecto escapó en ds-04** (commit `5786c472b` de ooh-backoffice): un
+- **Un defecto escapó en PRD-A** (un commit del proyecto piloto): un
   escenario de interacción sin test. Es un caso para la ronda de casos borde
   del PRD, no un check faltante del workflow.
 
@@ -1997,13 +1997,13 @@ Hallazgos del Lote 5:
   `.github/instructions/*` para el quality gate y las instrucciones de backend
   y frontend. Eso lo resuelve U-20 (Lote 7).
 - **Primera versión de `project-context.md`:** la crea una tarea N2 por
-  proyecto; en ooh-backoffice queda pendiente del usuario.
+  proyecto; en el proyecto piloto queda pendiente del usuario.
 
 Hallazgos del Lote 3:
 
 - El aviso de `doctor` sobre un PRD cerrado con espacio de trabajo vivo solo
   informa; ofrecer el borrado desde el TUI queda para el Lote 8 (D-33).
-- La limpieza de los `_meta/` que ya existen en ooh-backoffice sigue siendo una
+- La limpieza de los `_meta/` que ya existen en el proyecto piloto sigue siendo una
   tarea aparte de ese proyecto; `doctor` los lista como `workspace/legacy-meta`.
 
 Hallazgos del Lote 2:
@@ -2064,7 +2064,7 @@ pendiente el 2026-11-10 y decidió lo siguiente.
 
 | # | Pendiente | Decisión del usuario | Estado | Dónde seguir |
 | --- | --- | --- | --- | --- |
-| 1 | Piloto real en ooh-backoffice (D-33, punto 5) | Se hace a mano; basta con dejar una guía | Guía escrita; piloto sin ejecutar. Es la condición para publicar un release (`RELEASE.md`) | [Guía del piloto](2026-11-10-piloto-ooh-backoffice.md) |
+| 1 | Piloto real en un proyecto existente (D-33, punto 5) | Se hace a mano; basta con dejar una guía | Guía escrita; piloto sin ejecutar. Es la condición para publicar un release (`RELEASE.md`) | [Guía del piloto](2026-11-10-pilot-project-guide.md) |
 | 2 | Hallazgos de U-13 (H1 a H4, C1 a C2) | Aprobadas las recomendaciones | Hecho: ningún check se elimina; C1 aplicado en `create-prd`; C2 pasa a la guía del piloto | [Matriz de validación, sección 5](2026-11-10-u13-validation-coverage-matrix.md) |
 | 3 | Verificar el modelo por subagente en Copilot (U-02) y la ejecución real en Codex (U-15) | No puede hacerlo ahora; se espera | Diferido. U-02 y U-15 siguen en `Verificar` | `docs/workflow/copilot-subagent-model-routing.md` (sección 7) y `docs/workflow/codex-subagent-verification.md` |
 | 4 | Prompts de nivel L01 a L14 en cada runtime | Se prueban en el uso real | Sin corrida dedicada. Evidencia observada: solo L01 en Claude Code. `check:workflow` valida la tabla y que el pre-filtro sea igual en todos los adapters, no el comportamiento del modelo | `.agents/skills/00-router/workflow-router/reference/router-evals.md`; paso 7 de la guía del piloto |
@@ -2078,7 +2078,7 @@ regenera las copias de los adapters.
 ### Hallazgos del ensayo del piloto (2026-11-10)
 
 Para escribir la guía se aplicó el update sobre una copia de los archivos de
-workflow de ooh-backoffice (el repositorio real no se tocó). El resultado fue
+workflow del proyecto piloto (el repositorio real no se tocó). El resultado fue
 sano: `doctor` sin errores, reglas de proyecto migradas sin cambios de texto,
 `applyTo` conservado y segundo update sin escrituras. Aparecieron dos
 problemas, corregidos en el PR de cierre:
@@ -2091,7 +2091,7 @@ problemas, corregidos en el PR de cierre:
   queda `unchanged` y su hash se registra (test agregado).
 - **Los catálogos de skills propios quedaban desactualizados sin aviso.** Un
   proyecto que mantiene su `.agents/skills/index.md` y `registry.md` (como
-  ooh-backoffice, que lista una skill local) no recibe la fila de una skill
+  el proyecto piloto, que lista una skill local) no recibe la fila de una skill
   nueva, y el router descubre skills por el índice. Sumado al
   `implement-prd/SKILL.md` protegido, "implementa este PRD" habría seguido
   cargando el orquestador antiguo. `doctor` ahora avisa con

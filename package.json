@@ -40,6 +40,10 @@
     "CONTRIBUTING.md",
     "bin/",
     "docs/",
+    "!docs/plans/",
+    "!docs/prd/",
+    "!docs/epics/",
+    "!docs/design/",
     "src/",
     "templates/"
   ],

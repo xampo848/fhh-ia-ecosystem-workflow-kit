@@ -1,11 +1,11 @@
-# Guía del piloto: actualizar ooh-backoffice al kit 0.16
+# Guía del piloto: actualizar el proyecto piloto al kit 0.16
 
 Fecha: 2026-11-10. Es el piloto que pide la decisión D-33 (punto 5) del
 [roadmap](2026-11-10-workflow-kit-improvement-roadmap.md). Lo ejecuta una
-persona, a mano, en una rama de ooh-backoffice.
+persona, a mano, en una rama del proyecto piloto.
 
 Los números y avisos de esta guía salen de un ensayo hecho el 2026-11-10 sobre
-una **copia** de los archivos de workflow de ooh-backoffice (`.agents`,
+una **copia** de los archivos de workflow del proyecto piloto (`.agents`,
 `.github`, `.claude`, adapters y `docs`). El repositorio real no se tocó. Si al
 ejecutar ves algo distinto, anótalo: es justo lo que el piloto busca.
 
@@ -18,13 +18,13 @@ del paso 8.
    la 0.16 sin perder contenido propio.
 2. Que un flujo N2 completo funciona con la estructura nueva.
 
-No prueba Codex, porque ooh-backoffice no lo tiene instalado (sus runtimes son
+No prueba Codex, porque el proyecto piloto no lo tiene instalado (sus runtimes son
 Copilot, Claude Code y Antigravity).
 
 ## Paso 1 · Preparar
 
-- Parte de la rama principal de ooh-backoffice, con el árbol limpio. El
-  2026-11-10 el repo estaba en la rama `bug/competencia-anunciante-tooltip-grafico`
+- Parte de la rama principal del proyecto piloto, con el árbol limpio. El
+  2026-11-10 el repo estaba en la rama `bug/<rama-de-trabajo>`
   con un archivo sin seguimiento (`.claude/launch.json`): termina o guarda ese
   trabajo antes.
 - Crea la rama del piloto:
@@ -44,7 +44,7 @@ Copilot, Claude Code y Antigravity).
 ## Paso 2 · Vista previa (no escribe nada)
 
 ```bash
-workflow-kit update --target ~/ooh-repos/ooh-backoffice
+workflow-kit update --target ~/repos/<proyecto>
 ```
 
 Qué debes ver:
@@ -72,12 +72,12 @@ decisión, porque si no el flujo nuevo no se usa.
 
 ### 3.1 `implement-prd/SKILL.md` (protegido por edición local)
 
-ooh-backoffice editó `.agents/skills/02-implement/implement-prd/SKILL.md`: es
+El proyecto piloto editó `.agents/skills/02-implement/implement-prd/SKILL.md`: es
 el orquestador antiguo, de 303 líneas. En el kit nuevo ese archivo es un alias
 de 23 líneas que carga `implement-change`. Mira la diferencia:
 
 ```bash
-workflow-kit update --target ~/ooh-repos/ooh-backoffice --diff
+workflow-kit update --target ~/repos/<proyecto> --diff
 ```
 
 Recomendación: tomar el alias nuevo. Si conservas tu versión, "implementa este
@@ -90,18 +90,18 @@ Para tomar el alias, después del paso 4 copia el archivo desde tu copia del
 kit y vuelve a correr `update`:
 
 ```bash
-cp <ruta-del-kit>/.agents/skills/02-implement/implement-prd/SKILL.md ~/ooh-repos/ooh-backoffice/.agents/skills/02-implement/implement-prd/SKILL.md
+cp <ruta-del-kit>/.agents/skills/02-implement/implement-prd/SKILL.md ~/repos/<proyecto>/.agents/skills/02-implement/implement-prd/SKILL.md
 ```
 
 ```bash
-workflow-kit update --target ~/ooh-repos/ooh-backoffice --apply --yes
+workflow-kit update --target ~/repos/<proyecto> --apply --yes
 ```
 
 El archivo debe pasar de `skip_modified` a `unchanged`.
 
 ### 3.2 Catálogos de skills propios (`skip_unmanaged`)
 
-`.agents/skills/index.md` y `.agents/skills/registry.md` son de ooh-backoffice
+`.agents/skills/index.md` y `.agents/skills/registry.md` son del proyecto piloto
 (listan su skill local `pre-pr-review`), así que `update` no les agrega la fila
 de la skill nueva `implement-change`. El router descubre skills por el índice:
 sin esa fila no la encuentra. `doctor` lo avisa con el código
@@ -128,7 +128,7 @@ cambios.
 ## Paso 4 · Aplicar
 
 ```bash
-workflow-kit update --target ~/ooh-repos/ooh-backoffice --apply --yes
+workflow-kit update --target ~/repos/<proyecto> --apply --yes
 ```
 
 Debe terminar con cerca de 137 escrituras y 82 respaldos. Luego haz los dos
@@ -137,7 +137,7 @@ ajustes del paso 3.
 ## Paso 5 · Verificar
 
 ```bash
-workflow-kit doctor --target ~/ooh-repos/ooh-backoffice
+workflow-kit doctor --target ~/repos/<proyecto>
 ```
 
 Resultado esperado: `Doctor: ok`, sin errores. Avisos esperados:
@@ -153,7 +153,7 @@ Resultado esperado: `Doctor: ok`, sin errores. Avisos esperados:
 Revisa también el diff en git:
 
 ```bash
-git -C ~/ooh-repos/ooh-backoffice status --short
+git -C ~/repos/<proyecto> status --short
 ```
 
 Comprueba estos cuatro puntos. En el ensayo se cumplieron todos:
@@ -174,7 +174,7 @@ migración.
 
 ## Paso 6 · Llenar `project-context.md`
 
-Es una tarea N2. En Claude Code, dentro de ooh-backoffice:
+Es una tarea N2. En Claude Code, dentro del proyecto piloto:
 
 > Genera la primera versión de `.agents/project-context.md` con un Discovery
 > inicial del proyecto. Incluye el mapa de estructura, los comandos de
@@ -185,9 +185,9 @@ repetidas que encontró la investigación U-13 (hallazgo C2; detalle en la
 sección 2 de la
 [matriz de validación](2026-11-10-u13-validation-coverage-matrix.md)):
 
-- la variable de entorno que faltó dos veces en ds-05;
-- los tests que fallan de forma intermitente bajo carga en ds-14;
-- la medición de alineación que falló 1 de cada 5 veces en ds-04.
+- la variable de entorno que faltó dos veces en PRD-C;
+- los tests que fallan de forma intermitente bajo carga en PRD-B;
+- la medición de alineación que falló 1 de cada 5 veces en PRD-A.
 
 Revisa el archivo, quita el marcador de plantilla y confirma que `doctor` ya
 no muestra `project-context/not-initialized`.
@@ -233,7 +233,7 @@ El piloto pasa si se cumplen las tres condiciones:
 2. No se perdió ninguna regla propia (paso 5).
 3. El flujo N2 terminó sin trabarse por algo de la estructura nueva.
 
-Si pasa: haz commit en la rama de ooh-backoffice, ábrela como PR y mergea como
+Si pasa: haz commit en la rama del proyecto piloto, ábrela como PR y mergea como
 cualquier otro cambio. Con eso se cumple D-33 y el kit se puede publicar según
 `RELEASE.md`.
 
@@ -242,7 +242,7 @@ desde los respaldos del último update; como todo ocurrió en la rama del
 piloto, también puedes simplemente descartar esa rama.
 
 ```bash
-workflow-kit rollback --target ~/ooh-repos/ooh-backoffice --apply --yes
+workflow-kit rollback --target ~/repos/<proyecto> --apply --yes
 ```
 
 ## Qué anotar

@@ -39,25 +39,25 @@ un slice con `criticalConcern` y la suite completa del cierre.
 
 ## 2. Matriz observada (qué corrió en ejecuciones reales)
 
-Datos: ooh-backoffice, PRDs ds-04 (grande), ds-14 (6 rondas de QA) y ds-05
+Datos: el proyecto piloto, PRD-A (grande), PRD-B (6 rondas de QA) y PRD-C
 (chico). Investigación de solo lectura hecha por un subagente el 2026-11-10
-sobre `_meta/`, la sección 10 de cada PRD, `log/ds04-s5-history/` y `git log`.
+sobre `_meta/`, la sección 10 de cada PRD, `log/<historial-PRD-A>/` y `git log`.
 Verifiqué tres afirmaciones por muestreo (el commit del defecto escapado, que
-el commit de ds-14 no toca servicios y la cantidad de handoffs); el resto no
+el commit de PRD-B no toca servicios y la cantidad de handoffs); el resto no
 tiene verificación independiente.
 
 Límites de la evidencia:
 
-- ds-04 solo tiene comandos con hora en `log/ds04-s5-history/`; el resto sale
+- PRD-A solo tiene comandos con hora en `log/<historial-PRD-A>/`; el resto sale
   del tracker y de la sección 10, así que sus conteos son órdenes de magnitud.
-- ds-14 no tiene tracker en disco; los datos salen de sus 29 handoffs.
-- ds-05 corrió en un carril liviano (un writer y una QA independiente), sin
+- PRD-B no tiene tracker en disco; los datos salen de sus 29 handoffs.
+- PRD-C corrió en un carril liviano (un writer y una QA independiente), sin
   `lint-ranger` ni `guardia-contrato`.
 - "No se editó nada entre dos corridas" se decidió, en este orden, por hashes
   de contenido en handoffs y tracker, por lo que declara cada handoff, por los
   archivos de los commits y por fechas de archivo. Lo demás quedó "desconocido".
 
-| | ds-05 | ds-04 | ds-14 | Total |
+| | PRD-C | PRD-A | PRD-B | Total |
 | --- | --- | --- | --- | --- |
 | Ejecuciones de checks | ~20 | ~120 o más | ~160 | ~300 |
 | Duplicados exactos | 1 | ~4 | ~14 (más 5 repeticiones intencionales de determinismo) | ~19 |
@@ -67,19 +67,19 @@ Límites de la evidencia:
 
 Repeticiones observadas:
 
-- **ds-14, duplicado exacto probado con git:** la suite de servicios (236
+- **PRD-B, duplicado exacto probado con git:** la suite de servicios (236
   tests) corrió 8 veces más después de la línea base sin que ningún commit
   tocara `app/services`, `app/models` ni `test/services`.
-- **ds-14, QA final y reentrada:** volvieron a correr las suites de
+- **PRD-B, QA final y reentrada:** volvieron a correr las suites de
   controladores, contrato e inventario sobre un contenido cuyo hash era igual
   al de la última corrida del implementador.
-- **ds-14, lint:** rubocop corrió en dos slices consecutivos sobre los mismos 2
+- **PRD-B, lint:** rubocop corrió en dos slices consecutivos sobre los mismos 2
   archivos, y ambos handoffs dicen que no se tocó Ruby.
-- **ds-04, solapamiento:** la validación independiente volvió a correr
+- **PRD-A, solapamiento:** la validación independiente volvió a correr
   subconjuntos de Rails, lint y Node sobre contenido con hashes idénticos a los
   del writer en unos 13 casos. En los mismos gates, en cambio, **no** repitió
   la compilación ni la suite E2E completa: las "consumió" del writer.
-- **ds-05 y ds-04, suite Rails tras un cambio solo de JS:** la suite de
+- **PRD-C y PRD-A, suite Rails tras un cambio solo de JS:** la suite de
   controladores se volvió a correr después de arreglos que tocaron solo
   JavaScript y specs (probable, sin hash que lo pruebe).
 - **Builds:** no hay repeticiones sin cambio; cada build siguió a un cambio o se
@@ -91,10 +91,10 @@ Fallas detectadas:
   producto.** Los defectos de producto aparecieron siempre en la primera
   corrida sobre contenido nuevo, o en la revisión de juicio de QA.
 - Las repeticiones sobre contenido idéntico que "fallaron" expusieron
-  inestabilidad: tests flaky bajo carga en ds-14, una medición de alineación
-  que falló 1 de 5 veces en ds-04 y una variable de entorno faltante que falló
-  dos veces en ds-05.
-- **Defecto escapado (ds-04):** el commit `5786c472b` de ooh-backoffice
+  inestabilidad: tests flaky bajo carga en PRD-B, una medición de alineación
+  que falló 1 de 5 veces en PRD-A y una variable de entorno faltante que falló
+  dos veces en PRD-C.
+- **Defecto escapado (PRD-A):** un commit del proyecto piloto
   (2026-11-02) corrige que el primer toque en el formulario de agencias se
   perdía mientras había un scroll en curso. Pasó todas las etapas locales y lo
   detectó la suite completa. Ninguna repetición lo habría detectado: faltaba
@@ -109,17 +109,17 @@ producto y que D-11 no resuelve ya. **El usuario aprobó todas las propuestas el
 
 | # | Hallazgo | Evidencia | Propuesta |
 | --- | --- | --- | --- |
-| H1 | La suite de tests de backend (controladores y requests) se vuelve a correr después de cambios que solo tocan JavaScript, specs o documentación | ds-05 (probable), ds-04 (probable), ds-14 (probado por hash en QA final y reentrada) | Ya lo cubre la reutilización por huella de IA-09 (suite unitaria con la misma huella), en modo sombra. No requiere un cambio adicional de skills |
-| H2 | Lint sobre archivos que no cambiaron | ds-14 (dos slices seguidos), ds-04 (validación independiente sobre hashes idénticos) | Dejarlo: el lint es barato y D-20 decidió no reutilizar checks baratos. Sin cambio |
-| H3 | La validación independiente repite subconjuntos de Rails y Node del writer sobre contenido idéntico | ds-04 (~13 casos); en ds-14 no se pudo confirmar | Un solo PRD con evidencia firme: **no alcanza** la regla de 2 de 3. Lo cubre IA-09 si la huella coincide. Sin cambio |
-| H4 | La suite de servicios se repite sin que cambien los servicios | solo ds-14 (8 repeticiones) | Un solo PRD: no alcanza la regla. Lo cubre IA-09. Sin cambio |
+| H1 | La suite de tests de backend (controladores y requests) se vuelve a correr después de cambios que solo tocan JavaScript, specs o documentación | PRD-C (probable), PRD-A (probable), PRD-B (probado por hash en QA final y reentrada) | Ya lo cubre la reutilización por huella de IA-09 (suite unitaria con la misma huella), en modo sombra. No requiere un cambio adicional de skills |
+| H2 | Lint sobre archivos que no cambiaron | PRD-B (dos slices seguidos), PRD-A (validación independiente sobre hashes idénticos) | Dejarlo: el lint es barato y D-20 decidió no reutilizar checks baratos. Sin cambio |
+| H3 | La validación independiente repite subconjuntos de Rails y Node del writer sobre contenido idéntico | PRD-A (~13 casos); en PRD-B no se pudo confirmar | Un solo PRD con evidencia firme: **no alcanza** la regla de 2 de 3. Lo cubre IA-09 si la huella coincide. Sin cambio |
+| H4 | La suite de servicios se repite sin que cambien los servicios | solo PRD-B (8 repeticiones) | Un solo PRD: no alcanza la regla. Lo cubre IA-09. Sin cambio |
 
 Hallazgos en sentido contrario (cobertura que falta, D-19 punto 10):
 
 | # | Hallazgo | Propuesta |
 | --- | --- | --- |
-| C1 | El defecto escapado de ds-04 era un escenario de interacción (primer toque durante un scroll) que ningún test cubría | No es un check que agregar al workflow; es un caso para la ronda de casos borde de `create-prd` (D-21): en formularios, preguntar por la primera interacción y por entradas táctiles |
-| C2 | Cerca de 22 fallas de entorno, harness o flaky en 3 PRDs, varias con la misma causa repetida | Lo cubren D-11 (un intento de recuperación, un rerun) y `project-context.md` (peculiaridades del entorno, D-16). Conviene registrar ahí la variable de entorno y los tests flaky ya conocidos de ooh-backoffice |
+| C1 | El defecto escapado de PRD-A era un escenario de interacción (primer toque durante un scroll) que ningún test cubría | No es un check que agregar al workflow; es un caso para la ronda de casos borde de `create-prd` (D-21): en formularios, preguntar por la primera interacción y por entradas táctiles |
+| C2 | Cerca de 22 fallas de entorno, harness o flaky en 3 PRDs, varias con la misma causa repetida | Lo cubren D-11 (un intento de recuperación, un rerun) y `project-context.md` (peculiaridades del entorno, D-16). Conviene registrar ahí la variable de entorno y los tests flaky ya conocidos del proyecto piloto |
 
 Conclusión: la investigación **no justifica eliminar ningún check**. Lo que
 sobra en la práctica son re-ejecuciones de suites caras sobre contenido
@@ -147,7 +147,7 @@ y arranca en modo sombra, así que no depende de los hallazgos:
 | H3 | No alcanza la regla de 2 de 3; lo cubre IA-09 | Sin cambio |
 | H4 | No alcanza la regla; lo cubre IA-09 | Sin cambio |
 | C1 | Preguntar por escenarios de interacción en la ronda de casos borde | Paso 4 de "Edge-Case Confirmation Round" en `create-prd/reference/ambiguity-detection.md`: con UI visible, proponer filas de orden de interacción (primera interacción tras cargar, interacción mientras otra está en curso, entrada táctil) |
-| C2 | Registrar las fallas de entorno conocidas en `project-context.md` | Es una tarea de cada proyecto. Para ooh-backoffice está en la [guía del piloto](2026-11-10-piloto-ooh-backoffice.md), paso 6 |
+| C2 | Registrar las fallas de entorno conocidas en `project-context.md` | Es una tarea de cada proyecto. Para el proyecto piloto está en la [guía del piloto](2026-11-10-pilot-project-guide.md), paso 6 |
 
 Sigue pendiente, en cada proyecto que use el kit (no bloquea el cierre del
 roadmap):
