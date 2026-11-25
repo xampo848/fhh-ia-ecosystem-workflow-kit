@@ -618,5 +618,5 @@ test('init --mode plugin --apply says the install commands fail until the plugin
   const target = await makeTempRepo();
   const init = await cli(['init', '--target', target, '--mode', 'plugin', '--runtime', 'claude', '--apply', '--yes']);
   assert.equal(init.code, 0, init.stderr);
-  assert.match(init.stdout, new RegExp(`- Claude Code: ${claudeInstall}\\nEach person runs it once per clone of this repository; the repository only declares the plugin\\.\\nThe marketplace serves the plugin only after the kit's \`plugin\` branch is published; until then these commands fail\\.\\n`));
+  assert.match(init.stdout, new RegExp(`- Claude Code: cd ${target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} && ${claudeInstall}\\nEach person runs it once per clone of this repository; the repository only declares the plugin\\.\\nThe marketplace serves the plugin only after the kit's \`plugin\` branch is published; until then these commands fail\\.\\n`));
 });

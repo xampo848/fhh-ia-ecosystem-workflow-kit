@@ -332,7 +332,7 @@ test('upgrade as a dry run without bun prints the plan and a note instead of sto
   });
   assert.equal(result.code, 0, result.stderr);
   assert.match(result.stdout, /^Toolkit upgrade dry-run plan$/m);
-  assert.match(result.stdout, /^Note: bun is required in PATH for toolkit upgrade\. Install it before running this command with --apply --yes\.$/m);
+  assert.match(result.stdout, /^Note: bun is required in PATH for workflow-kit upgrade\. Install it before running this command with --apply --yes\.$/m);
 });
 
 // Repair round, should-fix 1: a second run that planned before the first one
