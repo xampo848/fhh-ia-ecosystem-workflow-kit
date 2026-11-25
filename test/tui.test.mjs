@@ -575,3 +575,29 @@ test('tui with stdin at end of file or a pipe exits 2 and says it needs a termin
   assert.deepEqual(result, { code: 2, applied: false });
   assert.equal(errors.length, 1);
 });
+
+// The two lines the CLI update summary gained with the apply lock work: seeds
+// the project owns are counted apart from unmanaged files, and a delete the
+// apply did not do because the file changed since the plan is listed.
+test('tui update summary counts project-owned seeds apart and lists a delete kept because the file changed since the plan', async () => {
+  const owned = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: owned, runtime: 'neutral' }));
+  let ownedOutput = '';
+  const ownedResult = await runTui({ ask: scriptedAsk(['2', owned, '', '', '', 'yes']), color: false, write: (message) => { ownedOutput += message; } });
+  assert.equal(ownedResult.applied, true);
+  assert.match(ownedOutput, /^Archivos no gestionados \(omitidos\): 0$/m, 'a seed the project owns is not an unmanaged file');
+  assert.match(ownedOutput, /^Archivos del proyecto que se dejan como están: [1-9]\d*$/m);
+  assert.doesNotMatch(ownedOutput, /No se borraron/, 'the line appears only when a delete was kept');
+
+  const target = await makeTempRepo();
+  const legacy = await installLegacy0181(target);
+  let output = '';
+  const editRetiredThenConfirm = async () => {
+    await fs.appendFile(path.join(target, legacy.retiredPath), '\nEdited after the plan.\n');
+    return 'yes';
+  };
+  const result = await runTui({ ask: scriptedAsk(['2', target, '', '', '', '', '', editRetiredThenConfirm], () => output), color: false, write: (message) => { output += message; }, enableScriptedAdvancedPrompts: true });
+  assert.equal(result.applied, true, output.slice(-1500));
+  assert.match(output, /^No se borraron \(cambiaron desde el plan, quedan como están\): 1$/m);
+  assert.match(await fs.readFile(path.join(target, legacy.retiredPath), 'utf8'), /Edited after the plan\./, 'the changed file was kept');
+});

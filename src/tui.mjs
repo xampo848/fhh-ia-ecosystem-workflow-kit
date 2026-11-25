@@ -1102,16 +1102,18 @@ export async function runTui(options = {}) {
     }
 
     const applied = await applyInstallPlan(plan);
-    const { writeCount, backupCount, modifiedSkips, unmanagedSkips, adopted, retiredDeleted, projectFilesMoved } = countAppliedOperations(applied);
+    const { writeCount, backupCount, modifiedSkips, unmanagedSkips, projectOwned, changedSincePlan, adopted, retiredDeleted, projectFilesMoved } = countAppliedOperations(applied);
     write(`\n${paint.copper(mode === 'export' ? 'Exportación completada.' : 'Cambios aplicados.')} ${renderChip(paint, 'SISTEMA LISTO', 'copper')}\n`);
     write(`${mode === 'export' ? 'Archivos exportados' : 'Escrituras aplicadas'}: ${paint.copper(String(writeCount))}\n`);
     write(`Backups creados: ${paint.copperInk(String(backupCount))}\n`);
     if (mode === 'update') {
       write(`Ediciones locales protegidas (omitidas): ${paint.copperInk(String(modifiedSkips))}\n`);
       write(`Archivos no gestionados (omitidos): ${paint.copperInk(String(unmanagedSkips))}\n`);
+      write(`Archivos del proyecto que se dejan como están: ${paint.copperInk(String(projectOwned))}\n`);
       write(`Archivos adoptados como línea base: ${paint.indigo(String(adopted))}\n`);
       write(`Archivos retirados borrados (con backup): ${paint.copperInk(String(retiredDeleted))}\n`);
       write(`Archivos del proyecto movidos a .agents/project/: ${paint.copperInk(String(projectFilesMoved))}\n`);
+      if (changedSincePlan > 0) write(`No se borraron (cambiaron desde el plan, quedan como están): ${paint.copperInk(String(changedSincePlan))}\n`);
     }
 
     // Verify the result right away so a broken install or update is visible
