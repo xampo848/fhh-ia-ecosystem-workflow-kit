@@ -654,26 +654,26 @@ _(Vacio = PRD listo para implementar)_
 
 | Acceptance criterion | Caso de uso | Phase / slice | Test evidence | Edge case(s) | Validation evidence | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| AC-1 | UC-1 | P1-S1, P1-S3 | `test/plugin-build.test.mjs` | Versión sin regenerar | `npm run check:workflow` | Pending |
-| AC-2 | UC-1 | P1-S1, P1-S2 | `test/plugin-build.test.mjs` | — | `claude plugin validate .` | Pending |
-| AC-3 | UC-1 | P1-S1, P1-S3 | `test/plugin-build.test.mjs` | — | `node --test test/plugin-build.test.mjs` | Pending |
-| AC-4 | UC-1 | P1-S1, P1-S3 | Checks existentes | — | `npm run check:workflow` | Pending |
-| AC-5 | UC-2 | P2-S1 | `test/plugin-mode.test.mjs` | Datos vacíos; dos runtimes | `node --test test/plugin-mode.test.mjs` | Pending |
-| AC-6 | UC-2, UC-8 | P2-S1 | `test/plugin-mode.test.mjs` | — | Igual | Pending |
-| AC-7 | UC-2 | P2-S1 | `test/plugin-mode.test.mjs` | Settings inválido o con otras claves | Igual | Pending |
-| AC-8 | UC-2 | P2-S1 | `test/plugin-mode.test.mjs` | `--mode plugin` sin runtime | Igual | Pending |
-| AC-9 | UC-3 | P2-S2 | `test/plugin-mode.test.mjs` | — | Igual | Pending |
-| AC-10 | UC-3 | P2-S2 | `test/plugin-mode.test.mjs` | Perfil distinto del default | Igual | Pending |
-| AC-11 | UC-4 | P2-S3 | `test/plugin-mode.test.mjs` | Rollback del cambio | Igual | Pending |
-| AC-12 | UC-4 | P2-S3 | `test/plugin-mode.test.mjs` | — | Igual | Pending |
-| AC-13 | UC-4 | P2-S4 | `test/plugin-mode.test.mjs` | Rollback del cambio | Igual | Pending |
-| AC-14 | UC-4 | P2-S4 | `test/plugin-mode.test.mjs` | Apply incompleto; state 1.0.0; export sobre un install plugin | Igual | Pending |
-| AC-15 | UC-5 | P2-S5 | `test/plugin-mode-doctor.test.mjs` | Archivo editado entre plan y apply | `node --test test/plugin-mode-doctor.test.mjs` | Pending |
-| AC-16 | UC-5 | P2-S5 | `test/plugin-mode-doctor.test.mjs` | `claude` ausente; versión distinta; no instalar | Igual | Pending |
-| AC-17 | UC-5 | P2-S5 | `test/plugin-mode-doctor.test.mjs` | — | Igual | Pending |
-| AC-18 | UC-6 | P2-S6 | `test/plugin-mode-tui.test.mjs` | Selección parcial | `node --test test/plugin-mode-tui.test.mjs` | Pending |
-| AC-19 | UC-7 | P2-S1 a P2-S6 | Suite existente | — | `npm test` | Pending |
-| AC-20 | UC-8 | P1-S2, P3-S1, P3-S2 | Smoke manual | S5, S7, S9, S10 | `npm run check:docs`; sección 10 | Pending |
+| AC-1 | UC-1 | P1-S1, P1-S3 | `test/plugin-build.test.mjs` | Versión sin regenerar | `npm run check:workflow` | Verified |
+| AC-2 | UC-1 | P1-S1, P1-S2 | `test/plugin-build.test.mjs` | — | `claude plugin validate .` | Verified |
+| AC-3 | UC-1 | P1-S1, P1-S3 | `test/plugin-build.test.mjs` | — | `node --test test/plugin-build.test.mjs` | Verified |
+| AC-4 | UC-1 | P1-S1, P1-S3 | Checks existentes | — | `npm run check:workflow` | Verified |
+| AC-5 | UC-2 | P2-S1 | `test/plugin-mode.test.mjs` | Datos vacíos; dos runtimes | `node --test test/plugin-mode.test.mjs` | Verified |
+| AC-6 | UC-2, UC-8 | P2-S1 | `test/plugin-mode.test.mjs` | — | Igual | Verified |
+| AC-7 | UC-2 | P2-S1 | `test/plugin-mode.test.mjs` | Settings inválido o con otras claves | Igual | Verified |
+| AC-8 | UC-2 | P2-S1 | `test/plugin-mode.test.mjs` | `--mode plugin` sin runtime | Igual | Verified |
+| AC-9 | UC-3 | P2-S2 | `test/plugin-mode.test.mjs` | — | Igual | Verified |
+| AC-10 | UC-3 | P2-S2 | `test/plugin-mode.test.mjs` | Perfil distinto del default | Igual | Verified |
+| AC-11 | UC-4 | P2-S3 | `test/plugin-mode.test.mjs` | Rollback del cambio | Igual | Verified |
+| AC-12 | UC-4 | P2-S3 | `test/plugin-mode.test.mjs` | — | Igual | Verified |
+| AC-13 | UC-4 | P2-S4 | `test/plugin-mode.test.mjs` | Rollback del cambio | Igual | Verified |
+| AC-14 | UC-4 | P2-S4 | `test/plugin-mode.test.mjs` | Apply incompleto; state 1.0.0; export sobre un install plugin | Igual | Verified |
+| AC-15 | UC-5 | P2-S5 | `test/plugin-mode-doctor.test.mjs` | Archivo editado entre plan y apply | `node --test test/plugin-mode-doctor.test.mjs` | Verified |
+| AC-16 | UC-5 | P2-S5 | `test/plugin-mode-doctor.test.mjs` | `claude` ausente; versión distinta; no instalar | Igual | Verified |
+| AC-17 | UC-5 | P2-S5 | `test/plugin-mode-doctor.test.mjs` | — | Igual | Verified |
+| AC-18 | UC-6 | P2-S6 | `test/plugin-mode-tui.test.mjs` | Selección parcial | `node --test test/plugin-mode-tui.test.mjs` | Verified |
+| AC-19 | UC-7 | P2-S1 a P2-S6 | Suite existente | — | `npm test` | Verified |
+| AC-20 | UC-8 | P1-S2, P3-S1, P3-S2 | Smoke manual | S5, S7, S9, S10 | `npm run check:docs`; sección 10 | Verified (Copilot solo CLI con `auto`; VS Code no ejecutado) |
 
 ---
 
@@ -681,7 +681,7 @@ _(Vacio = PRD listo para implementar)_
 
 Esta seccion es el registro durable de cierre: un resumen, no una bitacora. `implement-change` la completa antes de eliminar los artefactos temporales de `.ai-work/<prd-slug>/`.
 
-**Estado**: En progreso (Fases 1, 2 y 3 implementadas; QA final propia cerrada sin hallazgos bloqueantes; falta la pasada del revisor independiente del orquestador y el cierre del workspace)
+**Estado**: Implementada (Fases 1, 2 y 3; versión `0.23.0-plugin-mode`; workspace `.ai-work/` cerrado). Al cierre queda pendiente solo la pasada final del revisor independiente del orquestador, requisito del merge
 
 ### Fase 1 - Build del plugin (cerrada 2026-11-22; rondas de reparación 1 y 2 aquí, 3 y 4 más abajo)
 
@@ -728,17 +728,18 @@ Límites registrados: R7 (backups del cambio de modo), R8, R9 (adaptadores que e
 | Slice | Resultado | Evidencia |
 | --- | --- | --- |
 | P3-S1 | `docs/README.md`, `docs/quickstart.md` (sección 11), `docs/github-install.md` y la matriz de runtimes explican los dos modos, la instalación por persona y la postura de obligatoriedad, los cambios de modo y sus paradas, los backups, las reglas de settings, la fijación de versión y la publicación, los códigos `mode/*` y lo verificado por runtime | Commit `8a0ddf4`; comandos documentados ejecutados en dry run |
-| P3-S2 | Smoke final sobre un repo creado con `init --mode plugin --runtime claude,copilot` y el plugin de `dist/plugin` cargado por sesión | Claude Code: pasa (12 skills `fhh:*`, sin duplicados, `kit-root` cargado por el modelo, kit leído del plugin, overlay y runbook del repo). Copilot CLI (gpt-4.1, el único modelo de la cuenta): el plugin carga, sus skills aparecen sin prefijo, solo `kit-root` es visible al modelo (S12), la instrucción del adaptador llega al modelo y `kit-root` da la raíz cuando se invoca; el modelo no carga `kit-root` por su cuenta. El adaptador pasó a nombrar la skill por runtime (`d96f6e9`) y, junto con `kit-root`, los puntos de entrada del kit y del proyecto (`pluginEntryPoints`); con eso gpt-4.1 nombra la ruta correcta del router pero responde sin leer ningún archivo: ruteo no verificado. Claude Code, con los puntos de entrada, lee el router directo y llega al runbook por el catálogo del proyecto. VS Code no se ejecutó (decisión del usuario) |
+| P3-S2 | Smoke final sobre un repo creado con `init --mode plugin --runtime claude,copilot` y el plugin de `dist/plugin` cargado por sesión | Claude Code: pasa (12 skills `fhh:*`, sin duplicados, `kit-root` cargado por el modelo, kit leído del plugin, overlay y runbook del repo). Copilot CLI 1.0.51 con gpt-4.1: el plugin carga, sus skills aparecen sin prefijo, solo `kit-root` es visible al modelo (S12), la instrucción del adaptador llega al modelo y `kit-root` da la raíz cuando se invoca; el modelo no carga `kit-root` por su cuenta. El adaptador pasó a nombrar la skill por runtime (`d96f6e9`) y, junto con `kit-root`, los puntos de entrada del kit y del proyecto (`pluginEntryPoints`); con eso gpt-4.1 nombra la ruta correcta del router pero responde sin leer ningún archivo: ruteo no verificado. Claude Code, con los puntos de entrada, lee el router directo y llega al runbook por el catálogo del proyecto. VS Code no se ejecutó (decisión del usuario) |
+| P3-S3 | Smoke de Copilot repetido con un CLI actual, a pedido del usuario (gpt-4.1 es un modelo viejo) | Copilot CLI 1.0.115 con la elección de modelo `auto` (corrió `mai-code-2-flash` y `gpt-6-luna`): el modelo carga `kit-root` por su cuenta, lee el contrato y el router desde el plugin, y el contexto, el catálogo y el runbook desde el repo: pasa. Los modelos elegidos a mano (`gpt-6.1-terra`, `gpt-6.2-sol`, `gpt-6.2-astra`) no están disponibles en la cuenta de prueba: no ejecutados. Commit `fef5c31` |
 
 | Campo | Evidencia durable |
 | --- | --- |
 | Cambios entregados | Build del plugin `fhh` en `dist/plugin/` y publicación en la rama `plugin` (`scripts/build-plugin.mjs`, `.claude-plugin/marketplace.json`); `--mode repo|plugin` en `init` y `update` con los dos cambios de modo y sus paradas (`src/planner.mjs`, `src/plugin-mode.mjs`, `src/cli/*`, `src/runtime-matrix.mjs`); `doctor` de modos (`src/doctor.mjs`); pregunta de modo en el TUI; renderers con variante plugin (`src/model-profiles.mjs`); parámetro opcional en `src/project-instructions.mjs`; docs y matriz |
 | Criterios de aceptacion | AC-1 a AC-19: COMPLETE (`test/plugin-build.test.mjs`, `test/plugin-mode.test.mjs`, `test/plugin-mode-doctor.test.mjs`, `test/plugin-mode-tui.test.mjs`). AC-20: COMPLETE (docs, Claude Code y Copilot CLI en modo `auto`; VS Code no ejecutado, y los modelos Terra, Sol y Astra no disponibles en la cuenta de prueba) |
-| Validaciones ejecutadas | `npm test` 566/566 (420 originales sin modificar; binarios `claude` y `copilot` falsos en el PATH sin llamadas); `check`, `check:workflow`, `check:docs`, `check:legal` PASS; `check:release` FAIL solo por la versión, que asigna el orquestador; `claude plugin validate` PASS |
-| Calidad y QA | Quality gate del kit aplicado por slice; cinco revisiones independientes del orquestador con rondas de reparación (Fase 1: 4 rondas, las dos últimas autorizadas por el usuario; Fase 2: 1 ronda). QA final propia (QA Relampago, contexto limpio) sobre `7e18dcc`: 10 hallazgos (1 alto: índice del PRD desactualizado; 4 medios; 5 bajos), corregidos en `25c5927`, `3ffeb72` y `fe8b9c2` salvo QA-8, aceptado como trabajo futuro; re-QA sobre `fe8b9c2`: sin bloqueantes, 4 menores nuevos (N1-N4) corregidos al cierre. Pendiente: la pasada del revisor independiente del orquestador |
-| Referencia de cambio | Rama `fhh/f4-plugin-mode-19e58c`, commits `f7a91ee`..HEAD sobre `558e9fb` (el último commit de cierre lo nombra el reporte al orquestador); sin push ni PR |
+| Validaciones ejecutadas | `npm test` 566/566 (420 originales sin modificar; binarios `claude` y `copilot` falsos en el PATH sin llamadas); `check:security`, `check`, `check:workflow`, `check:templates`, `check:docs`, `check:legal` y `check:release` PASS con la versión `0.23.0-plugin-mode` (commit `c7d4cf4`); CI del PR #83 en verde (Node 20.17.0, 22.x y 24.x, OSV-Scanner y validación del kit); `claude plugin validate` PASS |
+| Calidad y QA | Quality gate del kit aplicado por slice; cinco revisiones independientes del orquestador con rondas de reparación (Fase 1: 4 rondas, las dos últimas autorizadas por el usuario; Fase 2: 1 ronda). QA final propia (QA Relampago, contexto limpio) sobre `7e18dcc`: 10 hallazgos (1 alto: índice del PRD desactualizado; 4 medios; 5 bajos), corregidos en `25c5927`, `3ffeb72` y `fe8b9c2` salvo QA-8, aceptado como trabajo futuro; re-QA sobre `fe8b9c2`: sin bloqueantes, 4 menores nuevos (N1-N4) corregidos en `8fbccd1`. Pendiente al cierre: la pasada final del revisor independiente del orquestador sobre `8fbccd1` |
+| Referencia de cambio | Rama `fhh/f4-plugin-mode-19e58c`, PR #83: commits `f7a91ee`..`c7d4cf4` sobre `558e9fb` (release `0.23.0-plugin-mode` en `c7d4cf4`) y el commit que cierra esta sección |
 | Riesgos o waivers | Sin waivers. Riesgos abiertos: VS Code sin ejecutar y modelos de Copilot elegidos a mano (Terra, Sol, Astra) sin probar (S7, S9, S11, S13 de agentes); la rama `plugin` no existe en el remoto hasta el primer `--publish` y su push aprobado; límites R7 a R11; scripts del kit con guarda de `main` que no corre bajo rutas con symlink (fuera de F4) |
 | Checks reutilizados | Ninguno |
 | Iteraciones y causa | Fase 1, ronda 1: `hueco del PRD` (D13, raíz del plugin cargaba `bin/` y dependencias); rondas 2 a 4: `error de implementación` (seguridad de `--publish`). Fase 2, ronda 1: `error de implementación` (runtimes que salen, `doctor` en modo repo, textos). Smoke de la Fase 3: `hueco del PRD` (Copilot no antepone el nombre del plugin a sus skills; puntos de entrada para un modelo más débil). QA final: `error de implementación` (sugerencia de `--mode`, `doctor` en modo repo) y `hueco del PRD` (índice, tabla de códigos) |
 | Modo de ejecucion | supervisado (pausa de revisión del orquestador tras cada fase) |
-| Fecha de cierre | Pendiente de la QA final |
+| Fecha de cierre | 2026-11-25 (implementación y release; la pasada final del revisor del orquestador seguía en curso) |
