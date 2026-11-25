@@ -80,7 +80,8 @@ When you raise `package.json.version`, follow these steps in order:
    and in its template copy
    (`templates/repo-overlay-fhh-ia-ecosystem-full/.agents/workflow-kit/manifest.json`);
    `check:workflow` fails until both match, and the plugin build refuses a
-   shipped manifest whose `kit_version` is not the package version.
+   shipped manifest whose `kit_version` is not the package version; its
+   message names each copy that still differs.
 2. Renew the overlay authorship record. Step 1 changes the overlay template, so
    `check:legal` fails ("maintainer-attested overlay file inventory changed" or
    "path/content inventory differs") until `remainingInventory` in
@@ -109,7 +110,8 @@ When you raise `package.json.version`, follow these steps in order:
    '
    ```
 
-   Copy both values into `remainingInventory` (and `lastVerified`), then run
+   Copy both values into `remainingInventory`, set the top-level
+   `lastVerified` field of the same file to the date of the renewal, then run
    `bun run check:legal`. Renewing the record is a maintainer attestation that
    the changed template files are authorized for publication; any other
    template change between releases needs the same renewal.
@@ -130,10 +132,12 @@ To publish the plugin `fhh`, merge the release into `main`, fetch, check out a
 commit that `origin/main` contains and run
 `node scripts/build-plugin.mjs --publish` from the kit repository itself (its
 top level, not a copy inside another repository). It builds from the tracked
-content of `HEAD`, exported with `git archive` into a temporary folder, never
-from the working tree: files Git ignores and edits hidden with
-`git update-index --skip-worktree` are never published. It runs the legal check
-on that content, validates the build as check mode does and commits
+content of `HEAD`, exported with `git archive` into a temporary folder, and
+with the build code of that content (its own `scripts/build-plugin.mjs`, run
+in a separate `node`), never from or with the working tree: files Git ignores
+and edits hidden with `git update-index --skip-worktree` or
+`--assume-unchanged` are never published. It runs the legal check of that
+content on it, validates the build as check mode does and commits
 `dist/plugin/` to the local branch `plugin` without touching the current
 branch. It never fetches, never pushes and never changes the Git
 configuration. It stops, without committing, when:

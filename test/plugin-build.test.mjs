@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import {
   expectedMarketplace,
   expectedPluginFiles,
+  pluginBuildInputs,
   pluginLegalFiles,
   validatePluginFolder,
   writePluginBuild
@@ -46,19 +47,12 @@ const pluginAgents = catalog.agents.flatMap((agent) => [
   { runtime: 'claude', agent, path: `agents/${agent.slug}.md` },
   { runtime: 'copilot', agent, path: `com.github.copilot/agents/${agent.slug}.agent.md` }
 ]);
-// --publish runs the legal check, so the fixture also carries the compliance
-// files scripts/validate-legal-readiness.mjs requires.
+// The fixture holds every path the build reads, its code included: --publish
+// runs the build code of the source commit, so a fixture commit must be able
+// to build on its own. --publish also runs the legal check, so the fixture
+// carries the compliance files scripts/validate-legal-readiness.mjs requires.
 const legalCheckFiles = ['.github/CODEOWNERS', '.github/PULL_REQUEST_TEMPLATE.md', 'SECURITY.md', 'GOVERNANCE.md', 'TRADEMARKS.md', 'CODE_OF_CONDUCT.md'];
-const fixtureEntries = [
-  'package.json',
-  '.agents/skills/registry.json',
-  'scripts/delegate-agent-catalog.json',
-  templateRoot,
-  '.claude-plugin/marketplace.json',
-  'docs/legal',
-  ...pluginLegalFiles,
-  ...legalCheckFiles
-];
+const fixtureEntries = [...pluginBuildInputs, ...legalCheckFiles];
 
 async function makeFixture() {
   const root = await makeTempRepo('workflow-kit-plugin-');
@@ -69,8 +63,8 @@ async function makeFixture() {
   return root;
 }
 
-function runCli(args, { cwd = sourceRoot, env = process.env } = {}) {
-  return spawnSync(process.execPath, [buildScript, ...args], { cwd, env, encoding: 'utf8' });
+function runCli(args, { cwd = sourceRoot, env = process.env, script = buildScript } = {}) {
+  return spawnSync(process.execPath, [script, ...args], { cwd, env, encoding: 'utf8' });
 }
 
 function frontmatter(content) {
@@ -482,7 +476,11 @@ test('the entry point refuses a --root that is not a kit repository, and unknown
     ['--root on an empty folder in check mode', ['--root', empty], notKit],
     ['--write together with --publish', ['--write', '--publish', '--root', empty], /Use only one of --write and --publish/],
     ['--same-version without --publish', ['--write', '--same-version', '--root', empty], /--same-version only applies to --publish/],
-    ['an unknown option', ['--force', '--root', empty], /Unknown option --force/]
+    ['an unknown option', ['--force', '--root', empty], /Unknown option --force/],
+    ['--out without --root', ['--out', path.join(empty, 'out')], /--out needs --root/],
+    ['an --out without a value', ['--root', empty, '--out'], /--out needs a directory/],
+    ['--out together with --write', ['--write', '--root', empty, '--out', path.join(empty, 'out')], /--out only applies to check mode/],
+    ['--out together with --publish', ['--publish', '--root', empty, '--out', path.join(empty, 'out')], /--out only applies to check mode/]
   ];
   for (const [name, args, message] of cases) {
     await t.test(name, async () => {
@@ -551,17 +549,85 @@ async function breakAgentSkill(root) {
 }
 const agentSkillMissing = /Agent skill not in the plugin: agents\/turbo-backend\.md -> \.agents\/skills\/missing\/SKILL\.md/;
 const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// The template copy ships in the plugin; the repository copy does not.
 const kitManifestFile = `${templateRoot}/.agents/workflow-kit/manifest.json`;
+const repositoryManifestFile = '.agents/workflow-kit/manifest.json';
 
-async function setVersion(root, version, { kitManifest = false } = {}) {
+async function setVersion(root, version, { manifests = [] } = {}) {
   const file = path.join(root, 'package.json');
   const edited = JSON.parse(await fs.readFile(file, 'utf8'));
   await fs.writeFile(file, `${JSON.stringify({ ...edited, version }, null, 2)}\n`, 'utf8');
-  if (!kitManifest) return;
-  const manifestPath = path.join(root, kitManifestFile);
-  const kit = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
-  await fs.writeFile(manifestPath, `${JSON.stringify({ ...kit, kit_version: version }, null, 2)}\n`, 'utf8');
+  for (const manifestFile of manifests) {
+    const manifestPath = path.join(root, manifestFile);
+    const kit = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
+    await fs.writeFile(manifestPath, `${JSON.stringify({ ...kit, kit_version: version }, null, 2)}\n`, 'utf8');
+  }
 }
+const staleKitVersion = (...files) => new RegExp(`Kit manifest kit_version ${escapeRegExp(packageJson.version)} is not the package\\.json version 9\\.9\\.9: ${files.map(escapeRegExp).join(' and ')} \\(fix:`);
+
+// --out is the internal mode --publish runs with the code of the source
+// commit: it builds and validates into a directory it is given.
+test('--out builds and validates into a new or empty directory, refuses any other, and never deletes outside it', async (t) => {
+  const absent = (parent) => path.join(parent, 'out');
+  const cases = [
+    { name: 'a new directory receives the folder --write builds', out: absent, status: 0 },
+    { name: 'an empty directory receives the folder --write builds', out: async (parent) => fs.mkdir(absent(parent)).then(() => absent(parent)), status: 0 },
+    {
+      name: 'a directory that is not empty is refused',
+      out: async (parent) => {
+        await fs.mkdir(absent(parent));
+        await fs.writeFile(path.join(absent(parent), 'keep.txt'), 'keep\n', 'utf8');
+        return absent(parent);
+      },
+      status: 1,
+      stderr: /exists and is not empty/
+    },
+    {
+      name: 'a symbolic link to an empty directory is refused',
+      out: async (parent) => {
+        await fs.mkdir(path.join(parent, 'target'));
+        await fs.symlink(path.join(parent, 'target'), absent(parent));
+        return absent(parent);
+      },
+      status: 1,
+      stderr: /is a symbolic link/
+    },
+    {
+      name: 'a file is refused',
+      out: async (parent) => fs.writeFile(absent(parent), 'keep\n', 'utf8').then(() => absent(parent)),
+      status: 1,
+      stderr: /is not a directory/
+    },
+    { name: 'a build that does not validate leaves no new directory', arrange: breakAgentSkill, out: absent, status: 1, stderr: agentSkillMissing },
+    {
+      name: 'a build that does not validate empties the directory it was given',
+      arrange: breakAgentSkill,
+      out: async (parent) => fs.mkdir(absent(parent)).then(() => absent(parent)),
+      status: 1,
+      stderr: agentSkillMissing
+    }
+  ];
+  for (const { name, arrange, out, status, stderr } of cases) {
+    await t.test(name, async () => {
+      const root = await makeFixture();
+      await arrange?.(root);
+      const parent = await makeTempRepo('workflow-kit-plugin-out-');
+      await fs.writeFile(path.join(parent, 'sibling.txt'), 'keep\n', 'utf8');
+      const dir = await out(parent);
+      const before = { root: await hashTree(root), parent: await hashTree(parent) };
+      const result = runCli(['--root', root, '--out', dir]);
+      assert.equal(result.status, status, result.stderr);
+      assert.deepEqual(await hashTree(root), before.root);
+      if (status === 0) {
+        assert.deepEqual(await hashTree(dir), await hashTree(builtDir));
+        assert.deepEqual(withoutPrefix(await hashTree(parent), 'out'), withoutPrefix(before.parent, 'out'));
+      } else {
+        assert.match(result.stderr, stderr);
+        assert.deepEqual(await hashTree(parent), before.parent);
+      }
+    });
+  }
+});
 
 test('a --write that cannot build or does not validate fails and keeps the previous dist/plugin and marketplace, with no temporary folder left', async (t) => {
   const cases = [
@@ -571,15 +637,17 @@ test('a --write that cannot build or does not validate fails and keeps the previ
       stderr: /Plugin build failed: .*(EACCES|permission denied)/i
     },
     { name: 'a delegate skill the plugin does not ship', arrange: breakAgentSkill, stderr: agentSkillMissing },
+    // The refusal names each stale copy of the kit manifest, not the path in the plugin folder.
+    { name: 'a version raised only in package.json', arrange: (root) => setVersion(root, '9.9.9'), stderr: staleKitVersion(kitManifestFile, repositoryManifestFile) },
     {
-      name: 'a version raised only in package.json',
-      arrange: (root) => setVersion(root, '9.9.9'),
-      stderr: new RegExp(`Kit manifest kit_version ${escapeRegExp(packageJson.version)} is not the package\\.json version 9\\.9\\.9: \\.agents/workflow-kit/manifest\\.json`)
+      name: 'a version raised in package.json and the repository kit manifest only',
+      arrange: (root) => setVersion(root, '9.9.9', { manifests: [repositoryManifestFile] }),
+      stderr: staleKitVersion(kitManifestFile)
     },
     {
       name: 'a marketplace that cannot be rewritten after the swap (the swap is undone)',
       arrange: async (root) => {
-        await setVersion(root, '9.9.9', { kitManifest: true });
+        await setVersion(root, '9.9.9', { manifests: [kitManifestFile] });
         await fs.chmod(path.join(root, '.claude-plugin/marketplace.json'), 0o444);
       },
       stderr: /EACCES|permission denied/i
@@ -621,7 +689,7 @@ test('a previous dist/plugin that cannot be removed leaves the new folder and th
   const locked = path.join(root, 'dist/plugin/skills/kit-root');
   await fs.chmod(locked, 0o555);
   try {
-    await setVersion(root, '9.9.9', { kitManifest: true });
+    await setVersion(root, '9.9.9', { manifests: [kitManifestFile] });
     const result = runCli(['--write', '--root', root]);
     assert.equal(result.status, 0, result.stderr);
     const leftover = (await fs.readdir(path.join(root, 'dist'))).filter((entry) => entry !== 'plugin');
@@ -725,17 +793,18 @@ async function gitFixture({ identity = true } = {}) {
     config: git('config', '--local', '--list'),
     files: withoutPrefix(withoutPrefix(await hashTree(root), '.git'), 'dist')
   });
-  const publish = (args = [], extraEnv = {}) => runCli(['--publish', '--root', root, ...args], { env: { ...env, ...extraEnv } });
+  // As whoever publishes does: the repository's own script, from its root.
+  const publish = (args = [], extraEnv = {}) => runCli(['--publish', '--root', root, ...args], { cwd: root, env: { ...env, ...extraEnv }, script: path.join(root, 'scripts/build-plugin.mjs') });
   return { root, env, git, remote, checkout, publish };
 }
 
 // The release steps of docs/versioning.md, then the merge to main.
 async function raiseVersion(root, git, version) {
-  await setVersion(root, version, { kitManifest: true });
+  await setVersion(root, version, { manifests: [kitManifestFile, repositoryManifestFile] });
   await renewAuthorship(root);
   const write = runCli(['--write', '--root', root]);
   assert.equal(write.status, 0, write.stderr);
-  git.commit(`Release ${version}`, 'package.json', kitManifestFile, 'docs/legal/overlay-authorship.json', '.claude-plugin/marketplace.json');
+  git.commit(`Release ${version}`, 'package.json', kitManifestFile, repositoryManifestFile, 'docs/legal/overlay-authorship.json', '.claude-plugin/marketplace.json');
   git.land();
 }
 
@@ -870,23 +939,40 @@ test('--publish refuses uncommitted changes in the files the build reads and nam
   assert.equal(git.refs(), before);
 });
 
-// The tree a clean clone of the repository builds from its HEAD.
+// The tree a clean clone of the repository builds from its HEAD, with its own code.
 async function treeBuiltFromHead(root, env) {
   const clone = path.join(await makeTempRepo('workflow-kit-plugin-head-'), 'kit');
   gitIn(path.dirname(clone), env)('clone', '-q', root, clone);
-  await writePluginBuild({ root: clone });
+  const write = runCli(['--write', '--root', clone], { cwd: clone, env, script: path.join(clone, 'scripts/build-plugin.mjs') });
+  assert.equal(write.status, 0, write.stderr);
   const index = path.join(path.dirname(clone), 'index');
   const git = gitIn(clone, { ...env, GIT_INDEX_FILE: index });
   git(`--work-tree=${path.join(clone, 'dist/plugin')}`, 'add', '--all', '--force', '--', '.');
   return git('write-tree');
 }
 
-test('--publish builds from the tracked content of HEAD: ignored files and skip-worktree edits never reach the branch plugin', async (t) => {
+// Edits a tracked file and hides the edit from git status with an index flag.
+async function hideEdit(root, git, flag, file, from, to) {
+  const content = await fs.readFile(path.join(root, file), 'utf8');
+  assert.ok(content.includes(from), `${file} no longer contains: ${from}`);
+  await fs.writeFile(path.join(root, file), content.replaceAll(from, to), 'utf8');
+  git('update-index', flag, file);
+}
+
+// The files of the branch plugin that contain text (git grep exits 1 when none does).
+function publishedWith(root, env, text) {
+  const result = spawnSync('git', ['grep', '-l', '-F', text, 'plugin'], { cwd: root, env, encoding: 'utf8' });
+  assert.ok(result.status === 0 || result.status === 1, result.stderr);
+  return result.stdout.trim();
+}
+
+test('--publish builds from the tracked content of HEAD with the build code of HEAD: ignored files and hidden edits, of the kit or of the build code, never reach the branch plugin', async (t) => {
   const router = `${templateRoot}/.agents/skills/00-router`;
   const plant = async (root, file, content) => {
     await fs.mkdir(path.dirname(path.join(root, file)), { recursive: true });
     await fs.writeFile(path.join(root, file), content, 'utf8');
   };
+  const hiddenCode = 'Hidden build code edit.';
   const cases = [
     {
       name: 'files the repository .gitignore ignores',
@@ -916,6 +1002,21 @@ test('--publish builds from the tracked content of HEAD: ignored files and skip-
         git('update-index', '--skip-worktree', instructionsFile);
       },
       hidden: [instructionsFile]
+    },
+    {
+      name: 'a skip-worktree edit of the path rule in src/plugin-mode.mjs (kit-root and every agent carry it)',
+      arrange: (root, git) => hideEdit(root, git, '--skip-worktree', 'src/plugin-mode.mjs', 'Never write under the kit root.', `Never write under the kit root. ${hiddenCode}`),
+      hidden: ['src/plugin-mode.mjs']
+    },
+    {
+      name: 'a skip-worktree edit of the kit-root renderer in scripts/build-plugin.mjs, the script that runs',
+      arrange: (root, git) => hideEdit(root, git, '--skip-worktree', 'scripts/build-plugin.mjs', 'Next step: read', `${hiddenCode} Next step: read`),
+      hidden: ['scripts/build-plugin.mjs']
+    },
+    {
+      name: 'an assume-unchanged edit of the agent renderer in src/model-profiles.mjs',
+      arrange: (root, git) => hideEdit(root, git, '--assume-unchanged', 'src/model-profiles.mjs', 'Before acting, read and follow', `Before acting, ${hiddenCode} read and follow`),
+      hidden: ['src/model-profiles.mjs']
     }
   ];
   for (const { name, arrange, hidden } of cases) {
@@ -928,7 +1029,8 @@ test('--publish builds from the tracked content of HEAD: ignored files and skip-
       assert.equal(result.status, 0, result.stderr);
       const published = git('ls-tree', '-r', '--name-only', 'plugin');
       assert.doesNotMatch(published, /leak\.tgz|\.ai-work|private-notes/);
-      assert.doesNotMatch(git('show', 'plugin:.agents/instructions.md'), /Hidden local edit/);
+      assert.equal(publishedWith(root, env, 'Hidden local edit'), '');
+      assert.equal(publishedWith(root, env, hiddenCode), '');
       assert.equal(git('rev-parse', 'plugin^{tree}'), await treeBuiltFromHead(root, env));
     });
   }
@@ -981,12 +1083,15 @@ test('--publish publishes only a commit contained in origin/main, as last fetche
   }
 });
 
-test('--publish runs the legal check on the source commit and refuses, quoting it, when the overlay authorship record does not match the template', async () => {
+test('--publish runs the legal check of the source commit on it and refuses, quoting it, when the overlay authorship record does not match the template', async () => {
   const { root, git, publish } = await gitFixture();
   const added = `${templateRoot}/.agents/skills/00-router/added.md`;
   await fs.writeFile(path.join(root, added), 'A new kit file.\n', 'utf8');
   git.commit('Add a kit file without renewing the authorship record', added);
   git.land();
+  // A hidden edit that disables the legal check in the working tree changes nothing.
+  const check = 'export function validateLegalReadiness({ root = process.cwd() } = {}) {';
+  await hideEdit(root, git, '--skip-worktree', 'scripts/validate-legal-readiness.mjs', check, `${check}\n  return { ok: true, failures: [] };`);
   const before = git.refs();
   const result = publish();
   assert.equal(result.status, 1, result.stdout);
@@ -1011,7 +1116,7 @@ test('--publish refuses a build that does not validate or a marketplace out of s
     {
       name: 'a version raised without regenerating the marketplace',
       arrange: async (root, git) => {
-        await setVersion(root, '9.9.9', { kitManifest: true });
+        await setVersion(root, '9.9.9', { manifests: [kitManifestFile] });
         await renewAuthorship(root);
         git.commit('Raise the version', 'package.json', kitManifestFile, 'docs/legal/overlay-authorship.json');
         git.land();

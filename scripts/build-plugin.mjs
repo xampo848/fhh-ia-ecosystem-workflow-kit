@@ -11,20 +11,24 @@
 //              committed marketplace; never writes into the repository.
 //   --write    build and validate a fresh folder, swap it in for dist/plugin/
 //              and rewrite the marketplace.
-//   --publish  build from the tracked content of HEAD (a commit origin/main
-//              contains), run the legal check on it, validate like check
-//              mode, rebuild dist/plugin/ and commit it to the local branch
-//              `plugin` without touching HEAD, the index or the working tree.
-//              It never pushes, never fetches and never changes the git
-//              configuration. --same-version publishes new content under the
-//              version already published.
+//   --publish  export the tracked content of HEAD (a commit origin/main
+//              contains) and run its own legal check and its own build code on
+//              it, never a file of the working tree; validate like check mode,
+//              rebuild dist/plugin/ and commit it to the local branch `plugin`
+//              without touching HEAD, the index or the working tree. It never
+//              pushes, never fetches and never changes the git configuration.
+//              --same-version publishes new content under the version already
+//              published.
+// Internal: --root <dir> --out <out> builds and validates like check mode into
+// <out>, a new directory or an empty one; --publish runs it on the exported
+// commit with that commit's code.
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { classifyPath, loadKitManifest, manifestRelativePath } from '../src/kit-manifest.mjs';
 import {
   loadDelegateCatalog,
@@ -34,7 +38,6 @@ import {
 } from '../src/model-profiles.mjs';
 import { marketplaceName, pluginBranch, pluginName, pluginPathRule } from '../src/plugin-mode.mjs';
 import { claudeSkillDescription, claudeSkillEntries, listFiles } from './sync-claude-skills.mjs';
-import { validateLegalReadiness } from './validate-legal-readiness.mjs';
 
 export { marketplaceName, pluginName };
 
@@ -52,8 +55,11 @@ export const marketplacePath = '.claude-plugin/marketplace.json';
 // docs/legal tree they cite (license texts, third-party notices, provenance).
 export const pluginLegalFiles = ['LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.md'];
 export const pluginLegalDirectory = 'docs/legal';
-// Every path the build reads. --publish refuses uncommitted changes in them,
-// so the source commit its message names holds exactly what it built.
+// Every path the build reads, its code included. --publish builds with the
+// content and the code of HEAD only; it also refuses uncommitted changes in
+// these paths, so what it publishes is not something other than what the
+// publisher sees (git status cannot see edits hidden with skip-worktree or
+// assume-unchanged, which is why the build never runs the working tree).
 export const pluginBuildInputs = [
   templatePath,
   '.agents/skills/registry.json',
@@ -66,12 +72,17 @@ export const pluginBuildInputs = [
   'scripts/validate-legal-readiness.mjs',
   'src/model-profiles.mjs',
   'src/plugin-mode.mjs',
+  'src/runtime-matrix.mjs',
   'src/kit-manifest.mjs',
+  manifestRelativePath,
   marketplacePath
 ];
 const agentPluginsSchema = 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json';
 const pluginDescription = 'Workflow kit: routed workflow skills and delegates that run from the plugin while each repository keeps its own project overlay.';
 const marketplaceDescription = 'Marketplace of the fhh workflow kit plugin.';
+// The copies of the kit manifest a release raises (docs/versioning.md, release
+// step 1): the template copy, which the plugin ships, and the repository copy.
+const kitManifestCopies = [`${templatePath}/${manifestRelativePath}`, manifestRelativePath];
 const pluginRemote = 'origin';
 // --publish only publishes a commit this branch of the remote contains.
 const sourceBranch = 'main';
@@ -325,12 +336,13 @@ async function removeLeftovers(realRoot, distDir) {
   return warnings;
 }
 
-// Builds and validates a fresh folder inside dist/, then swaps it in for
-// dist/plugin with renames and runs afterSwap (the marketplace rewrite). A
-// failure up to there undoes the swap, removes the fresh folder and leaves
-// dist/plugin as it was; only then is the previous folder removed, and a
-// previous folder that cannot be removed is reported, not fatal.
-async function replacePluginDirectory({ root, realRoot, marketplace, afterSwap = async () => {} }) {
+// Fills a fresh folder inside dist/ (fill builds and validates it, and throws
+// when it does not validate), then swaps it in for dist/plugin with renames
+// and runs afterSwap (the marketplace rewrite). A failure up to there undoes
+// the swap, removes the fresh folder and leaves dist/plugin as it was; only
+// then is the previous folder removed, and a previous folder that cannot be
+// removed is reported, not fatal.
+async function replacePluginDirectory({ realRoot, fill, afterSwap = async () => {} }) {
   const distDir = await prepareDistDirectory(realRoot);
   const warnings = await removeLeftovers(realRoot, distDir);
   const staging = await fs.mkdtemp(path.join(distDir, stagingPrefix));
@@ -338,9 +350,7 @@ async function replacePluginDirectory({ root, realRoot, marketplace, afterSwap =
   let count;
   let previous = null;
   try {
-    let failures;
-    ({ count, failures } = await buildAndValidate({ root, dir: staging, marketplace }));
-    if (failures.length > 0) throw new Error(formatFailures(failures));
+    count = await fill(staging);
     dir = (await guardedPath(realRoot, pluginOutputDirectory, 'directory')).target;
     previous = existsSync(dir) ? `${staging}-previous` : null;
     if (previous) await fs.rename(dir, previous);
@@ -376,9 +386,12 @@ export async function writePluginBuild({ root = packageRoot } = {}) {
   const realRoot = await fs.realpath(resolved);
   const marketplace = await guardedPath(realRoot, marketplacePath, 'file');
   const result = await replacePluginDirectory({
-    root: resolved,
     realRoot,
-    marketplace: false,
+    fill: async (dir) => {
+      const { count, failures } = await buildAndValidate({ root: resolved, dir, marketplace: false });
+      if (failures.length > 0) throw new Error(formatFailures(failures));
+      return count;
+    },
     afterSwap: async () => {
       await fs.mkdir(path.dirname(marketplace.target), { recursive: true });
       await fs.writeFile(marketplace.target, await expectedMarketplace({ root: resolved }), 'utf8');
@@ -391,6 +404,17 @@ function frontmatterDescription(content) {
   const frontmatter = content.startsWith('---\n') ? content.slice(4, content.indexOf('\n---\n', 4)) : '';
   const value = frontmatter.match(/^description:(.*)$/m)?.[1].trim() ?? '';
   return value.replace(/^"(.*)"$/, '$1').trim();
+}
+
+// The copies of the kit manifest whose kit_version is not the package version;
+// a copy that is missing or not JSON is not named.
+async function staleKitManifests(root, version) {
+  const stale = [];
+  for (const file of kitManifestCopies) {
+    const kitVersion = await fs.readFile(path.join(root, file), 'utf8').then((text) => JSON.parse(text).kit_version, () => version);
+    if (kitVersion !== version) stale.push(file);
+  }
+  return stale;
 }
 
 // Structural rules of a built plugin folder: what the plugin needs to load
@@ -421,7 +445,11 @@ export async function validatePluginFolder({ root = packageRoot, dir }) {
       fail(`${label} missing or not JSON: ${file}`);
       continue;
     }
-    if (version !== packageJson.version) fail(`${label} ${field} ${version} is not the package.json version ${packageJson.version}: ${file}`);
+    if (version === packageJson.version) continue;
+    // The shipped kit manifest is a copy: name the source copies to fix, or the
+    // file of the folder when no source differs.
+    const stale = field === 'kit_version' ? await staleKitManifests(root, packageJson.version) : [];
+    fail(`${label} ${field} ${version} is not the package.json version ${packageJson.version}: ${stale.length > 0 ? stale.join(' and ') : file}`);
   }
   for (const file of files.filter((item) => /^skills\/[^/]+\/SKILL\.md$/.test(item))) {
     const content = await fs.readFile(path.join(dir, file), 'utf8');
@@ -449,6 +477,40 @@ export async function checkPluginBuild({ root = packageRoot } = {}) {
   } finally {
     await fs.rm(temporary, { recursive: true, force: true });
   }
+}
+
+// --out accepts a directory that does not exist (its parent must) or an empty
+// one, never a symbolic link: everything inside it afterwards was written by
+// this build. Returns whether it created the directory.
+async function prepareOutDirectory(dir) {
+  let stats;
+  try {
+    stats = await fs.lstat(dir);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    await fs.mkdir(dir);
+    return true;
+  }
+  const refuse = (problem) => new Error(`Refusing to build: --out ${dir} ${problem}. Give a new or empty directory.`);
+  if (stats.isSymbolicLink()) throw refuse('is a symbolic link');
+  if (!stats.isDirectory()) throw refuse('is not a directory');
+  if ((await fs.readdir(dir)).length > 0) throw refuse('exists and is not empty');
+  return false;
+}
+
+// Out mode: builds and validates like check mode, into the given directory. A
+// build that does not validate leaves the directory as it found it; nothing
+// outside it is ever removed.
+export async function buildPluginInto({ root, out }) {
+  const resolved = await resolveKitRoot(root);
+  const dir = path.resolve(out);
+  const created = await prepareOutDirectory(dir);
+  const { count, failures } = await buildAndValidate({ root: resolved, dir, marketplace: true });
+  if (failures.length > 0) {
+    if (created) await fs.rm(dir, { recursive: true, force: true });
+    else for (const entry of await fs.readdir(dir)) await fs.rm(path.join(dir, entry), { recursive: true, force: true });
+  }
+  return { ok: failures.length === 0, count, failures, dir };
 }
 
 function git(args, { cwd, env }) {
@@ -497,10 +559,11 @@ function publishedVersion(run, commit) {
 }
 
 // The tracked content of HEAD, exported with `git archive` into a fresh
-// folder: what --publish builds from. Files Git ignores (through .gitignore, a
-// global excludes file or info/exclude) and edits hidden with
-// `git update-index --skip-worktree` are not in it, so the branch `plugin`
-// holds exactly what the source commit its message names holds.
+// folder: what --publish builds from, and the code it builds with. Files Git
+// ignores (through .gitignore, a global excludes file or info/exclude) and
+// edits hidden with `git update-index --skip-worktree` or `--assume-unchanged`
+// are not in it, so the branch `plugin` holds exactly what the source commit
+// its message names builds.
 async function exportHead({ runOk, gitEnv, folder }) {
   const archive = path.join(folder, 'source.tar');
   const sourceRoot = path.join(folder, 'source');
@@ -511,11 +574,36 @@ async function exportHead({ runOk, gitEnv, folder }) {
   return sourceRoot;
 }
 
+// Runs node on the exported source commit with the sanitized environment: the
+// code that runs is the commit's, never a file of the working tree.
+function runSourceNode(sourceRoot, args, env) {
+  const result = spawnSync(process.execPath, args, { cwd: sourceRoot, env, encoding: 'utf8' });
+  if (result.error) throw new Error(`Refusing to publish: could not run node on the source commit: ${result.error.message}`);
+  return result;
+}
+
+// The legal check of the source commit, run on it. Output that is not its
+// result counts as a failure, so a check that did not run never passes.
+const legalProbe = 'const { validateLegalReadiness } = await import(process.argv[1]); process.stdout.write(JSON.stringify(validateLegalReadiness({ root: process.argv[2] })));';
+function sourceLegalCheck(sourceRoot, env) {
+  const module = pathToFileURL(path.join(sourceRoot, 'scripts/validate-legal-readiness.mjs')).href;
+  const result = runSourceNode(sourceRoot, ['--input-type=module', '-e', legalProbe, module, sourceRoot], env);
+  try {
+    const legal = JSON.parse(result.stdout);
+    if (result.status === 0 && typeof legal.ok === 'boolean' && Array.isArray(legal.failures)) return legal;
+  } catch {
+    // Reported below.
+  }
+  return { ok: false, failures: [`the legal check did not run: ${result.stderr.trim() || `exit status ${result.status}`}`] };
+}
+
 // Commits a validated dist/plugin to the local branch `plugin` with plumbing
 // only: a temporary index, the folder as work tree, and update-ref. HEAD, the
 // current branch, the index, the working tree and the git configuration are
 // left alone; nothing is fetched or pushed. The build reads the tracked
-// content of HEAD, never the working tree. It refuses, before building, when
+// content of HEAD and runs the build code of HEAD (--out in a child node),
+// never the working tree; the result is validated again before the commit.
+// It refuses, before building, when
 // the root is not the top level of its own repository, a worktree has the
 // branch checked out, git has no identity, a build input has uncommitted
 // changes, origin/main is missing or does not contain HEAD, or the local
@@ -570,10 +658,11 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
   const parent = localTip ?? remoteTip;
   const base = localTip ? pluginBranch : remoteBranch;
 
-  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-plugin-publish-'));
+  // A real path: the child node runs the exported script by it.
+  const temporary = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-plugin-publish-')));
   try {
     const sourceRoot = await exportHead({ runOk, gitEnv, folder: temporary });
-    const legal = validateLegalReadiness({ root: sourceRoot });
+    const legal = sourceLegalCheck(sourceRoot, gitEnv);
     if (!legal.ok) {
       throw new Error([
         `Refusing to publish: the legal check (node scripts/validate-legal-readiness.mjs) fails on the source commit ${source.stdout}:`,
@@ -581,7 +670,15 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
         'Fix what it names and commit. After a version raise or any template change, renew remainingInventory (fileCount and pathContentSha256) in docs/legal/overlay-authorship.json as docs/versioning.md explains.'
       ].join('\n'));
     }
-    const { dir, warnings } = await replacePluginDirectory({ root: sourceRoot, realRoot, marketplace: true });
+    const { dir, warnings } = await replacePluginDirectory({
+      realRoot,
+      fill: async (staging) => {
+        const build = runSourceNode(sourceRoot, [path.join(sourceRoot, 'scripts/build-plugin.mjs'), '--root', sourceRoot, '--out', staging], gitEnv);
+        if (build.status !== 0) throw new Error(build.stderr.trim() || `The build of the source commit ${source.stdout} failed with exit status ${build.status}.`);
+        const { failures } = await validatePluginFolder({ root: sourceRoot, dir: staging });
+        if (failures.length > 0) throw new Error(formatFailures(failures));
+      }
+    });
     const { version } = await readPackageJson(sourceRoot);
     const message = `Publish plugin ${pluginName} ${version} from ${source.stdout}`;
     const gitDir = runOk(['rev-parse', '--absolute-git-dir']);
@@ -607,7 +704,7 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
 const usage = 'node scripts/build-plugin.mjs [--write | --publish [--same-version]] [--root <dir>]';
 
 function parseArguments(argv) {
-  const options = { mode: 'check', root: packageRoot, sameVersion: false };
+  const options = { mode: 'check', root: packageRoot, rootGiven: false, out: null, sameVersion: false };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === '--write' || argument === '--publish') {
@@ -618,16 +715,31 @@ function parseArguments(argv) {
     } else if (argument === '--root') {
       if (index + 1 >= argv.length) throw new Error('--root needs a directory: the workflow kit repository to build from.');
       options.root = argv[index += 1];
+      options.rootGiven = true;
+    } else if (argument === '--out') {
+      if (index + 1 >= argv.length || argv[index + 1].trim() === '') throw new Error('--out needs a directory: a new or empty directory to build into.');
+      options.out = argv[index += 1];
     } else {
       throw new Error(`Unknown option ${argument}. Usage: ${usage}`);
     }
   }
   if (options.sameVersion && options.mode !== 'publish') throw new Error(`--same-version only applies to --publish. Usage: ${usage}`);
+  if (options.out !== null && options.mode !== 'check') throw new Error('--out only applies to check mode (no --write, no --publish).');
+  if (options.out !== null && !options.rootGiven) throw new Error('--out needs --root: the workflow kit repository to build from.');
   return options;
 }
 
 async function main(argv) {
   const options = parseArguments(argv);
+  if (options.out !== null) {
+    const result = await buildPluginInto({ root: options.root, out: options.out });
+    if (!result.ok) {
+      console.error(formatFailures(result.failures));
+      return 1;
+    }
+    console.log(`Built ${result.count} plugin files into ${result.dir}.`);
+    return 0;
+  }
   if (options.mode === 'write') {
     const { count, warnings } = await writePluginBuild({ root: options.root });
     console.log(`Wrote ${count} plugin files to ${pluginOutputDirectory}/ and ${marketplacePath}.`);
@@ -652,7 +764,9 @@ async function main(argv) {
   return 0;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// Compared through realpath: run through a symbolic link (the temporary folder
+// on macOS is one), a plain comparison would skip main and exit 0 silently.
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     process.exitCode = await main(process.argv.slice(2));
   } catch (error) {
