@@ -376,6 +376,7 @@ test('AC-19 guard: init and update without --mode and with --mode repo plan what
 
 // The fixture is regenerated per release, so it describes this release's
 // behaviour directly; the new behaviours of 0.23.2 are also pinned below.
+const ignoreEntriesSince0232 = ['/.agents/workflow-kit/apply.lock', '.workflow-kit-tmp-*'];
 test('AC-19 guard: the repo-mode CLI prints, writes and diagnoses what the fixture release did', async () => {
   const fixture = await repoModeFixture();
   const runs = await collectRepoModeRuns(root, makeTempRepo);
@@ -387,15 +388,18 @@ test('AC-19 guard: the repo-mode CLI prints, writes and diagnoses what the fixtu
   }
   assert.deepEqual(runs.settingsFolder, fixture.applied.settingsFolder, 'init over a folder at .claude/settings.json');
 
-  // What change 1 adds to the init journal: every file was new, and the
-  // folders init created are the ones rollback removes.
+  // Since 0.23.2 the init journal records its process id, the folders the
+  // run created (the ones rollback removes) and, per file, the checksum it
+  // had before the run (none: every file was new).
   const target = await makeTempRepo();
   assert.equal((await cli(['init', '--target', target, '--runtime', 'claude', '--apply', '--yes'])).code, 0);
   const journal = JSON.parse(await read(target, '.agents/workflow-kit/last-apply.json'));
   assert.ok(Number.isInteger(journal.pid));
   assert.ok(journal.createdDirectories.includes('.agents') && journal.createdDirectories.includes('.agents/workflow-kit'));
   assert.deepEqual([...new Set(journal.files.map((entry) => entry.previousChecksum))], [null]);
-  // Change 2 names every seed the update leaves to the project.
+  // The apply lock and the temporary files of a write are git-ignored, once each.
+  for (const entry of ignoreEntriesSince0232) assert.equal((await read(target, '.gitignore')).split('\n').filter((line) => line === entry).length, 1, entry);
+  // The update dry run names every seed it leaves to the project as such.
   const update = await cli(['update', '--target', target]);
   assert.equal((update.stdout.match(/^- skip_unmanaged: \S+ \(project-owned; left as it is\)$/gm) ?? []).length, 5, update.stdout);
 });

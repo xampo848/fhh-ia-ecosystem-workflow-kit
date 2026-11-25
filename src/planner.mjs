@@ -6,11 +6,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isSupportedRuntime, pluginRuntimes, pluginSettingsPaths, runtimeEntrypoints, runtimeTemplatePaths, supportedRuntimes } from './runtime-matrix.mjs';
 import { defaultProfileFor, loadDelegateCatalog, modelProfileNames, parseProfileOption, renderClaudeAgent, renderCopilotAgent, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
-import { assertPluginRuntimes, carriesKitLocationMarker, kitLocationBlockName, planPluginSettings, planPluginSettingsRemoval, pluginAdapterContent, pluginName, runtimesDeclaringPlugin, withTarget } from './plugin-mode.mjs';
+import { assertPluginRuntimes, carriesKitLocationMarker, compareVersionCores, kitLocationBlockName, planPluginSettings, planPluginSettingsRemoval, pluginAdapterContent, pluginName, runtimesDeclaringPlugin, withTarget } from './plugin-mode.mjs';
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
 import { assertNameLengths, assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
-import { applyJournalProblem, applyJournalRelativePath, assertTargetNotLocked } from './apply.mjs';
+import { applyJournalProblem, applyJournalRelativePath, observeTarget, targetLockHolder } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, projectIndexPath, requireMigrationBackups } from './migration.mjs';
 
@@ -187,31 +187,41 @@ export async function lastApplyProblem(targetPath) {
 export const unusableJournalMessage = (reason) => `${applyJournalRelativePath} cannot be read (${reason}), so rollback cannot use it. Fix it by hand (Git does not track it); only if you will not roll back the last apply, move it out of .agents/workflow-kit/`;
 export const incompleteApplyMessage = (appliedAt) => `The last workflow-kit apply did not finish (${appliedAt}). Run \`workflow-kit rollback --apply --yes\` first`;
 
+// A journal that did not finish while another run holds the lock is that
+// run's own, still being written: say so instead of sending the user to roll
+// back a run in progress. A lock alone stops nothing here (a dry run reads
+// only); the apply takes the lock.
+export const runInProgressMessage = (holder) => `Another workflow-kit run is changing this repository (process ${holder.pid}, started ${holder.startedAt ?? 'at an unknown time'}). Wait for it to finish, then run this command again. Nothing was written.`;
 async function assertLastApplyFinished(targetPath) {
-  await assertTargetNotLocked(targetPath);
   const problem = await lastApplyProblem(targetPath);
+  if (problem?.kind === 'incomplete') {
+    const holder = await targetLockHolder(targetPath);
+    if (holder) throw new Error(runInProgressMessage(holder));
+  }
   if (problem?.kind === 'unusable') throw new Error(`${unusableJournalMessage(problem.reason)}. Then run this command again. Nothing was written.`);
   if (problem?.kind === 'incomplete') throw new Error(`${incompleteApplyMessage(problem.appliedAt)}, then run this command again. Nothing was written.`);
 }
 
-// The numeric release of a version ("0.23.0-plugin-mode" -> [0, 23, 0]), or
-// null when it has none. The text after the numbers names the release; it is
-// not a pre-release, so it is not compared.
-function releaseNumbers(version) {
-  const match = String(version ?? '').match(/^v?(\d+)\.(\d+)\.(\d+)/);
-  return match ? match.slice(1).map(Number) : null;
-}
-
-export function isNewerRelease(version, than) {
-  const [a, b] = [releaseNumbers(version), releaseNumbers(than)];
-  if (!a || !b) return false;
-  for (let index = 0; index < 3; index += 1) if (a[index] !== b[index]) return a[index] > b[index];
-  return false;
-}
+// Newer by the numeric release ("0.23.0-plugin-mode" reads as 0.23.0): the
+// text after the numbers names the release, it is not a pre-release.
+export const isNewerRelease = (version, than) => compareVersionCores(version, than) === 1;
 
 // A state a newer kit wrote describes files this CLI does not know: planning
 // over it would delete them as no longer shipped and replace newer content
 // with older. Stop and send the user to upgrade the CLI.
+// Before the state is validated: a newer kit may record values (a runtime, a
+// stack pack, a schema) this CLI does not know, and the useful message then
+// is to upgrade the CLI, not that the state is damaged.
+async function assertRawStateNotNewer(stateFilePath, toolkitVersion, applies = () => true) {
+  let parsed = null;
+  try {
+    parsed = JSON.parse(await readOptional(stateFilePath));
+  } catch {
+    return;
+  }
+  if (parsed !== null && typeof parsed === 'object' && applies(parsed)) assertStateNotNewer({ toolkitVersion: parsed.toolkitVersion }, toolkitVersion);
+}
+
 function assertStateNotNewer(state, toolkitVersion) {
   if (!state || !toolkitVersion || !isNewerRelease(state.toolkitVersion, toolkitVersion)) return;
   throw new Error(`${installStateRelativePath} was written by workflow-kit ${state.toolkitVersion}, newer than this CLI (${toolkitVersion}). This CLI would replace the newer kit files with older ones and delete the ones it does not ship. Upgrade the CLI with \`workflow-kit upgrade --apply --yes\`, then run this command again. Nothing was written.`);
@@ -243,6 +253,7 @@ async function assertTargetFolder(targetPath, { mayCreate = false } = {}) {
 // init --mode plugin also names the way to plugin mode from that state (T4,
 // T5).
 async function assertNoInstallState(targetPath, manifest, { exporting = false, pluginMode = false, runtime, toolkitVersion } = {}) {
+  if (exporting) await assertRawStateNotNewer(path.join(targetPath, installStateRelativePath), toolkitVersion, (parsed) => parsed.mode === 'export');
   const state = await readInstallState(path.join(targetPath, installStateRelativePath), manifest);
   if (exporting && state?.schemaVersion === installStateSchemaVersion && state.mode === 'export') {
     assertStateNotNewer(state, toolkitVersion);
@@ -335,6 +346,8 @@ const exportIsACopy = (runtimeList) => `An exported folder is a copy of the kit,
 export async function buildInstallPlan(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   await assertTargetFolder(targetPath, { mayCreate: Boolean(options.export) });
+  // Read first: the apply checks under its lock that nothing changed since.
+  const observed = await observeTarget(targetPath, path.join(targetPath, installStateRelativePath));
   await assertLastApplyFinished(targetPath);
   const manifest = options.manifest ?? await loadKitManifest();
   // An export writes a copy of the kit, not an install someone maintains:
@@ -385,6 +398,7 @@ export async function buildInstallPlan(options = {}) {
 
   return {
     mode: 'init',
+    observed,
     recordJournal: options.recordJournal !== false,
     migrations: describeMigrations({ operations, existingState: null, migratedInstructions }),
     targetPath,
@@ -407,8 +421,10 @@ export async function buildUpdatePlan(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   const stateFilePath = path.join(targetPath, installStateRelativePath);
   await assertTargetFolder(targetPath);
+  const observed = await observeTarget(targetPath, stateFilePath);
   await assertLastApplyFinished(targetPath);
   const manifest = options.manifest ?? await loadKitManifest();
+  await assertRawStateNotNewer(stateFilePath, options.toolkitVersion);
   const existingState = await readInstallState(stateFilePath, manifest);
   if (!existingState && !options.adoptExisting) {
     throw new Error('No install state found. Run `workflow-kit update --adopt-existing --runtime <list>` first to bootstrap a safe baseline.');
@@ -533,6 +549,7 @@ export async function buildUpdatePlan(options = {}) {
 
   return {
     mode: 'update',
+    observed,
     targetPath,
     stateFilePath,
     hadExistingState: Boolean(existingState),

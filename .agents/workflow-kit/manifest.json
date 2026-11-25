@@ -80,7 +80,9 @@
   ],
   "ignore_entries": [
     ".ai-work/",
-    "/.agents/workflow-kit/last-apply.json"
+    "/.agents/workflow-kit/last-apply.json",
+    "/.agents/workflow-kit/apply.lock",
+    ".workflow-kit-tmp-*"
   ],
   "superseded_seeds": {
     ".agents/project/quality-gate.md": [

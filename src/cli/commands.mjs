@@ -11,30 +11,40 @@ import packageJson from '../../package.json' with { type: 'json' };
 import { yesGuardMessage } from './guards.mjs';
 import { formatExportApplySummary, formatInitApplySummary, formatUpdateApplySummary } from './summaries.mjs';
 
-// Ctrl-C or SIGTERM during an apply stops it between two files instead of in
-// the middle of one; the journal already lists the run, so rollback undoes
-// it. A second signal ends the process at once (the journal still covers
-// it). Returns the exit code to use, or the apply's result.
-const interruptExitCode = 130;
+// Ctrl-C or SIGTERM during an apply or a rollback stops it between two files
+// instead of in the middle of one; the journal already lists the run, so
+// rollback undoes it (or, for a rollback, finishes it). A second signal ends
+// the process at once (the journal still covers it). The exit code follows
+// the signal: 130 for SIGINT, 143 for SIGTERM. Returns that code, or the
+// result.
+const signalExitCodes = { SIGINT: 130, SIGTERM: 143 };
 async function applyWithInterrupts(apply, stderr) {
   const controller = new AbortController();
+  let received = null;
   const onSignal = (signal) => {
-    if (controller.signal.aborted) process.exit(signal === 'SIGTERM' ? 143 : interruptExitCode);
-    stderr.write(`\nStopping after the file being written (${signal}). Press Ctrl-C again to stop at once.\n`);
+    if (controller.signal.aborted) process.exit(signalExitCodes[signal]);
+    received = signal;
+    stderr.write(`\nStopping after the file being written (${signal}). ${signal === 'SIGINT' ? 'Press Ctrl-C again' : 'Send SIGTERM again'} to stop at once.\n`);
     controller.abort();
   };
-  const signals = ['SIGINT', 'SIGTERM'];
+  const signals = Object.keys(signalExitCodes);
   for (const signal of signals) process.on(signal, onSignal);
   try {
     return { result: await apply(controller.signal) };
   } catch (error) {
     if (error.code !== interruptedCode) throw error;
     stderr.write(`${error.message}\n`);
-    return { code: interruptExitCode };
+    return { code: signalExitCodes[received] ?? signalExitCodes.SIGINT };
   } finally {
     for (const signal of signals) process.off(signal, onSignal);
   }
 }
+
+// A project-scoped plugin install runs inside the repository: the printed
+// step goes there first, so it works from any folder as printed.
+const shellWord = (word) => (/^[\w@%+=:,./-]+$/.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`);
+const pluginInstallStepsIn = (plan) => formatPluginInstallSteps(plan.runtimes)
+  .replace(/^(- [^:\n]+: )(.*--scope project.*)$/gm, (_, label, command) => `${label}cd ${shellWord(plan.targetPath)} && ${command}`);
 
 export async function runInitCommand(options, { stdout, stderr }) {
   const guardMessage = yesGuardMessage(options, 'apply');
@@ -53,7 +63,7 @@ export async function runInitCommand(options, { stdout, stderr }) {
   const { result: applied, code } = await applyWithInterrupts((signal) => applyInstallPlan(plan, { signal }), stderr);
   if (code !== undefined) return code;
   stdout.write(formatInitApplySummary(applied));
-  if (plan.nextInstallState.mode === 'plugin') stdout.write(formatPluginInstallSteps(plan.runtimes));
+  if (plan.nextInstallState.mode === 'plugin') stdout.write(pluginInstallStepsIn(plan));
   return 0;
 }
 
@@ -75,7 +85,7 @@ export async function runUpdateCommand(options, { stdout, stderr }) {
   const { result: applied, code } = await applyWithInterrupts((signal) => applyInstallPlan(plan, { signal }), stderr);
   if (code !== undefined) return code;
   stdout.write(formatUpdateApplySummary(applied));
-  if (plan.nextInstallState.mode === 'plugin') stdout.write(formatPluginInstallSteps(plan.runtimes));
+  if (plan.nextInstallState.mode === 'plugin') stdout.write(pluginInstallStepsIn(plan));
   return 0;
 }
 
@@ -103,12 +113,12 @@ export async function runUpgradeCommand(options, { stdout, stderr }) {
 
   const result = await runUpgradePlan(plan, { stdout, stderr });
   if (!result.ok) {
-    stderr.write(`Toolkit upgrade failed${result.code === null ? '' : ` with exit code ${result.code}`}.\n`);
+    stderr.write(`workflow-kit upgrade failed${result.code === null ? '' : ` with exit code ${result.code}`}.\n`);
     return 2;
   }
 
-  stdout.write(`Toolkit upgrade completed from ${plan.spec}.\n`);
-  stdout.write('Next step: re-run workflow-kit update --target <repo> --apply --yes with the refreshed toolkit.\n');
+  stdout.write(`workflow-kit upgraded from ${plan.spec}.\n`);
+  stdout.write('Next step: in each repository, run `workflow-kit update --target <repo>` (dry run), then the same command with --apply --yes.\n');
   return 0;
 }
 
@@ -157,7 +167,8 @@ export async function runRollbackCommand(options, { stdout, stderr }) {
   // the next update is not stopped by it again.
   if (!options.apply || (plan.operations.length === 0 && plan.source !== 'journal')) return 0;
 
-  const results = await applyRollbackPlan(plan);
+  const { result: results, code } = await applyWithInterrupts((signal) => applyRollbackPlan(plan, { signal }), stderr);
+  if (code !== undefined) return code;
   const summary = summarizeRollback(results);
   stdout.write(`Restored files: ${summary.restored}\nRemoved created files: ${summary.removed}\nKept (edited after the apply): ${summary.keptModified}\nNot restorable (no backup): ${summary.withoutBackup}\n`);
   const copies = results.filter((item) => item.keptCopy).map((item) => path.relative(plan.targetPath, item.keptCopy).split(path.sep).join('/'));

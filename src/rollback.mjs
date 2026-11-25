@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { acquireTargetLock, applyJournalProblem, assertTargetNotLocked, applyJournalRelativePath, freeBackupStamp, removeCreatedDirectories } from './apply.mjs';
-import { checksumOf, findSymlinkInPath, resolveInsideTarget, temporaryPathFor, writeFileAtomic } from './fs-safety.mjs';
+import { acquireTargetLock, applyJournalProblem, assertTargetNotLocked, applyJournalRelativePath, freeBackupStamp, interruptedCode, removeCreatedDirectories, removeTemporaryLeftovers } from './apply.mjs';
+import { checksumOf, copyFileAtomic, findSymlinkInPath, resolveInsideTarget, writeFileAtomic } from './fs-safety.mjs';
 import { installStateRelativePath, readManagedInstallState } from './planner.mjs';
 
 const backupSuffixPattern = /\.workflow-kit-backup-(\d{8}T\d{6}Z)$/;
@@ -86,7 +86,9 @@ export async function buildRollbackPlan(options = {}) {
         // run made one before stopping, holds this same content.
         operations.push({ ...base, action: 'untouched', ...(backupExists ? { backupPath } : {}) });
       } else {
-        operations.push({ ...base, action: 'keep_modified' });
+        // Edited, or removed by hand, after the run: left as it is; a backup
+        // of it stays where it is.
+        operations.push({ ...base, action: 'keep_modified', ...(current === null && !deleted ? { gone: true } : {}), ...(backupExists ? { keptBackup: backupPath } : {}) });
       }
       continue;
     }
@@ -102,14 +104,24 @@ export async function buildRollbackPlan(options = {}) {
     }
   }
 
+  // A state edited after the run (neither what it wrote nor the previous
+  // one) is kept as a copy before the previous state comes back.
+  const statePath = path.join(targetPath, installStateRelativePath);
+  const currentState = await readIfPresent(statePath);
+  const previousState = typeof journal.previousInstallState === 'string' ? journal.previousInstallState : null;
+  const stateEdited = journal.stateWritten !== false && typeof journal.stateChecksum === 'string' && currentState !== null
+    && checksumOf(currentState) !== journal.stateChecksum && currentState !== previousState;
+
   return {
     targetPath,
     source: 'journal',
+    mode: typeof journal.mode === 'string' ? journal.mode : null,
+    toolkitVersion: typeof journal.toolkitVersion === 'string' ? journal.toolkitVersion : null,
     appliedAt: journal.appliedAt ?? null,
+    stateEdited,
     completed: journal.completed !== false,
     stateWritten: journal.stateWritten !== false,
     previousInstallState: typeof journal.previousInstallState === 'string' ? journal.previousInstallState : null,
-    pid: Number.isInteger(journal.pid) ? journal.pid : null,
     createdDirectories: Array.isArray(journal.createdDirectories) ? journal.createdDirectories : null,
     operations
   };
@@ -162,29 +174,43 @@ async function removeEmptyParents(targetPath, file) {
   }
 }
 
-export async function applyRollbackPlan(plan) {
+// `signal` (an AbortSignal) stops the rollback between two files; its
+// journal stays, so running rollback again finishes it.
+export async function applyRollbackPlan(plan, { signal } = {}) {
   const restores = plan.operations.filter((item) => item.action === 'restore');
   const journalPath = path.join(plan.targetPath, applyJournalRelativePath);
-  const release = await acquireTargetLock(plan.targetPath);
+  const statePath = path.join(plan.targetPath, installStateRelativePath);
+  const { release } = await acquireTargetLock(plan.targetPath);
   const results = [];
+  let stateCopy = null;
   try {
+    // Temporary files a killed run (or rollback) left next to the files it wrote.
+    const folders = [...plan.operations.map((item) => path.relative(plan.targetPath, path.dirname(item.targetFile))), path.dirname(applyJournalRelativePath)];
+    await removeTemporaryLeftovers(plan.targetPath, folders);
     const copyStamp = plan.source === 'backups' && restores.length > 0
       ? await freeBackupStamp(restores.map((item) => item.targetFile), beforeRollbackSuffix)
       : null;
+    // A journal's backups go only once the whole rollback is done: a
+    // rollback stopped halfway is run again from the same journal.
+    const usedBackups = [];
     for (const item of plan.operations) {
+      if (signal?.aborted) {
+        throw Object.assign(new Error(`Interrupted before ${item.relativePath}: rollback stopped between two files. Its journal stays; run \`workflow-kit rollback --apply --yes\` again to finish it.`), { code: interruptedCode });
+      }
       if (item.action === 'restore') {
         const keptCopy = copyStamp && item.keepsCopy ? await keepCurrentContent(item, copyStamp) : null;
         await fs.mkdir(path.dirname(item.targetFile), { recursive: true });
-        await fs.copyFile(item.backupPath, item.targetFile);
-        if (plan.source === 'journal') await fs.rm(item.backupPath, { force: true });
+        // Never half-written: copied next to the file, then renamed over it.
+        await copyFileAtomic(item.backupPath, item.targetFile);
+        if (plan.source === 'journal') usedBackups.push(item.backupPath);
         results.push({ ...item, restored: true, ...(keptCopy ? { keptCopy } : {}) });
       } else if (item.action === 'remove') {
         await fs.rm(item.targetFile, { force: true });
-        if (!plan.createdDirectories) await removeEmptyParents(plan.targetPath, item.targetFile);
+        if (!plan.createdDirectories && plan.source === 'journal') await removeEmptyParents(plan.targetPath, item.targetFile);
         results.push({ ...item, removed: true });
       } else if (item.action === 'untouched') {
         // The backup an interrupted run took of a file it never wrote.
-        if (item.backupPath) await fs.rm(item.backupPath, { force: true });
+        if (item.backupPath) usedBackups.push(item.backupPath);
         results.push({ ...item });
       } else {
         results.push({ ...item });
@@ -192,34 +218,32 @@ export async function applyRollbackPlan(plan) {
     }
 
     if (plan.source === 'journal') {
-      const statePath = path.join(plan.targetPath, installStateRelativePath);
       if (plan.stateWritten) {
+        if (plan.stateEdited) {
+          const stamp = await freeBackupStamp([statePath], beforeRollbackSuffix);
+          stateCopy = `${statePath}.workflow-kit-backup-${stamp}${beforeRollbackSuffix}`;
+          await fs.copyFile(statePath, stateCopy, fs.constants.COPYFILE_EXCL);
+        }
         if (plan.previousInstallState === null) await fs.rm(statePath, { force: true });
         else await writeFileAtomic(statePath, plan.previousInstallState);
       }
-      // The temporary file of the write an interrupted run was doing.
-      if (plan.pid !== null) {
-        const touched = [...plan.operations.map((item) => item.targetFile), statePath, journalPath];
-        for (const file of new Set(touched.map((item) => temporaryPathFor(item, plan.pid)))) await rmFileIfPresent(file);
-      }
+      for (const backup of usedBackups) await fs.rm(backup, { force: true });
+      // The folders the run created, before the journal goes: a rollback
+      // killed after this still finds its journal and finishes.
+      if (plan.createdDirectories) await removeCreatedDirectories(plan.targetPath, plan.createdDirectories);
       await fs.rm(journalPath, { force: true });
-      if (!plan.createdDirectories) await removeEmptyParents(plan.targetPath, journalPath);
     }
   } finally {
     await release();
   }
-  // After the lock is gone: the folders the run created, when empty.
-  if (plan.createdDirectories) await removeCreatedDirectories(plan.targetPath, plan.createdDirectories);
+  // The journal's own folders, now that the lock is gone too.
+  if (plan.source === 'journal') {
+    if (plan.createdDirectories) await removeCreatedDirectories(plan.targetPath, plan.createdDirectories);
+    else await removeEmptyParents(plan.targetPath, journalPath);
+  }
+  if (stateCopy) results.push({ relativePath: installStateRelativePath, targetFile: statePath, action: 'state_copy', keptCopy: stateCopy });
 
   return results;
-}
-
-async function rmFileIfPresent(file) {
-  try {
-    if ((await fs.lstat(file)).isFile()) await fs.rm(file);
-  } catch (error) {
-    if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') throw error;
-  }
 }
 
 // Without a journal: the content a restore replaces is kept first as a
@@ -261,16 +285,21 @@ export function formatRollbackPlan(plan) {
   const lines = listed.map((item) => {
     if (item.action === 'restore') return `restore ${item.relativePath} <- ${path.basename(item.backupPath)}${item.deleted ? ' (deleted by the last apply)' : ''}${item.keepsCopy ? ` (its current content is kept first as a ${beforeRollbackSuffix} copy)` : ''}`;
     if (item.action === 'remove') return `remove ${item.relativePath} (created by the last apply)`;
-    if (item.action === 'keep_modified') return `keep ${item.relativePath} (${item.deleted ? 'recreated' : 'edited'} after the last apply; not touched)`;
+    if (item.action === 'keep_modified') return `keep ${item.relativePath} (${item.deleted ? 'recreated' : item.gone ? 'removed' : 'edited'} after the last apply; not touched${item.gone && item.keptBackup ? `; its backup ${path.basename(item.keptBackup)} stays` : ''})`;
     return `cannot restore ${item.relativePath} (${item.reason})`;
   });
   const untouched = plan.operations.filter((item) => item.action === 'untouched').length;
   if (untouched > 0) lines.push(`${untouched} file(s) the last apply did not change stay as they are${plan.operations.some((item) => item.action === 'untouched' && item.backupPath) ? '; the backups it took of them are removed' : ''}.`);
   let scope;
   if (plan.source === 'journal') {
-    const state = plan.stateWritten ? 'install-state returns to its previous content' : 'install-state stays as it is (the apply did not write it)';
-    const run = plan.completed ? `the apply of ${plan.appliedAt ?? 'unknown date'}` : `the apply of ${plan.appliedAt ?? 'unknown date'}, which did not finish`;
-    scope = `Undoes ${run}; ${state}${listed.length === 0 ? '; no file needs restoring or removing' : ''}. The record of that apply is removed.`;
+    const state = plan.stateWritten
+      ? `install-state returns to its previous content${plan.stateEdited ? ` (it was edited after that run, so its current content is kept first as a ${beforeRollbackSuffix} copy)` : ''}`
+      : 'install-state stays as it is (the apply did not write it)';
+    // Which run, named plainly: undoing an init removes what it installed.
+    const command = plan.mode === 'init' ? '`init`' : plan.mode === 'update' ? '`update`' : 'apply';
+    const run = `the last ${command} (applied ${plan.appliedAt ?? 'at an unknown date'}${plan.toolkitVersion ? ` by workflow-kit ${plan.toolkitVersion}` : ''}${plan.completed ? '' : ', which did not finish'})`;
+    const initNote = plan.mode === 'init' ? ' That run is the install itself: rolling it back removes the files it installed.' : '';
+    scope = `Undoes ${run}; ${state}${listed.length === 0 ? '; no file needs restoring or removing' : ''}. The record of that apply is removed.${initNote}`;
   } else {
     scope = `No apply journal found: restoring the newest backup of each managed file; the current content of each file it replaces is kept first as a ${beforeRollbackSuffix} copy. Created and moved files and install-state stay as they are, so run workflow-kit doctor next. To return to this kit version, run \`workflow-kit update\` (dry run first) and decide each pending file with --edited; \`--edited all=discard\` would also drop every kept edit and the own text of adapters (left in backups).`;
   }

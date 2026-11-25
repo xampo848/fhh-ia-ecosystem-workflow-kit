@@ -163,6 +163,20 @@ export async function writeFileAtomic(targetFile, content) {
   }
 }
 
+// A copy that is never seen half-written (rollback restoring a backup): the
+// bytes go to the temporary file next to the destination, which is then
+// renamed over it. The copy keeps the source's permission bits.
+export async function copyFileAtomic(sourceFile, targetFile) {
+  const temporary = temporaryPathFor(targetFile);
+  try {
+    await fs.copyFile(sourceFile, temporary);
+    await fs.rename(temporary, targetFile);
+  } catch (error) {
+    await fs.rm(temporary, { force: true });
+    throw error;
+  }
+}
+
 // Name limits, checked while planning so an apply never stops halfway with a
 // raw ENAMETOOLONG. A backup adds its suffix to the file name
 // (".workflow-kit-backup-" and a 16-character stamp); rollback without a

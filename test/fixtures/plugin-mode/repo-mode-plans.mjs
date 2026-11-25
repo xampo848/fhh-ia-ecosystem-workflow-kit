@@ -54,12 +54,14 @@ const normalizedContent = (content, version) => (typeof content === 'string' ? c
 // One line per planned file: "<operation> <class> <path> <content hash>"
 // (class "-" for a file without one, such as .gitignore; hash "-" for an
 // operation without content).
-export const planShape = (plan, version) => plan.operations.map(({ operation, relativePath, class: fileClass, content }) =>
-  `${operation} ${fileClass ?? '-'} ${relativePath} ${content === undefined || content === null ? '-' : sha256(normalizedContent(content, version)).slice(0, 16)}`);
+// `undo` (tests only, see runCli): `file(relativePath, content)` undoes an
+// intentional change in the planned content.
+export const planShape = (plan, version, undo = undefined) => plan.operations.map(({ operation, relativePath, class: fileClass, content }) =>
+  `${operation} ${fileClass ?? '-'} ${relativePath} ${content === undefined || content === null ? '-' : sha256(normalizedContent(undo?.file && typeof content === 'string' ? undo.file(relativePath, content) : content, version)).slice(0, 16)}`);
 
 // `planOptions` reaches both plans (for example `{ mode: 'repo' }`, which the
 // modules of 558e9fb ignore).
-export async function collectRepoModePlans(rootDirectory, makeTarget, planOptions = {}) {
+export async function collectRepoModePlans(rootDirectory, makeTarget, planOptions = {}, undo = undefined) {
   const sourceDirectory = path.join(rootDirectory, 'src');
   const version = await packageVersionOf(rootDirectory);
   const { buildInstallPlan, buildUpdatePlan } = await import(pathToFileURL(path.join(sourceDirectory, 'planner.mjs')).href);
@@ -68,9 +70,9 @@ export async function collectRepoModePlans(rootDirectory, makeTarget, planOption
   for (const runtime of guardedRuntimeLists) {
     const target = await makeTarget();
     const init = await buildInstallPlan({ targetPath: target, runtime, ...planOptions });
-    plans.init[runtime] = planShape(init, version);
+    plans.init[runtime] = planShape(init, version, undo);
     await applyInstallPlan(init);
-    plans.update[runtime] = planShape(await buildUpdatePlan({ targetPath: target, ...planOptions }), version);
+    plans.update[runtime] = planShape(await buildUpdatePlan({ targetPath: target, ...planOptions }), version, undo);
   }
   return plans;
 }
@@ -126,7 +128,9 @@ async function treeShape(context) {
     const read = await fs.readFile(absolutePath, 'utf8');
     const content = context.undo?.file ? context.undo.file(posixPath, read) : read;
     raw[posixPath] = content;
-    checksums.set(sha256(content), sha256(normalizeText(content, context)));
+    // Keyed by what is on disk (what a state or journal records), valued by
+    // the content as compared.
+    checksums.set(sha256(read), sha256(normalizeText(content, context)));
   }
   return Object.fromEntries(Object.entries(raw).map(([relativePath, content]) => [
     relativePath,

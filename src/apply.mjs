@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { assertNoSymlinkWrites, checksumOf, writeFileAtomic } from './fs-safety.mjs';
+import { spawnSync } from 'node:child_process';
+import { assertNoSymlinkWrites, checksumOf, temporaryFileMarker, temporaryPathFor, writeFileAtomic } from './fs-safety.mjs';
 
 // Record of the last apply that wrote something. `workflow-kit rollback` reads
 // it to undo exactly that run: restore backups (deleted files included),
@@ -31,7 +32,8 @@ export function applyJournalProblem(journal) {
     && stringOrNull(entry.previousChecksum ?? null))
     // Written by versions after 0.23.0: the folders the run created and its process id.
     && (journal.createdDirectories === undefined || (Array.isArray(journal.createdDirectories) && journal.createdDirectories.every(insideTarget)))
-    && (journal.pid === undefined || Number.isInteger(journal.pid));
+    && (journal.pid === undefined || Number.isInteger(journal.pid))
+    && stringOrNull(journal.stateChecksum ?? null);
   return usable ? null : 'entries';
 }
 
@@ -122,6 +124,21 @@ function processIsRunning(pid) {
   }
 }
 
+// When this process started (milliseconds since the epoch), recorded in the
+// lock so a later run can tell the holder from another process that reused
+// its id.
+const processStartedAt = () => Math.round(Date.now() - process.uptime() * 1000);
+
+// When a running process started, by `ps` (macOS, Linux, BSD), or null when
+// that cannot be read (Windows, no ps).
+function startOfRunningProcess(pid) {
+  if (process.platform === 'win32') return null;
+  const result = spawnSync('ps', ['-o', 'lstart=', '-p', String(pid)], { encoding: 'utf8', env: { ...process.env, LC_ALL: 'C', LANG: 'C' } });
+  if (result.status !== 0) return null;
+  const started = Date.parse(String(result.stdout).trim());
+  return Number.isNaN(started) ? null : started;
+}
+
 async function readLock(lockPath) {
   try {
     const parsed = JSON.parse(await fs.readFile(lockPath, 'utf8'));
@@ -131,47 +148,107 @@ async function readLock(lockPath) {
   }
 }
 
-const lockedError = (holder) => {
-  const who = holder ? `process ${holder.pid}, started ${holder.startedAt ?? 'at an unknown time'}` : 'its lock is being written';
-  return Object.assign(new Error(`Another workflow-kit run is changing this repository (${who}; ${applyLockRelativePath} exists). Wait for it to finish, then run this command again. If no workflow-kit command is running, remove ${applyLockRelativePath} and run again. Nothing was written.`), { code: 'WORKFLOW_KIT_LOCKED' });
-};
-
-// Stops when a run that is still going holds the target. Planning checks it
-// first, so a second run is not told to roll back a run that is still
-// writing (its journal says it did not finish yet).
-export async function assertTargetNotLocked(targetPath) {
-  const lockPath = path.join(targetPath, applyLockRelativePath);
-  if (!(await exists(lockPath))) return;
-  const holder = await readLock(lockPath);
-  if (holder && !processIsRunning(holder.pid)) return;
-  throw lockedError(holder);
+// A lock is stale when what it names cannot be a running workflow-kit: it
+// cannot be read (the lock is written whole, so only a crash of an older
+// version leaves it so), its process is gone, or the process with that id
+// started at another time (the id was reused).
+function lockIsStale(holder) {
+  if (!holder || !Number.isInteger(holder.pid)) return true;
+  if (!processIsRunning(holder.pid)) return true;
+  if (!Number.isFinite(holder.processStartedAt)) return false;
+  const started = startOfRunningProcess(holder.pid);
+  // ps shows whole seconds.
+  return started !== null && Math.abs(started - holder.processStartedAt) > 2000;
 }
 
-// Takes the target's lock or stops. Returns the function that releases it
-// (and removes the folders made only for it, when they stay empty).
+const lockedError = (holder) => Object.assign(new Error(`Another workflow-kit run is changing this repository (process ${holder.pid}, started ${holder.startedAt ?? 'at an unknown time'}; ${applyLockRelativePath} exists). Wait for it to finish, then run this command again. Nothing was written.`), { code: 'WORKFLOW_KIT_LOCKED' });
+
+// The run that holds the target right now, or null (no lock, or a stale one).
+export async function targetLockHolder(targetPath) {
+  const lockPath = path.join(targetPath, applyLockRelativePath);
+  if (!(await exists(lockPath))) return null;
+  const holder = await readLock(lockPath);
+  return lockIsStale(holder) ? null : holder;
+}
+
+// Stops when a run that is still going holds the target.
+export async function assertTargetNotLocked(targetPath) {
+  const holder = await targetLockHolder(targetPath);
+  if (holder) throw lockedError(holder);
+}
+
+const lockWriteError = (error) => new Error(`Cannot write ${applyLockRelativePath} (${error.code ?? error.message}): workflow-kit writes there while it changes the repository. Make .agents/workflow-kit/ writable, then run this command again. Nothing was written.`);
+
+// Takes the target's lock or stops. The lock is written to a temporary file
+// and linked into place, so it is never seen half-written; a stale one is
+// taken over. Returns the folders made for it and the function that releases
+// it (and removes those folders, when they stay empty).
 export async function acquireTargetLock(targetPath) {
   const lockPath = path.join(targetPath, applyLockRelativePath);
   const createdDirectories = await missingDirectories(targetPath, path.dirname(lockPath));
-  await fs.mkdir(path.dirname(lockPath), { recursive: true });
-  const content = `${JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() })}\n`;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      await fs.writeFile(lockPath, content, { flag: 'wx' });
-      return async () => {
+  const temporary = temporaryPathFor(lockPath);
+  try {
+    await fs.mkdir(path.dirname(lockPath), { recursive: true });
+    await fs.writeFile(temporary, `${JSON.stringify({ pid: process.pid, processStartedAt: processStartedAt(), startedAt: new Date().toISOString() })}\n`);
+  } catch (error) {
+    await fs.rm(temporary, { force: true }).catch(() => {});
+    if (error.code === 'EACCES' || error.code === 'EPERM' || error.code === 'EROFS') throw lockWriteError(error);
+    throw error;
+  }
+  try {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await linkExclusive(temporary, lockPath);
+        const release = async () => {
+          await fs.rm(lockPath, { force: true });
+          await removeCreatedDirectories(targetPath, createdDirectories);
+        };
+        return { release, createdDirectories };
+      } catch (error) {
+        if (error.code !== 'EEXIST') {
+          if (error.code === 'EACCES' || error.code === 'EPERM' || error.code === 'EROFS') throw lockWriteError(error);
+          throw error;
+        }
+        const holder = await readLock(lockPath);
+        if (!lockIsStale(holder)) throw lockedError(holder);
         await fs.rm(lockPath, { force: true });
-        await removeCreatedDirectories(targetPath, createdDirectories);
-      };
-    } catch (error) {
-      if (error.code !== 'EEXIST') throw error;
-      const holder = await readLock(lockPath);
-      if (holder && !processIsRunning(holder.pid)) {
-        await fs.rm(lockPath, { force: true });
-        continue;
       }
-      throw lockedError(holder);
+    }
+    throw new Error(`Could not take ${applyLockRelativePath}. Run this command again. Nothing was written.`);
+  } finally {
+    await fs.rm(temporary, { force: true });
+  }
+}
+
+// Exclusive create of `target` with the content of `source`: a hard link
+// fails when the target exists. A file system without hard links gets an
+// exclusive copy instead.
+async function linkExclusive(source, target) {
+  try {
+    await fs.link(source, target);
+  } catch (error) {
+    if (!['EPERM', 'ENOTSUP', 'EXDEV', 'ENOSYS'].includes(error.code)) throw error;
+    await fs.copyFile(source, target, fs.constants.COPYFILE_EXCL);
+  }
+}
+
+// The temporary files a killed run left in .agents/workflow-kit/ (its
+// journal, its state, its lock). Called under the lock, so no other run is
+// writing them.
+export async function removeTemporaryLeftovers(targetPath, folders = [path.dirname(applyLockRelativePath)]) {
+  for (const folder of new Set(folders)) {
+    let names;
+    try {
+      names = await fs.readdir(path.join(targetPath, folder));
+    } catch {
+      continue;
+    }
+    for (const name of names) {
+      if (!/^\d+$/.test(name.slice(temporaryFileMarker.length)) || !name.startsWith(temporaryFileMarker) || name === `${temporaryFileMarker}${process.pid}`) continue;
+      const file = path.join(targetPath, folder, name);
+      if ((await fs.lstat(file)).isFile()) await fs.rm(file, { force: true });
     }
   }
-  throw new Error(`Could not take ${applyLockRelativePath}. Run this command again. Nothing was written.`);
 }
 
 // The state as the apply writes it, or null when it would only change
@@ -193,9 +270,18 @@ function stateContentToWrite(nextInstallState, previousRaw) {
 // Raised between two files when the run was asked to stop (Ctrl-C, SIGTERM).
 export const interruptedCode = 'WORKFLOW_KIT_INTERRUPTED';
 
-// An apply journal that says its run did not finish, read under the lock: a
-// run that started after this one planned and was stopped halfway.
-async function assertNoUnfinishedJournal(journalPath) {
+// Under the lock, the target must still be what the plan read: another run
+// that planned before this one, or applied in between, would otherwise have
+// its journal replaced and could no longer be rolled back. `plan.observed`
+// holds the checksums of install-state and of the journal as planning read
+// them (plans built by hand carry none). A journal of a run that did not
+// finish stops the run in any case.
+async function assertTargetAsPlanned(plan, journalPath) {
+  const changed = (relative) => Object.assign(new Error(`${relative} changed after this plan was made: another workflow-kit run changed this repository in between. Run this command again to plan from the repository as it is now. Nothing was written.`), { code: 'WORKFLOW_KIT_PLAN_STALE' });
+  const checksumOrNull = (raw) => (raw === null ? null : checksumOf(raw));
+  if (plan.observed && journalPath && checksumOrNull(await readIfPresent(journalPath)) !== plan.observed.journal) throw changed(applyJournalRelativePath);
+  if (plan.observed && plan.stateFilePath && checksumOrNull(await readIfPresent(plan.stateFilePath)) !== plan.observed.installState) throw changed(path.relative(plan.targetPath, plan.stateFilePath).split(path.sep).join('/'));
+  if (!journalPath) return;
   let journal;
   try {
     journal = JSON.parse(await readIfPresent(journalPath));
@@ -205,6 +291,15 @@ async function assertNoUnfinishedJournal(journalPath) {
   if (journal?.completed === false) {
     throw new Error(`The last workflow-kit apply did not finish (${journal.appliedAt ?? 'unknown date'}). Run \`workflow-kit rollback --apply --yes\` first, then run this command again. Nothing was written.`);
   }
+}
+
+// What planning read of install-state and the journal, for the check above.
+export async function observeTarget(targetPath, stateFilePath) {
+  const checksumOrNull = (raw) => (raw === null ? null : checksumOf(raw));
+  return {
+    installState: checksumOrNull(await readIfPresent(stateFilePath)),
+    journal: checksumOrNull(await readIfPresent(path.join(targetPath, applyJournalRelativePath)))
+  };
 }
 
 const backupNameOf = (targetFile, stamp) => `${targetFile}.workflow-kit-backup-${stamp}`;
@@ -233,50 +328,60 @@ export async function applyInstallPlan(plan, { signal } = {}) {
     await assertNoSymlinkWrites(plan.targetPath, plan.operations);
   }
 
-  // What each write does, decided before the first one, so the journal can
-  // list it first. A write planned without a backup replaces only what the
-  // plan saw: content that appeared or changed since then is kept as a
-  // backup. A delete happens only while the file still has the content the
-  // plan chose to delete.
-  const steps = [];
-  for (const item of plan.operations) {
-    if (nonWriteOperations.has(item.operation)) {
-      steps.push({ item, kind: 'skip' });
-      continue;
-    }
-    const current = await readIfPresent(item.targetFile);
-    const previousChecksum = current === null ? null : checksumOf(current);
-    if (deleteOperations.has(item.operation)) {
-      steps.push({ item, kind: previousChecksum === item.recordedChecksum ? 'delete' : 'changed', previousChecksum });
-      continue;
-    }
-    const changedSincePlan = Object.hasOwn(item, 'planChecksum') && current !== null && previousChecksum !== item.planChecksum;
-    // A file a backup write expected and someone removed since: written as new.
-    const backup = current !== null && (writeWithBackupOperations.has(item.operation) || changedSincePlan);
-    steps.push({ item, kind: 'write', backup, previousChecksum });
-  }
-  for (const step of steps.filter((entry) => entry.kind === 'changed')) markChangedSincePlan(plan, step.item, step.previousChecksum === null);
-
-  const writes = steps.filter((step) => step.kind === 'write' || step.kind === 'delete');
-  const previousStateRaw = plan.stateFilePath ? await readIfPresent(plan.stateFilePath) : null;
-  const stateChanges = () => (plan.stateFilePath && plan.nextInstallState ? stateContentToWrite(plan.nextInstallState, previousStateRaw) : null);
-  const results = () => steps.map((step) => step.result ?? { ...step.item, applied: false, ...(step.kind === 'changed' ? { reason: 'changed_since_plan' } : {}) });
-  // Nothing to write: no lock, no journal, the previous journal stays.
-  if (writes.length === 0 && stateChanges() === null) return results();
-
   const targetPath = plan.targetPath ? path.resolve(plan.targetPath) : null;
   const journaled = plan.recordJournal !== false && targetPath !== null;
   const journalPath = targetPath ? path.join(targetPath, applyJournalRelativePath) : null;
-  const backupStamp = await freeBackupStamp(writes.map((step) => step.item.targetFile));
-  const createdDirectories = new Set();
-  if (targetPath) {
-    const folders = [...writes.filter((step) => step.kind === 'write').map((step) => path.dirname(step.item.targetFile)), ...(plan.stateFilePath ? [path.dirname(plan.stateFilePath)] : []), ...(journaled ? [path.dirname(journalPath)] : [])];
-    for (const folder of new Set(folders)) for (const relative of await missingDirectories(targetPath, folder)) createdDirectories.add(relative);
+  const stateChanges = (previousRaw) => (plan.stateFilePath && plan.nextInstallState ? stateContentToWrite(plan.nextInstallState, previousRaw) : null);
+  // Nothing the plan could write: no lock, no journal, the previous journal stays.
+  if (plan.operations.every((item) => nonWriteOperations.has(item.operation))
+    && stateChanges(plan.stateFilePath ? await readIfPresent(plan.stateFilePath) : null) === null) {
+    return plan.operations.map((item) => ({ ...item, applied: false }));
   }
 
-  const release = targetPath ? await acquireTargetLock(targetPath) : async () => {};
+  // Everything below runs under the target's lock: what the plan read is
+  // checked again, then every file is read and the journal written before
+  // the first write.
+  const lock = targetPath ? await acquireTargetLock(targetPath) : { release: async () => {}, createdDirectories: [] };
   try {
-    if (journaled) await assertNoUnfinishedJournal(journalPath);
+    if (targetPath) await removeTemporaryLeftovers(targetPath);
+    await assertTargetAsPlanned(plan, journalPath);
+
+    // What each write does, decided before the first one, so the journal can
+    // list it first. A write planned without a backup replaces only what the
+    // plan saw: content that appeared or changed since then is kept as a
+    // backup. A delete happens only while the file still has the content the
+    // plan chose to delete.
+    const steps = [];
+    for (const item of plan.operations) {
+      if (nonWriteOperations.has(item.operation)) {
+        steps.push({ item, kind: 'skip' });
+        continue;
+      }
+      const current = await readIfPresent(item.targetFile);
+      const previousChecksum = current === null ? null : checksumOf(current);
+      if (deleteOperations.has(item.operation)) {
+        steps.push({ item, kind: previousChecksum === item.recordedChecksum ? 'delete' : 'changed', previousChecksum });
+        continue;
+      }
+      const changedSincePlan = Object.hasOwn(item, 'planChecksum') && current !== null && previousChecksum !== item.planChecksum;
+      // A file a backup write expected and someone removed since: written as new.
+      const backup = current !== null && (writeWithBackupOperations.has(item.operation) || changedSincePlan);
+      steps.push({ item, kind: 'write', backup, previousChecksum });
+    }
+    for (const step of steps.filter((entry) => entry.kind === 'changed')) markChangedSincePlan(plan, step.item, step.previousChecksum === null);
+
+    const writes = steps.filter((step) => step.kind === 'write' || step.kind === 'delete');
+    const previousStateRaw = plan.stateFilePath ? await readIfPresent(plan.stateFilePath) : null;
+    const results = () => steps.map((step) => step.result ?? { ...step.item, applied: false, ...(step.kind === 'changed' ? { reason: 'changed_since_plan' } : {}) });
+    if (writes.length === 0 && stateChanges(previousStateRaw) === null) return results();
+
+    const backupStamp = await freeBackupStamp(writes.map((step) => step.item.targetFile));
+    const createdDirectories = new Set(lock.createdDirectories);
+    if (targetPath) {
+      const folders = [...writes.filter((step) => step.kind === 'write').map((step) => path.dirname(step.item.targetFile)), ...(plan.stateFilePath ? [path.dirname(plan.stateFilePath)] : []), ...(journaled ? [path.dirname(journalPath)] : [])];
+      for (const folder of new Set(folders)) for (const relative of await missingDirectories(targetPath, folder)) createdDirectories.add(relative);
+    }
+
     const entryOf = (step) => {
       const { item } = step;
       step.backupPath = step.kind === 'delete' || step.backup ? backupNameOf(item.targetFile, backupStamp) : null;
@@ -350,9 +455,12 @@ export async function applyInstallPlan(plan, { signal } = {}) {
       step.result = { ...item, applied: true, backupPath: step.backupPath };
     }
 
-    const stateContent = stateChanges();
+    const stateContent = stateChanges(previousStateRaw);
     if (stateContent !== null) {
       journal.stateWritten = true;
+      // What rollback expects to find there: a state edited after the run is
+      // kept as a copy before the previous one comes back.
+      journal.stateChecksum = checksumOf(stateContent);
       await saveJournal();
       await fs.mkdir(path.dirname(plan.stateFilePath), { recursive: true });
       await writeFileAtomic(plan.stateFilePath, stateContent);
@@ -362,11 +470,10 @@ export async function applyInstallPlan(plan, { signal } = {}) {
     }
     journal.completed = true;
     await saveJournal();
+    return results();
   } finally {
-    await release();
+    await lock.release();
   }
-
-  return results();
 }
 
 // Edited since the plan: it is no longer the unedited kit file the plan

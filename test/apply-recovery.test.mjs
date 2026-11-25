@@ -14,7 +14,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { applyInstallPlan, applyJournalRelativePath, applyLockRelativePath } from '../src/apply.mjs';
 import { runCli } from '../src/cli.mjs';
 import { buildInstallPlan, buildUpdatePlan, installStateRelativePath } from '../src/planner.mjs';
-import { applyRollbackPlan, buildRollbackPlan } from '../src/rollback.mjs';
+import { applyRollbackPlan, buildRollbackPlan, formatRollbackPlan } from '../src/rollback.mjs';
 import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
 import { createMemoryIo, hashTree, makeTempRepo } from './helpers.mjs';
 
@@ -52,11 +52,11 @@ const withoutJournal = (tree) => Object.fromEntries(Object.entries(tree).filter(
 const interruptSignals = ['SIGINT', 'SIGTERM', 'SIGKILL'];
 
 function assertStopped(result, signal, label) {
-  // Ctrl-C and SIGTERM stop the run between two files (exit 130); SIGKILL
-  // ends the process where it is.
+  // Ctrl-C and SIGTERM stop the run between two files (exit 130 and 143);
+  // SIGKILL ends the process where it is.
   if (signal === 'SIGKILL') assert.equal(result.signal, 'SIGKILL', `${label}: ${result.stderr}`);
   else {
-    assert.equal(result.code, 130, `${label}: ${result.stdout}\n${result.stderr}`);
+    assert.equal(result.code, { SIGINT: 130, SIGTERM: 143 }[signal], `${label}: ${result.stdout}\n${result.stderr}`);
     assert.match(result.stderr, /workflow-kit rollback --apply --yes/, label);
   }
 }
@@ -205,9 +205,13 @@ test('an apply stops while another run holds the target, and takes over a lock i
 
   await assert.rejects(applyInstallPlan(plan), (error) => error.code === 'WORKFLOW_KIT_LOCKED' && /Another workflow-kit run is changing this repository/.test(error.message));
   assert.deepEqual(await hashTree(target), before, 'nothing written, no backup taken');
+  // A dry run only reads: the lock does not stop it; the apply stops.
   const planned = await cli(['update', '--target', target]);
-  assert.equal(planned.code, 2);
-  assert.match(planned.stderr, /Another workflow-kit run is changing this repository/);
+  assert.equal(planned.code, 0, planned.stderr);
+  const applied = await cli(['update', '--target', target, '--edited', '.agents/instructions.md=discard', '--apply', '--yes']);
+  assert.equal(applied.code, 2);
+  assert.match(applied.stderr, /Another workflow-kit run is changing this repository/);
+  assert.deepEqual(await hashTree(target), before);
 
   // The process that held it is gone: its lock is taken over and released.
   const gone = spawnSync(process.execPath, ['-e', '']).pid;
@@ -329,4 +333,204 @@ test('upgrade as a dry run without bun prints the plan and a note instead of sto
   assert.equal(result.code, 0, result.stderr);
   assert.match(result.stdout, /^Toolkit upgrade dry-run plan$/m);
   assert.match(result.stdout, /^Note: bun is required in PATH for toolkit upgrade\. Install it before running this command with --apply --yes\.$/m);
+});
+
+// Repair round, should-fix 1: a second run that planned before the first one
+// applied stops under the lock instead of replacing the first run's journal.
+test('a run planned before another run applied stops under the lock, so rollback still undoes the first run', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nOur edit.\n');
+  const before = await hashTree(target);
+  const decisions = { edited: { '.agents/instructions.md': 'discard' } };
+  const first = await buildUpdatePlan({ targetPath: target, ...decisions });
+  const second = await buildUpdatePlan({ targetPath: target, ...decisions });
+  await applyInstallPlan(first);
+  const afterFirst = await hashTree(target);
+
+  await assert.rejects(applyInstallPlan(second), (error) => error.code === 'WORKFLOW_KIT_PLAN_STALE'
+    && /changed after this plan was made: another workflow-kit run changed this repository in between\. Run this command again/.test(error.message));
+  assert.deepEqual(await hashTree(target), afterFirst, 'the second run wrote nothing');
+  await applyRollbackPlan(await buildRollbackPlan({ targetPath: target }));
+  assert.deepEqual(await hashTree(target), withoutJournal(before), 'rollback undoes the first run: the edit is back');
+});
+
+// Repair round, should-fix 2.
+test('a rollback killed in the middle of restoring a file leaves the file whole and stays recorded; the next rollback finishes', async () => {
+  const target = await makeTempRepo();
+  assert.equal((await cli(['init', '--target', target, '--runtime', 'neutral', '--apply', '--yes'])).code, 0);
+  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nOur team rule.\n');
+  const before = await hashTree(target);
+  assert.equal((await cli(['update', '--target', target, '--edited', '.agents/instructions.md=discard', '--apply', '--yes'])).code, 0);
+  const written = await read(target, '.agents/instructions.md');
+
+  const killed = await child(['rollback', '--target', target, '--apply', '--yes'], { WORKFLOW_KIT_TEST_KILL_IN_COPY: '1' });
+  assert.equal(killed.signal, 'SIGKILL', killed.stderr);
+  assert.equal(await read(target, '.agents/instructions.md'), written, 'never half-written');
+  assert.equal((await readJson(target, applyJournalRelativePath)).completed, true, 'the journal stays');
+  const again = await cli(['rollback', '--target', target, '--apply', '--yes']);
+  assert.equal(again.code, 0, again.stderr);
+  assert.doesNotMatch(again.stdout, /^keep /m);
+  assert.deepEqual(await hashTree(target), withoutJournal(before));
+});
+
+test('Ctrl-C during a rollback stops it between two files (exit 130); its journal stays and the next rollback finishes', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  const before = await hashTree(target);
+  for (const name of (await fs.readdir(path.join(target, '.agents/delegation'))).sort().slice(0, 2)) {
+    await fs.appendFile(path.join(target, '.agents/delegation', name), '\nOur edit.\n');
+  }
+  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nOur edit.\n');
+  const edited = await hashTree(target);
+  assert.equal((await cli(['update', '--target', target, '--edited', 'all=discard', '--apply', '--yes'])).code, 0);
+
+  const stopped = await child(['rollback', '--target', target, '--apply', '--yes'], { WORKFLOW_KIT_TEST_INTERRUPT_AFTER: '1', WORKFLOW_KIT_TEST_INTERRUPT_SIGNAL: 'SIGINT' });
+  assert.equal(stopped.code, 130, `${stopped.stdout}\n${stopped.stderr}`);
+  assert.match(stopped.stderr, /rollback stopped between two files\. Its journal stays/);
+  assert.equal(await exists(target, applyJournalRelativePath), true);
+  const again = await cli(['rollback', '--target', target, '--apply', '--yes']);
+  assert.equal(again.code, 0, again.stderr);
+  assert.deepEqual(await hashTree(target), withoutJournal(edited));
+  assert.notDeepEqual(edited, before);
+});
+
+// Repair round, minor items.
+test('a lock that cannot be a running workflow-kit is taken over: empty, or its process id reused by another process', async () => {
+  for (const [name, content] of [
+    ['empty lock', ''],
+    ['half-written lock', '{"pid": '],
+    ['process id reused', `${JSON.stringify({ pid: process.pid, processStartedAt: Date.parse('2000-01-01T00:00:00Z'), startedAt: '2000-01-01T00:00:00.000Z' })}\n`]
+  ]) {
+    const target = await makeTempRepo();
+    await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+    await fs.rm(path.join(target, '.agents/README.md'));
+    await write(target, applyLockRelativePath, content);
+    const update = await cli(['update', '--target', target, '--apply', '--yes']);
+    assert.equal(update.code, 0, `${name}: ${update.stderr}`);
+    assert.equal(await exists(target, '.agents/README.md'), true, name);
+    assert.equal(await exists(target, applyLockRelativePath), false, name);
+  }
+});
+
+test('the lock of a running process does not stop a dry run or doctor', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  await write(target, applyLockRelativePath, `${JSON.stringify({ pid: process.pid, startedAt: '2026-01-01T00:00:00.000Z' })}\n`);
+  assert.equal((await cli(['update', '--target', target])).code, 0);
+  assert.equal((await cli(['rollback', '--target', target])).code, 2, 'a rollback dry run while a run writes would describe a run in progress');
+  const doctor = await cli(['doctor', '--target', target]);
+  assert.doesNotMatch(doctor.stderr, /Another workflow-kit run/);
+  assert.doesNotMatch(doctor.stdout, /Another workflow-kit run/);
+});
+
+test('temporary files a killed run left in .agents/workflow-kit are removed by the next run, and the lock and those names are git-ignored', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  const gitignore = await read(target, '.gitignore');
+  assert.match(gitignore, /^\/\.agents\/workflow-kit\/apply\.lock$/m);
+  assert.match(gitignore, /^\.workflow-kit-tmp-\*$/m);
+  const gone = spawnSync(process.execPath, ['-e', '']).pid;
+  await write(target, `.agents/workflow-kit/.workflow-kit-tmp-${gone}`, '{"half": ');
+  await fs.rm(path.join(target, '.agents/README.md'));
+  assert.equal((await cli(['update', '--target', target, '--apply', '--yes'])).code, 0);
+  assert.equal(await exists(target, `.agents/workflow-kit/.workflow-kit-tmp-${gone}`), false);
+});
+
+test('rolling back a journal from 0.22 or 0.23.0 leaves no empty .agents/workflow-kit behind', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  const journal = await readJson(target, applyJournalRelativePath);
+  delete journal.pid;
+  delete journal.createdDirectories;
+  for (const entry of journal.files) delete entry.previousChecksum;
+  await write(target, applyJournalRelativePath, `${JSON.stringify(journal, null, 2)}\n`);
+  await applyRollbackPlan(await buildRollbackPlan({ targetPath: target }));
+  assert.deepEqual(await fs.readdir(target), []);
+});
+
+test('a .agents/workflow-kit that cannot be written is named, not a raw EACCES', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  await fs.rm(path.join(target, '.agents/README.md'));
+  const folder = path.join(target, '.agents/workflow-kit');
+  await fs.chmod(folder, 0o555);
+  try {
+    const update = await cli(['update', '--target', target, '--apply', '--yes']);
+    assert.equal(update.code, 2);
+    assert.match(update.stderr, /^Cannot write \.agents\/workflow-kit\/apply\.lock \(EACCES\): workflow-kit writes there while it changes the repository\. Make \.agents\/workflow-kit\/ writable/m);
+  } finally {
+    await fs.chmod(folder, 0o755);
+  }
+  assert.equal(await exists(target, '.agents/README.md'), false);
+});
+
+test('a state from a newer kit with a stack pack or runtime this CLI does not know says to upgrade, not that it is damaged', async () => {
+  for (const change of [{ stackPack: 'future-pack' }, { runtimes: ['future-runtime'] }]) {
+    const target = await makeTempRepo();
+    await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+    await write(target, installStateRelativePath, `${JSON.stringify({ ...(await readJson(target, installStateRelativePath)), toolkitVersion: '99.0.0', ...change }, null, 2)}\n`);
+    const result = await cli(['update', '--target', target]);
+    assert.equal(result.code, 2);
+    assert.match(result.stderr, /was written by workflow-kit 99\.0\.0, newer than this CLI/, JSON.stringify(change));
+  }
+});
+
+test('rollback keeps a copy of an install-state edited after the run, and names a file removed after it as removed', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nOur edit.\n');
+  const previousState = await read(target, installStateRelativePath);
+  assert.equal((await cli(['update', '--target', target, '--profile', 'claude=costo', '--edited', '.agents/instructions.md=discard', '--apply', '--yes'])).code, 0);
+  const editedState = `${JSON.stringify({ ...(await readJson(target, installStateRelativePath)), note: 'edited by hand' }, null, 2)}\n`;
+  await write(target, installStateRelativePath, editedState);
+  await fs.rm(path.join(target, '.agents/instructions.md'));
+
+  const plan = await buildRollbackPlan({ targetPath: target });
+  const text = formatRollbackPlan(plan);
+  assert.match(text, /^keep \.agents\/instructions\.md \(removed after the last apply; not touched; its backup instructions\.md\.workflow-kit-backup-\d{8}T\d{6}Z stays\)$/m);
+  assert.match(text, /edited after that run, so its current content is kept first as a -before-rollback copy/);
+  await applyRollbackPlan(plan);
+  assert.equal(await read(target, installStateRelativePath), previousState);
+  const copies = (await fs.readdir(path.join(target, '.agents/workflow-kit'))).filter((name) => name.endsWith('-before-rollback'));
+  assert.equal(copies.length, 1);
+  assert.equal(await read(target, `.agents/workflow-kit/${copies[0]}`), editedState);
+});
+
+test('the rollback plan names the run it undoes; for an init it says the install itself goes', async () => {
+  const target = await makeTempRepo();
+  assert.equal((await cli(['init', '--target', target, '--runtime', 'neutral', '--apply', '--yes'])).code, 0);
+  const dryRun = await cli(['rollback', '--target', target]);
+  assert.match(dryRun.stdout, /^Undoes the last `init` \(applied \d{4}-\d\d-\d\dT[\d:.]+Z by workflow-kit [^)]+\); .* That run is the install itself: rolling it back removes the files it installed\.$/m);
+});
+
+test('upgrade names workflow-kit and the next step as a dry run first', async () => {
+  const bin_ = await makeTempRepo();
+  for (const name of ['bun', 'git']) {
+    await fs.writeFile(path.join(bin_, name), '#!/bin/sh\nexit 0\n');
+    await fs.chmod(path.join(bin_, name), 0o755);
+  }
+  const result = await new Promise((resolve) => {
+    const run = spawn(process.execPath, [bin, 'upgrade', '--apply', '--yes'], { env: { ...process.env, PATH: bin_, NODE_NO_WARNINGS: '1' } });
+    const output = { stdout: '', stderr: '' };
+    run.stdout.on('data', (chunk) => { output.stdout += chunk; });
+    run.stderr.on('data', (chunk) => { output.stderr += chunk; });
+    run.on('close', (code) => resolve({ code, ...output }));
+  });
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /^workflow-kit upgraded from github:/m);
+  assert.match(result.stdout, /^Next step: in each repository, run `workflow-kit update --target <repo>` \(dry run\), then the same command with --apply --yes\.$/m);
+  assert.doesNotMatch(result.stdout, /^Toolkit upgrade completed|^Next step: re-run/m);
+});
+
+test('the plugin install steps after init --mode plugin run in the target as printed', async () => {
+  const target = await makeTempRepo();
+  const init = await cli(['init', '--target', target, '--mode', 'plugin', '--runtime', 'claude', '--apply', '--yes']);
+  assert.equal(init.code, 0, init.stderr);
+  assert.ok(init.stdout.includes(`- Claude Code: cd ${target} && claude plugin install `), init.stdout);
+});
+
+test('docs/migration.md names no release tag that does not exist', async () => {
+  const text = await fs.readFile(path.join(root, 'docs/migration.md'), 'utf8');
+  assert.doesNotMatch(text, /v0\.18\.0-equilibrado-profile/);
 });

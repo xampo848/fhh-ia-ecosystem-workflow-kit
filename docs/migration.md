@@ -67,9 +67,20 @@ Ctrl-C, `SIGTERM`, or a process killed outright) therefore leaves a journal
 that says it did not finish: `init` and `update` stop until you run
 `workflow-kit rollback --apply --yes`, and rollback undoes exactly that run
 (files it never reached stay as they are). Ctrl-C or `SIGTERM` during an apply
-lets the file being written finish, then stops with exit code 130; a second
-Ctrl-C stops at once. Rolling back an unfinished run always clears its
-journal, even when every file it wrote was already removed by hand.
+lets the file being written finish, then stops (exit code 130 for Ctrl-C, 143
+for `SIGTERM`); a second signal stops at once. Rolling back an unfinished run
+always clears its journal, even when every file it wrote was already removed
+by hand.
+
+Rollback is just as careful: it restores each file through a temporary copy
+renamed into place, so a file is never left half-restored; Ctrl-C or
+`SIGTERM` stops it between two files; and its journal stays until it has
+finished, so running `rollback --apply --yes` again completes it. The plan
+names the run it undoes (`init` or `update`, when, and by which version);
+rolling back an `init` removes what it installed. An `install-state.json`
+edited after the run is kept as a `-before-rollback` copy before the previous
+state comes back, and a file removed by hand after the run is reported as
+removed and left as it is.
 
 Without the journal (`.agents/workflow-kit/last-apply.json`), `rollback`
 restores the newest backup of each managed file instead. It cannot tell which
@@ -114,10 +125,19 @@ hash the kit recorded for it, whatever `--backup-mode` says.
 Checks that stop a run before it writes anything (after `0.23.0`):
 
 - **One run at a time.** An apply or rollback holds
-  `.agents/workflow-kit/apply.lock` while it writes; a second run on the same
-  repository stops with "Another workflow-kit run is changing this
-  repository". A lock left by a process that no longer runs is taken over.
-  Backups are created exclusively, so a backup is never overwritten.
+  `.agents/workflow-kit/apply.lock` while it writes; a second apply or
+  rollback on the same repository stops with "Another workflow-kit run is
+  changing this repository". Under the lock, an apply also checks that
+  `install-state.json` and the journal are still what its plan read: a run
+  that planned before another one applied stops ("changed after this plan was
+  made") instead of replacing that run's journal, so rollback can still undo
+  it; run the command again. A dry run and `doctor` only read, so a lock does
+  not stop them. A lock that cannot belong to a running workflow-kit (its
+  process is gone, its process id now belongs to another process, or the file
+  is empty) is taken over. Backups are created exclusively, so a backup is
+  never overwritten. The lock and the temporary files of a write
+  (`.workflow-kit-tmp-*`) are in the kit's ignore entries, and the next run
+  removes the ones a killed run left.
 - **A state from a newer kit.** When `install-state.json` was written by a
   newer workflow-kit than the CLI you run, `update` stops and asks you to run
   `workflow-kit upgrade --apply --yes` first, instead of deleting the files
@@ -356,10 +376,11 @@ For Claude Code that changes the delegate agents from `model: inherit` to
 per-token API key, pass `--profile claude=costo` (or `codex=costo`) on that
 update. The profile is then stored and kept by later updates.
 
-The `equilibrado` profile (since `0.18.0`) is unknown to older toolkits. Before
-downgrading the toolkit or pinning a tag older than `v0.18.0-equilibrado-profile`,
-switch back with `--profile claude=calidad` (or `codex=calidad`); otherwise
-`update` and `doctor` stop with "No equilibrado tier defined".
+The `equilibrado` profile (since `0.18.0`) is unknown to older versions of
+workflow-kit. Before going back to a version before `0.18.0` (for example the
+tag `v0.17.3-contract-gaps`), switch back with `--profile claude=calidad` (or
+`codex=calidad`); otherwise that version's `update` and `doctor` stop with "No
+equilibrado tier defined".
 
 If your repo was installed before install-state support, run a one-time bootstrap:
 
