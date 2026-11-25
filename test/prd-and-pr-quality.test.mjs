@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { evaluatePrdSize, measurePrd } from '../.agents/skills/01-product/create-prd/scripts/prd-size-signals.mjs';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (relativePath) => fs.readFile(path.join(root, relativePath), 'utf8');
 const createPrd = '.agents/skills/01-product/create-prd';
 

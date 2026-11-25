@@ -4,7 +4,7 @@
 //   node prd-size-signals.mjs --prd <prd.md> [--hazards <n>] [--question-rounds <n>] [--open-blocking]
 // --open-blocking: blocking questions are still open after the last round.
 // Exit codes: 0 fewer than two signals, 1 two or more (propose a split), 2 usage.
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export const defaultThresholds = { slices: 8, acceptanceCriteria: 20, phases: 3, hazards: 4, questionRounds: 3, lines: 600 };
@@ -46,7 +46,17 @@ function argument(name) {
   return position >= 0 ? process.argv[position + 1] : undefined;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// Compared through realpath: run through a symbolic link (the temporary folders
+// on macOS are one), a plain comparison would skip main and exit 0 silently.
+function isMainModule() {
+  try {
+    return Boolean(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule()) {
   const prdPath = argument('--prd');
   if (!prdPath) {
     console.error('Usage: node prd-size-signals.mjs --prd <prd.md> [--hazards <n>] [--question-rounds <n>] [--open-blocking]');

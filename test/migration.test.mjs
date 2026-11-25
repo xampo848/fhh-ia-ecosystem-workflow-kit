@@ -7,13 +7,14 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { extractManagedBlock, loadKitManifest } from '../src/kit-manifest.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan, installStateRelativePath, selectPlanOperations } from '../src/planner.mjs';
 import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
 import { makeTempRepo, hashTree } from './helpers.mjs';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const overlayTemplates = path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full');
 const migrationId = '0.22.0-kit-overlay-layout';
 const projectIndexPath = '.agents/project/index.md';

@@ -88,6 +88,17 @@ test('check:legal prints the expected overlay inventory, and those values renew 
   assert.doesNotMatch(renewed.stderr, /Expected remainingInventory/);
 });
 
+test('validateLegalReadiness ignores files Git ignores under the overlay template', async () => {
+  const root = await copyLegalFixture();
+  await fs.writeFile(path.join(root, '.gitignore'), '.DS_Store\n', 'utf8');
+  const before = validateLegalReadiness({ root });
+  await fs.writeFile(path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents/.DS_Store'), 'finder metadata', 'utf8');
+
+  const after = validateLegalReadiness({ root });
+
+  assert.deepEqual(after, before);
+});
+
 async function copyLegalFixture() {
   const root = await makeTempRepo('workflow-kit-legal-');
   for (const entry of [

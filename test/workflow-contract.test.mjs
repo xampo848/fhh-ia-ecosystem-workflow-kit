@@ -3,13 +3,14 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { buildInstallPlan } from '../src/planner.mjs';
 import { validateOverlayDrift } from '../src/workflow-contract/drift.mjs';
 import { validateWorkflowContract } from '../src/workflow-contract/index.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
-const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // Skills are split into a core file plus references read on demand. Content
 // assertions read the core together with its sibling references.
@@ -88,7 +89,7 @@ test('validator reports malformed capability manifests', async () => {
 });
 
 test('package canonical files match the installable overlay', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const result = await validateWorkflowContract({ root, checkOverlayDrift: true });
   assert.equal(
     result.diagnostics.some((item) => item.code === 'overlay/content-drift'),
@@ -174,7 +175,7 @@ test('the planner, migration, doctor, apply and rollback name no kit paths or ow
 });
 
 test('workflow router keeps deterministic PR comments hard trigger policy', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const routerPath = path.join(root, '.agents/skills/00-router/workflow-router/SKILL.md');
   const router = await fs.readFile(routerPath, 'utf8');
 
@@ -184,7 +185,7 @@ test('workflow router keeps deterministic PR comments hard trigger policy', asyn
 });
 
 test('workflow router keeps deterministic project-formation trigger and route-options menu', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const routerPath = path.join(root, '.agents/skills/00-router/workflow-router/SKILL.md');
   const menusPath = path.join(root, '.agents/skills/00-router/workflow-router/reference/route-menus.md');
   const registryPath = path.join(root, '.agents/skills/registry.md');
@@ -203,7 +204,7 @@ test('workflow router keeps deterministic project-formation trigger and route-op
 });
 
 test('implement-prd keeps PRD-local coordination artifacts ignored and cleans them at closure', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const skillPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
   const gitignorePath = path.join(root, '.gitignore');
   const [skill, gitignore] = await Promise.all([
@@ -221,7 +222,7 @@ test('implement-prd keeps PRD-local coordination artifacts ignored and cleans th
 });
 
 test('neutral delegation envelope records requested and resolved models independently', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const routingPath = path.join(root, '.agents/model-routing/README.md');
   const handoffPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md');
   const trackerPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/task-tracker-template.md');
@@ -246,7 +247,7 @@ test('neutral delegation envelope records requested and resolved models independ
 });
 
 test('neutral delegation envelope blocks VERIFIED for invalid locks but permits unknown resolved model', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const routingPath = path.join(root, '.agents/model-routing/README.md');
   const handoffPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md');
   const trackerPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/task-tracker-template.md');
@@ -266,7 +267,7 @@ test('neutral delegation envelope blocks VERIFIED for invalid locks but permits 
 });
 
 test('immutable per-slice execution locks require the run correlation used by delegation envelopes', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const skillPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
   const overlayPath = path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/02-implement/implement-prd/SKILL.md');
   const [skill, overlay] = await Promise.all([
@@ -281,7 +282,7 @@ test('immutable per-slice execution locks require the run correlation used by de
 });
 
 test('QA handoff workflow keeps explicit rerun and controlled-lite closure rules', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const qaPath = path.join(root, '.agents/skills/02-implement/qa-handoff-review/SKILL.md');
   const slicingPath = path.join(root, '.agents/skills/02-implement/implementation-slicing/SKILL.md');
   const [qaSkill, slicingSkill] = await Promise.all([
@@ -297,7 +298,7 @@ test('QA handoff workflow keeps explicit rerun and controlled-lite closure rules
 });
 
 test('create-prd requires use cases, test strategy, and edge-case matrix before a PRD is ready', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const skillPath = path.join(root, '.agents/skills/01-product/create-prd/SKILL.md');
   const templatePath = path.join(root, '.agents/skills/01-product/create-prd/PRD_TEMPLATE.md');
   const [skill, template] = await Promise.all([
@@ -324,7 +325,7 @@ test('create-prd requires use cases, test strategy, and edge-case matrix before 
 });
 
 test('visible UI requires a locked visual contract before implementation', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const createPrdPath = path.join(root, '.agents/skills/01-product/create-prd/SKILL.md');
   const templatePath = path.join(root, '.agents/skills/01-product/create-prd/PRD_TEMPLATE.md');
   const calibrationPath = path.join(root, '.agents/skills/01-product/create-prd/reference/calibration.md');
@@ -382,7 +383,7 @@ test('visible UI requires a locked visual contract before implementation', async
 });
 
 test('create-epic locks live path and phase cut before the PRD queue', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const epicSkillPath = path.join(root, '.agents/skills/01-product/create-epic/SKILL.md');
   const epicTemplatePath = path.join(root, '.agents/skills/01-product/create-epic/references/epic-template.md');
   const playbookPath = path.join(root, '.agents/skills/01-product/create-epic/references/research-playbook.md');
@@ -418,7 +419,7 @@ test('create-epic locks live path and phase cut before the PRD queue', async () 
 });
 
 test('token-efficiency cuts keep quality gates and compact discovery', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const calibrationPath = path.join(root, '.agents/skills/01-product/create-prd/reference/calibration.md');
   const createPrdPath = path.join(root, '.agents/skills/01-product/create-prd/SKILL.md');
   const modelRoutingPath = path.join(root, '.agents/model-routing/README.md');
@@ -477,7 +478,7 @@ test('token-efficiency cuts keep quality gates and compact discovery', async () 
 });
 
 test('implement-prd keeps compact delegation without weakening QA', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const implementPrdPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
   const orchestrationPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/orchestration-flow.md');
   const modelRoutingPath = path.join(root, '.agents/model-routing/README.md');
@@ -498,7 +499,7 @@ test('implement-prd keeps compact delegation without weakening QA', async () => 
 });
 
 test('implementation-slicing and implement-prd enforce use-case/edge-case traceability at closure', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const slicingPath = path.join(root, '.agents/skills/02-implement/implementation-slicing/SKILL.md');
   const implementPrdPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
   const [slicingSkill, implementPrdSkill] = await Promise.all([
@@ -515,7 +516,7 @@ test('implementation-slicing and implement-prd enforce use-case/edge-case tracea
 });
 
 test('qa-handoff-review reports edge-case coverage by mandatory category', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const qaPath = path.join(root, '.agents/skills/02-implement/qa-handoff-review/SKILL.md');
   const qaSkill = await readWithSiblings(qaPath);
 
@@ -526,7 +527,7 @@ test('qa-handoff-review reports edge-case coverage by mandatory category', async
 });
 
 test('implement-prd closure loop keeps a persistent findings ledger and blocks on open critical/high findings', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const implementPrdPath = path.join(root, '.agents/skills/02-implement/implement-prd/SKILL.md');
   const orchestrationFlowPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/orchestration-flow.md');
   const stopConditionsPath = path.join(root, '.agents/skills/02-implement/implement-prd/reference/validation-and-stop-conditions.md');
@@ -584,7 +585,7 @@ test('implement-prd closure loop keeps a persistent findings ledger and blocks o
 });
 
 test('solution-sketch is an offer-only sister skill with a commitable six-section template', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const skillPath = path.join(root, '.agents/skills/01-product/solution-sketch/SKILL.md');
   const templatePath = path.join(root, '.agents/skills/01-product/solution-sketch/references/sketch-template.md');
   const workflowReadmePath = path.join(root, 'docs/workflow/README.md');
@@ -612,7 +613,7 @@ test('solution-sketch is an offer-only sister skill with a commitable six-sectio
 });
 
 test('product hooks offer solution-sketch only on T2-T4 and inherit a locked sketch', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const createPrdPath = path.join(root, '.agents/skills/01-product/create-prd/SKILL.md');
   const patternLockPath = path.join(root, '.agents/skills/01-product/create-prd/reference/pattern-locking.md');
   const prdTemplatePath = path.join(root, '.agents/skills/01-product/create-prd/PRD_TEMPLATE.md');

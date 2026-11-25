@@ -757,7 +757,7 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
   const mainBranch = `${pluginRemote}/${sourceBranch}`;
   const mainTip = commitOf(run, `refs/remotes/${mainBranch}`);
   if (!mainTip) {
-    throw new Error(`Refusing to publish: ${mainBranch} is not present locally: fetch it first (git fetch ${pluginRemote} ${sourceBranch}) and rerun. Publishing never fetches, and it only publishes a commit that ${mainBranch} contains.`);
+    throw new Error(`Refusing to publish: ${mainBranch} is not present locally: fetch it first (git fetch ${pluginRemote}, which also brings ${pluginRemote}/${pluginBranch} when the remote has it) and rerun. Publishing never fetches, and it only publishes a commit that ${mainBranch} contains.`);
   }
   if (run(['merge-base', '--is-ancestor', 'HEAD', mainTip]).status !== 0) {
     throw new Error(`Refusing to publish: HEAD (${source.stdout}) is not contained in ${mainBranch}. Publish only a released commit: merge it into ${sourceBranch}, fetch, check out a commit that ${mainBranch} contains and rerun. Publishing never fetches: ${mainBranch} is the copy last fetched.`);
@@ -775,6 +775,11 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
   }
   const parent = localTip ?? remoteTip;
   const base = localTip ? pluginBranch : remoteBranch;
+  if (!parent) {
+    // Right for the first publish; otherwise origin/plugin was never fetched
+    // here, and the push of an unrelated history would be rejected.
+    log(`No local branch ${pluginBranch} and no ${remoteBranch}: this commit starts a new history of ${pluginBranch}. If the remote already has ${pluginBranch}, fetch it first (git fetch ${pluginRemote}) and rerun, so the commit builds on it.`);
+  }
 
   // A real path: the child node runs the exported script by it.
   const temporary = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-plugin-publish-')));

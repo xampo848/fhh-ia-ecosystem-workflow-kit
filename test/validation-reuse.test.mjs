@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { makeTempRepo } from './helpers.mjs';
 import {
   computeFingerprint,
@@ -11,7 +12,7 @@ import {
   recordEvidence
 } from '../.agents/skills/02-implement/validation-runner/scripts/validation-fingerprint.mjs';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 async function project() {
   const dir = await makeTempRepo('workflow-kit-fingerprint-');

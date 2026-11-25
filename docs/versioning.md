@@ -87,8 +87,8 @@ When you raise `package.json.version`, follow these steps in order:
    `check:legal` fails ("maintainer-attested overlay file inventory changed" or
    "path/content inventory differs") until `remainingInventory` in
    `docs/legal/overlay-authorship.json` is updated. The check then prints the
-   values the record expects, computed from the files on disk (untracked and
-   ignored files under the template count too, so run it on a clean checkout):
+   values the record expects, computed from the files on disk (untracked files
+   under the template count; files Git ignores, such as `.DS_Store`, do not):
 
    ```text
    [legal-check] Expected remainingInventory in docs/legal/overlay-authorship.json (copy it only after reviewing the template changes): {"fileCount":178,"pathContentSha256":"…"}

@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { enforceVersionBump, validateReleaseReadiness } from '../scripts/validate-release-readiness.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
@@ -130,6 +131,51 @@ test('version-bump gate is skipped locally with a notice when the base ref canno
   assert.ok(result.notices.some((notice) => notice.includes('Version-bump gate skipped')), result.notices.join('\n'));
 });
 
+test('version-bump gate does not count a suffix-only change as a bump', async () => {
+  const root = await makeVersionRepo('1.2.0-base');
+  await fs.appendFile(path.join(root, 'templates/pack.md'), 'Changed distributable surface.\n', 'utf8');
+
+  const result = enforceVersionBump({ root, version: '1.2.0-renamed', env: {} });
+
+  assert.ok(result.failures.some((failure) => failure.includes('raise X.Y.Z')), result.failures.join('\n'));
+});
+
+test('version-bump gate sees a file moved out of a distributable folder', async () => {
+  const root = await makeVersionRepo('1.2.0-base');
+  const git = (...args) => execFileSync('git', ['-C', root, ...args], { stdio: 'ignore' });
+  await fs.mkdir(path.join(root, 'notes'), { recursive: true });
+  git('mv', 'templates/pack.md', 'notes/pack.md');
+  git('commit', '-m', 'move out');
+
+  const result = enforceVersionBump({ root, version: '1.2.0-base', env: {} });
+
+  assert.ok(result.failures.some((failure) => failure.includes('version must be bumped')), result.failures.join('\n'));
+});
+
+test('version-bump gate sees an untracked new file in a distributable folder', async () => {
+  const root = await makeVersionRepo('1.2.0-base');
+  await fs.mkdir(path.join(root, 'scripts'), { recursive: true });
+  await fs.writeFile(path.join(root, 'scripts/new-check.mjs'), '// new\n', 'utf8');
+
+  const result = enforceVersionBump({ root, version: '1.2.0-base', env: {} });
+
+  assert.ok(result.failures.some((failure) => failure.includes('version must be bumped')), result.failures.join('\n'));
+});
+
+test('version-bump gate compares with origin/main by default when a stale local main exists', async () => {
+  const root = await makeVersionRepo('1.2.0-base');
+  const git = (...args) => execFileSync('git', ['-C', root, ...args], { stdio: 'ignore' });
+  // origin/main already released 1.3.0-next; local main still points at 1.2.0-base.
+  await fs.writeFile(path.join(root, 'package.json'), JSON.stringify({ name: 'fixture', version: '1.3.0-next' }), 'utf8');
+  git('commit', '-am', 'release 1.3.0');
+  git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+  await fs.appendFile(path.join(root, 'templates/pack.md'), 'Changed after the release.\n', 'utf8');
+
+  const result = enforceVersionBump({ root, version: '1.3.0-next', env: {} });
+
+  assert.ok(result.failures.some((failure) => failure.includes('version must be bumped') && failure.includes('origin/main')), result.failures.join('\n'));
+});
+
 // Throwaway repository: `main` holds the base version; HEAD is a feature branch.
 async function makeVersionRepo(baseVersion) {
   const root = await makeTempRepo('workflow-kit-version-gate-');
@@ -149,7 +195,7 @@ async function makeVersionRepo(baseVersion) {
 }
 
 async function copyReleaseFixture() {
-  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const targetRoot = await makeTempRepo('workflow-kit-release-');
   for (const entry of ['package.json', 'NOTICE', 'THIRD_PARTY_NOTICES.md', 'RELEASE.md', 'docs', '.github', 'templates', 'src', 'bin']) {
     await fs.cp(path.join(sourceRoot, entry), path.join(targetRoot, entry), { recursive: true });

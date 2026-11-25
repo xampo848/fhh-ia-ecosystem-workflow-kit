@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
@@ -225,7 +226,7 @@ function validateDirectoryInventory({ root, inventory, component, excludePaths =
     return null;
   }
 
-  const excludedRelativePaths = excludePaths.map((excludedPath) => (
+  const excludedRelativePaths = [...excludePaths, ...gitIgnoredPaths(root, inventory.path)].map((excludedPath) => (
     path.relative(inventoryRoot, path.join(root, excludedPath)).split(path.sep).join('/')
   ));
   const entries = collectDirectoryInventory(inventoryRoot, excludedRelativePaths);
@@ -241,6 +242,21 @@ function validateDirectoryInventory({ root, inventory, component, excludePaths =
     pathContentSha256,
     matches: entries.length === inventory.fileCount && pathContentSha256 === inventory.pathContentSha256
   };
+}
+
+// Files Git ignores (for example .DS_Store) never ship, so they are not part of
+// the inventory. Untracked files that are not ignored still count. Outside a
+// Git repository (an exported tree) there is nothing to ignore.
+function gitIgnoredPaths(root, inventoryPath) {
+  try {
+    const output = execFileSync('git', ['-C', root, 'ls-files', '-z', '--others', '--ignored', '--exclude-standard', '--directory', '--', inventoryPath], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+    return output.split('\0').filter(Boolean).map((ignored) => ignored.replace(/\/$/, ''));
+  } catch {
+    return [];
+  }
 }
 
 function validateFileInventory({ root, inventory, component, fail }) {

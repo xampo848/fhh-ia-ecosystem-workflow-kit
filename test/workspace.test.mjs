@@ -2,13 +2,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { runDoctor } from '../src/doctor.mjs';
 import { buildInstallPlan, buildUpdatePlan, installStateRelativePath } from '../src/planner.mjs';
 import { workspaceDiagnostics } from '../src/workspace-diagnostics.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const referenceDir = '.agents/skills/02-implement/implement-prd/reference';
 
 async function write(target, relativePath, content) {

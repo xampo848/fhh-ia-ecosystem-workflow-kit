@@ -18,6 +18,9 @@ const runtimeAdaptersRoot = 'templates/runtime-adapters';
 const runtimeOwnedRootDirectories = ['.codex', '.claude', '.antigravity', '.github/agents'];
 const runtimeLocalFiles = new Set(['.claude/settings.json', '.claude/settings.local.json']);
 const ignoredBasenames = new Set(['.DS_Store']);
+// Other checkouts of this repository (Claude Code worktrees) live under
+// .claude/worktrees/; their files belong to those checkouts, not to this one.
+const nestedCheckoutDirectories = new Set(['.claude/worktrees']);
 
 export async function validateTemplatePacks({ root = packageRoot } = {}) {
   const templateRoot = path.join(root, 'templates');
@@ -132,9 +135,11 @@ async function validateRuntimeAdapterMirrors({ root }) {
   for (const directory of runtimeOwnedRootDirectories) {
     let files = [];
     try {
-      files = await collectFiles(path.join(root, directory));
-    } catch {
-      continue; // Runtime folder not present in this checkout.
+      files = await collectFiles(path.join(root, directory), { root, skip: nestedCheckoutDirectories });
+    } catch (error) {
+      if (error.code === 'ENOENT') continue; // Runtime folder not present in this checkout.
+      failures.push(`Runtime folder could not be read: ${directory} (${error.code ?? error.message})`);
+      continue;
     }
     for (const file of files) {
       const relativePath = path.relative(root, file).split(path.sep).join('/');
@@ -145,17 +150,21 @@ async function validateRuntimeAdapterMirrors({ root }) {
   return failures;
 }
 
-async function collectFiles(root) {
+// `skip` holds folders, relative to `root`, that are not walked.
+async function collectFiles(start, { root = start, skip = new Set() } = {}) {
   const files = [];
   async function walk(current) {
     const entries = await fs.readdir(current, { withFileTypes: true });
     for (const entry of entries) {
       const absolutePath = path.join(current, entry.name);
-      if (entry.isDirectory()) await walk(absolutePath);
-      else if (entry.isFile()) files.push(absolutePath);
+      if (entry.isDirectory()) {
+        if (!skip.has(path.relative(root, absolutePath).split(path.sep).join('/'))) await walk(absolutePath);
+      } else if (entry.isFile()) {
+        files.push(absolutePath);
+      }
     }
   }
-  await walk(root);
+  await walk(start);
   return files;
 }
 

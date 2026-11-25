@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { runCli } from '../src/cli.mjs';
 import { parseArgs } from '../src/cli/args.mjs';
@@ -19,7 +20,7 @@ import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
 import { collectRepoModePlans, collectRepoModeRuns, packageVersionOf, planShape, fixturePath as repoModePlansFixture } from './fixtures/plugin-mode/repo-mode-plans.mjs';
 import { createMemoryIo, hashTree, makeTempRepo } from './helpers.mjs';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const runtimeTemplates = path.join(root, 'templates', 'runtime-adapters');
 const managedBlockName = 'workflow-kit:managed';
 const pluginId = 'fhh@fhh-ia-ecosystem';

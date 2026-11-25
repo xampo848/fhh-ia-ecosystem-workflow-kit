@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { runCli } from '../src/cli.mjs';
 import { runDoctor } from '../src/doctor.mjs';
@@ -303,7 +304,7 @@ test('doctor fails when a generated agent does not match the equilibrado profile
 // troubleshooting guide (the per-reason boundary/pending-* codes are listed by
 // reason there).
 test('every fixed doctor code is documented in docs/troubleshooting.md', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const guide = await fs.readFile(path.join(root, 'docs/troubleshooting.md'), 'utf8');
   const sources = await Promise.all(['src/doctor.mjs', 'src/workspace-diagnostics.mjs'].map((file) => fs.readFile(path.join(root, file), 'utf8')));
   const codes = [...new Set(sources.flatMap((source) => [...source.matchAll(/'((?:managed|boundary|project-context)\/[a-z-]+)'/g)].map((match) => match[1])))];
