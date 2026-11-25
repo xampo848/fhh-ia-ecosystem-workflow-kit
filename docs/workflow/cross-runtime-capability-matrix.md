@@ -48,3 +48,37 @@ agent for either runtime.
    in the runbook entry. Values unavailable to the runtime remain `unknown`.
 
 Use [the runbook](cross-runtime-delegation-runbook.md) to add observed evidence.
+
+## Plugin mode
+
+Plugin mode (pilot) runs the kit as the plugin `fhh` from the marketplace
+`fhh-ia-ecosystem`; see [Quickstart, plugin mode](../quickstart.md#11-plugin-mode-pilot).
+This section records what is verified and what is only documented, using the
+statuses above. It is separate from the delegation baseline.
+
+| Runtime | Plugin mode | Status |
+| --- | --- | --- |
+| Claude Code | supported | `observed` by a smoke: the plugin loads, its skills are `fhh:*`, `fhh:kit-root` gives the kit root, and the overlay is read from the repository |
+| VS Code Copilot | supported format | `documented` only, not verified here |
+| Copilot CLI | supported format | `documented` only, not verified here |
+| Copilot cloud agent | not verified | `unknown` |
+| Codex, Cursor | not supported yet | planned for a future phase |
+| Antigravity, opencode | repo mode only | no plugin mode |
+
+Not verified for Copilot (assumptions of the pilot):
+
+- S7: which manifest VS Code picks when a plugin has two, how it resolves
+  repeated names, and whether it resolves the plugin root inside a skill body.
+- S8: that the Copilot cloud agent loads plugins.
+- S9: that `copilot plugin install fhh@fhh-ia-ecosystem` works with the
+  marketplace declared in the repository.
+- S11: that Copilot follows a marketplace whose plugin points at another branch
+  (`plugin`).
+- S12: that Copilot respects `disable-model-invocation` on a plugin skill; if
+  not, it may load the 11 workflow wrappers on its own.
+- S13: whether Copilot prefixes the names of a plugin's agents.
+
+One documented Copilot CLI fact: when a project or personal skill has the same
+name as a plugin skill, the project or personal skill wins and the plugin's is
+ignored.
+

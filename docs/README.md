@@ -2,6 +2,16 @@
 
 This directory hosts project documentation and AI workflow artifacts.
 
+## Install modes
+
+The kit installs in repo mode (all runtimes; the kit files are committed) or in
+plugin mode (pilot; Claude Code and GitHub Copilot, the kit runs as the plugin
+`fhh`). See [Quickstart, plugin mode](quickstart.md#11-plugin-mode-pilot),
+[GitHub install](github-install.md) and the
+[capability matrix](workflow/cross-runtime-capability-matrix.md#plugin-mode).
+In plugin mode this file keeps the block below, and its links resolve under the
+kit root.
+
 <!-- workflow-kit:docs-workflow:start -->
 ## Workflow Documentation (workflow-kit)
 

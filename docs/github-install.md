@@ -56,6 +56,25 @@ workflow-kit update --target /path/to/repo --apply --yes
 `upgrade` checks that the ref exists and is reachable before it replaces the
 installed version.
 
+## Plugin mode (pilot)
+
+For Claude Code and GitHub Copilot the kit can also run as the plugin `fhh`
+from the marketplace `fhh-ia-ecosystem`, which lives in this repository:
+
+```bash
+workflow-kit init --mode plugin --runtime claude --target /path/to/repo
+```
+
+The repository then holds only the adapters, the plugin declaration and the
+project overlay; each person installs the plugin once per clone
+(`claude plugin install fhh@fhh-ia-ecosystem --scope project`, or
+`copilot plugin install fhh@fhh-ia-ecosystem`). The marketplace in `main`
+points at the branch `plugin`, which exists only after the first publish and
+its approved push, so plugin installs fail before that. Claude Code pins a
+plugin to its version: a kit change reaches people only when a new version is
+published, never by following `main`. Release steps: [Versioning](versioning.md).
+Commands, stops and `doctor` codes: [Quickstart, plugin mode](quickstart.md#11-plugin-mode-pilot).
+
 ## Access requirements
 
 - The installing machine must have network access to GitHub.
