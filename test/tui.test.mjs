@@ -484,12 +484,15 @@ test('tui export mode writes workflow files into the selected output directory',
 // state; an export keeps mode "export", so it can be exported over again.
 test('tui export with the selection prompts records an export that can be refreshed', async () => {
   const target = await makeTempRepo('workflow-kit-tui-export-');
-  const exportAnswers = () => scriptedAsk(['3', target, '1', '', '', '', '', 'yes']);
-  const exportOnce = () => runTui({ ask: exportAnswers(), env: {}, color: false, write: () => {}, enableScriptedAdvancedPrompts: true });
+  // The second export has no file to write, so it asks no file selection.
+  const exportAnswers = (selection = ['']) => scriptedAsk(['3', target, '1', '', '', ...selection, '', 'yes']);
+  const exportOnce = (selection) => runTui({ ask: exportAnswers(selection), env: {}, color: false, write: () => {}, enableScriptedAdvancedPrompts: true });
 
   assert.equal((await exportOnce()).applied, true);
   assert.equal(JSON.parse(await fs.readFile(path.join(target, installStateRelativePath), 'utf8')).mode, 'export');
-  assert.equal((await exportOnce()).applied, true, 'TUI export again');
+  const before = await hashTree(target);
+  assert.equal((await exportOnce([])).applied, true, 'TUI export again');
+  assert.deepEqual(await hashTree(target), before, 'the second export writes nothing');
   const io = createMemoryIo();
   assert.equal(await runCli(['export', '--output', target, '--apply', '--yes'], io), 0, io.output.stderr);
 });

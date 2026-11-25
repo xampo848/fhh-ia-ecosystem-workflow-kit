@@ -1,5 +1,5 @@
 // What repo mode does in the release the fixture was last regenerated at
-// (0.23.1-script-guards; first generated from 0.22.0, commit 558e9fb, the last
+// (0.23.2-apply-recovery; first generated from 0.22.0, commit 558e9fb, the last
 // commit before plugin mode), as the AC-19 and T6 guards of
 // test/plugin-mode.test.mjs compare it, per runtime list:
 //
@@ -13,8 +13,8 @@
 //
 // The same collectors run on this checkout (the tests) and on the files of a
 // commit (to write the fixture), so both sides are shaped the same way.
-// The package version, the target folder, timestamps and the checksums that
-// carry the version are normalized, and the CLI runs without Node's own
+// The package version, the target folder, timestamps, the process id of an
+// apply journal and the checksums that carry the version are normalized, and the CLI runs without Node's own
 // process warnings, so only a change of behaviour differs, on any Node.
 //
 // Regenerate the fixture only when a change is meant to change what repo mode
@@ -77,10 +77,12 @@ export async function collectRepoModePlans(rootDirectory, makeTarget, planOption
 
 const runFile = promisify(execFile);
 
+// The process id an apply journal records (since 0.23.2) differs per run.
 function normalizeText(text, { target, version }) {
   return text.replaceAll(target, '<target>').replaceAll(version, versionMark)
     .replace(/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z/g, '<time>')
-    .replace(/\d{8}T\d{6}Z/g, '<stamp>');
+    .replace(/\d{8}T\d{6}Z/g, '<stamp>')
+    .replace(/"pid": \d+/g, '"pid": "<pid>"');
 }
 
 // Node's own process warnings (Node 20 warns that importing JSON modules is

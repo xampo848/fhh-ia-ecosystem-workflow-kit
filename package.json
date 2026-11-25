@@ -1,6 +1,6 @@
 {
   "name": "fhh-ia-ecosystem-workflow-kit",
-  "version": "0.23.1-script-guards",
+  "version": "0.23.2-apply-recovery",
   "private": true,
   "description": "Public GitHub-installable CLI/TUI workflow kit with safe install/export commands.",
   "license": "MIT",

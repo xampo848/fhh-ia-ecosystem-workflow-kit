@@ -207,13 +207,20 @@ test('a failure halfway through an apply leaves a partial journal that rollback 
 
   await assert.rejects(applyInstallPlan(plan));
 
+  // The journal lists the whole run before its first write: the delete it
+  // did and the create it never got to, each with the checksum the file had
+  // before the run.
   const journal = await readJson(target, applyJournalRelativePath);
   assert.equal(journal.completed, false);
   assert.equal(journal.stateWritten, false);
-  assert.deepEqual(journal.files.map((entry) => entry.action), ['deleted']);
-  await applyRollbackPlan(await buildRollbackPlan({ targetPath: target }));
+  assert.deepEqual(journal.files.map((entry) => [entry.action, entry.previousChecksum]), [['deleted', sha('kit body\n')], ['created', null]]);
+  const rollback = await buildRollbackPlan({ targetPath: target });
+  assert.deepEqual(rollback.operations.map((item) => [item.relativePath, item.action]), [[retiredSkill, 'restore'], ['blocker/inner.md', 'untouched']]);
+  await applyRollbackPlan(rollback);
   assert.equal(await fs.readFile(path.join(target, retiredSkill), 'utf8'), 'kit body\n');
+  assert.equal(await fs.readFile(path.join(target, 'blocker'), 'utf8'), 'a file where the next write expects a directory\n');
   assert.equal(await fs.readFile(path.join(target, installStateRelativePath), 'utf8'), stateBefore);
+  assert.deepEqual(await listBackups(target), []);
 });
 
 test('apply refuses a delete through a symbolic link that appeared after the plan', async () => {

@@ -7,6 +7,89 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.23.2-apply-recovery
+
+An interrupted or concurrent apply can always be undone exactly, and a run
+with nothing to change writes nothing. `.gitignore` gets two more ignore
+entries on the next `update` (with a backup).
+
+- An apply records its run before its first write: the journal
+  `.agents/workflow-kit/last-apply.json` lists every file the run is about to
+  touch, with the checksum it had before, and is marked finished only at the
+  end. A run stopped at any point (an error, Ctrl-C, `SIGTERM`, a killed
+  process) makes the next `init` and `update` stop with "The last
+  workflow-kit apply did not finish", and `workflow-kit rollback --apply
+  --yes` undoes exactly that run: files it never reached stay as they are,
+  and the folders it created go (a folder you had before stays, even empty).
+  Before, a run stopped by a signal left the previous journal, so rollback
+  could undo the wrong run, and the layout migration left none.
+- Ctrl-C or `SIGTERM` during `init`, `update`, `export` or `rollback` lets the
+  file being written finish and stops (exit code 130, or 143 for `SIGTERM`); a
+  second signal stops at once.
+- One run at a time per repository: an apply or rollback holds
+  `.agents/workflow-kit/apply.lock` and a second one stops with "Another
+  workflow-kit run is changing this repository". A run that planned before
+  another one applied stops with "changed after this plan was made" instead
+  of replacing that run's journal; run it again. A dry run and `doctor` are
+  not stopped by the lock. A lock whose process is gone, whose process id now
+  belongs to another process, or that is empty is taken over; one that cannot
+  be proved stale (it has no start time, or the system cannot tell it) says
+  to remove it only if you are sure no workflow-kit command is running. The lock and the temporary files of a write
+  (`.workflow-kit-tmp-*`) are new ignore entries, and the next run removes
+  the ones a killed run left. Backups are never overwritten.
+- `rollback` restores each file through a temporary copy, so a file is never
+  left half-restored. A rollback stopped at any point (even a killed one) is
+  recorded in the journal: `init` and `update` stop with "A workflow-kit
+  rollback … did not finish" and `doctor` reports it until `rollback --apply
+  --yes` runs again and finishes it. A rollback planned before another run
+  applied stops ("changed after this plan was made") instead of undoing the
+  wrong run. Rolling back an unfinished run whose files were already
+  removed by hand now clears its journal (before, it said "Nothing to roll
+  back" and `update` kept asking for a rollback). The plan names the run it
+  undoes (`init` or `update`, when, which version), and for an `init` says the
+  install itself goes. An `install-state.json` edited after the run is kept
+  as a `-before-rollback` copy first; a file removed by hand after the run is
+  reported as removed.
+- A second `update` with nothing to change writes nothing, `install-state.json`
+  included (before, its `generatedAt` changed). Exporting twice to the same
+  folder writes nothing the second time: the kit's own `docs/README.md` is no
+  longer listed in `legacy-docs-map.md`, and the seeds an export recorded stay
+  recorded.
+- `update` stops when `install-state.json` was written by a newer
+  workflow-kit, and asks you to run `workflow-kit upgrade --apply --yes`
+  first, instead of deleting the files the newer kit ships and replacing
+  newer content with older. A damaged `runtimes`, `stackPack` or
+  `modelProfiles` value is named with the state file instead of being read
+  as a default.
+- The migration from a pre-0.22 install replaces the skill catalogs
+  (`.agents/skills/index.md`, `registry.md`, `registry.json`) also when the
+  old state recorded them and the team then added its own rows by hand, as
+  the `add-project-pattern` skill of `0.19.x` told it to: the own rows move to
+  `.agents/project/index.md` first, and your version of each catalog stays in
+  its `.workflow-kit-backup-*` file. Before, the catalogs stayed pending and
+  still listed the old path, so `doctor` reported `skills/missing-file`. A
+  byte order mark before `## Skills` in an existing project index no longer
+  adds a second section.
+- `init`, `update` and `rollback` say plainly when `--target` is a file or does
+  not exist; `init` no longer creates a missing target folder (create it
+  first, for example with `git init`); `export` still creates its output
+  folder.
+- A path whose name, or whose backup name (37 more characters), is longer
+  than the file system allows is listed in the plan, dry run included,
+  instead of failing halfway with `ENAMETOOLONG`.
+- Output changes: the update dry run marks a seed the project owns as
+  `skip_unmanaged: <path> (project-owned; left as it is)`; the update summary
+  adds "Project-owned files left as they are" (no longer counted as unmanaged
+  files) and, when it happens, "Not deleted (changed since the plan, kept as
+  they are)"; the plugin-mode stops add `--apply --yes` to a step that has to
+  run before the next one and no longer repeat that a runtime is left out;
+  the edited-file stop of a switch to plugin mode no longer offers another
+  decision where only `discard` applies; `upgrade` as a dry run without bun
+  prints the plan and a note instead of exiting 2, and after an upgrade
+  says "workflow-kit upgraded" and names `update` as a dry run first; the
+  plugin install step after `init --mode plugin` changes to the target
+  first (`cd <target> && claude plugin install …`).
+
 ## 0.23.1-script-guards
 
 Kit checks that passed without checking. No CLI command, flag or output

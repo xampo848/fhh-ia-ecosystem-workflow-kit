@@ -374,6 +374,9 @@ test('AC-19 guard: init and update without --mode and with --mode repo plan what
   assert.equal(blockOf(operationFor(plan, 'CLAUDE.md').content).includes('kit-location'), false);
 });
 
+// The fixture is regenerated per release, so it describes this release's
+// behaviour directly; the new behaviours of 0.23.2 are also pinned below.
+const ignoreEntriesSince0232 = ['/.agents/workflow-kit/apply.lock', '.workflow-kit-tmp-*'];
 test('AC-19 guard: the repo-mode CLI prints, writes and diagnoses what the fixture release did', async () => {
   const fixture = await repoModeFixture();
   const runs = await collectRepoModeRuns(root, makeTempRepo);
@@ -384,6 +387,21 @@ test('AC-19 guard: the repo-mode CLI prints, writes and diagnoses what the fixtu
     }
   }
   assert.deepEqual(runs.settingsFolder, fixture.applied.settingsFolder, 'init over a folder at .claude/settings.json');
+
+  // Since 0.23.2 the init journal records its process id, the folders the
+  // run created (the ones rollback removes) and, per file, the checksum it
+  // had before the run (none: every file was new).
+  const target = await makeTempRepo();
+  assert.equal((await cli(['init', '--target', target, '--runtime', 'claude', '--apply', '--yes'])).code, 0);
+  const journal = JSON.parse(await read(target, '.agents/workflow-kit/last-apply.json'));
+  assert.ok(Number.isInteger(journal.pid));
+  assert.ok(journal.createdDirectories.includes('.agents') && journal.createdDirectories.includes('.agents/workflow-kit'));
+  assert.deepEqual([...new Set(journal.files.map((entry) => entry.previousChecksum))], [null]);
+  // The apply lock and the temporary files of a write are git-ignored, once each.
+  for (const entry of ignoreEntriesSince0232) assert.equal((await read(target, '.gitignore')).split('\n').filter((line) => line === entry).length, 1, entry);
+  // The update dry run names every seed it leaves to the project as such.
+  const update = await cli(['update', '--target', target]);
+  assert.equal((update.stdout.match(/^- skip_unmanaged: \S+ \(project-owned; left as it is\)$/gm) ?? []).length, 5, update.stdout);
 });
 
 // AC-9 (PRD 2.4, T8): update keeps the recorded plugin mode, a second run has
@@ -607,6 +625,8 @@ test('AC-12: edited kit files stop the switch without writing; the printed comma
       assert.ok(stop.stderr.includes(expected), `${label}: names ${expected}\n${stop.stderr}`);
     }
     assert.deepEqual(await hashTree(target), before, label);
+    // discard is the only decision these files take, so no other is offered.
+    assert.equal(stop.stderr.includes('another decision listed for a file can replace discard'), false, `${label}\n${stop.stderr}`);
     stopMessage = stop.stderr;
   }
   for (const decision of ['keep', 'shadow', 'split']) {
@@ -911,10 +931,10 @@ test('AC-14: T4, T5, T10, T11, T13, T17 and an incomplete apply stop without wri
     { name: 'T4 (repo state)', install: repoInstall, args: ['init', '--mode', 'plugin', '--runtime', 'claude'], names: ['already records an install'], commands: ['workflow-kit update --mode plugin --runtime claude --target <T>'] },
     { name: 'T4 (plugin state)', install: pluginInstall, args: ['init', '--mode', 'plugin', '--runtime', 'claude'], names: ['already records an install'], commands: ['workflow-kit update --mode plugin --runtime claude --target <T>'] },
     { name: 'T4 (export state)', install: exportInstall, args: ['init', '--mode', 'plugin', '--runtime', 'claude'], names: ['copy of the kit'], commands: ['workflow-kit init --mode plugin --runtime claude --target <repo>'] },
-    { name: 'T5', install: installLegacy0181, args: ['init', '--mode', 'plugin', '--runtime', 'claude'], names: ['install-state 1.0.0', 'then `workflow-kit update --mode plugin --runtime claude --target <T>`'], commands: ['workflow-kit update --target <T>', 'workflow-kit update --mode plugin --runtime claude --target <T>'] },
-    { name: 'T10', install: installLegacy0181, args: ['update', '--mode', 'plugin', '--runtime', 'claude'], names: ['install-state 1.0.0', 'layout migration'], commands: ['workflow-kit update --target <T>', 'workflow-kit update --mode plugin --runtime claude --target <T>'] },
+    { name: 'T5', install: installLegacy0181, args: ['init', '--mode', 'plugin', '--runtime', 'claude'], names: ['install-state 1.0.0', 'then `workflow-kit update --mode plugin --runtime claude --target <T>`'], commands: ['workflow-kit update --target <T> --apply --yes', 'workflow-kit update --mode plugin --runtime claude --target <T>'] },
+    { name: 'T10', install: installLegacy0181, args: ['update', '--mode', 'plugin', '--runtime', 'claude'], names: ['install-state 1.0.0', 'layout migration'], commands: ['workflow-kit update --target <T> --apply --yes', 'workflow-kit update --mode plugin --runtime claude --target <T>'] },
     { name: 'T11', install: exportInstall, args: ['update', '--mode', 'plugin', '--runtime', 'claude'], names: ['copy of the kit'], commands: ['workflow-kit init --mode plugin --runtime claude --target <repo>'] },
-    { name: 'T13', install: async () => {}, args: ['update', '--adopt-existing', '--mode', 'plugin', '--runtime', 'claude'], names: ['no install state'], commands: ['workflow-kit update --adopt-existing --runtime claude --target <T>', 'workflow-kit update --mode plugin --runtime claude --target <T>'] },
+    { name: 'T13', install: async () => {}, args: ['update', '--adopt-existing', '--mode', 'plugin', '--runtime', 'claude'], names: ['no install state'], commands: ['workflow-kit update --adopt-existing --runtime claude --target <T> --apply --yes', 'workflow-kit update --mode plugin --runtime claude --target <T>'] },
     { name: 'T17', install: pluginInstall, args: ['export'], names: ['export to another folder', '`workflow-kit update` brings an install to this version'], commands: ['workflow-kit update'], also: ['workflow-kit export --output <repo>'] },
     {
       name: 'incomplete apply',
@@ -1172,10 +1192,12 @@ test('M5: T13 with a runtime without plugin bootstraps every runtime asked for a
   const before = await hashTree(target);
   const stop = await cli(['update', '--adopt-existing', '--mode', 'plugin', '--runtime', 'claude,codex', '--target', target, '--apply', '--yes']);
   assert.notEqual(stop.code, 0);
-  const commands = [`workflow-kit update --adopt-existing --runtime claude,codex --target ${target}`, `workflow-kit update --mode plugin --runtime claude --target ${target}`];
-  for (const expected of [...commands.map((command) => `\`${command}\``), 'codex has no plugin, so that command leaves it out', 'leaves codex out of the install', 'Nothing was written']) {
+  const commands = [`workflow-kit update --adopt-existing --runtime claude,codex --target ${target} --apply --yes`, `workflow-kit update --mode plugin --runtime claude --target ${target}`];
+  for (const expected of [...commands.map((command) => `\`${command}\``), 'codex has no plugin, so that command leaves it out', 'Its kit files are then deleted with a backup, and its adapters stay in the repository as project files', 'Nothing was written']) {
     assert.ok(stop.stderr.includes(expected), `names ${expected}\n${stop.stderr}`);
   }
+  // Said once: the note about codex is not repeated.
+  assert.equal(stop.stderr.includes('leaves codex out of the install'), false, stop.stderr);
   assert.deepEqual(await hashTree(target), before);
   for (const command of commands) {
     const result = await runNamed(command, target, { apply: true });

@@ -131,10 +131,21 @@ export async function assertWriteFoldersAreFolders(targetPath, operations) {
     .map((item) => item.relativePath));
 }
 
+// The temporary file of an atomic write: a short name in the destination
+// folder that does not grow with the destination's name (a long file name
+// would otherwise fail with ENAMETOOLONG halfway through an apply). The same
+// process writes one file at a time, so the process id keeps it unique;
+// rollback removes the one an interrupted run left (the journal records the
+// process id).
+export const temporaryFileMarker = '.workflow-kit-tmp-';
+export function temporaryPathFor(targetFile, pid = process.pid) {
+  return path.join(path.dirname(targetFile), `${temporaryFileMarker}${pid}`);
+}
+
 // Write to a sibling temporary file and rename it over the destination, so an
 // interrupted run never leaves a half-written file.
 export async function writeFileAtomic(targetFile, content) {
-  const temporary = `${targetFile}.workflow-kit-tmp-${process.pid}`;
+  const temporary = temporaryPathFor(targetFile);
   let mode;
   try {
     mode = (await fs.stat(targetFile)).mode;
@@ -150,4 +161,54 @@ export async function writeFileAtomic(targetFile, content) {
     await fs.rm(temporary, { force: true });
     throw error;
   }
+}
+
+// A copy that is never seen half-written (rollback restoring a backup): the
+// bytes go to the temporary file next to the destination, which is then
+// renamed over it. The copy keeps the source's permission bits.
+export async function copyFileAtomic(sourceFile, targetFile) {
+  const temporary = temporaryPathFor(targetFile);
+  try {
+    await fs.copyFile(sourceFile, temporary);
+    await fs.rename(temporary, targetFile);
+  } catch (error) {
+    await fs.rm(temporary, { force: true });
+    throw error;
+  }
+}
+
+// Name limits, checked while planning so an apply never stops halfway with a
+// raw ENAMETOOLONG. A backup adds its suffix to the file name
+// (".workflow-kit-backup-" and a 16-character stamp); rollback without a
+// journal adds "-before-rollback" to that.
+export const backupSuffixLength = '.workflow-kit-backup-'.length + '20260101T000000Z'.length;
+const nameMaxBytes = 255;
+// macOS and the BSDs: 1024; Linux: 4096. Windows handles long paths itself.
+const pathMaxBytes = process.platform === 'win32' ? Infinity : ['linux', 'android'].includes(process.platform) ? 4096 : 1024;
+const byteLength = (text) => Buffer.byteLength(text, 'utf8');
+
+// Fails when a write of the plan would need a name the file system refuses:
+// a folder or file name over 255 bytes, a file whose backup name would be,
+// or a whole path over the system limit. `mayBackUp(item)` says whether the
+// write can leave a backup next to the file.
+export function assertNameLengths(targetPath, operations, mayBackUp = () => true) {
+  const problems = [];
+  for (const item of operations) {
+    if (!writingOperations.has(item.operation)) continue;
+    const segments = String(item.relativePath).split(/[\\/]+/).filter(Boolean);
+    const suffix = mayBackUp(item) ? backupSuffixLength : 0;
+    const longSegment = segments.find((segment, index) => byteLength(segment) + (index === segments.length - 1 ? suffix : 0) > nameMaxBytes);
+    const absoluteBytes = byteLength(path.resolve(targetPath, item.relativePath)) + suffix;
+    if (longSegment !== undefined) {
+      problems.push(`- ${item.relativePath}: the name ${byteLength(longSegment) > nameMaxBytes ? '' : 'of its backup '}is longer than ${nameMaxBytes} bytes`);
+    } else if (absoluteBytes >= pathMaxBytes) {
+      problems.push(`- ${item.relativePath}: the full path ${suffix > 0 ? 'of its backup ' : ''}is longer than ${pathMaxBytes - 1} bytes`);
+    }
+  }
+  if (problems.length === 0) return;
+  throw new Error([
+    `These paths are too long for this file system (a backup adds ${backupSuffixLength} characters to a file name):`,
+    ...problems,
+    'Rename or move them to a shorter path, then run again. Nothing was written.'
+  ].join('\n'));
 }

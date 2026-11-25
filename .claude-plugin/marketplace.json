@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Marketplace of the fhh workflow kit plugin.",
-    "version": "0.23.1-script-guards"
+    "version": "0.23.2-apply-recovery"
   },
   "plugins": [
     {

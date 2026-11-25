@@ -9,7 +9,12 @@ export function countAppliedOperations(applied) {
     writeCount: applied.filter((item) => item.applied && item.operation !== deleteOperation).length,
     backupCount: applied.filter((item) => item.backupPath).length,
     modifiedSkips: applied.filter((item) => item.operation === 'skip_modified').length,
-    unmanagedSkips: applied.filter((item) => item.operation === 'skip_unmanaged').length,
+    // A seed the project owns (created once, then the project's) is not an
+    // unmanaged file: it is counted on its own.
+    unmanagedSkips: applied.filter((item) => item.operation === 'skip_unmanaged' && item.reason !== 'project_owned').length,
+    projectOwned: applied.filter((item) => item.operation === 'skip_unmanaged' && item.reason === 'project_owned').length,
+    // A delete the apply did not do because the file changed since the plan.
+    changedSincePlan: applied.filter((item) => item.reason === 'changed_since_plan').length,
     adopted: applied.filter((item) => item.operation === 'adopt_existing').length,
     retiredDeleted: deleted.filter((item) => item.retired).length,
     projectFilesMoved: deleted.filter((item) => item.migration && !item.retired).length
@@ -33,9 +38,11 @@ export function formatUpdateApplySummary(applied) {
     `Backups created: ${counts.backupCount}`,
     `Protected local edits (skipped): ${counts.modifiedSkips}`,
     `Unmanaged files (skipped): ${counts.unmanagedSkips}`,
+    `Project-owned files left as they are: ${counts.projectOwned}`,
     `Adopted baseline files: ${counts.adopted}`,
     `Retired files deleted (backup kept): ${counts.retiredDeleted}`,
     `Project files moved to .agents/project/: ${counts.projectFilesMoved}`,
+    ...(counts.changedSincePlan > 0 ? [`Not deleted (changed since the plan, kept as they are): ${counts.changedSincePlan}`] : []),
     ''
   ].join('\n');
 }
