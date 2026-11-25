@@ -5,6 +5,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { validateWorkflowContract } from '../src/workflow-contract/index.mjs';
 import { validateDelegateRuntimeAdapters } from './sync-delegate-runtime-adapters.mjs';
+import { isMainModule } from './is-main-module.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templatesRoot = path.join(packageRoot, 'templates');
@@ -162,7 +163,7 @@ function requiredTextFile(relativePath) {
   return /(^|\/)(AGENTS|CLAUDE|ANTIGRAVITY|README|copilot-instructions|.*\.instructions)\.md$/.test(relativePath);
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   const result = await validateTemplatePacks();
   if (!result.ok) {
     console.error('Template pack validation failed:');

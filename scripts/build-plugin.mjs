@@ -23,7 +23,7 @@
 // <out>, a new directory or an empty one; --publish runs it on the exported
 // commit with that commit's code.
 import { spawnSync } from 'node:child_process';
-import { existsSync, realpathSync, rmSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -38,6 +38,7 @@ import {
 } from '../src/model-profiles.mjs';
 import { marketplaceName, pluginBranch, pluginEntryPoints, pluginName, pluginPathRule } from '../src/plugin-mode.mjs';
 import { claudeSkillDescription, claudeSkillEntries, listFiles } from './sync-claude-skills.mjs';
+import { isMainModule } from './is-main-module.mjs';
 
 export { marketplaceName, pluginName };
 
@@ -68,6 +69,7 @@ export const pluginBuildInputs = [
   ...pluginLegalFiles,
   pluginLegalDirectory,
   'scripts/build-plugin.mjs',
+  'scripts/is-main-module.mjs',
   'scripts/sync-claude-skills.mjs',
   'scripts/validate-legal-readiness.mjs',
   'src/model-profiles.mjs',
@@ -893,9 +895,7 @@ async function main(argv) {
   return 0;
 }
 
-// Compared through realpath: run through a symbolic link (the temporary folder
-// on macOS is one), a plain comparison would skip main and exit 0 silently.
-if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   try {
     process.exitCode = await main(process.argv.slice(2));
   } catch (error) {

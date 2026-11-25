@@ -7,6 +7,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { isMainModule } from './is-main-module.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -241,7 +242,7 @@ async function readIfExists(file) {
   }
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   const result = await validateReleaseReadiness();
   for (const notice of result.notices) console.warn(`Notice: ${notice}`);
   if (!result.ok) {

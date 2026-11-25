@@ -2,6 +2,7 @@
 // orphaned generated files, stale allowlist entries, unpinned third-party
 // components, and stack rules hidden behind an example marker.
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
@@ -152,3 +153,37 @@ for (const { id, body, summary } of [
   }
 }
 
+
+// A script run through a symbolic link (the temporary folders on macOS are
+// one) must still run its main: a plain path comparison would skip it and a
+// broken validator would exit 0 without output.
+test('a validator run through a symlinked path still runs and fails on a broken fixture', async () => {
+  const linkParent = await makeTempRepo('workflow-kit-symlink-');
+  const linkedScripts = path.join(linkParent, 'linked-scripts');
+  await fs.symlink(path.join(sourceRoot, 'scripts'), linkedScripts, 'dir');
+  const emptyRepo = await makeTempRepo('workflow-kit-symlink-cwd-');
+
+  const run = spawnSync(process.execPath, [path.join(linkedScripts, 'validate-legal-readiness.mjs')], { cwd: emptyRepo, encoding: 'utf8' });
+
+  assert.equal(run.status, 1, `stdout: ${run.stdout}\nstderr: ${run.stderr}`);
+  assert.match(run.stderr, /\[legal-check\] Missing required compliance file: NOTICE/);
+});
+
+// Installed repositories receive byte-identical copies of these scripts without
+// the helper, so they keep their own guard; it must resolve argv[1] through realpath.
+const selfContainedScripts = new Set(['copilot-model-routing.mjs', 'verify-copilot-model-evidence.mjs']);
+
+test('scripts decide whether to run main only through a symlink-safe guard', async () => {
+  const scriptsDir = path.join(sourceRoot, 'scripts');
+  const offenders = [];
+  for (const name of (await fs.readdir(scriptsDir)).filter((file) => file.endsWith('.mjs') && file !== 'is-main-module.mjs')) {
+    const source = await fs.readFile(path.join(scriptsDir, name), 'utf8');
+    const comparesModulePath = /===\s*fileURLToPath\(import\.meta\.url\)/.test(source);
+    if (selfContainedScripts.has(name)) {
+      if (!/fs\.realpath\(process\.argv\[1\]\)/.test(source)) offenders.push(name);
+    } else if (comparesModulePath) {
+      offenders.push(name);
+    }
+  }
+  assert.deepEqual(offenders, [], 'use isMainModule from scripts/is-main-module.mjs, or realpath argv[1] in a self-contained script');
+});

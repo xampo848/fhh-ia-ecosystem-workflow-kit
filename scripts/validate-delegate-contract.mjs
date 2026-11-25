@@ -10,6 +10,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { isMainModule } from './is-main-module.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const delegateContractPath = '.agents/delegation/delegate-contract.md';
@@ -69,7 +70,7 @@ export async function validateDelegateContract({ root = packageRoot } = {}) {
   return { ok: failures.length === 0, failures, skillCount: skillPaths.length };
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   const result = await validateDelegateContract();
   if (!result.ok) {
     console.error('Delegate contract validation failed:');

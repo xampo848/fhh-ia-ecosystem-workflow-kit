@@ -2,7 +2,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { isMainModule } from './is-main-module.mjs';
 
 const EXPECTED_COMPONENTS = new Map([
   ['impeccable', { license: 'Apache-2.0', commit: 'e587004ee42883dad40d14cd0f5e1b21ae1933df', status: 'VERIFIED' }],
@@ -16,6 +16,7 @@ const KNOWN_STATUSES = new Set(['VERIFIED', 'EXTERNAL_UNVERIFIED']);
 
 export function validateLegalReadiness({ root = process.cwd() } = {}) {
   const failures = [];
+  let expectedRemainingInventory = null;
   const resolve = (file) => path.join(root, file);
   const fail = (message) => failures.push(message);
   let provenanceManifest = { components: [] };
@@ -177,13 +178,16 @@ export function validateLegalReadiness({ root = process.cwd() } = {}) {
       if (authorship.schemaVersion !== 2 || typeof authorship.scope !== 'string') {
         fail('Overlay authorship record must use schemaVersion 2 with a scope.');
       } else {
-        validateDirectoryInventory({
+        const overlayInventory = validateDirectoryInventory({
           root,
           inventory: authorship.remainingInventory,
           component: 'maintainer-attested overlay',
           excludePaths: authorship.externalPathCoverage?.map((coverage) => coverage.path),
           fail
         });
+        if (overlayInventory && !overlayInventory.matches) {
+          expectedRemainingInventory = { fileCount: overlayInventory.fileCount, pathContentSha256: overlayInventory.pathContentSha256 };
+        }
         if (authorship.remainingFiles?.classification !== 'MAINTAINER_ATTESTED_INTERNAL') {
           fail('Overlay authorship record must classify remaining files as MAINTAINER_ATTESTED_INTERNAL.');
         }
@@ -203,31 +207,40 @@ export function validateLegalReadiness({ root = process.cwd() } = {}) {
     }
   }
 
-  return { ok: failures.length === 0, failures };
+  // Set only when the overlay files differ from the record: the values a
+  // maintainer copies into remainingInventory after reviewing the change.
+  return { ok: failures.length === 0, failures, expectedRemainingInventory };
 }
 
+// Returns the inventory found on disk, or null when it could not be computed.
 function validateDirectoryInventory({ root, inventory, component, excludePaths = [], fail }) {
   if (!inventory?.path || !Number.isInteger(inventory.fileCount) || !/^[a-f0-9]{64}$/.test(inventory.pathContentSha256 ?? '')) {
     fail(`${component} must declare a directory inventory with a path, fileCount, and SHA-256 digest.`);
-    return;
+    return null;
   }
 
   const inventoryRoot = path.join(root, inventory.path);
   if (!existsSync(inventoryRoot)) {
     fail(`${component} inventory root is missing: ${inventory.path}`);
-    return;
+    return null;
   }
 
   const excludedRelativePaths = excludePaths.map((excludedPath) => (
     path.relative(inventoryRoot, path.join(root, excludedPath)).split(path.sep).join('/')
   ));
   const entries = collectDirectoryInventory(inventoryRoot, excludedRelativePaths);
+  const pathContentSha256 = digestInventory(entries);
   if (entries.length !== inventory.fileCount) {
     fail(`${component} file inventory changed; renew its provenance record before release.`);
   }
-  if (digestInventory(entries) !== inventory.pathContentSha256) {
+  if (pathContentSha256 !== inventory.pathContentSha256) {
     fail(`${component} path/content inventory differs from its provenance record.`);
   }
+  return {
+    fileCount: entries.length,
+    pathContentSha256,
+    matches: entries.length === inventory.fileCount && pathContentSha256 === inventory.pathContentSha256
+  };
 }
 
 function validateFileInventory({ root, inventory, component, fail }) {
@@ -301,12 +314,15 @@ function digestInventory(entries) {
   return hash.digest('hex');
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   const result = validateLegalReadiness();
   if (result.ok) {
     console.log('[legal-check] OK');
   } else {
     for (const failure of result.failures) console.error(`[legal-check] ${failure}`);
+    if (result.expectedRemainingInventory) {
+      console.error(`[legal-check] Expected remainingInventory in docs/legal/overlay-authorship.json (copy it only after reviewing the template changes): ${JSON.stringify(result.expectedRemainingInventory)}`);
+    }
     process.exitCode = 1;
   }
 }

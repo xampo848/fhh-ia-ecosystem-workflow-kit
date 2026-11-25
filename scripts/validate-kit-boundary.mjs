@@ -9,6 +9,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { thirdPartyPrefixes } from './validate-skill-size.mjs';
+import { isMainModule } from './is-main-module.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const manifestPath = '.agents/workflow-kit/manifest.json';
@@ -373,7 +374,7 @@ export async function validateKitBoundary({ root = packageRoot } = {}) {
   return { ok: failures.length === 0, failures, fileCount: files.size };
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   const result = await validateKitBoundary();
   if (!result.ok) {
     console.error('Kit boundary validation failed:');
