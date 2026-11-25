@@ -202,7 +202,7 @@ export function runUpgradePlan(plan, { cwd = globalUpgradeWorkingDirectory(), st
         // run on a guess: stop (the safer choice) and name the way around.
         if (probe.status !== 'found') {
           const why = {
-            skipped: `git is not in PATH, so workflow-kit cannot check that ref "${plan.ref}" exists in ${plan.repository} before it removes the installed workflow-kit. Install git and run this again, or, if you are sure of the ref, run ${plan.command} ${plan.args.join(' ')} yourself.`,
+            skipped: `git is not in PATH, so workflow-kit cannot check that ref "${plan.ref}" exists in ${plan.repository} before it removes the installed workflow-kit. Install git and run workflow-kit upgrade again.`,
             'scratch-failed': `Could not create a temporary folder to check commit "${plan.ref}" (${probe.reason}). Set TMPDIR to a writable folder and run this again.`,
             missing: `Ref "${plan.ref}" was not found in ${plan.repository}.`,
             'short-commit': `Ref "${plan.ref}" is no branch, tag or branch tip of ${plan.repository}, and a short commit cannot be checked: give the full 40-character commit, or a branch or tag.`,

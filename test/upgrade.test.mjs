@@ -165,7 +165,8 @@ test('upgrade without git on PATH stops before removing workflow-kit and says ho
     const io = quietIo();
     const code = await runCli(['upgrade', '--ref', 'main', '--apply', '--yes'], io);
     assert.equal(code, 2);
-    assert.match(io.output.stderr, /git is not in PATH, so workflow-kit cannot check that ref "main" exists in .* before it removes the installed workflow-kit\. Install git and run this again, or, if you are sure of the ref, run bun add -g github:.*#main yourself\. Nothing was changed\./);
+    assert.match(io.output.stderr, /git is not in PATH, so workflow-kit cannot check that ref "main" exists in .* before it removes the installed workflow-kit\. Install git and run workflow-kit upgrade again\. Nothing was changed\./);
+    assert.doesNotMatch(io.output.stderr, /bun add/, 'no manual command whose effect on an existing global install is not stated');
   } finally {
     process.env.PATH = previous;
   }

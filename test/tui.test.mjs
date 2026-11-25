@@ -565,7 +565,7 @@ test('tui with stdin at end of file or a pipe exits 2 and says it needs a termin
   for (const input of [{ stdio: ['ignore', 'pipe', 'pipe'] }, { input: '1\n' }]) {
     const result = spawnSync(process.execPath, [bin, 'tui'], { cwd, encoding: 'utf8', env: { ...process.env, NODE_NO_WARNINGS: '1' }, timeout: 20000, ...input });
     assert.equal(result.status, 2, result.stdout + result.stderr);
-    assert.match(result.stderr, /^workflow-kit tui necesita una terminal interactiva \(stdin no lo es\)\. En scripts usa los comandos/m);
+    assert.match(result.stderr, /^workflow-kit tui needs an interactive terminal \(stdin is not one\)\. In scripts, use the commands instead/m);
     assert.doesNotMatch(result.stdout + result.stderr, /Canceled by user|Cancelado por ti/);
   }
   assert.deepEqual(await fs.readdir(cwd), []);

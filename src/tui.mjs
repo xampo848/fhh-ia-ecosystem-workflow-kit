@@ -553,11 +553,12 @@ export async function runTui(options = {}) {
   const runUpgradeExecutor = options.runUpgradeExecutor ?? runUpgradePlan;
   // The menu reads a terminal: without one (stdin at end of file, a pipe or
   // /dev/null) every prompt would end at once and look like a cancel with
-  // exit 0, which a script reads as success.
+  // exit 0, which a script reads as success. This error stays in English,
+  // like the parser errors scripts read.
   const input = options.stdin ?? process.stdin;
   if (!scriptedMode && !options.prompter && !input.isTTY) {
     const writeError = options.writeError ?? ((message) => process.stderr.write(message));
-    writeError('workflow-kit tui necesita una terminal interactiva (stdin no lo es). En scripts usa los comandos: init, update, export, doctor, rollback o upgrade (ver workflow-kit --help). No se escribió nada.\n');
+    writeError('workflow-kit tui needs an interactive terminal (stdin is not one). In scripts, use the commands instead: init, update, export, doctor, rollback or upgrade (see workflow-kit --help). Nothing was written.\n');
     return { code: 2, applied: false };
   }
   // options.prompter stands in for the interactive prompter (tests).
