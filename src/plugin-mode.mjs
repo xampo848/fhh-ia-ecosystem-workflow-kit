@@ -41,6 +41,22 @@ const installCommands = {
 };
 export const claudePluginUpdateCommand = `claude plugin update ${pluginId}`;
 export const claudePluginEnableCommand = `claude plugin enable ${pluginId}`;
+export const cliUpgradeCommand = 'workflow-kit upgrade --apply --yes';
+
+// A command a stop names, ready for a shell: the words as given, then
+// `--target <path>` (quoted when needed), so it runs from any folder.
+const shellWord = (word) => (/^[\w@%+=:,./-]+$/.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`);
+export const withTarget = (command, targetPath) => (targetPath === undefined ? command : `${command} --target ${shellWord(targetPath)}`);
+
+// -1, 0 or 1 by the numeric part of two versions (`0.23.0-plugin-mode` reads
+// as 0.23.0); null when one has no such part.
+export function compareVersionCores(left, right) {
+  const core = (version) => String(version ?? '').match(/^(\d+)\.(\d+)\.(\d+)/)?.slice(1).map(Number) ?? null;
+  const [a, b] = [core(left), core(right)];
+  if (!a || !b) return null;
+  for (let index = 0; index < 3; index += 1) if (a[index] !== b[index]) return a[index] < b[index] ? -1 : 1;
+  return 0;
+}
 // Copilot has no documented way to read its installed plugins (PRD 2.5).
 export const copilotPluginListCommand = 'copilot plugin list';
 const runtimeLabels = { claude: 'Claude Code', copilot: 'Copilot' };
@@ -59,14 +75,14 @@ export function formatPluginInstallSteps(runtimes) {
 
 // Plugin mode needs at least one runtime and only runtimes with a plugin. The
 // stop names the same command in repo mode (init, or update: T3, T14).
-export function assertPluginRuntimes(runtimes, command = 'init') {
+export function assertPluginRuntimes(runtimes, command = 'init', targetPath = undefined) {
   const chosen = runtimes.filter((runtime) => runtime !== 'neutral');
   const withoutPlugin = chosen.filter((runtime) => !pluginRuntimes.includes(runtime));
   if (chosen.length > 0 && withoutPlugin.length === 0) return;
   const problem = chosen.length === 0
     ? 'plugin mode needs --runtime, and no runtime was chosen'
     : `${withoutPlugin.join(', ')} ${withoutPlugin.length === 1 ? 'has' : 'have'} no plugin; plugin mode supports ${pluginRuntimes.join(', ')}`;
-  const repoCommand = `workflow-kit ${command} --mode repo${chosen.length > 0 ? ` --runtime ${chosen.join(',')}` : ''}`;
+  const repoCommand = withTarget(`workflow-kit ${command} --mode repo${chosen.length > 0 ? ` --runtime ${chosen.join(',')}` : ''}`, targetPath);
   throw new Error(`Cannot install in plugin mode: ${problem}. Use \`--runtime ${pluginRuntimes.join(',')}\` (or one of them), or install the kit files in the repository with \`${repoCommand}\`. Nothing was written.`);
 }
 
@@ -86,6 +102,12 @@ function kitLocationBlock() {
 
 // The repo-mode template with the kit-location block right after the start
 // marker of its managed block; nothing else changes.
+// Any marker of the kit-location block, also one left alone by a hand edit.
+export function carriesKitLocationMarker(content) {
+  const { start, end } = blockMarkers(kitLocationBlockName);
+  return content.includes(start) || content.includes(end);
+}
+
 export function pluginAdapterContent(templateContent, blockName) {
   const { start } = blockMarkers(blockName);
   const index = templateContent.indexOf(start);
@@ -106,6 +128,7 @@ const isDeclared = (settings) => isKitMarketplace(settings) && enablesPlugin(set
 // is never replaced, and leaving plugin mode only removes an entry that is
 // the kit's.
 const disabledByProject = (settings) => settings.enabledPlugins?.[pluginId] === false;
+const pluginEntryMissing = (settings) => settings.enabledPlugins?.[pluginId] === undefined;
 const marketplaceCustomized = (settings) => settings.extraKnownMarketplaces?.[marketplaceName] !== undefined && !isKitMarketplace(settings);
 // Something leaving plugin mode removes: an entry the kit writes.
 const carriesKitEntry = (settings) => enablesPlugin(settings) || isKitMarketplace(settings);
@@ -155,7 +178,10 @@ const invalidSettings = (base, existing, manualAction) => ({ ...base, operation:
 function projectChoice(base, existing, settings) {
   const choices = [
     ...(disabledByProject(settings) ? [['plugin_disabled_by_project', `${pluginEntryKey} is false, the project turned the plugin off (set it to true to load the kit)`]] : []),
-    ...(marketplaceCustomized(settings) ? [['marketplace_customized', `${marketplaceEntryKey} is the project's own entry (set it to ${kitMarketplaceEntry()} to use the kit's)`]] : [])
+    ...(marketplaceCustomized(settings) ? [['marketplace_customized', `${marketplaceEntryKey} is the project's own entry (set it to ${kitMarketplaceEntry()} to use the kit's)`]] : []),
+    // M3: next to the project's own marketplace the kit adds nothing, so a
+    // missing plugin entry leaves the plugin off; the plan says so.
+    ...(marketplaceCustomized(settings) && pluginEntryMissing(settings) ? [['plugin_not_enabled', `${pluginEntryKey} is missing, so the plugin is not enabled (set it to true to load the plugin from that marketplace)`]] : [])
   ];
   if (choices.length === 0) return null;
   return { ...base, operation: 'skip_unmanaged', content: existing, reason: choices[0][0], note: `the project's choice, left as it is: ${choices.map(([, text]) => text).join('; ')}` };
@@ -225,7 +251,12 @@ export async function planPluginSettingsRemoval({ targetPath, runtimes }) {
       if (Object.keys(rest).length === 0) delete cleaned[key];
       else cleaned[key] = rest;
     }
-    operations.push({ ...base, operation: 'merge_with_backup', content: serializeLike(existing, cleaned) });
+    // M4: the plugin entry leaves, but the project's own marketplace entry
+    // stays (D15), so the plan says what this removes.
+    const note = enablesPlugin(settings) && marketplaceCustomized(settings)
+      ? { reason: 'plugin_entry_removed', note: `removes ${pluginEntryKey}, which loaded the plugin from the project's own ${marketplaceEntryKey}; that entry stays (a backup keeps the file)` }
+      : {};
+    operations.push({ ...base, operation: 'merge_with_backup', content: serializeLike(existing, cleaned), ...note });
   }
   return operations;
 }
@@ -252,6 +283,7 @@ export async function inspectPluginSettings({ targetPath, runtimes, tolerant = f
     declared: settings !== null && isDeclared(settings),
     enabled: settings !== null && enablesPlugin(settings),
     disabledByProject: settings !== null && disabledByProject(settings),
+    pluginEntryMissing: settings !== null && pluginEntryMissing(settings),
     marketplaceCustomized: settings !== null && marketplaceCustomized(settings)
   }));
 }

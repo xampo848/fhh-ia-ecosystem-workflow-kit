@@ -112,8 +112,8 @@ When you raise `package.json.version`, follow these steps in order:
    ```
 
    Copy both values into `remainingInventory`, set the top-level
-   `lastVerified` field of the same file to the date of the renewal, then run
-   `bun run check:legal`. Renewing the record is a maintainer attestation that
+   `lastVerified` field of the same file to the date of the renewal (by hand:
+   `check:legal` does not check that date), then run `bun run check:legal`. Renewing the record is a maintainer attestation that
    the changed template files are authorized for publication; any other
    template change between releases needs the same renewal.
 3. Run `node scripts/build-plugin.mjs --write`: the plugin marketplace
@@ -142,9 +142,12 @@ commit that `origin/main` contains and run
 top level, not a copy inside another repository). It builds from the tracked
 content of `HEAD`, exported with `git archive` into a temporary folder, and
 with the build code of that content (its own `scripts/build-plugin.mjs`, run
-in a separate `node`), never from or with the working tree: files Git ignores
-and edits hidden with `git update-index --skip-worktree` or
-`--assume-unchanged` are never published. It runs the legal check of that
+in a separate `node`): files Git ignores and edits hidden with
+`git update-index --skip-worktree` or `--assume-unchanged` never reach the
+published plugin through its content or its build code. The publish steps
+themselves (export, run that build, commit) are the `--publish` code of the
+working tree's `scripts/build-plugin.mjs`, so run it from a checkout whose
+copy of that script matches `HEAD`. It runs the legal check of that
 content on it, validates the build as check mode does and commits
 `dist/plugin/` to the local branch `plugin` without touching the current
 branch. It never fetches, never pushes and never changes the Git

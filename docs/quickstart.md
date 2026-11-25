@@ -385,8 +385,8 @@ These stop without writing and name the command to run next:
   When the install ends in plugin mode, `doctor` lists them
   (`mode/adapter-not-tracked`). When it ends in repo mode, those adapters get
   the repo-mode block back and `doctor` stays silent, as for any runtime
-  dropped in repo mode. Drop a runtime in a separate `update`, before the
-  switch, not in the same command.
+  dropped in repo mode. Dropping a runtime in the same command as the switch
+  or in a separate `update` before it leaves the same files.
 
 ### Settings files
 
@@ -397,8 +397,10 @@ only those two entries; the file is never deleted. The kit respects a
 project that turned the plugin off (`false`) or points the marketplace entry
 somewhere else, such as a fork: it leaves that as it is, the plan says so,
 and `doctor` names it. The merge rewrites the JSON with normalized
-formatting (the file's indentation, LF line endings); the original is in the
-backup.
+formatting (the file's indentation, LF line endings) and rewrites numbers as
+JavaScript reads them: `1.0` becomes `1`, and an integer beyond 2^53 loses
+precision (`12345678901234567890` becomes `12345678901234567000`). The
+original is in the backup.
 
 ### Versions and publishing
 

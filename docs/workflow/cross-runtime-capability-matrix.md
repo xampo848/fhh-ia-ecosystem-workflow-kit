@@ -58,12 +58,22 @@ statuses above. It is separate from the delegation baseline.
 
 | Runtime | Plugin mode | Status |
 | --- | --- | --- |
-| Claude Code | supported | `observed` by a smoke: the plugin loads, its skills are `fhh:*`, `fhh:kit-root` gives the kit root, and the overlay is read from the repository |
+| Claude Code | supported | `observed` by a smoke (Claude Code 2.1.142, model `sonnet`, headless `claude -p` with the built plugin loaded for the session by `--plugin-dir dist/plugin`, read-only tools): the plugin loads, its skills are `fhh:*`, `fhh:kit-root` gives the kit root, and the overlay is read from the repository. The marketplace install is not verified (see below) |
 | VS Code Copilot | supported format | `documented` only, not verified here |
 | Copilot CLI | supported | `observed` by a smoke (Copilot CLI 1.0.115, model choice `auto`, which ran `mai-code-2-flash` and `gpt-6-luna`; the test account refuses an explicit model such as `gpt-6.1-terra`, `gpt-6.2-sol` or `gpt-6.2-astra`): the plugin loads with `--plugin-dir`; its skills are listed without a prefix (`kit-root`, `create-prd`) and only `kit-root` is visible to the model; the model loads `kit-root` by itself, reads the contract and the router from the plugin, and reads the project context, catalog and runbook from the repository. With the older `gpt-4.1` (CLI 1.0.51) the model answered without reading files |
 | Copilot cloud agent | not verified | `unknown` |
 | Codex, Cursor | not supported yet | planned for a future phase |
 | Antigravity, opencode | repo mode only | no plugin mode |
+
+Not verified for Claude Code:
+
+- The install path the docs give people: the marketplace declared in the
+  repository (plugin on the branch `plugin`) and
+  `claude plugin install fhh@fhh-ia-ecosystem --scope project`. The branch
+  `plugin` is not published yet, so the smoke loaded the plugin with
+  `--plugin-dir` instead.
+- The real output of `claude plugin list --json`, which `doctor` reads; the
+  tests use a stub.
 
 Not verified for Copilot (assumptions of the pilot):
 

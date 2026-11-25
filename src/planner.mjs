@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isSupportedRuntime, pluginRuntimes, pluginSettingsPaths, runtimeEntrypoints, runtimeTemplatePaths, supportedRuntimes } from './runtime-matrix.mjs';
 import { defaultProfileFor, loadDelegateCatalog, parseProfileOption, renderClaudeAgent, renderCopilotAgent, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
-import { assertPluginRuntimes, kitLocationBlockName, planPluginSettings, planPluginSettingsRemoval, pluginAdapterContent, pluginName, runtimesDeclaringPlugin } from './plugin-mode.mjs';
+import { assertPluginRuntimes, carriesKitLocationMarker, kitLocationBlockName, planPluginSettings, planPluginSettingsRemoval, pluginAdapterContent, pluginName, runtimesDeclaringPlugin, withTarget } from './plugin-mode.mjs';
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
 import { assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
@@ -209,12 +209,14 @@ async function assertNoInstallState(targetPath, manifest, { exporting = false, p
     throw new Error(`${installStateRelativePath} ${state.schemaVersion === legacyInstallStateSchemaVersion ? `uses install-state ${legacyInstallStateSchemaVersion}` : `records an install, not an export (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'})`}. If this folder is an export from a workflow-kit version before 0.22.0, export to an empty folder, or remove its ${installStateRelativePath} and export again. If it is a workflow-kit install, export to another folder; \`workflow-kit update\` brings an install to this version. Nothing was written.`);
   }
   const runtimeList = pluginMode ? pluginRuntimeList(runtime, state?.runtimes) : null;
+  // Plugin-mode stops name commands with --target, so they run from any
+  // folder as printed; the repo-mode text stays as 558e9fb wrote it.
   if (state?.schemaVersion === legacyInstallStateSchemaVersion) {
-    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run \`workflow-kit update\` to migrate this repository${pluginMode ? `, then \`${pluginUpdateCommand(runtimeList)}\`` : ''}; init would replace project content.${pluginMode ? leftOutNote(runtimeList, state.runtimes) : ''} Nothing was written.`);
+    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run \`${pluginMode ? withTarget('workflow-kit update', targetPath) : 'workflow-kit update'}\` to migrate this repository${pluginMode ? `, then \`${pluginUpdateCommand(runtimeList, targetPath)}\`` : ''}; init would replace project content.${pluginMode ? `${noPluginNote(runtime)}${leftOutNote(runtimeList, state.runtimes)}` : ''} Nothing was written.`);
   }
   if (state) {
     let pluginWay = '';
-    if (pluginMode) pluginWay = state.mode === 'export' ? ` ${exportIsACopy(runtimeList)}` : ` To use plugin mode, run \`${pluginUpdateCommand(runtimeList)}\`.${leftOutNote(runtimeList, state.runtimes)}`;
+    if (pluginMode) pluginWay = state.mode === 'export' ? ` ${exportIsACopy(runtimeList)}` : ` To use plugin mode, run \`${pluginUpdateCommand(runtimeList, targetPath)}\`.${noPluginNote(runtime)}${leftOutNote(runtimeList, state.runtimes)}`;
     throw new Error(`${installStateRelativePath} already records an install (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}). Run \`workflow-kit update\` instead (with \`--runtime <list>\`, \`--stack\` or \`--profile\` to change those choices); init would reset the recorded runtimes, stack and profiles and replace pending edited files.${pluginWay} Nothing was written.`);
   }
 }
@@ -231,7 +233,7 @@ export const packageKitQualityGate = () => fs.readFile(path.join(templatesRoot, 
 // a 2.0.0 repo-mode install moves to plugin mode (T7), or a plugin-mode
 // install to repo mode (T9). Any other switch stops, writes nothing and names
 // the commands that get there (T10, T11, T13).
-function resolveUpdateMode(requestedMode, existingState, runtime) {
+function resolveUpdateMode(requestedMode, existingState, runtime, targetPath) {
   const recordedMode = existingState?.mode === 'plugin' ? 'plugin' : 'repo';
   const mode = requestedMode ?? recordedMode;
   if (mode === recordedMode) return { mode, switchTo: null };
@@ -239,10 +241,13 @@ function resolveUpdateMode(requestedMode, existingState, runtime) {
   if (mode === 'repo') return { mode, switchTo: 'repo' };
   const runtimeList = pluginRuntimeList(runtime, existingState?.runtimes);
   if (!existingState) {
-    throw new Error(`update --adopt-existing --mode plugin: there is no install state to switch from. Run \`workflow-kit update --adopt-existing --runtime ${runtimeList}\` first to bootstrap a safe baseline, then \`${pluginUpdateCommand(runtimeList)}\`. Nothing was written.`);
+    // M5: the bootstrap keeps every runtime asked for; the switch after it
+    // names only those with a plugin, and the stop says which ones it leaves.
+    const adoptList = runtime === undefined ? runtimeList : parseRuntimeList(runtime).join(',');
+    throw new Error(`update --adopt-existing --mode plugin: there is no install state to switch from. Run \`${withTarget(`workflow-kit update --adopt-existing --runtime ${adoptList}`, targetPath)}\` first to bootstrap a safe baseline, then \`${pluginUpdateCommand(runtimeList, targetPath)}\`.${noPluginNote(runtime)}${adoptList === runtimeList ? '' : leftOutNote(runtimeList, adoptList.split(','))} Nothing was written.`);
   }
   if (existingState.schemaVersion === legacyInstallStateSchemaVersion) {
-    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}, and its layout migration has to run before a mode switch. Run \`workflow-kit update\` first, then \`${pluginUpdateCommand(runtimeList)}\`.${leftOutNote(runtimeList, existingState.runtimes)} Nothing was written.`);
+    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}, and its layout migration has to run before a mode switch. Run \`${withTarget('workflow-kit update', targetPath)}\` first, then \`${pluginUpdateCommand(runtimeList, targetPath)}\`.${noPluginNote(runtime)}${leftOutNote(runtimeList, existingState.runtimes)} Nothing was written.`);
   }
   if (existingState.mode === 'export') {
     throw new Error(`update --mode plugin: ${installStateRelativePath} records an export. ${exportIsACopy(runtimeList)} Nothing was written.`);
@@ -256,7 +261,15 @@ function pluginRuntimeList(runtime, recordedRuntimes) {
   const chosen = parseRuntimeList(runtime ?? recordedRuntimes?.join(',') ?? 'neutral').filter((item) => pluginRuntimes.includes(item));
   return (chosen.length > 0 ? chosen : pluginRuntimes).join(',');
 }
-const pluginUpdateCommand = (runtimeList) => `workflow-kit update --mode plugin --runtime ${runtimeList}`;
+const pluginUpdateCommand = (runtimeList, targetPath) => withTarget(`workflow-kit update --mode plugin --runtime ${runtimeList}`, targetPath);
+// M5: a runtime asked for that has no plugin is left out of the plugin-mode
+// command a stop names, so the stop says so.
+function noPluginNote(runtime) {
+  const withoutPlugin = parseRuntimeList(runtime ?? 'neutral').filter((item) => item !== 'neutral' && !pluginRuntimes.includes(item));
+  if (withoutPlugin.length === 0) return '';
+  const them = withoutPlugin.length === 1 ? 'it' : 'them';
+  return ` ${withoutPlugin.join(', ')} ${withoutPlugin.length === 1 ? 'has' : 'have'} no plugin, so that command leaves ${them} out; to keep ${them}, stay in repo mode.`;
+}
 // F6: a recorded runtime the named plugin-mode command does not keep leaves
 // the install with it (D16), so the stop says so.
 function leftOutNote(runtimeList, recordedRuntimes = []) {
@@ -279,7 +292,7 @@ export async function buildInstallPlan(options = {}) {
   // Plugin mode (PRD plugin-mode-pilot 2.3): the kit runs as a plugin, so the
   // repository only gets what the plugin cannot deliver.
   const pluginMode = options.mode === 'plugin';
-  if (pluginMode) assertPluginRuntimes(runtimes);
+  if (pluginMode) assertPluginRuntimes(runtimes, 'init', targetPath);
   const overlay = normalizeOverlay(options.overlay ?? 'fhh-ia-ecosystem-full');
   const backupMode = normalizeBackupMode(options.backupMode ?? 'required');
   const files = pluginMode ? await pluginModeBaseFiles({ runtimes, manifest }) : await selectedTemplateFiles({ runtimes, overlay });
@@ -343,7 +356,7 @@ export async function buildUpdatePlan(options = {}) {
   if (!existingState && !options.adoptExisting) {
     throw new Error('No install state found. Run `workflow-kit update --adopt-existing --runtime <list>` first to bootstrap a safe baseline.');
   }
-  const { mode: installMode, switchTo } = resolveUpdateMode(options.mode, existingState, options.runtime);
+  const { mode: installMode, switchTo } = resolveUpdateMode(options.mode, existingState, options.runtime, targetPath);
   // Plugin mode (T7, T8): the same file selection as init --mode plugin. To
   // repo mode (T9): the file list of a repo-mode update; the settings files
   // the plugin declaration was written to lose it.
@@ -351,7 +364,7 @@ export async function buildUpdatePlan(options = {}) {
   const switching = switchTo === 'plugin';
   const leavingPlugin = switchTo === 'repo';
   const runtimes = parseRuntimeList(options.runtime ?? existingState?.runtimes?.join(',') ?? 'neutral');
-  if (pluginMode) assertPluginRuntimes(runtimes, 'update');
+  if (pluginMode) assertPluginRuntimes(runtimes, 'update', targetPath);
   // D16: the runtimes whose settings lose the kit's declaration. Leaving
   // plugin mode: the recorded ones, the requested ones and any whose file
   // declares the plugin. In plugin mode: a recorded runtime that leaves.
@@ -418,7 +431,7 @@ export async function buildUpdatePlan(options = {}) {
   operations.push(...retired.operations);
   if (switching) {
     await planEditedDecisions({ operations, edited: options.edited ?? {}, manifest, switching });
-    assertModeSwitchSettled(operations, options.runtime === undefined ? '' : ` --runtime ${runtimes.join(',')}`);
+    assertModeSwitchSettled(operations, options.runtime === undefined ? '' : ` --runtime ${runtimes.join(',')}`, targetPath);
   }
   await finalizeOperations({ targetPath, manifest, operations, previousFiles });
   // A switch (either way), like the layout migration, is applied whole and
@@ -710,7 +723,7 @@ async function planRetiredFiles({ targetPath, manifest, previousFiles, operation
 // and names what settles each file: one command with an --edited flag per
 // file (F8), which can be run as printed.
 const switchCommand = 'workflow-kit update --mode plugin';
-function assertModeSwitchSettled(operations, runtimeFlag = '') {
+function assertModeSwitchSettled(operations, runtimeFlag = '', targetPath = undefined) {
   const pending = operations.filter((item) => item.operation === 'skip_modified' || (item.operation === 'skip_unmanaged' && item.reason === 'invalid_managed_block'));
   if (pending.length === 0) return;
   const lines = pending.map((item) => {
@@ -718,7 +731,7 @@ function assertModeSwitchSettled(operations, runtimeFlag = '') {
     const settle = item.decisions?.length > 0 ? item.decisions.join(' | ') : 'no --edited decision applies; fix its workflow-kit markers by hand';
     return `- ${item.relativePath} (${what}): ${settle}`;
   });
-  const command = `${switchCommand}${runtimeFlag}`;
+  const command = withTarget(`${switchCommand}${runtimeFlag}`, targetPath);
   const discardable = pending.filter((item) => item.decisions?.includes('discard'));
   const fixByHand = discardable.length < pending.length ? 'Fix the markers of each file no --edited decision applies to, then run' : 'Run';
   const perFile = discardable.length > 0
@@ -753,7 +766,8 @@ async function planKitLocationCleanup({ targetPath, manifest, operations }) {
     if (planned.has(relativePath) || entry?.class !== 'adapter' || !templates.has(relativePath)) continue;
     const targetFile = resolveInsideTarget(targetPath, relativePath);
     const existing = await readOptional(targetFile).catch(() => null);
-    if (existing === null || extractManagedBlock(existing, kitLocationBlockName).error) continue;
+    // M7: any kit-location marker, also one a hand edit left without its pair.
+    if (existing === null || !carriesKitLocationMarker(existing)) continue;
     const content = replaceManagedBlock(existing, await fs.readFile(templates.get(relativePath), 'utf8'), entry.block ?? defaultBlockName);
     if (content === null) continue;
     cleanup.push({ relativePath, targetFile, sourcePath: templates.get(relativePath), class: 'adapter', operation: 'overwrite_with_backup', content, untracked: true });

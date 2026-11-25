@@ -435,3 +435,59 @@ test('F4: in repo mode a plugin settings file doctor cannot read adds nothing to
     assert.deepEqual(calls, [], name);
   }
 });
+
+// Final review, round 2 (M3, M7, M9, N4): what doctor says about a plugin that
+// is off next to a project marketplace, a kit-location marker a hand edit left
+// alone, a plugin newer than the CLI, and a runtime the install does not
+// record.
+test('M3: the project\'s own marketplace without a plugin entry says the plugin is not enabled', async () => {
+  const target = await install('claude');
+  const { executor } = executorDouble(installed(packageJson.version));
+  await write(target, '.claude/settings.json', settingsJson({ extraKnownMarketplaces: { 'fhh-ia-ecosystem': { source: { source: 'github', repo: 'fork/kit' } } } }));
+
+  const result = await doctor(target, executor);
+
+  assertFinding(result, 'mode/marketplace-customized', '.claude/settings.json', [`enabledPlugins["${pluginId}"] is missing`, 'not enabled', 'true'], 'warning');
+  assert.deepEqual(findings(result, 'mode/').map((item) => item.code), ['mode/marketplace-customized']);
+});
+
+test('M7: in repo mode a kit-location marker left without its pair is still mode/adapter-not-tracked', async () => {
+  const template = await adapterTemplate('agents-md/AGENTS.md');
+  const withoutEnd = pluginAdapterContent(template, 'workflow-kit:managed').replace(`<!-- ${kitLocationBlockName}:end -->\n`, '');
+  assert.equal(withoutEnd.includes(`<!-- ${kitLocationBlockName}:end -->`), false);
+  const target = await install('claude', 'repo');
+  const { calls, executor } = executorDouble(installed(packageJson.version));
+  await write(target, 'AGENTS.md', withoutEnd);
+
+  const result = await doctor(target, executor);
+
+  assert.deepEqual(calls, []);
+  assertFinding(result, 'mode/adapter-not-tracked', 'AGENTS.md', ['does not track or refresh it', 'delete the file'], 'warning');
+});
+
+test('M9: a plugin newer than this CLI asks for a CLI upgrade; an older one for a plugin update', async () => {
+  const target = await install('claude');
+  const [major, minor] = packageJson.version.split('.').map(Number);
+  const cases = [
+    { version: `${major}.${minor + 1}.0-later`, says: 'workflow-kit upgrade --apply --yes', not: `claude plugin update ${pluginId}` },
+    { version: '0.0.1', says: `claude plugin update ${pluginId}`, not: 'workflow-kit upgrade' }
+  ];
+  for (const { version, says, not } of cases) {
+    const { executor } = executorDouble(installed(version));
+    const finding = assertFinding(await doctor(target, executor), 'mode/plugin-version-mismatch', '.claude/settings.json', [version, packageJson.version, says], 'warning');
+    assert.equal(finding.message.includes(not), false, `${version}: ${finding.message}`);
+  }
+});
+
+test('N4: doctor --runtime copilot on a claude plugin install names the update that adds copilot, and that update works', async () => {
+  const target = await install('claude');
+  const { executor } = executorDouble(installed(packageJson.version));
+
+  const result = await doctor(target, executor, { runtime: 'claude,copilot' });
+
+  const finding = assertFinding(result, 'mode/plugin-not-declared', '.github/copilot/settings.json', ['`workflow-kit update --runtime claude,copilot --apply --yes`'], 'warning');
+  const [, command] = finding.message.match(/`(workflow-kit update [^`]+)`/);
+  const update = await cli([...command.replace(/^workflow-kit /, '').split(' '), '--target', target]);
+  assert.equal(update.code, 0, update.stderr);
+  assert.equal(findings(await doctor(target, executor, { runtime: 'claude,copilot' }), 'mode/plugin-not-declared').length, 0);
+});

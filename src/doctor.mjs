@@ -12,8 +12,8 @@ import { applyJournalRelativePath } from './apply.mjs';
 import { classifyPath, currentPathFor, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, projectIndexPath, projectIndexTableRows, shadowManifestName, skillsRoot, unquote, walkTree } from './migration.mjs';
 import {
-  claudePluginEnableCommand, claudePluginListHint, claudePluginUpdateCommand, copilotPluginListCommand, inspectInstalledPlugins, inspectPluginSettings,
-  kitLocationBlockName, kitMarketplaceEntry, marketplaceEntryKey, pluginAdapterContent, pluginBranch, pluginDeclarationFragment, pluginEntryKey, pluginId, pluginInstallCommand
+  carriesKitLocationMarker, claudePluginEnableCommand, claudePluginListHint, claudePluginUpdateCommand, cliUpgradeCommand, compareVersionCores, copilotPluginListCommand, inspectInstalledPlugins, inspectPluginSettings,
+  kitMarketplaceEntry, marketplaceEntryKey, pluginAdapterContent, pluginBranch, pluginDeclarationFragment, pluginEntryKey, pluginId, pluginInstallCommand
 } from './plugin-mode.mjs';
 import { pluginRuntimes, pluginSettingsPaths, runtimeEntrypoints, supportedRuntimes } from './runtime-matrix.mjs';
 import { validateWorkflowContract } from './workflow-contract/index.mjs';
@@ -198,19 +198,28 @@ function repoAndPluginWayOut(state, relativePath) {
 // Plugin mode: each recorded plugin runtime's settings file declares the
 // plugin, unless the project decided otherwise in it (D15): that choice is
 // named, with what to change for the kit's value.
-async function declarationDiagnostics({ targetPath, runtimes }) {
+async function declarationDiagnostics({ targetPath, runtimes, recordedRuntimes = [] }) {
   const diagnostics = [];
+  // N4: a runtime the install does not record is declared by an update that
+  // adds it, not by a plain update.
+  const declareCommand = (relativePath) => {
+    const missing = runtimes.filter((runtime) => pluginSettingsPaths[runtime] === relativePath && !recordedRuntimes.includes(runtime));
+    return missing.length === 0 ? 'workflow-kit update --apply --yes' : `workflow-kit update --runtime ${[...recordedRuntimes.filter((runtime) => runtime !== 'neutral'), ...missing].join(',')} --apply --yes`;
+  };
   for (const item of await inspectPluginSettings({ targetPath, runtimes })) {
     if (item.disabledByProject) {
       diagnostics.push(warning('mode/plugin-disabled-by-project', item.relativePath, `The project turned the plugin ${pluginId} off in this file (${pluginEntryKey} is false), so this runtime does not load the kit; workflow-kit leaves that choice as it is. To use the kit, set ${pluginEntryKey} to true.`));
     }
     if (item.marketplaceCustomized) {
-      diagnostics.push(warning('mode/marketplace-customized', item.relativePath, `${marketplaceEntryKey} in this file is not the kit's entry, so the plugin comes from that marketplace; workflow-kit leaves that choice as it is. To use the kit's marketplace, set it to ${kitMarketplaceEntry()}.`));
+      // M3: next to the project's own marketplace, a missing plugin entry
+      // means the plugin is off, and the warning says so.
+      const notEnabled = item.pluginEntryMissing ? ` ${pluginEntryKey} is missing, so the plugin is not enabled: set it to true to load it.` : '';
+      diagnostics.push(warning('mode/marketplace-customized', item.relativePath, `${marketplaceEntryKey} in this file is not the kit's entry, so the plugin comes from that marketplace; workflow-kit leaves that choice as it is. To use the kit's marketplace, set it to ${kitMarketplaceEntry()}.${notEnabled}`));
     }
     if (item.declared || item.disabledByProject || item.marketplaceCustomized) continue;
     diagnostics.push(warning('mode/plugin-not-declared', item.relativePath, item.exists && !item.valid
-      ? `Not a JSON object workflow-kit can merge into, so the plugin ${pluginId} is not declared and workflow-kit does not touch the file. Fix it and run \`workflow-kit update --apply --yes\`, or add this to it by hand: ${pluginDeclarationFragment()}`
-      : `The plugin ${pluginId} is not declared ${item.exists ? 'in this file' : '(the file is missing)'}, so this runtime does not offer it for this repository. Run \`workflow-kit update --apply --yes\` to declare it.`));
+      ? `Not a JSON object workflow-kit can merge into, so the plugin ${pluginId} is not declared and workflow-kit does not touch the file. Fix it and run \`${declareCommand(item.relativePath)}\`, or add this to it by hand: ${pluginDeclarationFragment()}`
+      : `The plugin ${pluginId} is not declared ${item.exists ? 'in this file' : '(the file is missing)'}, so this runtime does not offer it for this repository. Run \`${declareCommand(item.relativePath)}\` to declare it.`));
   }
   return diagnostics;
 }
@@ -233,7 +242,9 @@ async function untrackedAdapterDiagnostics({ targetPath, manifest, state, plugin
     if (claimed.has(relativePath) || Object.hasOwn(state.files, relativePath) || classifyPath(manifest, relativePath)?.class !== 'adapter') continue;
     const content = await readOptional(resolveInsideTarget(targetPath, relativePath)).catch(() => null);
     if (content === null || extractManagedBlock(content, classifyPath(manifest, relativePath)?.block ?? defaultBlockName).error) continue;
-    if (pluginMode || !extractManagedBlock(content, kitLocationBlockName).error) untracked.add(relativePath);
+    // M7: in repo mode any kit-location marker counts, also one a hand edit
+    // left without its pair.
+    if (pluginMode || carriesKitLocationMarker(content)) untracked.add(relativePath);
   }
   const keepCommand = (runtime) => `workflow-kit update${pluginMode && !pluginRuntimes.includes(runtime) ? ' --mode repo' : ''} --runtime ${[...recorded, runtime].join(',')}`;
   return [...untracked].sort().map((relativePath) => {
@@ -263,7 +274,12 @@ async function installedPluginDiagnostics({ targetPath, executor, timeoutMs }) {
     diagnostics.push(warning('mode/plugin-disabled', settingsPath, `Claude Code lists the plugin ${pluginId} as installed but disabled, so the kit does not load in this repository. Run \`${claudePluginEnableCommand}\`.`));
   }
   if (found.version !== packageJson.version) {
-    diagnostics.push(warning('mode/plugin-version-mismatch', settingsPath, `Claude Code has the plugin ${pluginId} ${found.version ?? 'without a version'} installed; this workflow-kit CLI is ${packageJson.version}. Run \`${claudePluginUpdateCommand}\`.`));
+    // M9: a plugin newer than this CLI asks for a newer CLI, not a plugin
+    // update.
+    const advice = compareVersionCores(found.version, packageJson.version) === 1
+      ? `The plugin is newer: run \`${cliUpgradeCommand}\` to bring this CLI to it`
+      : `Run \`${claudePluginUpdateCommand}\``;
+    diagnostics.push(warning('mode/plugin-version-mismatch', settingsPath, `Claude Code has the plugin ${pluginId} ${found.version ?? 'without a version'} installed; this workflow-kit CLI is ${packageJson.version}. ${advice}.`));
   }
   return diagnostics;
 }
@@ -443,7 +459,7 @@ export async function runDoctor(options = {}) {
     () => symlinkDiagnostics(targetPath, files),
     () => modeMixDiagnostics({ targetPath, manifest, state: storedState, pluginMode, files, shipped }),
     () => untrackedAdapterDiagnostics({ targetPath, manifest, state: storedState, pluginMode }),
-    ...(pluginMode ? [() => declarationDiagnostics({ targetPath, runtimes })] : []),
+    ...(pluginMode ? [() => declarationDiagnostics({ targetPath, runtimes, recordedRuntimes: storedState?.runtimes ?? [] })] : []),
     // Never in repo mode: the only command doctor runs, and only to read.
     ...(pluginMode && runtimes.includes('claude')
       ? [() => installedPluginDiagnostics({ targetPath, executor: options.commandExecutor, timeoutMs: options.pluginCheckTimeoutMs })]

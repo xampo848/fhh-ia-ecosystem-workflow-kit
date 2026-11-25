@@ -47,7 +47,9 @@ previous release.
   two entries; the file is never deleted. A project that turned the plugin
   off (`false`) or points the marketplace entry elsewhere, such as a fork,
   keeps its choice: the plan says so and `doctor` names it. The merge writes
-  normalized JSON; the original is in the backup.
+  normalized JSON (LF line endings; numbers as JavaScript reads them, so `1.0`
+  becomes `1` and an integer beyond 2^53 loses precision); the original is in
+  the backup.
 - `doctor` prints `Install mode: plugin` and expects only the plugin-mode
   files. New codes: `mode/repo-and-plugin` (error: the kit would load twice),
   and the warnings `mode/plugin-not-declared`, `mode/plugin-not-installed`,
