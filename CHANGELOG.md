@@ -32,13 +32,18 @@ entries on the next `update` (with a backup).
   another one applied stops with "changed after this plan was made" instead
   of replacing that run's journal; run it again. A dry run and `doctor` are
   not stopped by the lock. A lock whose process is gone, whose process id now
-  belongs to another process, or that is empty is taken over, so you never
-  remove it by hand. The lock and the temporary files of a write
+  belongs to another process, or that is empty is taken over; one that cannot
+  be proved stale (it has no start time, or the system cannot tell it) says
+  to remove it only if you are sure no workflow-kit command is running. The lock and the temporary files of a write
   (`.workflow-kit-tmp-*`) are new ignore entries, and the next run removes
   the ones a killed run left. Backups are never overwritten.
 - `rollback` restores each file through a temporary copy, so a file is never
-  left half-restored; stopped halfway, its journal stays and running it again
-  finishes it. Rolling back an unfinished run whose files were already
+  left half-restored. A rollback stopped at any point (even a killed one) is
+  recorded in the journal: `init` and `update` stop with "A workflow-kit
+  rollback … did not finish" and `doctor` reports it until `rollback --apply
+  --yes` runs again and finishes it. A rollback planned before another run
+  applied stops ("changed after this plan was made") instead of undoing the
+  wrong run. Rolling back an unfinished run whose files were already
   removed by hand now clears its journal (before, it said "Nothing to roll
   back" and `update` kept asking for a rollback). The plan names the run it
   undoes (`init` or `update`, when, which version), and for an `init` says the

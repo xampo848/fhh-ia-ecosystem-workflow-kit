@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { acquireTargetLock, applyJournalProblem, assertTargetNotLocked, applyJournalRelativePath, freeBackupStamp, interruptedCode, removeCreatedDirectories, removeTemporaryLeftovers } from './apply.mjs';
+import { acquireTargetLock, applyJournalProblem, assertObservedUnchanged, assertTargetNotLocked, applyJournalRelativePath, freeBackupStamp, interruptedCode, observeTarget, removeCreatedDirectories, removeTemporaryLeftovers } from './apply.mjs';
 import { checksumOf, copyFileAtomic, findSymlinkInPath, resolveInsideTarget, writeFileAtomic } from './fs-safety.mjs';
 import { installStateRelativePath, readManagedInstallState } from './planner.mjs';
 
@@ -57,8 +57,11 @@ export async function buildRollbackPlan(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   await assertTargetFolder(targetPath);
   await assertTargetNotLocked(targetPath);
+  // Read first: the apply of this plan checks under its lock that the
+  // journal and install-state are still the ones it was planned from.
+  const observed = await observeTarget(targetPath, path.join(targetPath, installStateRelativePath));
   const journal = await readJournal(targetPath);
-  if (!journal) return buildLegacyRollbackPlan(targetPath);
+  if (!journal) return { ...await buildLegacyRollbackPlan(targetPath), observed };
 
   const operations = [];
   // Entries written since 0.23.2 carry the checksum the file had before the
@@ -115,10 +118,12 @@ export async function buildRollbackPlan(options = {}) {
   return {
     targetPath,
     source: 'journal',
+    observed,
     mode: typeof journal.mode === 'string' ? journal.mode : null,
     toolkitVersion: typeof journal.toolkitVersion === 'string' ? journal.toolkitVersion : null,
     appliedAt: journal.appliedAt ?? null,
     stateEdited,
+    rollbackStartedAt: typeof journal.rollbackStartedAt === 'string' ? journal.rollbackStartedAt : null,
     completed: journal.completed !== false,
     stateWritten: journal.stateWritten !== false,
     previousInstallState: typeof journal.previousInstallState === 'string' ? journal.previousInstallState : null,
@@ -184,6 +189,13 @@ export async function applyRollbackPlan(plan, { signal } = {}) {
   const results = [];
   let stateCopy = null;
   try {
+    // Planned before another run applied or rolled back: undoing from this
+    // plan would undo the wrong run and orphan the other run's backups.
+    await assertObservedUnchanged(plan.observed, plan.targetPath, statePath);
+    // Recorded before the first change: a rollback stopped at any point
+    // (even killed) stops the next init or update, which points back here,
+    // and doctor reports it; running rollback again finishes it.
+    if (plan.source === 'journal') await markRollbackStarted(journalPath);
     // Temporary files a killed run (or rollback) left next to the files it wrote.
     const folders = [...plan.operations.map((item) => path.relative(plan.targetPath, path.dirname(item.targetFile))), path.dirname(applyJournalRelativePath)];
     await removeTemporaryLeftovers(plan.targetPath, folders);
@@ -255,6 +267,13 @@ async function keepCurrentContent(item, stamp) {
   return copyPath;
 }
 
+async function markRollbackStarted(journalPath) {
+  const journal = JSON.parse(await fs.readFile(journalPath, 'utf8'));
+  if (typeof journal.rollbackStartedAt === 'string') return;
+  journal.rollbackStartedAt = new Date().toISOString();
+  await writeFileAtomic(journalPath, `${JSON.stringify(journal, null, 2)}\n`);
+}
+
 async function readBufferIfPresent(file) {
   try {
     return await fs.readFile(file);
@@ -299,7 +318,7 @@ export function formatRollbackPlan(plan) {
     const command = plan.mode === 'init' ? '`init`' : plan.mode === 'update' ? '`update`' : 'apply';
     const run = `the last ${command} (applied ${plan.appliedAt ?? 'at an unknown date'}${plan.toolkitVersion ? ` by workflow-kit ${plan.toolkitVersion}` : ''}${plan.completed ? '' : ', which did not finish'})`;
     const initNote = plan.mode === 'init' ? ' That run is the install itself: rolling it back removes the files it installed.' : '';
-    scope = `Undoes ${run}; ${state}${listed.length === 0 ? '; no file needs restoring or removing' : ''}. The record of that apply is removed.${initNote}`;
+    scope = `${plan.rollbackStartedAt ? `Finishes the rollback started ${plan.rollbackStartedAt}, which did not finish. ` : ''}Undoes ${run}; ${state}${listed.length === 0 ? '; no file needs restoring or removing' : ''}. The record of that apply is removed.${initNote}`;
   } else {
     scope = `No apply journal found: restoring the newest backup of each managed file; the current content of each file it replaces is kept first as a ${beforeRollbackSuffix} copy. Created and moved files and install-state stay as they are, so run workflow-kit doctor next. To return to this kit version, run \`workflow-kit update\` (dry run first) and decide each pending file with --edited; \`--edited all=discard\` would also drop every kept edit and the own text of adapters (left in backups).`;
   }

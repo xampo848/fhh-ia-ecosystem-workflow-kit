@@ -534,3 +534,87 @@ test('docs/migration.md names no release tag that does not exist', async () => {
   const text = await fs.readFile(path.join(root, 'docs/migration.md'), 'utf8');
   assert.doesNotMatch(text, /v0\.18\.0-equilibrado-profile/);
 });
+
+// Repair round 3, item 1: a rollback planned before another run applied.
+test('a rollback planned before another run applied stops under the lock and writes nothing; that run can still be rolled back', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nOur edit.\n');
+  const before = await hashTree(target);
+  // Planned on the init journal; the update below applies before it does.
+  const rollbackOfInit = await buildRollbackPlan({ targetPath: target });
+  await applyInstallPlan(await buildUpdatePlan({ targetPath: target, edited: { '.agents/instructions.md': 'discard' } }));
+  const afterUpdate = await hashTree(target);
+
+  await assert.rejects(applyRollbackPlan(rollbackOfInit), (error) => error.code === 'WORKFLOW_KIT_PLAN_STALE' && /changed after this plan was made/.test(error.message));
+  assert.deepEqual(await hashTree(target), afterUpdate, 'nothing written');
+  await applyRollbackPlan(await buildRollbackPlan({ targetPath: target }));
+  assert.deepEqual(await hashTree(target), withoutJournal(before), 'the update is undone, the edit is back');
+});
+
+// Repair round 3, item 2: an interrupted rollback stops the next run.
+test('a rollback stopped by SIGINT, SIGTERM or SIGKILL is recorded: update stops and doctor reports it until rollback finishes', async () => {
+  const { runDoctor } = await import('../src/doctor.mjs');
+  const stops = [
+    ['SIGINT', { WORKFLOW_KIT_TEST_INTERRUPT_AFTER: '1', WORKFLOW_KIT_TEST_INTERRUPT_SIGNAL: 'SIGINT' }],
+    ['SIGTERM', { WORKFLOW_KIT_TEST_INTERRUPT_AFTER: '1', WORKFLOW_KIT_TEST_INTERRUPT_SIGNAL: 'SIGTERM' }],
+    ['SIGKILL', { WORKFLOW_KIT_TEST_KILL_IN_COPY: '1' }]
+  ];
+  for (const [signal, env] of stops) {
+    const target = await makeTempRepo();
+    await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+    for (const name of (await fs.readdir(path.join(target, '.agents/delegation'))).sort().slice(0, 2)) {
+      await fs.appendFile(path.join(target, '.agents/delegation', name), '\nOur edit.\n');
+    }
+    await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nOur edit.\n');
+    const edited = await hashTree(target);
+    assert.equal((await cli(['update', '--target', target, '--edited', 'all=discard', '--apply', '--yes'])).code, 0);
+
+    const stopped = await child(['rollback', '--target', target, '--apply', '--yes'], env);
+    if (signal === 'SIGKILL') assert.equal(stopped.signal, 'SIGKILL', signal);
+    else assert.equal(stopped.code, { SIGINT: 130, SIGTERM: 143 }[signal], `${signal}: ${stopped.stderr}`);
+    const partly = await hashTree(target);
+
+    for (const args of [['update', '--target', target], ['update', '--target', target, '--apply', '--yes'], ['init', '--target', target, '--apply', '--yes']]) {
+      const blocked = await cli(args);
+      assert.equal(blocked.code, 2, `${signal}: ${args.join(' ')}`);
+      assert.match(blocked.stderr, /A workflow-kit rollback of the apply of .+ started \(.+\) and did not finish, so the repository is partly rolled back\. Run `workflow-kit rollback --apply --yes` again to finish it/, `${signal}: ${args.join(' ')}`);
+    }
+    assert.deepEqual(await hashTree(target), partly, `${signal}: nothing written while it is pending`);
+    const doctor = await runDoctor({ targetPath: target });
+    assert.equal(doctor.ok, false, signal);
+    assert.ok(doctor.diagnostics.some((item) => item.code === 'managed/apply-incomplete' && /rollback --apply --yes/.test(item.message)), signal);
+
+    const plan = await cli(['rollback', '--target', target]);
+    assert.match(plan.stdout, /^Finishes the rollback started .+, which did not finish\. Undoes the last `update`/m, signal);
+    const finished = await cli(['rollback', '--target', target, '--apply', '--yes']);
+    assert.equal(finished.code, 0, `${signal}: ${finished.stderr}`);
+    assert.deepEqual(await hashTree(target), withoutJournal(edited), `${signal}: the update is fully undone`);
+    assert.equal((await cli(['update', '--target', target])).code, 0, signal);
+  }
+});
+
+// Repair round 3, item 3.
+test('a lock that cannot be proved stale says how to clear it, and its description for doctor gives its process, age and staleness', async () => {
+  const { describeTargetLock } = await import('../src/apply.mjs');
+  assert.equal(typeof describeTargetLock, 'function');
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  await fs.rm(path.join(target, '.agents/README.md'));
+  assert.equal(await describeTargetLock(target), null);
+  // A lock without its process start time (an older build, or written by hand).
+  const startedAt = new Date(Date.now() - 90_000).toISOString();
+  await write(target, applyLockRelativePath, `${JSON.stringify({ pid: process.pid, startedAt })}\n`);
+  const blocked = await cli(['update', '--target', target, '--apply', '--yes']);
+  assert.equal(blocked.code, 2);
+  assert.match(blocked.stderr, /If you are sure no workflow-kit command is running on this repository \(for example after a crash\), remove \.agents\/workflow-kit\/apply\.lock and run again\./);
+  const held = await describeTargetLock(target);
+  assert.deepEqual({ pid: held.pid, stale: held.stale, relativePath: held.relativePath }, { pid: process.pid, stale: false, relativePath: '.agents/workflow-kit/apply.lock' });
+  assert.ok(held.ageSeconds >= 89 && held.ageSeconds < 300, String(held.ageSeconds));
+  assert.match(held.message, /is held by process \d+, taken \d+ s ago.*remove \.agents\/workflow-kit\/apply\.lock/);
+  const gone = spawnSync(process.execPath, ['-e', '']).pid;
+  await write(target, applyLockRelativePath, `${JSON.stringify({ pid: gone, startedAt })}\n`);
+  const stale = await describeTargetLock(target);
+  assert.equal(stale.stale, true);
+  assert.match(stale.message, /the next apply or rollback takes it over/);
+});

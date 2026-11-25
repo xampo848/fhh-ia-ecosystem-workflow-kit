@@ -33,7 +33,8 @@ export function applyJournalProblem(journal) {
     // Written since 0.23.2: the folders the run created and its process id.
     && (journal.createdDirectories === undefined || (Array.isArray(journal.createdDirectories) && journal.createdDirectories.every(insideTarget)))
     && (journal.pid === undefined || Number.isInteger(journal.pid))
-    && stringOrNull(journal.stateChecksum ?? null);
+    && stringOrNull(journal.stateChecksum ?? null)
+    && stringOrNull(journal.rollbackStartedAt ?? null);
   return usable ? null : 'entries';
 }
 
@@ -161,7 +162,33 @@ function lockIsStale(holder) {
   return started !== null && Math.abs(started - holder.processStartedAt) > 2000;
 }
 
-const lockedError = (holder) => Object.assign(new Error(`Another workflow-kit run is changing this repository (process ${holder.pid}, started ${holder.startedAt ?? 'at an unknown time'}; ${applyLockRelativePath} exists). Wait for it to finish, then run this command again. Nothing was written.`), { code: 'WORKFLOW_KIT_LOCKED' });
+// The way out when the user knows no workflow-kit runs (the lock cannot be
+// proved stale: an older lock without its process start time, or a system
+// where that time cannot be read).
+export const clearLockAdvice = `If you are sure no workflow-kit command is running on this repository (for example after a crash), remove ${applyLockRelativePath} and run again.`;
+const lockedError = (holder) => Object.assign(new Error(`Another workflow-kit run is changing this repository (process ${holder.pid}, started ${holder.startedAt ?? 'at an unknown time'}; ${applyLockRelativePath} exists). Wait for it to finish, then run this command again. ${clearLockAdvice} Nothing was written.`), { code: 'WORKFLOW_KIT_LOCKED' });
+
+// What doctor reports about the lock: null without one; otherwise its
+// process id, when it was taken, its age in seconds and whether it is stale
+// (the next run takes a stale lock over by itself).
+export async function describeTargetLock(targetPath, now = Date.now()) {
+  const lockPath = path.join(targetPath, applyLockRelativePath);
+  if (!(await exists(lockPath))) return null;
+  const holder = await readLock(lockPath);
+  const takenAt = Date.parse(holder?.startedAt ?? '');
+  const ageSeconds = Number.isNaN(takenAt) ? null : Math.max(0, Math.round((now - takenAt) / 1000));
+  const stale = lockIsStale(holder);
+  return {
+    relativePath: applyLockRelativePath,
+    pid: Number.isInteger(holder?.pid) ? holder.pid : null,
+    startedAt: holder?.startedAt ?? null,
+    ageSeconds,
+    stale,
+    message: stale
+      ? `${applyLockRelativePath} was left by a workflow-kit run that no longer runs${holder?.pid ? ` (process ${holder.pid})` : ''}; the next apply or rollback takes it over.`
+      : `${applyLockRelativePath} is held by process ${holder.pid}${ageSeconds === null ? '' : `, taken ${ageSeconds} s ago`}: a workflow-kit run is changing this repository. ${clearLockAdvice}`
+  };
+}
 
 // The run that holds the target right now, or null (no lock, or a stale one).
 export async function targetLockHolder(targetPath) {
@@ -271,16 +298,31 @@ function stateContentToWrite(nextInstallState, previousRaw) {
 export const interruptedCode = 'WORKFLOW_KIT_INTERRUPTED';
 
 // Under the lock, the target must still be what the plan read: another run
-// that planned before this one, or applied in between, would otherwise have
-// its journal replaced and could no longer be rolled back. `plan.observed`
-// holds the checksums of install-state and of the journal as planning read
-// them (plans built by hand carry none). A journal of a run that did not
-// finish stops the run in any case.
-async function assertTargetAsPlanned(plan, journalPath) {
+// that planned before this one, or applied (or rolled back) in between, would
+// otherwise have its journal replaced or undone from an old plan, and could
+// no longer be rolled back. `observed` holds the checksums of install-state
+// and of the journal as planning read them (plans built by hand carry none).
+export async function assertObservedUnchanged(observed, targetPath, stateFilePath) {
+  if (!observed) return;
   const changed = (relative) => Object.assign(new Error(`${relative} changed after this plan was made: another workflow-kit run changed this repository in between. Run this command again to plan from the repository as it is now. Nothing was written.`), { code: 'WORKFLOW_KIT_PLAN_STALE' });
   const checksumOrNull = (raw) => (raw === null ? null : checksumOf(raw));
-  if (plan.observed && journalPath && checksumOrNull(await readIfPresent(journalPath)) !== plan.observed.journal) throw changed(applyJournalRelativePath);
-  if (plan.observed && plan.stateFilePath && checksumOrNull(await readIfPresent(plan.stateFilePath)) !== plan.observed.installState) throw changed(path.relative(plan.targetPath, plan.stateFilePath).split(path.sep).join('/'));
+  if (checksumOrNull(await readIfPresent(path.join(targetPath, applyJournalRelativePath))) !== observed.journal) throw changed(applyJournalRelativePath);
+  if (stateFilePath && checksumOrNull(await readIfPresent(stateFilePath)) !== observed.installState) throw changed(path.relative(targetPath, stateFilePath).split(path.sep).join('/'));
+}
+
+// A journal whose run did not finish, or whose rollback started and did not
+// finish: what the next init or update has to stop on (shared with the
+// planner gate and doctor through lastApplyProblem). Null for a finished run.
+export function unfinishedJournalMessage(journal) {
+  if (typeof journal?.rollbackStartedAt === 'string') {
+    return `A workflow-kit rollback of the apply of ${journal.appliedAt ?? 'unknown date'} started (${journal.rollbackStartedAt}) and did not finish, so the repository is partly rolled back. Run \`workflow-kit rollback --apply --yes\` again to finish it`;
+  }
+  if (journal?.completed === false) return `The last workflow-kit apply did not finish (${journal.appliedAt ?? 'unknown date'}). Run \`workflow-kit rollback --apply --yes\` first`;
+  return null;
+}
+
+async function assertTargetAsPlanned(plan, journalPath) {
+  if (plan.targetPath) await assertObservedUnchanged(plan.observed, path.resolve(plan.targetPath), plan.stateFilePath);
   if (!journalPath) return;
   let journal;
   try {
@@ -288,9 +330,8 @@ async function assertTargetAsPlanned(plan, journalPath) {
   } catch {
     return;
   }
-  if (journal?.completed === false) {
-    throw new Error(`The last workflow-kit apply did not finish (${journal.appliedAt ?? 'unknown date'}). Run \`workflow-kit rollback --apply --yes\` first, then run this command again. Nothing was written.`);
-  }
+  const unfinished = unfinishedJournalMessage(journal);
+  if (unfinished) throw new Error(`${unfinished}, then run this command again. Nothing was written.`);
 }
 
 // What planning read of install-state and the journal, for the check above.

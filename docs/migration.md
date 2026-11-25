@@ -74,8 +74,12 @@ by hand.
 
 Rollback is just as careful: it restores each file through a temporary copy
 renamed into place, so a file is never left half-restored; Ctrl-C or
-`SIGTERM` stops it between two files; and its journal stays until it has
-finished, so running `rollback --apply --yes` again completes it. The plan
+`SIGTERM` stops it between two files; it marks the journal before its first
+change, so a rollback stopped at any point (even killed) makes `init` and
+`update` stop ("A workflow-kit rollback … did not finish") and `doctor` report
+it, and running `rollback --apply --yes` again completes it. Like an apply, a
+rollback planned before another run applied stops instead of undoing the
+wrong run. The plan
 names the run it undoes (`init` or `update`, when, and by which version);
 rolling back an `init` removes what it installed. An `install-state.json`
 edited after the run is kept as a `-before-rollback` copy before the previous
@@ -134,7 +138,9 @@ Checks that stop a run before it writes anything (since `0.23.2`):
   it; run the command again. A dry run and `doctor` only read, so a lock does
   not stop them. A lock that cannot belong to a running workflow-kit (its
   process is gone, its process id now belongs to another process, or the file
-  is empty) is taken over. Backups are created exclusively, so a backup is
+  is empty) is taken over. A lock that cannot be proved stale (written without
+  its process start time, or on a system where that time cannot be read)
+  stays: remove it only if you are sure no workflow-kit command is running. Backups are created exclusively, so a backup is
   never overwritten. The lock and the temporary files of a write
   (`.workflow-kit-tmp-*`) are in the kit's ignore entries, and the next run
   removes the ones a killed run left.

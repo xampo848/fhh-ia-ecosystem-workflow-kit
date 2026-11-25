@@ -10,7 +10,7 @@ import { assertPluginRuntimes, carriesKitLocationMarker, compareVersionCores, ki
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
 import { assertNameLengths, assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
-import { applyJournalProblem, applyJournalRelativePath, observeTarget, targetLockHolder } from './apply.mjs';
+import { applyJournalProblem, applyJournalRelativePath, observeTarget, targetLockHolder, unfinishedJournalMessage } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, projectIndexPath, requireMigrationBackups } from './migration.mjs';
 
@@ -181,7 +181,12 @@ export async function lastApplyProblem(targetPath) {
     return { kind: 'unusable', reason: 'not valid JSON' };
   }
   if (applyJournalProblem(journal)) return { kind: 'unusable', reason: 'unsupported format' };
-  return journal.completed === false ? { kind: 'incomplete', appliedAt: journal.appliedAt ?? 'unknown date' } : null;
+  // A rollback that started and did not finish leaves the repository partly
+  // rolled back: it stops the next run like an unfinished apply (`message`
+  // says which; doctor reports both as managed/apply-incomplete).
+  const message = unfinishedJournalMessage(journal);
+  if (message === null) return null;
+  return { kind: 'incomplete', appliedAt: journal.appliedAt ?? 'unknown date', ...(typeof journal.rollbackStartedAt === 'string' ? { rollback: true, message } : {}) };
 }
 
 export const unusableJournalMessage = (reason) => `${applyJournalRelativePath} cannot be read (${reason}), so rollback cannot use it. Fix it by hand (Git does not track it); only if you will not roll back the last apply, move it out of .agents/workflow-kit/`;
@@ -199,7 +204,7 @@ async function assertLastApplyFinished(targetPath) {
     if (holder) throw new Error(runInProgressMessage(holder));
   }
   if (problem?.kind === 'unusable') throw new Error(`${unusableJournalMessage(problem.reason)}. Then run this command again. Nothing was written.`);
-  if (problem?.kind === 'incomplete') throw new Error(`${incompleteApplyMessage(problem.appliedAt)}, then run this command again. Nothing was written.`);
+  if (problem?.kind === 'incomplete') throw new Error(`${problem.message ?? incompleteApplyMessage(problem.appliedAt)}, then run this command again. Nothing was written.`);
 }
 
 // Newer by the numeric release ("0.23.0-plugin-mode" reads as 0.23.0): the
