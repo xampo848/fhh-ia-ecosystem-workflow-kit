@@ -13,7 +13,8 @@
 // The same collectors run on this checkout (the tests) and on the files of
 // that commit (to write the fixture), so both sides are shaped the same way.
 // The package version, the target folder, timestamps and the checksums that
-// carry the version are normalized, so only a change of behaviour differs.
+// carry the version are normalized, and the CLI runs without Node's own
+// process warnings, so only a change of behaviour differs, on any Node.
 //
 // Regenerate the fixture (only when a change is meant to change repo mode;
 // then the fixture no longer describes 558e9fb and the comment of the guards
@@ -79,6 +80,11 @@ function normalizeText(text, { target, version }) {
     .replace(/\d{8}T\d{6}Z/g, '<stamp>');
 }
 
+// Node's own process warnings (Node 20 warns that importing JSON modules is
+// experimental, later versions do not) depend on the Node version, not on the
+// kit, so the runs turn them off.
+const childEnv = { ...process.env, NODE_NO_WARNINGS: '1' };
+
 // The output of a run (exit code, then stdout and stderr, normalized): its
 // hash, and its lines without the one-path operation lines ("- create: <path>"),
 // which the plans already hold, so a failing guard shows the lines that moved.
@@ -90,7 +96,7 @@ async function runCli(rootDirectory, args, context) {
   const bin = path.join(rootDirectory, 'bin', 'workflow-kit.mjs');
   let result;
   try {
-    const { stdout, stderr } = await runFile(process.execPath, [bin, ...args], { cwd: context.target, maxBuffer: 16 * 1024 * 1024 });
+    const { stdout, stderr } = await runFile(process.execPath, [bin, ...args], { cwd: context.target, env: childEnv, maxBuffer: 16 * 1024 * 1024 });
     result = { code: 0, stdout, stderr };
   } catch (error) {
     if (typeof error.code !== 'number') throw error;
