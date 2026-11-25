@@ -30,7 +30,8 @@ released it. Tags of the current lines:
 
 | Tag | Notes |
 | --- | --- |
-| `v0.23.0-plugin-mode` | current |
+| `v0.23.1-script-guards` | current |
+| `v0.23.0-plugin-mode` | |
 | `v0.22.0-manifest-updater` | |
 | `v0.21.0-project-runbooks` | |
 | `v0.20.0-kit-overlay-contract` | |
@@ -110,11 +111,13 @@ When you raise `package.json.version`, follow these steps in order:
    cannot remove is reported with the commands that remove it.
 
 A template change can also break the repo-mode guard of
-`test/plugin-mode.test.mjs`, which compares the repo-mode plans with a fixture
-generated from commit `558e9fb`. When the change to the repo-mode plan is
-intended, regenerate the fixture with the command in the header of
-`test/fixtures/plugin-mode/repo-mode-plans.mjs`, pointed at the new base
-commit, and review its diff before committing it.
+`test/plugin-mode.test.mjs`, which compares the repo-mode plans with the
+fixture `test/fixtures/plugin-mode/repo-mode-plans.json`, generated from the
+release named in the header of `test/fixtures/plugin-mode/repo-mode-plans.mjs`.
+When the change to the repo-mode plan is intended, commit it with the version
+raise, regenerate the fixture from that commit with the command in that
+header, update the release it names, and review the fixture's diff before
+committing it.
 
 The marketplace committed in `main` points at the branch `plugin`. That branch
 does not exist on the remote until the first publish and its approved push, so

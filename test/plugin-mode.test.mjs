@@ -350,17 +350,18 @@ test('a non-default profile at init writes the 13 plugin-variant agents of that 
   }
 });
 
-// AC-19 and T6 guards: repo mode does what commit 558e9fb (the last one before
-// plugin mode) did. The plans of init and of the update that follows it,
+// AC-19 and T6 guards: repo mode does what the release the fixture was last
+// regenerated at did (its header names it; first generated from 558e9fb, the
+// last commit before plugin mode). The plans of init and of the update that follows it,
 // without --mode and with --mode repo, have the same operation, class, path
 // and content for every file; the CLI run for real (init, init --apply,
 // doctor, update) gives the same exit code, output and tree. Runtime lists:
 // neutral, claude, copilot and claude,codex. The fixture comes from running
-// that commit's own files, exported with `git archive 558e9fb`; its header says
-// how to regenerate it.
+// that release's own files, exported with `git archive`; its header says how
+// to regenerate it.
 const repoModeFixture = async () => JSON.parse(await fs.readFile(repoModePlansFixture, 'utf8'));
 
-test('AC-19 guard: init and update without --mode and with --mode repo plan what 558e9fb planned, content included', async () => {
+test('AC-19 guard: init and update without --mode and with --mode repo plan what the fixture release planned, content included', async () => {
   const fixture = await repoModeFixture();
   for (const planOptions of [{}, { mode: 'repo' }]) {
     assert.deepEqual(await collectRepoModePlans(root, makeTempRepo, planOptions), fixture.plans, JSON.stringify(planOptions));
@@ -373,7 +374,7 @@ test('AC-19 guard: init and update without --mode and with --mode repo plan what
   assert.equal(blockOf(operationFor(plan, 'CLAUDE.md').content).includes('kit-location'), false);
 });
 
-test('AC-19 guard: the repo-mode CLI prints, writes and diagnoses what 558e9fb did', async () => {
+test('AC-19 guard: the repo-mode CLI prints, writes and diagnoses what the fixture release did', async () => {
   const fixture = await repoModeFixture();
   const runs = await collectRepoModeRuns(root, makeTempRepo);
   for (const [name, expected] of Object.entries(fixture.applied)) {
@@ -501,9 +502,9 @@ test('update stops: a runtime without plugin (T14, also on a switch to plugin) w
   }
 });
 
-// T6 guard: a repo-mode install whose state has no mode updates as 558e9fb
-// did, and an export still updates to repo mode.
-test('T6 guard: update on a repo-mode state without mode plans what 558e9fb planned; an export updates to repo', async () => {
+// T6 guard: a repo-mode install whose state has no mode updates as the
+// fixture release did, and an export still updates to repo mode.
+test('T6 guard: update on a repo-mode state without mode plans what the fixture release planned; an export updates to repo', async () => {
   const fixture = await repoModeFixture();
   const version = await packageVersionOf(root);
   for (const runtime of Object.keys(fixture.plans.update)) {
