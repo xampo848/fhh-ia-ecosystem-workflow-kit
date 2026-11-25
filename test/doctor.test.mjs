@@ -199,7 +199,7 @@ test('doctor reports an unusable or unfinished apply journal as an error with th
   const cases = [
     ['{ not json', 'managed/apply-journal-unusable', /cannot be read \(not valid JSON\), so rollback cannot use it\. Fix it by hand \(Git does not track it\); only if you will not roll back the last apply, move it out of \.agents\/workflow-kit\/\. init and update stop until then\.$/],
     ['{"schemaVersion":"2.0.0"}', 'managed/apply-journal-unusable', /cannot be read \(unsupported format\)/],
-    [JSON.stringify({ schemaVersion: '2.0.0', appliedAt: '2026-01-01T00:00:00.000Z', completed: false, files: [] }), 'managed/apply-incomplete', /did not finish \(2026-01-01T00:00:00\.000Z\)\. Run `workflow-kit rollback --apply --yes`/]
+    [JSON.stringify({ schemaVersion: '2.0.0', appliedAt: '2026-01-01T00:00:00.000Z', completed: false, files: [] }), 'managed/apply-incomplete', /did not finish \(2026-01-01T00:00:00\.000Z\)\. Run `workflow-kit rollback --target \S+ --apply --yes`/]
   ];
   for (const [content, code, message] of cases) {
     await write(target, journalPath, content);
@@ -457,4 +457,60 @@ test('a command doctor prints for a target with a backtick keeps an unambiguous 
     assert.equal(result.code, 0, `${command}\n${result.stderr}`);
     assert.match(result.stdout, new RegExp(`^Target: ${escape(target)}$`, 'm'));
   }
+});
+
+// The updater's apply lock: a live one is an error (a run is changing the
+// repository), a stale one a warning (the next apply takes it over).
+test('doctor reports the apply lock: held by a running process is an error, one left behind is a warning', async () => {
+  const lockPath = '.agents/workflow-kit/apply.lock';
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  assert.equal((await runDoctor({ targetPath: target })).diagnostics.some((item) => item.path === lockPath), false, 'no lock, no finding');
+
+  await write(target, lockPath, `${JSON.stringify({ pid: process.pid, startedAt: '2026-01-01T00:00:00.000Z' })}\n`);
+  const held = await runDoctor({ targetPath: target });
+  assertFindings(held, [['managed/apply-lock-held', lockPath, new RegExp(`^${escape(lockPath)} is held by process ${process.pid}, taken \\d+ s ago: a workflow-kit run is changing this repository\\. If you are sure no workflow-kit command is running`), 'error']]);
+  assert.equal(held.ok, false);
+
+  await write(target, lockPath, '');
+  const stale = await runDoctor({ targetPath: target });
+  assertFindings(stale, [['managed/apply-lock-stale', lockPath, new RegExp(`^${escape(lockPath)} was left by a workflow-kit run that no longer runs; the next apply or rollback takes it over\\.$`), 'warning']]);
+  assert.equal(stale.ok, true, 'a stale lock does not fail doctor');
+});
+
+// A rollback that started and did not finish has its own wording, and the
+// command doctor names carries the target (the journal message does not).
+test('an interrupted apply or rollback is managed/apply-incomplete with its own wording and a rollback command that names the target', async () => {
+  for (const interrupted of ['apply', 'rollback']) {
+    const target = await makeTempRepo();
+    await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+    const journalPath = path.join(target, '.agents/workflow-kit/last-apply.json');
+    const journal = JSON.parse(await fs.readFile(journalPath, 'utf8'));
+    if (interrupted === 'apply') journal.completed = false;
+    else journal.rollbackStartedAt = '2026-01-02T03:04:05.000Z';
+    await fs.writeFile(journalPath, `${JSON.stringify(journal, null, 2)}\n`);
+
+    const result = await runDoctor({ targetPath: target });
+    const finding = result.diagnostics.find((item) => item.code === 'managed/apply-incomplete');
+    assert.equal(result.ok, false, interrupted);
+    assert.match(finding.message, interrupted === 'rollback'
+      ? /^A workflow-kit rollback of the apply of .* started \(2026-01-02T03:04:05\.000Z\) and did not finish, so the repository is partly rolled back\. Run `workflow-kit rollback --target .* --apply --yes` again to finish it, then run init or update again\.$/
+      : /^The last workflow-kit apply did not finish \(.*\)\. Run `workflow-kit rollback --target .* --apply --yes` first, then run init or update again\.$/, interrupted);
+    assert.ok(finding.message.includes(`\`workflow-kit rollback --target ${target} --apply --yes\``), finding.message);
+    assert.doesNotMatch(finding.message, /`workflow-kit rollback --apply --yes`/);
+    // The printed command runs from another folder and clears the finding.
+    assert.equal((await runPrinted(`workflow-kit rollback --target ${target} --apply --yes`)).code, 0, interrupted);
+    assert.equal((await runDoctor({ targetPath: target })).diagnostics.some((item) => item.code === 'managed/apply-incomplete'), false, interrupted);
+  }
+});
+
+test('doctor on a file as the target says it is not a folder, not a journal problem', async () => {
+  const file = path.join(await makeTempRepo(), 'a-file');
+  await fs.writeFile(file, 'x');
+  const result = await runDoctor({ targetPath: file });
+  assert.deepEqual(result.diagnostics.map((item) => item.code), ['target/not-found']);
+  assert.doesNotMatch(JSON.stringify(result.diagnostics), /apply|journal/i);
+  const io = createMemoryIo();
+  assert.equal(await runCli(['doctor', '--target', file], io), 1);
+  assert.match(io.output.stdout, /is not a folder\./);
 });

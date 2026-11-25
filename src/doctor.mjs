@@ -8,7 +8,7 @@ import {
   normalizeOverlay, packageKitQualityGate, parseRuntimeList, pluginModeTemplateFiles, readManagedInstallState, recordedChecksumOf,
   selectedTemplateFiles, stackRulesPath, unusableJournalMessage
 } from './planner.mjs';
-import { applyJournalRelativePath } from './apply.mjs';
+import { applyJournalRelativePath, describeTargetLock } from './apply.mjs';
 import { blockMarkers, classifyPath, currentPathFor, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, projectIndexPath, projectIndexTableRows, shadowManifestName, skillsRoot, unquote, walkTree } from './migration.mjs';
 import {
@@ -115,10 +115,26 @@ function targetRepoContractDiagnostic(item) {
   return warning(item.code, item.path, `SKILL.md under .agents/skills/ that the kit registry does not list, so it is not kit content and the router does not load it. If a boundary/* finding names it or its folder, follow that; otherwise move the skill to ${projectSkillsHint} with a row in ${projectIndexPath}.`);
 }
 
-function journalDiagnostics(problem) {
+// The messages of the journal name `workflow-kit rollback --apply --yes`
+// without a target; pasted from another folder that would roll back that
+// folder, so doctor names the target.
+const bareRollback = '`workflow-kit rollback --apply --yes`';
+function journalDiagnostics(problem, targetPath) {
   if (problem?.kind === 'unusable') return [error('managed/apply-journal-unusable', applyJournalRelativePath, `${unusableJournalMessage(problem.reason)}. init and update stop until then.`)];
-  if (problem?.kind === 'incomplete') return [error('managed/apply-incomplete', applyJournalRelativePath, `${incompleteApplyMessage(problem.appliedAt)}, then run init or update again.`)];
+  if (problem?.kind === 'incomplete') {
+    // An interrupted rollback has its own wording.
+    const message = (problem.message ?? incompleteApplyMessage(problem.appliedAt)).replaceAll(bareRollback, code(kitCommand(targetPath, 'rollback', '--apply', '--yes')));
+    return [error('managed/apply-incomplete', applyJournalRelativePath, `${message}, then run init or update again.`)];
+  }
   return [];
+}
+
+// A lock a run holds (or left behind) on the target: a live one means a run is
+// changing the repository, a stale one is taken over by the next apply.
+async function lockDiagnostics({ targetPath }) {
+  const lock = await describeTargetLock(targetPath);
+  if (!lock) return [];
+  return [lock.stale ? warning('managed/apply-lock-stale', lock.relativePath, lock.message) : error('managed/apply-lock-held', lock.relativePath, lock.message)];
 }
 
 // What each pending reason of the update plan asks the user to do. Own
@@ -512,6 +528,7 @@ export async function runDoctor(options = {}) {
     () => stackPackDiagnostics({ targetPath, stackPack: storedState?.stackPack }),
     () => adapterBlockDiagnostics({ targetPath, manifest, state: storedState, files, pluginMode }),
     ...(pluginMode ? [() => kitLocationDiagnostics({ targetPath, manifest, files })] : []),
+    () => lockDiagnostics({ targetPath }),
     () => pendingDiagnostics({ targetPath, manifest, updatePlan }),
     () => emptyFileDiagnostics({ targetPath, manifest, files, present, updatePlan }),
     () => shadowDiagnostics({ targetPath, manifest, shipped, pluginMode }),
@@ -530,7 +547,7 @@ export async function runDoctor(options = {}) {
     ...unreadable.values(),
     ...stateDiagnostics(storedState, targetPath),
     ...managedVersionDiagnostics(storedState, targetPath),
-    ...journalDiagnostics(journalProblem),
+    ...journalDiagnostics(journalProblem, targetPath),
     ...unusableState
   ].sort((a, b) => a.severity.localeCompare(b.severity)
     || a.code.localeCompare(b.code)
