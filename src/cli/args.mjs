@@ -19,7 +19,7 @@ const commandSummaries = {
   export: 'Write the workflow files into a folder without touching any project',
   doctor: 'Check the workflow installed in a project (read-only)',
   rollback: 'Undo the last init or update applied to a project',
-  tui: 'Guided menu for all of the above'
+  tui: 'Guided menu for init, update, export, doctor, rollback and upgrade'
 };
 
 const runtimeNote = `--runtime takes a comma-separated list of: ${[...supportedRuntimes, 'neutral'].join(', ')} (neutral: no runtime adapter).`;
@@ -96,8 +96,10 @@ function assertRuntimeList(value) {
 // A profile only for runtimes the same command line selects (update without
 // --runtime checks it against the recorded runtimes, in resolveModelProfiles).
 // The values are checked by the planner, after the paths (as in 558e9fb).
-function assertProfileRuntimes(profile, runtime, command) {
-  if (runtime === undefined && command === 'update') return;
+function assertProfileRuntimes(profile, runtime, command, mode) {
+  // Without --runtime, update uses the recorded runtimes and plugin mode
+  // stops on its own ("plugin mode needs --runtime").
+  if (runtime === undefined && (command === 'update' || mode === 'plugin')) return;
   const named = profile.split(',').map((token) => token.split('=')[0].trim()).filter(Boolean);
   const selected = String(runtime ?? 'neutral').split(',').map((item) => item.trim());
   const outside = [...new Set(named.filter((item) => !selected.includes(item)))];
@@ -211,7 +213,7 @@ export function parseArgs(argv) {
   }
 
   if (options.runtime !== undefined) assertRuntimeList(options.runtime);
-  if (options.profile !== undefined) assertProfileRuntimes(options.profile, options.runtime, first);
+  if (options.profile !== undefined) assertProfileRuntimes(options.profile, options.runtime, first, options.mode);
   if (options.mode !== undefined) assertModeOption(first, rest, options.mode);
 
   if (explicitDryRun && options.apply) {

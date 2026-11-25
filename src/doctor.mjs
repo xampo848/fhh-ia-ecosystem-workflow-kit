@@ -36,6 +36,10 @@ const error = (code, relativePath, message) => ({ code, path: relativePath, mess
 export function kitCommand(targetPath, subcommand, ...args) {
   return ['workflow-kit', subcommand, '--target', targetPath, ...args].map(shellWord).join(' ');
 }
+// A command in a message, between backticks; one that holds a backtick (a
+// target path can) goes between double backticks, so the delimiter stays
+// unambiguous.
+const code = (command) => (command.includes('`') ? `\`\` ${command} \`\`` : `\`${command}\``);
 // A project-scoped runtime command runs in the target.
 const inTarget = (targetPath, command) => `cd ${shellWord(targetPath)} && ${command}`;
 
@@ -88,7 +92,7 @@ async function kitLocationDiagnostics({ targetPath, manifest, files }) {
     const managed = extractManagedBlock(content, classifyPath(manifest, file.relativePath)?.block ?? defaultBlockName);
     if (managed.error) continue; // An adapter without its block is a pending decision.
     if (managed.block.includes(start) && managed.block.includes(end)) continue;
-    diagnostics.push(error('mode/kit-location-missing', file.relativePath, `This install records plugin mode, but this adapter's workflow-kit block has no ${kitLocationBlockName} block, so the agent is never told where the kit is (the plugin ${pluginId}) and cannot load it. Run \`${kitCommand(targetPath, 'update', '--apply', '--yes')}\` to restore the block (a backup keeps the current file).`));
+    diagnostics.push(error('mode/kit-location-missing', file.relativePath, `This install records plugin mode, but this adapter's workflow-kit block has no ${kitLocationBlockName} block, so the agent is never told where the kit is (the plugin ${pluginId}) and cannot load it. Run ${code(kitCommand(targetPath, 'update', '--apply', '--yes'))} to restore the block (a backup keeps the current file).`));
   }
   return diagnostics;
 }
@@ -97,7 +101,7 @@ function stateDiagnostics(state, targetPath) {
   if (!state) return [];
   const diagnostics = state.ignoredKeys.map((key) => warning('boundary/ignored-state-key', installStateRelativePath, `Key "${key}" names no file the kit installed (absolute, or with ".", ".." or empty segments), so workflow-kit ignores it; remove it from install-state.json.`));
   if (state.schemaVersion === legacyInstallStateSchemaVersion) {
-    diagnostics.push(warning('managed/legacy-layout', installStateRelativePath, `Installed with the layout from before the kit and project overlay (install-state ${legacyInstallStateSchemaVersion}); run \`${kitCommand(targetPath, 'update')}\` (dry run first) to migrate to the kit/project overlay layout.`));
+    diagnostics.push(warning('managed/legacy-layout', installStateRelativePath, `Installed with the layout from before the kit and project overlay (install-state ${legacyInstallStateSchemaVersion}); run ${code(kitCommand(targetPath, 'update'))} (dry run first) to migrate to the kit/project overlay layout.`));
   }
   return diagnostics;
 }
@@ -129,7 +133,7 @@ function pendingMessage(manifest, item, targetPath) {
     shadow: 'moves your edit to a project shadow',
     split: 'keeps your own lines next to a new block'
   };
-  const options = decisions.map((decision) => `\`${kitCommand(targetPath, 'update', '--edited', `${item.relativePath}=${decision}`)}\` (${meaning[decision] ?? decision})`);
+  const options = decisions.map((decision) => `${code(kitCommand(targetPath, 'update', '--edited', `${item.relativePath}=${decision}`))} (${meaning[decision] ?? decision})`);
   const decide = `Decide with ${options.length > 1 ? `${options.slice(0, -1).join(', ')} or ${options.at(-1)}` : options[0]}, then add --apply --yes.`;
   const skillHome = `${manifest.project_root}skills/<name>/`;
   const moveByHand = (problem, step) => `${problem}, so the migration does not move it: ${step}move the folder by hand to ${skillHome} and add its row to ${projectIndexPath}.`;
@@ -144,8 +148,8 @@ function pendingMessage(manifest, item, targetPath) {
     case 'invalid_skill_name': return moveByHand('Own skill whose name is not a valid folder name', 'rename it, then ');
     case 'mixed_with_kit_files': return moveByHand('Own skill folder that also holds kit files', 'leave the kit files where they are and ');
     case 'binary_file': return moveByHand('Own skill with a file that is not UTF-8 text', '');
-    case 'legacy_path_unsupported': return `Cannot move to ${currentPathFor(manifest, item.relativePath)}: it is not UTF-8 text, or one of the two paths is a folder. Fix the file (UTF-8 text, not a folder) and run \`${kitCommand(targetPath, 'update')}\`.`;
-    default: return `Pending in workflow-kit update (${item.reason}). Run \`${kitCommand(targetPath, 'update')}\` (a dry run) to see it.`;
+    case 'legacy_path_unsupported': return `Cannot move to ${currentPathFor(manifest, item.relativePath)}: it is not UTF-8 text, or one of the two paths is a folder. Fix the file (UTF-8 text, not a folder) and run ${code(kitCommand(targetPath, 'update'))}.`;
+    default: return `Pending in workflow-kit update (${item.reason}). Run ${code(kitCommand(targetPath, 'update'))} (a dry run) to see it.`;
   }
 }
 
@@ -212,7 +216,7 @@ async function modeMixDiagnostics({ targetPath, manifest, state, pluginMode, fil
     found.push(relativePath);
   }
   if (found.length === 0) return [];
-  return [error('mode/repo-and-plugin', installStateRelativePath, `This install records plugin mode, but kit files are in the repository, where plugin mode does not install them, so the kit would load twice: ${listPaths(found)}. Delete them to keep plugin mode (the plugin ${pluginId} delivers them), or run \`${kitCommand(targetPath, 'update', '--mode', 'repo')}\` to keep the kit files in the repository.`)];
+  return [error('mode/repo-and-plugin', installStateRelativePath, `This install records plugin mode, but kit files are in the repository, where plugin mode does not install them, so the kit would load twice: ${listPaths(found)}. Delete them to keep plugin mode (the plugin ${pluginId} delivers them), or run ${code(kitCommand(targetPath, 'update', '--mode', 'repo'))} to keep the kit files in the repository.`)];
 }
 
 // F7: `update --mode plugin` works only from a 2.0.0 install (not an export)
@@ -224,7 +228,7 @@ function repoAndPluginWayOut(state, relativePath, targetPath) {
     && recorded.length > 0 && recorded.every((runtime) => pluginRuntimes.includes(runtime));
   const byHand = `remove ${pluginEntryKey} from ${relativePath}`;
   return switchable
-    ? `Run \`${kitCommand(targetPath, 'update', '--mode', 'plugin')}\` to use the plugin, or ${byHand} to keep repo mode.`
+    ? `Run ${code(kitCommand(targetPath, 'update', '--mode', 'plugin'))} to use the plugin, or ${byHand} to keep repo mode.`
     : `To keep the kit files in ${state.mode === 'export' ? 'this folder' : 'the repository'}, ${byHand} by hand: ${state.mode === 'export' ? 'an export has no install mode to switch' : `this install cannot switch to plugin mode as it is (runtimes: ${state.runtimes.join(', ')}${state.schemaVersion === legacyInstallStateSchemaVersion ? `; install-state ${legacyInstallStateSchemaVersion}` : ''})`}.`;
 }
 
@@ -251,10 +255,10 @@ async function declarationDiagnostics({ targetPath, runtimes, recordedRuntimes =
     }
     if (item.declared || item.disabledByProject || item.marketplaceCustomized) continue;
     diagnostics.push(warning('mode/plugin-not-declared', item.relativePath, item.duplicateKey
-      ? `The key ${item.duplicateKey} appears more than once in this file, so workflow-kit does not touch it (rewriting it would keep only the last one) and the plugin ${pluginId} is not declared. Remove the repeated key and run \`${declareCommand(item.relativePath)}\`.`
+      ? `The key ${item.duplicateKey} appears more than once in this file, so workflow-kit does not touch it (rewriting it would keep only the last one) and the plugin ${pluginId} is not declared. Remove the repeated key and run ${code(declareCommand(item.relativePath))}.`
       : item.exists && !item.valid
-      ? `Not a JSON object workflow-kit can merge into, so the plugin ${pluginId} is not declared and workflow-kit does not touch the file. Fix it and run \`${declareCommand(item.relativePath)}\`, or add this to it by hand: ${pluginDeclarationFragment()}`
-      : `The plugin ${pluginId} is not declared ${item.exists ? 'in this file' : '(the file is missing)'}, so this runtime does not offer it for this repository. Run \`${declareCommand(item.relativePath)}\` to declare it.`));
+      ? `Not a JSON object workflow-kit can merge into, so the plugin ${pluginId} is not declared and workflow-kit does not touch the file. Fix it and run ${code(declareCommand(item.relativePath))}, or add this to it by hand: ${pluginDeclarationFragment()}`
+      : `The plugin ${pluginId} is not declared ${item.exists ? 'in this file' : '(the file is missing)'}, so this runtime does not offer it for this repository. Run ${code(declareCommand(item.relativePath))} to declare it.`));
   }
   return diagnostics;
 }
@@ -286,7 +290,7 @@ async function untrackedAdapterDiagnostics({ targetPath, manifest, state, plugin
     const candidates = supportedRuntimes.filter((runtime) => !recorded.includes(runtime) && runtimeEntrypoints[runtime].includes(relativePath));
     const score = (runtime) => runtimeEntrypoints[runtime].filter((item) => untracked.has(item)).length;
     const best = Math.max(...candidates.map(score));
-    const commands = candidates.filter((runtime) => score(runtime) === best).map((runtime) => `\`${keepCommand(runtime)}\``);
+    const commands = candidates.filter((runtime) => score(runtime) === best).map((runtime) => `${code(keepCommand(runtime))}`);
     const keep = commands.length > 1 ? `${commands.slice(0, -1).join(', ')} or ${commands.at(-1)}` : commands[0];
     return warning('mode/adapter-not-tracked', relativePath, `This entrypoint has a workflow-kit block, but its runtime is not recorded in install-state, so workflow-kit does not track or refresh it. To keep it, run ${keep}; to drop it, delete the file.`);
   });
@@ -299,14 +303,14 @@ async function installedPluginDiagnostics({ targetPath, executor, timeoutMs }) {
   const install = inTarget(targetPath, pluginInstallCommand('claude'));
   const found = await inspectInstalledPlugins({ targetPath, executor, timeoutMs });
   if (found.status === 'absent') {
-    return [warning('mode/plugin-not-installed', settingsPath, `Claude Code does not list the plugin ${pluginId} as installed, so the kit does not load in this repository. Run \`${install}\`. The marketplace serves the plugin only after the kit's \`${pluginBranch}\` branch is published.`)];
+    return [warning('mode/plugin-not-installed', settingsPath, `Claude Code does not list the plugin ${pluginId} as installed, so the kit does not load in this repository. Run ${code(install)}. The marketplace serves the plugin only after the kit's \`${pluginBranch}\` branch is published.`)];
   }
   if (found.status === 'unverified') {
-    return [warning('mode/plugin-install-unverified', settingsPath, `Could not check whether Claude Code has the plugin ${pluginId} installed (${found.reason}). Run \`${inTarget(targetPath, claudePluginListHint)}\` to check, and \`${install}\` if it is missing.`)];
+    return [warning('mode/plugin-install-unverified', settingsPath, `Could not check whether Claude Code has the plugin ${pluginId} installed (${found.reason}). Run ${code(inTarget(targetPath, claudePluginListHint))} to check, and ${code(install)} if it is missing.`)];
   }
   const diagnostics = [];
   if (found.enabled === false) {
-    diagnostics.push(warning('mode/plugin-disabled', settingsPath, `Claude Code lists the plugin ${pluginId} as installed but disabled, so the kit does not load in this repository. Run \`${inTarget(targetPath, claudePluginEnableCommand)}\`.`));
+    diagnostics.push(warning('mode/plugin-disabled', settingsPath, `Claude Code lists the plugin ${pluginId} as installed but disabled, so the kit does not load in this repository. Run ${code(inTarget(targetPath, claudePluginEnableCommand))}.`));
   }
   if (found.version !== packageJson.version) {
     // M9: a plugin newer than this CLI asks for a newer CLI, not a plugin
@@ -316,8 +320,8 @@ async function installedPluginDiagnostics({ targetPath, executor, timeoutMs }) {
     const advice = order === 1
       ? `The plugin is newer: run \`${cliUpgradeCommand}\` to bring this CLI to it`
       : order === 0
-        ? `Both are ${String(found.version).match(/^\d+\.\d+\.\d+/)[0]} with another suffix, so doctor cannot tell which build is newer: run \`${inTarget(targetPath, claudePluginUpdateCommand)}\` if the plugin is the older one, or \`${cliUpgradeCommand}\` if this CLI is`
-        : `Run \`${inTarget(targetPath, claudePluginUpdateCommand)}\``;
+        ? `Both are ${String(found.version).match(/^\d+\.\d+\.\d+/)[0]} with another suffix, so doctor cannot tell which build is newer: run ${code(inTarget(targetPath, claudePluginUpdateCommand))} if the plugin is the older one, or \`${cliUpgradeCommand}\` if this CLI is`
+        : `Run ${code(inTarget(targetPath, claudePluginUpdateCommand))}`;
     diagnostics.push(warning('mode/plugin-version-mismatch', settingsPath, `Claude Code has the plugin ${pluginId} ${found.version ?? 'without a version'} installed; this workflow-kit CLI is ${packageJson.version}. ${advice}.`));
   }
   return diagnostics;
@@ -412,7 +416,7 @@ function managedVersionDiagnostics(state, targetPath) {
   return [{
     code: 'managed/toolkit-version-mismatch',
     path: '.agents/workflow-kit/install-state.json',
-    message: `Managed files were last applied with workflow-kit ${state.toolkitVersion}; this workflow-kit CLI is ${packageJson.version}. Run \`${kitCommand(targetPath, 'update')}\` (a dry run; then add --apply --yes) to bring this project's workflow to this workflow-kit version.`,
+    message: `Managed files were last applied with workflow-kit ${state.toolkitVersion}; this workflow-kit CLI is ${packageJson.version}. Run ${code(kitCommand(targetPath, 'update'))} (a dry run; then add --apply --yes) to bring this project's workflow to this workflow-kit version.`,
     severity: 'warning'
   }];
 }
@@ -565,9 +569,9 @@ async function firstUnreadableFolder(targetPath, relativePath) {
 // Missing files on an install from another workflow-kit version are mostly
 // files this version adds; with no install-state, nothing is installed.
 function missingFilesHint(state, targetPath) {
-  if (!state) return `No workflow-kit install-state here (${installStateRelativePath}), so workflow-kit is not installed in this folder; to install it, run \`${kitCommand(targetPath, 'init')}\` (a dry run first).`;
+  if (!state) return `No workflow-kit install-state here (${installStateRelativePath}), so workflow-kit is not installed in this folder; to install it, run ${code(kitCommand(targetPath, 'init'))} (a dry run first).`;
   if (state.schemaVersion === legacyInstallStateSchemaVersion || (state.toolkitVersion && state.toolkitVersion !== packageJson.version)) {
-    return `This install was last applied with workflow-kit ${state.toolkitVersion ?? 'of another version'}, so the files below are most likely new in ${packageJson.version}: run \`${kitCommand(targetPath, 'update')}\` (a dry run first) before fixing them one by one.`;
+    return `This install was last applied with workflow-kit ${state.toolkitVersion ?? 'of another version'}, so the files below are most likely new in ${packageJson.version}: run ${code(kitCommand(targetPath, 'update'))} (a dry run first) before fixing them one by one.`;
   }
   return null;
 }
@@ -586,7 +590,7 @@ async function emptyFileDiagnostics({ targetPath, manifest, files, present, upda
     if ((await fs.readFile(file.sourcePath, 'utf8')).trim() === '') continue;
     const pending = plan?.operations.find((item) => item.relativePath === file.relativePath && item.operation === 'skip_modified' && item.decisions?.includes('discard'));
     const command = kitCommand(targetPath, 'update', ...(pending ? ['--edited', `${file.relativePath}=discard`] : []), '--apply', '--yes');
-    diagnostics.push(error('managed/file-empty', file.relativePath, `This workflow-kit file is empty, so the agent finds no rules in it. Run \`${command}\` to take the kit version back (a backup keeps the empty file).`));
+    diagnostics.push(error('managed/file-empty', file.relativePath, `This workflow-kit file is empty, so the agent finds no rules in it. Run ${code(command)} to take the kit version back (a backup keeps the empty file).`));
   }
   return diagnostics;
 }
@@ -629,7 +633,7 @@ async function modelProfileDiagnostics({ targetPath, present, catalog, modelProf
       diagnostics.push({
         code: 'model-profile/agent-mismatch',
         path: relativePath,
-        message: `Expected \`${expectedLine}\` for the ${profile} profile but found \`${actualLine ?? 'no model setting'}\`. Run \`${command}\` to regenerate it.${edited}`,
+        message: `Expected \`${expectedLine}\` for the ${profile} profile but found \`${actualLine ?? 'no model setting'}\`. Run ${code(command)} to regenerate it.${edited}`,
         severity: 'error'
       });
     }

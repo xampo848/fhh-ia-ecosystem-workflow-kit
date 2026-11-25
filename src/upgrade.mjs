@@ -109,11 +109,21 @@ const gitEnv = () => ({ ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIV
 
 export function runGit(args, { cwd, timeoutMs = gitProbeTimeoutMs } = {}) {
   return new Promise((resolve) => {
+    let settled = false;
+    const settle = (outcome) => { if (!settled) { settled = true; resolve(outcome); } };
     const child = spawn('git', args, { cwd, env: gitEnv(), stdio: ['ignore', 'pipe', 'ignore'], timeout: timeoutMs, killSignal: 'SIGKILL' });
-    let stdout = '';
-    child.stdout.on('data', (chunk) => { stdout += String(chunk); });
-    child.on('error', (error) => resolve({ ok: false, code: null, missingCommand: error?.code === 'ENOENT', stdout }));
-    child.on('exit', (code, signal) => resolve({ ok: code === 0, code, timedOut: signal === 'SIGKILL', stdout }));
+    const chunks = [];
+    child.stdout.on('data', (chunk) => { chunks.push(chunk); });
+    child.on('error', (error) => settle({ ok: false, code: null, missingCommand: error?.code === 'ENOENT', stdout: Buffer.concat(chunks).toString('utf8') }));
+    // `close`, not `exit`: only then is the whole output read (a long
+    // ls-remote list would be cut short). At the timeout the answer is known
+    // at once: a child git left behind may hold the pipe open.
+    child.on('exit', (code, signal) => {
+      if (signal !== 'SIGKILL') return;
+      child.stdout.destroy();
+      settle({ ok: false, code, timedOut: true, stdout: Buffer.concat(chunks).toString('utf8') });
+    });
+    child.on('close', (code, signal) => settle({ ok: code === 0, code, timedOut: signal === 'SIGKILL', stdout: Buffer.concat(chunks).toString('utf8') }));
   });
 }
 
@@ -131,7 +141,12 @@ export async function verifyUpgradeRef(plan, run = runGit) {
   if (byName.code !== 2) return { status: 'unreachable', timedOut: byName.timedOut };
   if (!commitPattern.test(plan.ref)) return { status: 'missing' };
   if (plan.ref.length === 40) {
-    const scratch = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-ref-'));
+    let scratch;
+    try {
+      scratch = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-ref-'));
+    } catch (scratchError) {
+      return { status: 'scratch-failed', reason: `${scratchError.code ?? scratchError.message} in ${os.tmpdir()}` };
+    }
     try {
       const init = await run(['init', '--quiet', '--bare', scratch]);
       if (!init.ok) return { status: 'unreachable' };
@@ -183,16 +198,18 @@ export function runUpgradePlan(plan, { cwd = globalUpgradeWorkingDirectory(), st
       // cannot leave the machine without a working workflow-kit.
       if (plan.packageManager === 'bun' && plan.repository && plan.ref) {
         const probe = await verifyUpgradeRef(plan, verifyRef ? (args) => verifyRef('git', args) : runGit);
-        if (probe.status === 'skipped') {
-          stdout.write('git is not in PATH: skipping the check that the upgrade ref exists.\n');
-        } else if (probe.status !== 'found') {
+        // Without git the ref cannot be checked, and the removal below would
+        // run on a guess: stop (the safer choice) and name the way around.
+        if (probe.status !== 'found') {
           const why = {
+            skipped: `git is not in PATH, so workflow-kit cannot check that ref "${plan.ref}" exists in ${plan.repository} before it removes the installed workflow-kit. Install git and run this again, or, if you are sure of the ref, run ${plan.command} ${plan.args.join(' ')} yourself.`,
+            'scratch-failed': `Could not create a temporary folder to check commit "${plan.ref}" (${probe.reason}). Set TMPDIR to a writable folder and run this again.`,
             missing: `Ref "${plan.ref}" was not found in ${plan.repository}.`,
             'short-commit': `Ref "${plan.ref}" is no branch, tag or branch tip of ${plan.repository}, and a short commit cannot be checked: give the full 40-character commit, or a branch or tag.`,
             unreachable: `Could not reach ${plan.repository} to verify ref "${plan.ref}"${probe.timedOut ? ` (git did not answer within ${gitProbeTimeoutMs / 1000} seconds)` : ''}.`
           }[probe.status];
           stderr.write(`${why} Nothing was changed.\n`);
-          return { ok: false, code: probe.status === 'unreachable' ? null : 2, reason: 'ref-not-verified' };
+          return { ok: false, code: probe.status === 'missing' || probe.status === 'short-commit' ? 2 : null, reason: 'ref-not-verified' };
         }
       }
 
@@ -220,6 +237,10 @@ export function runUpgradePlan(plan, { cwd = globalUpgradeWorkingDirectory(), st
       return result;
     };
 
-    run().then(resolve);
+    // Anything unexpected is a failure with a message, never a stack trace.
+    run().then(resolve, (error) => {
+      stderr.write(`workflow-kit upgrade stopped: ${error?.message ?? error}\n`);
+      resolve({ ok: false, code: null, reason: 'unexpected-error' });
+    });
   });
 }

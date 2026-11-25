@@ -273,3 +273,17 @@ test('help lists the valid --runtime values, and <command> --help prints that co
   await runCli(['doctor', '--help'], doctorHelp);
   assert.match(doctorHelp.output.stdout, /--runtime takes a comma-separated list of/);
 });
+
+test('init --mode plugin --profile without --runtime gets the plugin-mode stop, and tui --help names what the menu does', async () => {
+  const target = await makeTempRepo();
+  const io = createMemoryIo();
+  assert.equal(await runCli(['init', '--target', target, '--mode', 'plugin', '--profile', 'claude=costo'], io), 2);
+  assert.match(io.output.stderr, /plugin mode needs --runtime/);
+  assert.doesNotMatch(io.output.stderr, /installs neutral/);
+  assert.throws(() => parseArgs(['init', '--profile', 'claude=costo']), /init without --runtime installs neutral/, 'repo mode keeps its message');
+
+  const help = createMemoryIo();
+  await runCli(['tui', '--help'], help);
+  assert.match(help.output.stdout, /^tui: Guided menu for init, update, export, doctor, rollback and upgrade\.$/m);
+  assert.doesNotMatch(help.output.stdout + printHelp(), /all of the above/);
+});

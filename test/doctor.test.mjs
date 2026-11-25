@@ -439,3 +439,22 @@ test('an emptied kit file is an error with the command that takes the kit versio
   assert.equal((await runPrinted(fix)).code, 0);
   assert.equal((await runDoctor({ targetPath: target })).ok, true);
 });
+
+// A backtick in the target path would close a single-backtick span early:
+// such a command goes between double backticks and still runs as printed.
+test('a command doctor prints for a target with a backtick keeps an unambiguous delimiter and runs as printed', async () => {
+  const target = path.join(await makeTempRepo(), 'repo `with` ticks');
+  await fs.mkdir(target);
+  assert.equal(await runCli(['init', '--target', target, '--runtime', 'claude', '--apply', '--yes'], createMemoryIo()), 0);
+  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nlocal rule\n');
+
+  const finding = (await runDoctor({ targetPath: target })).diagnostics.find((item) => item.code === 'boundary/pending-edited_kit_file');
+  const commands = [...finding.message.matchAll(/`` (workflow-kit .+?) ``/g)].map((match) => match[1]);
+  assert.equal(commands.length, 2, finding.message);
+  for (const command of commands) {
+    assert.ok(command.startsWith(`workflow-kit update --target '${target}'`), command);
+    const result = await runPrinted(command);
+    assert.equal(result.code, 0, `${command}\n${result.stderr}`);
+    assert.match(result.stdout, new RegExp(`^Target: ${escape(target)}$`, 'm'));
+  }
+});

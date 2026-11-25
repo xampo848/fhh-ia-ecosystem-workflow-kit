@@ -117,3 +117,57 @@ test('when the add fails after the removal, the recovery line names a command th
     assert.deepEqual((await calls()).filter((line) => line.startsWith('bun')).map((line) => line.replace(/ prompt=.*$/, '')), [`bun remove -g ${packageJson.name}`, 'bun add -g github:example/repo#v1']);
   });
 });
+
+test('upgrade with a full commit and an unwritable TMPDIR stops with a message, not a stack trace, and removes nothing', async () => {
+  const { runCli } = await import('../src/cli.mjs');
+  await withStubs({ git: gitStub, bun: 'exit 0' }, async ({ calls }) => {
+    const previous = process.env.TMPDIR;
+    process.env.TMPDIR = `${os.tmpdir()}/workflow-kit-no-such-folder/inner`;
+    try {
+      const io = quietIo();
+      const code = await runCli(['upgrade', '--ref', 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef', '--apply', '--yes'], io);
+      assert.equal(code, 2);
+      assert.match(io.output.stderr, /Could not create a temporary folder to check commit "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef" \(ENOENT in .*\)\. Set TMPDIR to a writable folder and run this again\. Nothing was changed\./);
+      assert.doesNotMatch(io.output.stderr, /\n\s+at /, 'no stack trace');
+    } finally {
+      if (previous === undefined) delete process.env.TMPDIR;
+      else process.env.TMPDIR = previous;
+    }
+    assert.equal((await calls()).some((line) => /^bun (remove|add) /.test(line)), false);
+  });
+});
+
+test('the short-commit check reads the whole ls-remote output, also above several MB', async () => {
+  const { runGit, verifyUpgradeRef } = await import('../src/upgrade.mjs');
+  const tip = 'feedface0000000000000000000000000000beef';
+  // The list is still being written after the process git started exits, as
+  // the tail of a large output can be: only the end of the pipe says it is all.
+  const script = `[ "$2" = --exit-code ] && exit 2
+(sleep 1; node -e 'const l=[];for(let i=0;i<60000;i+=1)l.push(String(i).padStart(40,"1")+"\\trefs/heads/b"+i);process.stdout.write(l.join("\\n")+"\\n${tip}\\trefs/heads/last\\n")') &
+exit 0`;
+  await withStubs({ git: script }, async () => {
+    const big = await runGit(['ls-remote', 'https://github.com/example/repo.git'], { timeoutMs: 20000 });
+    assert.ok(big.stdout.length > 3 * 1024 * 1024, String(big.stdout.length));
+    assert.deepEqual(await verifyUpgradeRef({ repository: 'example/repo', ref: 'feedface' }, (args) => runGit(args, { timeoutMs: 20000 })), { status: 'found' });
+  });
+});
+
+test('upgrade without git on PATH stops before removing workflow-kit and says how to go on', async () => {
+  const { runCli } = await import('../src/cli.mjs');
+  const fs = await import('node:fs/promises');
+  const path = await import('node:path');
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-nogit-'));
+  const log = path.join(dir, 'calls.log');
+  await fs.writeFile(path.join(dir, 'bun'), `#!/bin/sh\necho "bun $*" >> "${log}"\nexit 0\n`, { mode: 0o755 });
+  const previous = process.env.PATH;
+  process.env.PATH = dir;
+  try {
+    const io = quietIo();
+    const code = await runCli(['upgrade', '--ref', 'main', '--apply', '--yes'], io);
+    assert.equal(code, 2);
+    assert.match(io.output.stderr, /git is not in PATH, so workflow-kit cannot check that ref "main" exists in .* before it removes the installed workflow-kit\. Install git and run this again, or, if you are sure of the ref, run bun add -g github:.*#main yourself\. Nothing was changed\./);
+  } finally {
+    process.env.PATH = previous;
+  }
+  assert.deepEqual((await fs.readFile(log, 'utf8')).split('\n').filter(Boolean), ['bun --version'], 'only the bun lookup, never remove or add');
+});
