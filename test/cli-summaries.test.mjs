@@ -48,6 +48,20 @@ test('formatUpdateApplySummary counts writes, backups, skips, adoptions, retired
 
   assert.equal(
     formatUpdateApplySummary(applied),
-    'Updated writes: 2\nBackups created: 4\nProtected local edits (skipped): 2\nUnmanaged files (skipped): 1\nAdopted baseline files: 1\nRetired files deleted (backup kept): 1\nProject files moved to .agents/project/: 2\n'
+    'Updated writes: 2\nBackups created: 4\nProtected local edits (skipped): 2\nUnmanaged files (skipped): 1\nProject-owned files left as they are: 0\nAdopted baseline files: 1\nRetired files deleted (backup kept): 1\nProject files moved to .agents/project/: 2\n'
+  );
+});
+
+test('formatUpdateApplySummary counts project-owned seeds apart from unmanaged files and reports deletes kept because the file changed', () => {
+  const applied = [
+    operation({ operation: 'skip_unmanaged', reason: 'project_owned' }),
+    operation({ operation: 'skip_unmanaged', reason: 'project_owned' }),
+    operation({ operation: 'skip_unmanaged', reason: 'invalid_managed_block' }),
+    operation({ operation: 'delete_with_backup', applied: false, retired: true, reason: 'changed_since_plan' })
+  ];
+
+  assert.equal(
+    formatUpdateApplySummary(applied),
+    'Updated writes: 0\nBackups created: 0\nProtected local edits (skipped): 0\nUnmanaged files (skipped): 1\nProject-owned files left as they are: 2\nAdopted baseline files: 0\nRetired files deleted (backup kept): 0\nProject files moved to .agents/project/: 0\nNot deleted (changed since the plan, kept as they are): 1\n'
   );
 });

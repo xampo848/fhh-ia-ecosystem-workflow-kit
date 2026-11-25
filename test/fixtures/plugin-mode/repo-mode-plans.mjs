@@ -95,7 +95,11 @@ function outputShape(text) {
   return { sha256: sha256(text).slice(0, 16), lines: text.split('\n').filter((line) => !/^- [a-z_]+: \S+$/.test(line)) };
 }
 
-async function runCli(rootDirectory, args, context) {
+// `context.undo` (tests only): the intentional changes since 558e9fb, undone
+// before shaping, so everything else still compares exactly. `output(step,
+// text)` gets the normalized output of a run, `file(relativePath, content)`
+// the content of a file of the tree. The fixture is written without it.
+async function runCli(rootDirectory, args, context, step) {
   const bin = path.join(rootDirectory, 'bin', 'workflow-kit.mjs');
   let result;
   try {
@@ -105,7 +109,8 @@ async function runCli(rootDirectory, args, context) {
     if (typeof error.code !== 'number') throw error;
     result = { code: error.code, stdout: error.stdout, stderr: error.stderr };
   }
-  return outputShape(`exit ${result.code}\n${normalizeText(result.stdout, context)}\n--- stderr ---\n${normalizeText(result.stderr, context)}`);
+  const text = `exit ${result.code}\n${normalizeText(result.stdout, context)}\n--- stderr ---\n${normalizeText(result.stderr, context)}`;
+  return outputShape(context.undo?.output ? context.undo.output(step, text) : text);
 }
 
 // The hash of every file under the target. A checksum of a file's raw content
@@ -117,8 +122,10 @@ async function treeShape(context) {
   for (const relativePath of (await fs.readdir(context.target, { recursive: true })).sort()) {
     const absolutePath = path.join(context.target, relativePath);
     if (!(await fs.lstat(absolutePath)).isFile()) continue;
-    const content = await fs.readFile(absolutePath, 'utf8');
-    raw[relativePath.split(path.sep).join('/')] = content;
+    const posixPath = relativePath.split(path.sep).join('/');
+    const read = await fs.readFile(absolutePath, 'utf8');
+    const content = context.undo?.file ? context.undo.file(posixPath, read) : read;
+    raw[posixPath] = content;
     checksums.set(sha256(content), sha256(normalizeText(content, context)));
   }
   return Object.fromEntries(Object.entries(raw).map(([relativePath, content]) => [
@@ -127,23 +134,23 @@ async function treeShape(context) {
   ]));
 }
 
-export async function collectRepoModeRuns(rootDirectory, makeTarget) {
+export async function collectRepoModeRuns(rootDirectory, makeTarget, undo = undefined) {
   const version = await packageVersionOf(rootDirectory);
   const runs = {};
   for (const runtime of guardedRuntimeLists) {
-    const context = { target: await fs.realpath(await makeTarget()), version };
+    const context = { target: await fs.realpath(await makeTarget()), version, undo };
     const init = ['init', '--target', context.target, '--runtime', runtime];
     runs[runtime] = {
-      initDryRun: await runCli(rootDirectory, init, context),
-      initApply: await runCli(rootDirectory, [...init, '--apply', '--yes'], context),
+      initDryRun: await runCli(rootDirectory, init, context, 'initDryRun'),
+      initApply: await runCli(rootDirectory, [...init, '--apply', '--yes'], context, 'initApply'),
       tree: await treeShape(context),
-      doctor: await runCli(rootDirectory, ['doctor', '--target', context.target], context),
-      updateDryRun: await runCli(rootDirectory, ['update', '--target', context.target], context)
+      doctor: await runCli(rootDirectory, ['doctor', '--target', context.target], context, 'doctor'),
+      updateDryRun: await runCli(rootDirectory, ['update', '--target', context.target], context, 'updateDryRun')
     };
   }
-  const context = { target: await fs.realpath(await makeTarget()), version };
+  const context = { target: await fs.realpath(await makeTarget()), version, undo };
   await fs.mkdir(path.join(context.target, '.claude', 'settings.json'), { recursive: true });
-  runs.settingsFolder = await runCli(rootDirectory, ['init', '--target', context.target, '--runtime', 'claude'], context);
+  runs.settingsFolder = await runCli(rootDirectory, ['init', '--target', context.target, '--runtime', 'claude'], context, 'settingsFolder');
   return runs;
 }
 

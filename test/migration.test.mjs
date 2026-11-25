@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { extractManagedBlock, loadKitManifest } from '../src/kit-manifest.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan, installStateRelativePath, selectPlanOperations } from '../src/planner.mjs';
+import { runDoctor } from '../src/doctor.mjs';
 import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
 import { makeTempRepo, hashTree } from './helpers.mjs';
 
@@ -267,6 +268,9 @@ test('moved skills join an existing project index as new rows, never changing th
     // stays extensible whatever follows it in its section.
     { name: 'prose with an inline <!--', index: `Adapters use \`<!--\` markers.\n\n## Skills\n\n${header}\n${ownRow}\n`, expected: `Adapters use \`<!--\` markers.\n\n## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n` },
     { name: 'old rows commented out after the table', index: `## Skills\n\n${header}\n${ownRow}\n<!--\n| \`old\` | Pattern | t | \`old/SKILL.md\` | lean |\n-->\n`, expected: `## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n<!--\n| \`old\` | Pattern | t | \`old/SKILL.md\` | lean |\n-->\n` },
+    // A byte order mark before the heading leaves it the same heading (no
+    // second Skills section).
+    { name: 'a byte order mark before the Skills heading', index: `\uFEFF## Skills\n\n${header}\n${ownRow}\n`, expected: `\uFEFF## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n` },
     { name: 'prose naming the new paths', index: `Notes on \`.agents/project/skills/retry-policy/SKILL.md\` and \`docs/release-handbook.md\`.\n\n## Skills\n\n${header}\n${ownRow}\n`, expected: `Notes on \`.agents/project/skills/retry-policy/SKILL.md\` and \`docs/release-handbook.md\`.\n\n## Skills\n\n${header}\n${ownRow}\n${bareRow}\n${foldedRow}\n${retryRow}\n${handbookRow}\n` }
   ];
   for (const item of cases) {
@@ -285,6 +289,36 @@ test('moved skills join an existing project index as new rows, never changing th
 // takes their own rows, and a shadow needs its row there too. When the index
 // has a table the migration cannot extend, the whole migration stops before
 // anything is written, so no 2.0.0 state ever keeps own rows only in backups.
+// A1: catalogs are replaced whole once their own rows moved, also when the
+// 1.0.0 state recorded them before the team added rows by hand (0.19.x did,
+// and its add-project-pattern skill told teams to add their rows there).
+test('catalogs the 1.0.0 state recorded and the team then edited are replaced whole after their own rows move; doctor finds no dangling row', async () => {
+  const { target, legacy } = await legacyRepo();
+  const ownIndexRow = `| \`${legacy.localSkill.name}\` | Retry calls to outside services | \`${legacy.localSkill.oldDir}/SKILL.md\` | lean |`;
+  const skillsIndex = '.agents/skills/index.md';
+  const recordedCatalogs = [skillsIndex, '.agents/skills/registry.md', legacy.registryPath];
+  const state = JSON.parse(await read(target, installStateRelativePath));
+  // Recorded as the kit wrote them, before the rows.
+  for (const catalogPath of recordedCatalogs) state.files[catalogPath] = sha(await fs.readFile(path.join(overlayTemplates, catalogPath)));
+  await write(target, installStateRelativePath, `${JSON.stringify(state, null, 2)}\n`);
+  const indexContent = await read(target, skillsIndex);
+  const firstRow = indexContent.split('\n').find((line) => line.startsWith('| `'));
+  await write(target, skillsIndex, indexContent.replace(firstRow, `${firstRow}\n${ownIndexRow}`));
+
+  const plan = await buildUpdatePlan({ targetPath: target });
+  for (const catalogPath of recordedCatalogs) assert.equal(operationFor(plan, catalogPath).operation, 'overwrite_with_backup', catalogPath);
+  assert.match(layoutMigration(plan).summary, /catalogs replaced whole 5/);
+  assert.equal(layoutMigration(plan).pending.some((item) => recordedCatalogs.includes(item.relativePath)), false);
+
+  await applyInstallPlan(plan);
+  for (const catalogPath of recordedCatalogs) assert.equal(await read(target, catalogPath), await fs.readFile(path.join(overlayTemplates, catalogPath), 'utf8'), catalogPath);
+  // The row the team wrote in index.md moved, with the new path.
+  assert.ok((await read(target, projectIndexPath)).includes(`| \`${legacy.localSkill.name}\` | Pattern | Retry calls to outside services | \`${legacy.localSkill.newDir}/SKILL.md\` | lean |`));
+  const doctor = await runDoctor({ targetPath: target });
+  const dangling = doctor.diagnostics.filter((item) => item.code === 'skills/missing-file' || String(item.message).includes(legacy.localSkill.oldDir));
+  assert.deepEqual(dangling, []);
+});
+
 test('an index whose tables the migration cannot extend stops the whole migration with the fix', async () => {
   const skillsHeader = '| Skill name | Class | Trigger | Physical path | Cost hint |\n| --- | --- | --- | --- | --- |';
   const indexes = [
@@ -412,11 +446,19 @@ test('init over a 0.18.1 install stops before planning and points to update', as
 test('an apply that stops halfway blocks update and init and keeps its journal', async () => {
   const { target, legacy } = await legacyRepo();
   const plan = await buildUpdatePlan({ targetPath: target });
-  // Hand-crafted failure: the retired delete reads a folder, after earlier writes.
+  // Hand-crafted failure: the folder of the retired delete turns read-only
+  // after the plan, so the delete fails after earlier writes. (The apply
+  // reads every file before its first write, so a failure while reading
+  // stops it before anything is written.)
   const failing = operationFor(plan, legacy.retiredPath);
   assert.ok(plan.operations.indexOf(failing) > 0);
-  failing.targetFile = path.join(target, '.agents/skills');
-  await assert.rejects(applyInstallPlan(plan), { code: 'EISDIR' });
+  const folder = path.dirname(failing.targetFile);
+  await fs.chmod(folder, 0o555);
+  try {
+    await assert.rejects(applyInstallPlan(plan), { code: 'EACCES' });
+  } finally {
+    await fs.chmod(folder, 0o755);
+  }
   const journalRaw = await read(target, journalPath);
   const journal = JSON.parse(journalRaw);
   assert.equal(journal.completed, false);

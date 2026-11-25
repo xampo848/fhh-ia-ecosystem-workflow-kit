@@ -370,7 +370,8 @@ function projectIndexRow({ source, name, rowPath, fallbackTrigger, allowedClasse
 }
 
 const shadowRow = (shadow) => `| \`${shadow.skill}\` | \`${shadow.directory}/\` |`;
-const headingOf = (table) => new RegExp(`^##\\s+${table.heading}\\s*$`);
+// A byte order mark before the first heading is not part of it.
+const headingOf = (table) => new RegExp(`^\\uFEFF?##\\s+${table.heading}\\s*$`);
 const tableHeader = (table) => [`| ${table.columns.join(' | ')} |`, `| ${table.columns.map(() => '---').join(' | ')} |`];
 
 // The section of a table in the project index: its heading line, the end of
@@ -469,14 +470,16 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
   const shippedPaths = new Set(shippedFiles.map((file) => file.relativePath));
   const isKitPath = (relativePath) => shippedPaths.has(relativePath) || Object.hasOwn(previousFiles, relativePath);
 
-  // 3. Catalogs are derived (A1): the 1.0.0 state dropped the ones 0.18
-  // preserved, so the planner gets their current content as recorded and
-  // plans a replace. The project rows they held are moved first (2). Any
-  // other unrecorded kit file is someone's own text: the class planner
-  // leaves it pending (unrecorded_kit_file).
+  // 3. Catalogs are derived (A1): replaced whole, with a backup, once the
+  // project rows they held are moved (2), whether the 1.0.0 state dropped
+  // them (0.18 preserved them) or recorded them before the team added its
+  // rows by hand (as add-project-pattern told it to). So the planner gets
+  // their current content as recorded and plans a replace. Any other
+  // unrecorded kit file is someone's own text: the class planner leaves it
+  // pending (unrecorded_kit_file).
   const plannerFiles = { ...previousFiles };
   for (const file of files) {
-    if (Object.hasOwn(previousFiles, file.relativePath) || !legacyPreservedCatalogs.has(file.relativePath)) continue;
+    if (!legacyPreservedCatalogs.has(file.relativePath)) continue;
     const existing = await readBufferOptional(path.join(targetPath, file.relativePath));
     if (existing === null) continue;
     plannerFiles[file.relativePath] = { sha256: checksumOf(existing.toString('utf8')), class: classifyPath(manifest, file.relativePath)?.class ?? null };

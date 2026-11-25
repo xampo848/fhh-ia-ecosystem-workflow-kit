@@ -55,9 +55,21 @@ workflow-kit rollback --target /path/to/repo --apply --yes
 ```
 
 It restores the files that run changed from their backups, removes the files
-that run created, and restores the previous install state. As a fallback, you
+and folders that run created (a folder you had before stays, even when empty),
+and restores the previous install state. As a fallback, you
 can restore any file by hand from the `.workflow-kit-backup-<timestamp>` file
 created during apply (files written with `--backup-mode none` have none).
+
+After `0.23.0`, the journal is written before the first write of a run and lists
+every file the run is about to touch with the checksum it had before, and it
+is marked finished only at the end. A run stopped at any point (an error,
+Ctrl-C, `SIGTERM`, or a process killed outright) therefore leaves a journal
+that says it did not finish: `init` and `update` stop until you run
+`workflow-kit rollback --apply --yes`, and rollback undoes exactly that run
+(files it never reached stay as they are). Ctrl-C or `SIGTERM` during an apply
+lets the file being written finish, then stops with exit code 130; a second
+Ctrl-C stops at once. Rolling back an unfinished run always clears its
+journal, even when every file it wrote was already removed by hand.
 
 Without the journal (`.agents/workflow-kit/last-apply.json`), `rollback`
 restores the newest backup of each managed file instead. It cannot tell which
@@ -99,6 +111,31 @@ Behavior on update (since `0.22.0`, by the class each path has in
 No write replaces content without a backup unless that content matches the
 hash the kit recorded for it, whatever `--backup-mode` says.
 
+Checks that stop a run before it writes anything (after `0.23.0`):
+
+- **One run at a time.** An apply or rollback holds
+  `.agents/workflow-kit/apply.lock` while it writes; a second run on the same
+  repository stops with "Another workflow-kit run is changing this
+  repository". A lock left by a process that no longer runs is taken over.
+  Backups are created exclusively, so a backup is never overwritten.
+- **A state from a newer kit.** When `install-state.json` was written by a
+  newer workflow-kit than the CLI you run, `update` stops and asks you to run
+  `workflow-kit upgrade --apply --yes` first, instead of deleting the files
+  the newer kit ships and replacing newer content with older.
+- **Damaged state values.** A `runtimes`, `stackPack` or `modelProfiles`
+  value this CLI cannot read is named together with `install-state.json`;
+  it is never read as a default.
+- **Names too long.** A path the file system would refuse, or a file whose
+  backup name (37 more characters) would be longer than 255 bytes, is listed
+  in the plan, dry run included; rename or move it and run again.
+- **The target.** `--target` must be an existing folder: `init`, `update`
+  and `rollback` say so when it is a file or does not exist (`init` does not
+  create the folder; create it first, for example with `git init`). `export`
+  creates its output folder.
+- **Nothing to change.** A run whose plan writes no file and changes nothing
+  in the state but its timestamp writes nothing at all, so a second `update`
+  or a second `export` to the same folder leaves the tree as it is.
+
 ## Kit and project overlay layout (since 0.22.0)
 
 Repositories installed before `0.22.0` have `install-state.json` with
@@ -117,7 +154,7 @@ The plan shows the migration `0.22.0-kit-overlay-layout` with what it does:
 | --- | --- |
 | Own skills under `.agents/skills/` | Each folder moves to `.agents/project/skills/<name>/` (file modes kept) and gets a row in `.agents/project/index.md` |
 | Own rows of the skill catalogs | Move to `.agents/project/index.md` with your trigger and cost; a moved skill is written as `Pattern`, any other row keeps `Pattern` or `Runbook` (other classes become `Pattern`, with a note) |
-| Skill catalogs | Replaced by the kit version, with a backup, after their own rows moved |
+| Skill catalogs | Replaced by the kit version, with a backup, after their own rows moved; also when the old state recorded them and the team then added rows by hand (as the `add-project-pattern` skill of `0.19.x` told it to) |
 | `.agents/project-context.md` | Moves to `.agents/project/context.md` when the new path does not exist; no template is created next to it |
 | Quality gate | An unedited 0.18 or 0.19 default in `.agents/project/quality-gate.md` becomes the project-additions stub (the kit default now lives in `.agents/delegation/quality-gate.md`) |
 | Retired kit files | Deleted when unedited, with a backup |
@@ -131,7 +168,8 @@ leave half of it out. Apply it with:
 workflow-kit update --target /path/to/repo --apply --yes
 ```
 
-A second `update` right after writes nothing. To undo it:
+A second `update` right after writes nothing (`install-state.json` included).
+To undo it:
 
 ```bash
 workflow-kit rollback --target /path/to/repo --apply --yes
@@ -159,9 +197,10 @@ Things the migration does not do:
   empty folder, or delete the old export's `install-state.json` first.
   Exporting into a subfolder of an install does not touch the install.
 - **An unfinished apply blocks the next one.** If an apply stops halfway (a
-  permission error, a full disk), `init` and `update` stop with "The last
-  workflow-kit apply did not finish" until you run `workflow-kit rollback
-  --apply --yes`, so the journal of that apply is never overwritten.
+  permission error, a full disk, Ctrl-C, a killed process), `init` and
+  `update` stop with "The last workflow-kit apply did not finish" until you
+  run `workflow-kit rollback --apply --yes`, so the journal of that apply is
+  never overwritten.
 - **Empty folders are not recreated.** An empty folder inside an own skill
   stays in the old place (Git does not track empty folders); the plan names it.
 - **Some items stay pending** and `doctor` lists each with what to do: an own
@@ -219,7 +258,10 @@ line diff of every file that would change, including managed files you edited
 (`skip_modified`), so you can merge them by hand. Until `0.22.0` updates never
 deleted or moved files; since then they delete unedited retired kit files and,
 once, migrate the layout (above), always with backups. A second update right
-after is a no-op. The full version history is in
+after is a no-op: it writes no file, `install-state.json` included. A seed the
+project already owns is listed as `skip_unmanaged ... (project-owned; left as
+it is)`, and the apply summary counts it as "Project-owned files left as they
+are", apart from unmanaged files. The full version history is in
 `CHANGELOG.md`.
 
 After an update (since `0.16.1`): if you copy the new version of a protected
