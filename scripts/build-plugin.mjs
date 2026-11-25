@@ -23,7 +23,7 @@
 // <out>, a new directory or an empty one; --publish runs it on the exported
 // commit with that commit's code.
 import { spawnSync } from 'node:child_process';
-import { existsSync, realpathSync } from 'node:fs';
+import { existsSync, realpathSync, rmSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -515,8 +515,8 @@ export async function buildPluginInto({ root, out }) {
   return { ok: failures.length === 0, count, failures, dir };
 }
 
-function git(args, { cwd, env }) {
-  const result = spawnSync('git', args, { cwd, env, encoding: 'utf8' });
+function git(args, { cwd, env, input }) {
+  const result = spawnSync('git', args, { cwd, env, input, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   if (result.error) throw new Error(`git ${args[0]} failed: ${result.error.message}`);
   // Only the end is trimmed: `git status --porcelain` lines start with a space.
   return { status: result.status, stdout: result.stdout.trimEnd(), stderr: result.stderr.trim() };
@@ -532,8 +532,11 @@ function gitOk(args, options) {
 // GIT_WORK_TREE, GIT_INDEX_FILE and the like could point it at another
 // repository, and GIT_AUTHOR_* or GIT_COMMITTER_* would commit as someone
 // other than the identity it prints. PATH, HOME and the rest are kept.
+// GIT_NO_REPLACE_OBJECTS is then set: a `refs/replace/*` entry would make
+// every git call read other content under an object id, so the source, the
+// history checks and the published tree are always the objects themselves.
 function withoutGitVariables(env) {
-  return Object.fromEntries(Object.entries(env).filter(([name]) => !name.startsWith('GIT_')));
+  return { ...Object.fromEntries(Object.entries(env).filter(([name]) => !name.startsWith('GIT_'))), GIT_NO_REPLACE_OBJECTS: '1' };
 }
 
 // The worktree that has the branch checked out, from `git worktree list --porcelain`.
@@ -560,20 +563,118 @@ function publishedVersion(run, commit) {
   }
 }
 
-// The tracked content of HEAD, exported with `git archive` into a fresh
-// folder: what --publish builds from, and the code it builds with. Files Git
-// ignores (through .gitignore, a global excludes file or info/exclude) and
-// edits hidden with `git update-index --skip-worktree` or `--assume-unchanged`
-// are not in it, so the branch `plugin` holds exactly what the source commit
-// its message names builds.
-async function exportHead({ runOk, gitEnv, folder }) {
-  const archive = path.join(folder, 'source.tar');
+// The tracked content of HEAD, written into a fresh folder from the raw
+// objects (`git ls-tree` and `git cat-file --batch`): what --publish builds
+// from, and the code it builds with. Files Git ignores (through .gitignore, a
+// global excludes file or info/exclude) and edits hidden with
+// `git update-index --skip-worktree` or `--assume-unchanged` are not in it,
+// and neither attributes (.git/info/attributes, export-ignore, export-subst)
+// nor filters or line-ending settings (core.autocrlf) change a byte of it, so
+// the branch `plugin` holds exactly what the source commit its message names
+// builds.
+async function exportHead({ realRoot, gitEnv, folder }) {
   const sourceRoot = path.join(folder, 'source');
-  runOk(['archive', '--format=tar', `--output=${archive}`, 'HEAD']);
   await fs.mkdir(sourceRoot);
-  const tar = spawnSync('tar', ['-xf', archive, '-C', sourceRoot], { env: gitEnv, encoding: 'utf8' });
-  if (tar.error || tar.status !== 0) throw new Error(`Refusing to publish: could not extract the source commit with tar: ${tar.error?.message ?? tar.stderr.trim()}`);
+  const listed = spawnSync('git', ['ls-tree', '-r', '-z', '--full-tree', 'HEAD'], { cwd: realRoot, env: gitEnv, maxBuffer: 64 * 1024 * 1024 });
+  if (listed.error || listed.status !== 0) throw new Error(`Refusing to publish: could not list the source commit: ${listed.error?.message ?? listed.stderr.toString().trim()}`);
+  const entries = listed.stdout.toString('utf8').split('\0').filter(Boolean).map((line) => {
+    const [meta, relativePath] = [line.slice(0, line.indexOf('\t')), line.slice(line.indexOf('\t') + 1)];
+    const [mode, type, objectId] = meta.split(' ');
+    return { mode, type, objectId, relativePath };
+  });
+  const blobs = entries.filter((entry) => entry.type === 'blob');
+  const read = spawnSync('git', ['cat-file', '--batch'], { cwd: realRoot, env: gitEnv, input: blobs.map((entry) => `${entry.objectId}\n`).join(''), maxBuffer: 256 * 1024 * 1024 });
+  if (read.error || read.status !== 0) throw new Error(`Refusing to publish: could not read the source commit: ${read.error?.message ?? read.stderr.toString().trim()}`);
+  const realSourceRoot = await fs.realpath(sourceRoot);
+  let offset = 0;
+  for (const entry of blobs) {
+    const headerEnd = read.stdout.indexOf(0x0a, offset);
+    const [objectId, type, size] = read.stdout.subarray(offset, headerEnd).toString('utf8').split(' ');
+    if (objectId !== entry.objectId || type !== 'blob') throw new Error(`Refusing to publish: could not read ${entry.relativePath} from the source commit.`);
+    const content = read.stdout.subarray(headerEnd + 1, headerEnd + 1 + Number(size));
+    offset = headerEnd + 1 + Number(size) + 1;
+    const file = path.join(sourceRoot, ...entry.relativePath.split('/'));
+    const outside = new Error(`Refusing to publish: the source commit names a path that would be written outside the export folder: ${entry.relativePath}.`);
+    if (!isInside(sourceRoot, file)) throw outside;
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    // A link the export wrote earlier (on a case-insensitive file system, `A`
+    // for `a/x`) must not carry a write outside the folder; `wx` never writes
+    // through an existing entry.
+    if (!isInside(realSourceRoot, path.join(await fs.realpath(path.dirname(file)), path.basename(file)))) throw outside;
+    try {
+      if (entry.mode === '120000') await fs.symlink(content.toString('utf8'), file);
+      else await fs.writeFile(file, content, { mode: entry.mode === '100755' ? 0o755 : 0o644, flag: 'wx' });
+    } catch (error) {
+      if (error.code === 'EEXIST') throw new Error(`Refusing to publish: two paths of the source commit land on the same file here (${entry.relativePath}); this file system does not tell their names apart.`);
+      throw error;
+    }
+  }
+  for (const entry of entries.filter((item) => item.type === 'commit')) await fs.mkdir(path.join(sourceRoot, ...entry.relativePath.split('/')), { recursive: true });
   return sourceRoot;
+}
+
+// The tree of a built plugin folder, written without the index of the
+// checkout and without filters: `hash-object --no-filters` stores every file
+// as it is (no clean filter, no line-ending conversion from attributes or
+// core.autocrlf), and a temporary index records each mode.
+function pluginTree({ gitDir, gitEnv, dir, files, indexFile }) {
+  const at = { cwd: dir, env: gitEnv };
+  const hashes = gitOk([`--git-dir=${gitDir}`, 'hash-object', '-w', '--no-filters', '--stdin-paths'], { ...at, input: `${files.map(({ relativePath }) => relativePath).join('\n')}\n` }).split('\n');
+  if (hashes.length !== files.length) throw new Error('Refusing to publish: git did not store every file of the build.');
+  const indexInfo = files.map(({ relativePath, executable }, index) => `${executable ? '100755' : '100644'} ${hashes[index]}\t${relativePath}\n`).join('');
+  const withIndex = { ...at, env: { ...gitEnv, GIT_INDEX_FILE: indexFile } };
+  gitOk([`--git-dir=${gitDir}`, 'update-index', '--add', '--index-info'], { ...withIndex, input: indexInfo });
+  return gitOk([`--git-dir=${gitDir}`, 'write-tree'], withIndex);
+}
+
+// The regular files of a built plugin folder, as paths with `/`; anything
+// else (a link, a special file) or a path git cannot store as given stops the
+// publish.
+export async function builtFiles(dir) {
+  const files = [];
+  for (const entry of await fs.readdir(dir, { recursive: true, withFileTypes: true })) {
+    const absolutePath = path.join(entry.parentPath ?? entry.path, entry.name);
+    const relativePath = path.relative(dir, absolutePath).split(path.sep).join('/');
+    if (entry.isDirectory()) continue;
+    if (!entry.isFile()) throw new Error(`Refusing to publish: the build holds ${relativePath}, which is not a regular file.`);
+    // Printable ASCII only: git reads --stdin-paths and --index-info lines as
+    // text (a trailing CR is dropped, a leading quote starts a quoted name),
+    // and on macOS it stores names precomposed; such a name is refused.
+    if (!/^[\x20-\x7e]+$/.test(relativePath) || relativePath.startsWith('"')) throw new Error(`Refusing to publish: the build holds a path with a character git may store differently: ${JSON.stringify(relativePath)}. Plugin paths are printable ASCII.`);
+    files.push({ relativePath, executable: ((await fs.stat(absolutePath)).mode & 0o111) !== 0 });
+  }
+  return files.sort((left, right) => (left.relativePath < right.relativePath ? -1 : left.relativePath > right.relativePath ? 1 : 0));
+}
+
+// A commit on the branch `plugin` that --publish did not write: its subject
+// does not start with "Publish plugin <name> ".
+function foreignCommits(run, localTip, remoteTip) {
+  const log = run(['log', '--format=%H %s', localTip, ...(remoteTip ? [`^${remoteTip}`] : [])]);
+  if (log.status !== 0) throw new Error(`Refusing to publish: could not read the history of the local branch ${pluginBranch} (${log.stderr || `git log exit status ${log.status}`}), so it cannot tell whether --publish wrote it. Repair the repository and rerun.`);
+  return log.stdout.split('\n').filter(Boolean).filter((line) => !line.slice(line.indexOf(' ') + 1).startsWith(`Publish plugin ${pluginName} `)).map((line) => line.slice(0, 12));
+}
+
+// SIGINT or SIGTERM while publishing removes the temporary folder, then ends
+// the process as the signal would (exit status 128 + its number). A handler
+// only runs between synchronous steps, so `drain` lets a signal that already
+// arrived run it: right before the commit (an interrupted publish commits
+// nothing) and before the handlers go (a Ctrl-C that also stopped a git or
+// node child still ends with 130). After the commit the handler says which
+// commit the branch holds.
+const signalStatuses = { SIGINT: 130, SIGTERM: 143 };
+function signalGuard(folder) {
+  const state = { committed: null };
+  const handler = (signal) => {
+    rmSync(folder, { recursive: true, force: true });
+    if (state.committed) process.stderr.write(`Interrupted after the commit: the local branch ${pluginBranch} holds ${state.committed}, and ${pluginOutputDirectory} was not refreshed (run ${writeCommand}).\n`);
+    process.exit(signalStatuses[signal]);
+  };
+  for (const signal of Object.keys(signalStatuses)) process.on(signal, handler);
+  return {
+    state,
+    drain: () => new Promise((resolve) => setTimeout(resolve, 0)).then(() => new Promise((resolve) => setImmediate(resolve))),
+    remove: () => { for (const signal of Object.keys(signalStatuses)) process.removeListener(signal, handler); }
+  };
 }
 
 // Runs node on the exported source commit with the sanitized environment: the
@@ -602,17 +703,19 @@ function sourceLegalCheck(sourceRoot, env) {
   return { ok: false, failures: [`the legal check did not run: ${result.stderr.trim() || `exit status ${result.status}`}`] };
 }
 
-// Commits a validated dist/plugin to the local branch `plugin` with plumbing
-// only: a temporary index, the folder as work tree, and update-ref. HEAD, the
+// Commits a validated build to the local branch `plugin` with plumbing only:
+// objects stored without filters, a temporary index, and update-ref
+// --no-deref; dist/plugin is refreshed after the commit. HEAD, the
 // current branch, the index, the working tree and the git configuration are
 // left alone; nothing is fetched or pushed. The build reads the tracked
 // content of HEAD and runs the build code of HEAD (--out in a child node),
 // never the working tree; the result is validated again before the commit.
 // It refuses, before building, when
-// the root is not the top level of its own repository, a worktree has the
-// branch checked out, git has no identity, a build input has uncommitted
-// changes, origin/main is missing or does not contain HEAD, or the local
-// branch does not contain origin/plugin; and, after exporting HEAD, when the
+// the root is not the top level of its own repository, the branch is a
+// symbolic ref, a worktree has the branch checked out, git has no identity, a build input has uncommitted
+// changes, origin/main is missing or does not contain HEAD, the local branch
+// does not contain origin/plugin, or it holds commits --publish did not
+// write; and, after exporting HEAD, when the
 // legal check fails on it, the build does not validate, the marketplace is out
 // of sync, or new content keeps the published version without sameVersion.
 export async function publishPluginBuild({ root = packageRoot, env = process.env, sameVersion = false, log = () => {} } = {}) {
@@ -628,6 +731,10 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
     throw new Error(`Refusing to publish: ${resolved} is not the top level of its own git repository (git top level: ${topLevel.status === 0 ? topLevel.stdout : 'none'}). Publish from the kit repository itself.`);
   }
   const branchRef = `refs/heads/${pluginBranch}`;
+  // A symbolic ref would make update-ref move the branch it points at.
+  if (run(['symbolic-ref', '--quiet', branchRef]).status === 0) {
+    throw new Error(`Refusing to publish: ${branchRef} is a symbolic reference (to ${run(['symbolic-ref', '--quiet', branchRef]).stdout}), so a commit to it would move that branch. Delete it with \`git symbolic-ref --delete ${branchRef}\` and rerun.`);
+  }
   const holder = worktreeHolding(runOk(['worktree', 'list', '--porcelain']), branchRef);
   if (holder) throw new Error(`Refusing to publish: the branch ${pluginBranch} is checked out in ${holder}. Switch that worktree to another branch and rerun.`);
 
@@ -660,13 +767,18 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
   if (localTip && remoteTip && run(['merge-base', '--is-ancestor', remoteTip, localTip]).status !== 0) {
     throw new Error(`Refusing to publish: the local branch ${pluginBranch} is behind or diverged from ${remoteBranch}: it does not contain ${remoteTip}. Bring the local branch up to date first, so that it contains ${remoteBranch}, and rerun. Publishing never fetches: ${remoteBranch} is the copy last fetched.`);
   }
+  const foreign = localTip ? foreignCommits(run, localTip, remoteTip) : [];
+  if (foreign.length > 0) {
+    throw new Error(`Refusing to publish: the local branch ${pluginBranch} holds commits that --publish did not write (${foreign.join(', ')}): their message does not start with "Publish plugin ${pluginName} ". Publishing on top would push that history with the plugin. Check what the branch holds; if it is not the published plugin, delete it (git branch -D ${pluginBranch}) and rerun.`);
+  }
   const parent = localTip ?? remoteTip;
   const base = localTip ? pluginBranch : remoteBranch;
 
   // A real path: the child node runs the exported script by it.
   const temporary = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-plugin-publish-')));
+  const guard = signalGuard(temporary);
   try {
-    const sourceRoot = await exportHead({ runOk, gitEnv, folder: temporary });
+    const sourceRoot = await exportHead({ realRoot, gitEnv, folder: temporary });
     const legal = sourceLegalCheck(sourceRoot, gitEnv);
     if (!legal.ok) {
       throw new Error([
@@ -675,33 +787,45 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
         'Fix what it names and commit. After a version raise or any template change, renew remainingInventory (fileCount and pathContentSha256) in docs/legal/overlay-authorship.json as docs/versioning.md explains.'
       ].join('\n'));
     }
-    const { dir, warnings } = await replacePluginDirectory({
-      realRoot,
-      fill: async (staging) => {
-        const build = runSourceNode(sourceRoot, [path.join(sourceRoot, 'scripts/build-plugin.mjs'), '--root', sourceRoot, '--out', staging], gitEnv);
-        if (build.status !== 0) throw new Error(build.stderr.trim() || `The build of the source commit ${source.stdout} failed with exit status ${build.status}.`);
-        const { failures } = await validatePluginFolder({ root: sourceRoot, dir: staging });
-        if (failures.length > 0) throw new Error(formatFailures(failures));
-      }
-    });
+    // The build goes to the temporary folder: dist/plugin changes only once
+    // the branch holds it, so a refusal leaves dist/plugin as it was.
+    const built = path.join(temporary, 'plugin');
+    const build = runSourceNode(sourceRoot, [path.join(sourceRoot, 'scripts/build-plugin.mjs'), '--root', sourceRoot, '--out', built], gitEnv);
+    if (build.status !== 0) throw new Error(build.stderr.trim() || `The build of the source commit ${source.stdout} failed with exit status ${build.status}.`);
+    const { failures } = await validatePluginFolder({ root: sourceRoot, dir: built });
+    if (failures.length > 0) throw new Error(formatFailures(failures));
     const { version } = await readPackageJson(sourceRoot);
     const message = `Publish plugin ${pluginName} ${version} from ${source.stdout}`;
     const gitDir = runOk(['rev-parse', '--absolute-git-dir']);
-    const plumbing = { cwd: dir, env: { ...gitEnv, GIT_INDEX_FILE: path.join(temporary, 'index') } };
-    const tree = [`--git-dir=${gitDir}`, `--work-tree=${dir}`];
-    gitOk([...tree, 'add', '--all', '--force', '--', '.'], plumbing);
-    const treeId = gitOk([...tree, 'write-tree'], plumbing);
+    const treeId = pluginTree({ gitDir, gitEnv, dir: built, files: await builtFiles(built), indexFile: path.join(temporary, 'index') });
+    let result;
     if (parent && runOk(['rev-parse', `${parent}^{tree}`]) === treeId) {
-      return { committed: false, commit: parent, base, branchExists: Boolean(localTip), identity, message, warnings };
+      result = { committed: false, commit: parent, base, branchExists: Boolean(localTip), identity, message };
+    } else {
+      if (parent && !sameVersion && publishedVersion(run, parent) === version) {
+        throw new Error(`Refusing to publish: the build differs from the tip of ${base} (${parent}) but keeps its version ${version}. Claude Code pins a plugin to its version, so people who installed ${version} would not receive this change. Raise the version first (the release steps of docs/versioning.md: package.json, kit_version, the overlay authorship record, then ${writeCommand}), commit it to ${sourceBranch}, or pass --same-version to publish it under ${version} anyway.`);
+      }
+      await guard.drain();
+      const committer = { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_NAME: name, GIT_COMMITTER_EMAIL: email };
+      const commit = gitOk(['commit-tree', treeId, ...(parent ? ['-p', parent] : []), '-m', message], { cwd: realRoot, env: { ...gitEnv, ...committer } });
+      // --no-deref and the expected old value: only the branch itself moves,
+      // and only from the tip checked above.
+      runOk(['update-ref', '--no-deref', '-m', message, branchRef, commit, localTip ?? '']);
+      guard.state.committed = commit;
+      result = { committed: true, commit, parent, branchExists: true, identity, message };
     }
-    if (parent && !sameVersion && publishedVersion(run, parent) === version) {
-      throw new Error(`Refusing to publish: the build differs from the tip of ${base} (${parent}) but keeps its version ${version}. Claude Code pins a plugin to its version, so people who installed ${version} would not receive this change. Raise the version first (the release steps of docs/versioning.md: package.json, kit_version, the overlay authorship record, then ${writeCommand}), commit it to ${sourceBranch}, or pass --same-version to publish it under ${version} anyway.`);
+    // dist/plugin follows what the branch holds; failing to refresh it is
+    // reported, as the publish itself is done.
+    let warnings;
+    try {
+      ({ warnings } = await replacePluginDirectory({ realRoot, fill: async (staging) => fs.cp(built, staging, { recursive: true }) }));
+    } catch (error) {
+      warnings = [`The branch ${pluginBranch} holds the build, but ${pluginOutputDirectory} could not be refreshed (${error.message}). Run ${writeCommand} to rebuild it.`];
     }
-    const committer = { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_NAME: name, GIT_COMMITTER_EMAIL: email };
-    const commit = gitOk(['commit-tree', treeId, ...(parent ? ['-p', parent] : []), '-m', message], { cwd: realRoot, env: { ...gitEnv, ...committer } });
-    runOk(['update-ref', '-m', message, branchRef, commit, localTip ?? '']);
-    return { committed: true, commit, parent, branchExists: true, identity, message, warnings };
+    return { ...result, warnings };
   } finally {
+    await guard.drain();
+    guard.remove();
     await fs.rm(temporary, { recursive: true, force: true });
   }
 }

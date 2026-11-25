@@ -140,19 +140,30 @@ To publish the plugin `fhh`, merge the release into `main`, fetch, check out a
 commit that `origin/main` contains and run
 `node scripts/build-plugin.mjs --publish` from the kit repository itself (its
 top level, not a copy inside another repository). It builds from the tracked
-content of `HEAD`, exported with `git archive` into a temporary folder, and
+content of `HEAD`, written into a temporary folder from Git's raw objects, and
 with the build code of that content (its own `scripts/build-plugin.mjs`, run
 in a separate `node`): files Git ignores and edits hidden with
 `git update-index --skip-worktree` or `--assume-unchanged` never reach the
-published plugin through its content or its build code. The publish steps
+published plugin through its content or its build code. Attributes
+(`.git/info/attributes` included), clean and smudge filters and line-ending
+settings such as `core.autocrlf` change no byte on either side: the source is
+read and the build is stored as they are. Replacement objects
+(`refs/replace/*`) are ignored: every git call reads the objects themselves. The publish steps
 themselves (export, run that build, commit) are the `--publish` code of the
 working tree's `scripts/build-plugin.mjs`, so run it from a checkout whose
 copy of that script matches `HEAD`. It runs the legal check of that
-content on it, validates the build as check mode does and commits
-`dist/plugin/` to the local branch `plugin` without touching the current
-branch. It never fetches, never pushes and never changes the Git
-configuration. It stops, without committing, when:
+content on it, validates the build as check mode does and commits it to the
+local branch `plugin` (moving only that branch, never one it points at)
+without touching the current branch; `dist/plugin/` is refreshed with the same
+build only after that commit, so a refusal leaves it as it was. It never
+fetches, never pushes and never changes the Git configuration. Interrupted
+with Ctrl-C or `SIGTERM`, it removes its temporary folder and ends with exit
+status 130 or 143: before the commit it commits nothing; after it, it names the
+commit the branch holds and leaves `dist/plugin/` for `--write`.
+It stops, without committing, when:
 
+- the branch `plugin` is a symbolic reference (for example to `main`): a
+  commit to it would move the branch it points at;
 - the branch `plugin` is checked out in any worktree of the repository;
 - Git has no `user.name` or `user.email` for the repository: publishing reads
   them with `git config` and ignores the inherited `GIT_*` variables
@@ -168,6 +179,13 @@ configuration. It stops, without committing, when:
 - the build does not validate, or the marketplace is out of sync;
 - the local branch `plugin` does not contain `origin/plugin` (it is behind or
   diverged): bring it up to date first;
+- the local branch `plugin` holds a commit `--publish` did not write (its
+  message does not start with `Publish plugin fhh `), so its history would be
+  pushed with the plugin, or its history cannot be read;
+- the source commit has two paths this file system cannot tell apart, or a
+  link that would carry a write outside the temporary folder;
+- the build holds a path outside printable ASCII, which git could store under
+  another name;
 - the content changed but the version is the one already published on the
   branch `plugin`. People who installed the plugin see a kit change only when
   the published version changes, because Claude Code pins a plugin to its

@@ -2,7 +2,7 @@
 // real `init --mode plugin` in temporary repositories; the `claude` binary is
 // always an executor double, so no test runs a runtime CLI.
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -490,4 +490,32 @@ test('N4: doctor --runtime copilot on a claude plugin install names the update t
   const update = await cli([...command.replace(/^workflow-kit /, '').split(' '), '--target', target]);
   assert.equal(update.code, 0, update.stderr);
   assert.equal(findings(await doctor(target, executor, { runtime: 'claude,copilot' }), 'mode/plugin-not-declared').length, 0);
+});
+
+// P11: a named pipe at a settings path is never opened, so nothing waits on it.
+test('P11: a named pipe at .claude/settings.json does not hang doctor in repo mode or in plugin mode, nor init --mode plugin', { skip: process.platform === 'win32' && 'no mkfifo', timeout: 60000 }, async () => {
+  const withPipe = async (target) => {
+    await fs.rm(path.join(target, '.claude/settings.json'), { force: true });
+    await fs.mkdir(path.join(target, '.claude'), { recursive: true });
+    const made = spawnSync('mkfifo', [path.join(target, '.claude/settings.json')]);
+    assert.equal(made.status, 0, String(made.stderr));
+  };
+  const { calls, executor } = executorDouble(installed(packageJson.version));
+
+  const repo = await install('claude', 'repo');
+  const repoBaseline = await doctor(repo, executor);
+  await withPipe(repo);
+  assert.equal(formatDoctorResult(await doctor(repo, executor)), formatDoctorResult(repoBaseline));
+  assert.deepEqual(calls, []);
+
+  const plugin = await install('claude');
+  await withPipe(plugin);
+  const pluginResult = await doctor(plugin, executor);
+  assertFinding(pluginResult, 'managed/path-unreadable', '.claude/settings.json', ['EFTYPE'], 'error');
+
+  const target = await makeTempRepo();
+  await withPipe(target);
+  const init = await cli(['init', '--target', target, '--mode', 'plugin', '--runtime', 'claude']);
+  assert.notEqual(init.code, 0);
+  assert.match(init.stderr, /\.claude\/settings\.json: it is not a regular file/);
 });

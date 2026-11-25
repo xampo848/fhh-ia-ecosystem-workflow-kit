@@ -61,14 +61,20 @@ previous release.
 - Build and publish: `node scripts/build-plugin.mjs` checks and `--write`
   rebuilds the plugin into the git-ignored `dist/plugin/` and the marketplace
   `.claude-plugin/marketplace.json` (now part of `check:workflow`).
-  `--publish` builds from the tracked content of `HEAD` with that commit's
-  own build code and commits it to the local branch `plugin`; it never
-  fetches, pushes or changes Git configuration. It refuses when `plugin` is
-  checked out, Git has no identity for the repository, a build input has
-  uncommitted changes, `origin/main` is missing or does not contain `HEAD`,
-  the legal check or the build fails, the local `plugin` does not contain
-  `origin/plugin`, or the content changed under an already published version
-  (`--same-version` overrides only that). The marketplace in `main` points at
+  `--publish` builds from the tracked content of `HEAD` (read from Git's raw
+  objects, so attributes, filters, `core.autocrlf` and replacement objects
+  change nothing) with
+  that commit's own build code, and commits it to the local branch `plugin`;
+  it never fetches, pushes or changes Git configuration, refreshes
+  `dist/plugin/` only after the commit, and cleans up when interrupted. It
+  refuses when `plugin` is a symbolic reference or is checked out, Git has no
+  identity for the repository, a build input has uncommitted changes,
+  `origin/main` is missing or does not contain `HEAD`, the legal check or the
+  build fails, the local `plugin` does not contain `origin/plugin` or holds
+  commits `--publish` did not write (or its history cannot be read), a path
+  is outside printable ASCII or would be written outside its folder, or the
+  content changed under an already
+  published version (`--same-version` overrides only that). The marketplace in `main` points at
   the branch `plugin`, which exists only after the first approved publish and
   push; plugin installs fail until then.
 - TUI: Install asks for the mode only when every chosen runtime has a plugin;

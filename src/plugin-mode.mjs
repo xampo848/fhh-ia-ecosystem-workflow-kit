@@ -151,7 +151,7 @@ async function readPluginSettings({ targetPath, runtimes, tolerant = false }) {
     const targetFile = path.join(targetPath, relativePath);
     let existing;
     try {
-      existing = await readOptional(targetFile);
+      existing = await readSettingsFile(targetFile, relativePath);
     } catch (readError) {
       if (!tolerant) throw readError;
       existing = null;
@@ -351,6 +351,24 @@ export async function inspectInstalledPlugins({ targetPath, executor = runComman
   if (!Array.isArray(plugins)) return { status: 'unverified', reason: `${file} did not answer with a JSON list` };
   const entry = plugins.find((item) => item?.id === pluginId);
   return entry ? { status: 'installed', version: entry.version ?? null, enabled: entry.enabled !== false } : { status: 'absent' };
+}
+
+// P11: a settings path that is not a regular file (a named pipe, a socket, a
+// device) is never opened: reading a named pipe would wait for a writer
+// forever. It counts as unreadable (EFTYPE), like a folder at that path.
+async function readSettingsFile(file, relativePath) {
+  let stats;
+  try {
+    stats = await fs.stat(file);
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+  if (!stats.isFile()) {
+    if (stats.isDirectory()) return readOptional(file);
+    throw Object.assign(new Error(`Cannot read ${relativePath}: it is not a regular file (a named pipe, a socket or a device). Replace it with a JSON file or remove it, then rerun. Nothing was written.`), { code: 'EFTYPE', path: file });
+  }
+  return readOptional(file);
 }
 
 async function readOptional(file) {

@@ -5,7 +5,7 @@
 // branch `plugin`. Every test builds from a temporary copy of what the build
 // reads, never from or into this checkout.
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
@@ -14,6 +14,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
+  builtFiles as publishedPathsOf,
   expectedMarketplace,
   expectedPluginFiles,
   pluginBuildInputs,
@@ -1224,4 +1225,187 @@ test('--publish runs the build and the legal check of the source commit without 
   assert.ok(loaded.some((line) => line.includes('--publish')), 'the publishing script itself still honours its environment');
   assert.ok(!loaded.some((line) => line.includes('--out') || line.includes('--input-type')), `a process on the source commit loaded NODE_OPTIONS: ${loaded.join(' | ')}`);
   assert.ok(existsSync(path.join(root, 'dist/plugin/plugin.json')));
+});
+
+// Final review (P10): --publish edges. The branch `plugin` as a symbolic ref,
+// attributes and filters, core.autocrlf, a signal while publishing, a local
+// branch with history --publish did not write, and a late refusal.
+const publishedBlob = (git, relativePath) => git('cat-file', 'blob', `plugin:${relativePath}`);
+
+test('P10: --publish refuses a branch plugin that is a symbolic ref, and moves no branch', async () => {
+  const { git, publish } = await gitFixture();
+  git('symbolic-ref', 'refs/heads/plugin', 'refs/heads/main');
+  const before = git.refs();
+
+  const refused = publish();
+
+  assert.equal(refused.status, 1, refused.stdout);
+  assert.match(refused.stderr, /refs\/heads\/plugin is a symbolic reference \(to refs\/heads\/main\)/);
+  assert.match(refused.stderr, /git symbolic-ref --delete refs\/heads\/plugin/);
+  assert.equal(git.refs(), before);
+  assert.equal(git('symbolic-ref', 'refs/heads/plugin'), 'refs/heads/main');
+});
+
+test('P10: attributes, filters and core.autocrlf of the repository change no byte the branch plugin holds', async () => {
+  const reference = await gitFixture();
+  assert.equal(reference.publish().status, 0);
+  const expected = reference.git('ls-tree', '-r', 'plugin');
+
+  const { root, git, publish } = await gitFixture();
+  // A clean filter on the file only the build has (plugin.json), a smudge
+  // filter and export-subst on the source, and CRLF conversion everywhere:
+  // none of them makes the checkout look changed.
+  await fs.writeFile(path.join(root, '.git/info/attributes'), 'plugin.json filter=marker\n*.md filter=smudger export-subst\n', 'utf8');
+  git('config', 'filter.marker.clean', 'sed s/fhh/CLEANED/g');
+  git('config', 'filter.smudger.smudge', 'sed s/the/SMUDGED/g');
+  git('config', 'core.autocrlf', 'true');
+
+  const published = publish();
+
+  assert.equal(published.status, 0, published.stderr);
+  assert.equal(git('ls-tree', '-r', 'plugin'), expected);
+  const manifest = publishedBlob(git, '.claude-plugin/plugin.json');
+  assert.equal(JSON.parse(manifest).name, 'fhh');
+  assert.equal(/CLEANED|\r/.test(manifest), false, manifest);
+  assert.equal(/SMUDGED|\r/.test(publishedBlob(git, '.agents/instructions.md')), false);
+});
+
+test('P10: --publish refuses a local branch plugin with commits it did not write, and changes nothing', async () => {
+  const { git, publish } = await gitFixture();
+  const foreign = git('commit-tree', git('rev-parse', 'HEAD^{tree}'), '-m', 'Work in progress');
+  git('update-ref', 'refs/heads/plugin', foreign);
+  const before = git.refs();
+
+  const refused = publish();
+
+  assert.equal(refused.status, 1, refused.stdout);
+  assert.ok(refused.stderr.includes(`holds commits that --publish did not write (${foreign.slice(0, 12)})`), refused.stderr);
+  assert.match(refused.stderr, /git branch -D plugin/);
+  assert.equal(git.refs(), before);
+});
+
+test('P10: a refusal after the build leaves dist/plugin as it was', async () => {
+  const { root, git, publish } = await gitFixture();
+  assert.equal(publish().status, 0);
+  const published = await hashTree(path.join(root, 'dist/plugin'));
+  await fs.appendFile(path.join(root, instructionsFile), '\nA kit change.\n', 'utf8');
+  await renewAuthorship(root);
+  git.commit('A kit change', instructionsFile, 'docs/legal/overlay-authorship.json');
+  git.land();
+
+  const refused = publish();
+
+  assert.equal(refused.status, 1, refused.stdout);
+  assert.match(refused.stderr, /keeps its version/);
+  assert.deepEqual(await hashTree(path.join(root, 'dist/plugin')), published);
+});
+
+for (const [signal, status] of [['SIGTERM', 143], ['SIGINT', 130]]) {
+  test(`P10: ${signal} while publishing removes the temporary folder and commits nothing`, { timeout: 60000 }, async () => {
+    const { root, env, git } = await gitFixture();
+    const tmp = await makeTempRepo('workflow-kit-plugin-tmpdir-');
+    const before = git.refs();
+    const child = spawn(process.execPath, [path.join(root, 'scripts/build-plugin.mjs'), '--publish', '--root', root], { cwd: root, env: { ...env, TMPDIR: tmp }, stdio: 'ignore' });
+    const exited = new Promise((resolve) => child.on('exit', (code, killedBy) => resolve({ code, killedBy })));
+    // Once the publish folder holds the exported source, the publish is under way.
+    const started = Date.now();
+    for (;;) {
+      const [folder] = await fs.readdir(tmp);
+      if (folder && existsSync(path.join(tmp, folder, 'source', 'package.json'))) break;
+      assert.ok(Date.now() - started < 30000, 'the publish did not start');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    child.kill(signal);
+
+    assert.deepEqual(await exited, { code: status, killedBy: null });
+    assert.deepEqual(await fs.readdir(tmp), []);
+    assert.equal(git.refs(), before);
+  });
+}
+
+// Independent review of the P10 round: replace refs, an unreadable history,
+// Ctrl-C that reaches the whole process group, path names git may store
+// differently, and a link in the source that would carry a write outside the
+// export folder.
+test('P10 review: a refs/replace entry does not change what --publish reads or stores', async () => {
+  const { root, git, publish } = await gitFixture();
+  const original = await fs.readFile(path.join(root, instructionsFile), 'utf8');
+  const realBlob = git('rev-parse', `HEAD:${instructionsFile}`);
+  const evil = path.join(await makeTempRepo('workflow-kit-plugin-evil-'), 'evil.md');
+  await fs.writeFile(evil, '# Replaced content\n', 'utf8');
+  git('replace', realBlob, git('hash-object', '-w', evil));
+
+  const published = publish();
+
+  assert.equal(published.status, 0, published.stderr);
+  assert.equal(git('--no-replace-objects', 'cat-file', 'blob', 'plugin:.agents/instructions.md'), original.trimEnd());
+});
+
+test('P10 review: a local branch plugin whose history cannot be read is refused', async () => {
+  const { root, git, publish } = await gitFixture();
+  const tree = git('rev-parse', 'HEAD^{tree}');
+  const first = git('commit-tree', tree, '-m', 'Publish plugin fhh 0.0.1 from aaaaaaa');
+  const second = git('commit-tree', tree, '-p', first, '-m', 'Publish plugin fhh 0.0.2 from bbbbbbb');
+  git('update-ref', 'refs/heads/plugin', second);
+  await fs.rm(path.join(root, '.git/objects', first.slice(0, 2), first.slice(2)));
+  const before = git.refs();
+
+  const refused = publish();
+
+  assert.equal(refused.status, 1, refused.stdout);
+  assert.match(refused.stderr, /could not read the history of the local branch plugin/);
+  assert.equal(git.refs(), before);
+});
+
+test('P10 review: Ctrl-C to the whole process group ends with 130, removes the temporary folder and commits nothing', { skip: process.platform === 'win32' && 'no process groups', timeout: 60000 }, async () => {
+  const { root, env, git } = await gitFixture();
+  const tmp = await makeTempRepo('workflow-kit-plugin-tmpdir-');
+  const before = git.refs();
+  const child = spawn(process.execPath, [path.join(root, 'scripts/build-plugin.mjs'), '--publish', '--root', root], { cwd: root, env: { ...env, TMPDIR: tmp }, stdio: 'ignore', detached: true });
+  const exited = new Promise((resolve) => child.on('exit', (code, killedBy) => resolve({ code, killedBy })));
+  const started = Date.now();
+  for (;;) {
+    const [folder] = await fs.readdir(tmp);
+    if (folder && existsSync(path.join(tmp, folder, 'source', 'package.json'))) break;
+    assert.ok(Date.now() - started < 30000, 'the publish did not start');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  process.kill(-child.pid, 'SIGINT');
+
+  assert.deepEqual(await exited, { code: 130, killedBy: null });
+  assert.deepEqual(await fs.readdir(tmp), []);
+  assert.equal(git.refs(), before);
+});
+
+test('P10 review: a built path git may store differently (a CR, a decomposed accent) is refused', async () => {
+  for (const name of ['carriage\r', 'café.md', 'tab\there.md']) {
+    const dir = await makeTempRepo('workflow-kit-plugin-names-');
+    await fs.writeFile(path.join(dir, 'plain.md'), 'ok\n', 'utf8');
+    await fs.writeFile(path.join(dir, name), 'odd\n', 'utf8');
+    await assert.rejects(publishedPathsOf(dir), /a character git may store differently/, JSON.stringify(name));
+  }
+  const dir = await makeTempRepo('workflow-kit-plugin-names-');
+  await fs.mkdir(path.join(dir, 'skills/a b'), { recursive: true });
+  await fs.writeFile(path.join(dir, 'skills/a b/SKILL.md'), 'ok\n', 'utf8');
+  assert.deepEqual(await publishedPathsOf(dir), [{ relativePath: 'skills/a b/SKILL.md', executable: false }]);
+});
+
+test('P10 review: a link in the source commit never carries a write outside the export folder', async () => {
+  const { git, publish } = await gitFixture();
+  const outside = await makeTempRepo('workflow-kit-plugin-outside-');
+  const blobs = await makeTempRepo('workflow-kit-plugin-blobs-');
+  await fs.writeFile(path.join(blobs, 'link'), outside, 'utf8');
+  await fs.writeFile(path.join(blobs, 'file'), 'written through the link\n', 'utf8');
+  const linkBlob = git('hash-object', '-w', path.join(blobs, 'link'));
+  const fileBlob = git('hash-object', '-w', path.join(blobs, 'file'));
+  // `A` links outside and `a/x` is a file: on a case-insensitive file system
+  // the export would write `a/x` through `A`.
+  git('update-index', '--add', '--cacheinfo', `120000,${linkBlob},A`, '--cacheinfo', `100644,${fileBlob},a/x`);
+  git.commit('A link and a file whose folder differs only in case');
+  git.land();
+
+  const result = publish();
+
+  assert.deepEqual(await fs.readdir(outside), []);
+  if (result.status !== 0) assert.match(result.stderr, /outside the export folder|same file here/, result.stderr);
 });
