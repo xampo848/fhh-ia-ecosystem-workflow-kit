@@ -583,7 +583,7 @@ test('a rollback stopped by SIGINT, SIGTERM or SIGKILL is recorded: update stops
     assert.deepEqual(await hashTree(target), partly, `${signal}: nothing written while it is pending`);
     const doctor = await runDoctor({ targetPath: target });
     assert.equal(doctor.ok, false, signal);
-    assert.ok(doctor.diagnostics.some((item) => item.code === 'managed/apply-incomplete' && /rollback --apply --yes/.test(item.message)), signal);
+    assert.ok(doctor.diagnostics.some((item) => item.code === 'managed/apply-incomplete' && /rollback --target \S+ --apply --yes/.test(item.message)), signal);
 
     const plan = await cli(['rollback', '--target', target]);
     assert.match(plan.stdout, /^Finishes the rollback started .+, which did not finish\. Undoes the last `update`/m, signal);
