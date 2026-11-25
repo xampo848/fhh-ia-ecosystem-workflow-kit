@@ -30,7 +30,8 @@ released it. Tags of the current lines:
 
 | Tag | Notes |
 | --- | --- |
-| `v0.23.2-apply-recovery` | current |
+| `v0.23.3-strict-cli` | current |
+| `v0.23.2-apply-recovery` | |
 | `v0.23.1-script-guards` | |
 | `v0.23.0-plugin-mode` | |
 | `v0.22.0-manifest-updater` | |
