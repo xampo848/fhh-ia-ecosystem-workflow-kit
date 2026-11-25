@@ -173,6 +173,9 @@ test('a validator run through a symlinked path still runs and fails on a broken 
 // the helper, so they keep their own guard; it must resolve argv[1] through realpath.
 const selfContainedScripts = new Set(['copilot-model-routing.mjs', 'verify-copilot-model-evidence.mjs']);
 const realpathGuard = /realpath(?:Sync)?\(process\.argv\[1\]\)/;
+// A raw comparison of argv[1] skips main through a symbolic link, even when a
+// realpath helper sits elsewhere in the same file.
+const rawArgvComparison = /process\.argv\[1\]\s*===|===\s*process\.argv\[1\]/;
 
 test('scripts decide whether to run main only through a symlink-safe guard', async () => {
   const scriptsDir = path.join(sourceRoot, 'scripts');
@@ -181,8 +184,8 @@ test('scripts decide whether to run main only through a symlink-safe guard', asy
     const source = await fs.readFile(path.join(scriptsDir, name), 'utf8');
     const comparesModulePath = /===\s*fileURLToPath\(import\.meta\.url\)/.test(source);
     if (selfContainedScripts.has(name)) {
-      if (!realpathGuard.test(source)) offenders.push(name);
-    } else if (comparesModulePath) {
+      if (!realpathGuard.test(source) || rawArgvComparison.test(source)) offenders.push(name);
+    } else if (comparesModulePath || rawArgvComparison.test(source)) {
       offenders.push(name);
     }
   }
@@ -205,23 +208,47 @@ test('shipped kit scripts under .agents resolve argv[1] through realpath', async
       const source = await fs.readFile(path.join(sourceRoot, base, shipped), 'utf8');
       if (!/process\.argv\[1\]/.test(source)) continue;
       scanned += 1;
-      if (!realpathGuard.test(source)) offenders.push(`${base}${shipped}`);
+      if (!realpathGuard.test(source) || rawArgvComparison.test(source)) offenders.push(`${base}${shipped}`);
     }
   }
   assert.ok(scanned >= 10, `expected to scan the shipped guarded scripts, scanned ${scanned}`);
   assert.deepEqual(offenders, []);
 });
 
-test('a shipped skill script run through a symlinked path still runs its main', async () => {
-  const linkParent = await makeTempRepo('workflow-kit-skill-symlink-');
-  const linkedScripts = path.join(linkParent, 'linked');
-  await fs.symlink(path.join(sourceRoot, '.agents/skills/02-implement/prd-readiness-review/scripts'), linkedScripts, 'dir');
-
-  const run = spawnSync(process.execPath, [path.join(linkedScripts, 'verify-prd-index.mjs')], { encoding: 'utf8' });
-
-  assert.equal(run.status, 2, `stdout: ${run.stdout}\nstderr: ${run.stderr}`);
-  assert.match(run.stderr, /Usage: node verify-prd-index\.mjs/);
+test('test fixture scripts decide whether to run main through the shared helper', async () => {
+  const fixturesDir = path.join(sourceRoot, 'test/fixtures');
+  const offenders = [];
+  for (const relative of await fs.readdir(fixturesDir, { recursive: true })) {
+    if (!relative.endsWith('.mjs')) continue;
+    const source = await fs.readFile(path.join(fixturesDir, relative), 'utf8');
+    if (rawArgvComparison.test(source) || /===\s*fileURLToPath\(import\.meta\.url\)/.test(source)) offenders.push(relative);
+  }
+  assert.deepEqual(offenders, [], 'use isMainModule from scripts/is-main-module.mjs');
 });
+
+// Each shipped script, called with no arguments through a symlinked folder,
+// must run its main and refuse (usage or missing options), not exit 0 silently.
+// The fixture generator, given a folder that does not exist, must fail too.
+for (const { folder, script, args = [] } of [
+  { folder: '.agents/skills/02-implement/prd-readiness-review/scripts', script: 'verify-prd-index.mjs' },
+  { folder: '.agents/skills/01-product/create-prd/scripts', script: 'prd-size-signals.mjs' },
+  { folder: '.agents/skills/02-implement/validation-runner/scripts', script: 'validation-fingerprint.mjs' },
+  { folder: 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/02-implement/prd-readiness-review/scripts', script: 'verify-prd-index.mjs' },
+  { folder: 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/01-product/create-prd/scripts', script: 'prd-size-signals.mjs' },
+  { folder: 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents/skills/02-implement/validation-runner/scripts', script: 'validation-fingerprint.mjs' },
+  { folder: 'test/fixtures/plugin-mode', script: 'repo-mode-plans.mjs', args: ['does-not-exist'] }
+]) {
+  test(`${folder}/${script} run through a symlinked folder still runs its main`, async () => {
+    const linkParent = await makeTempRepo('workflow-kit-skill-symlink-');
+    const linked = path.join(linkParent, 'linked');
+    await fs.symlink(path.join(sourceRoot, folder), linked, 'dir');
+
+    const run = spawnSync(process.execPath, [path.join(linked, script), ...args], { cwd: linkParent, encoding: 'utf8' });
+
+    assert.notEqual(run.status, 0, `stdout: ${run.stdout}\nstderr: ${run.stderr}`);
+    assert.notEqual(run.stderr.trim(), '', 'a refusal must say why');
+  });
+}
 
 // A checkout whose path holds a space: a URL pathname would keep "%20" and
 // every required file would look missing.

@@ -36,6 +36,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { isMainModule } from '../../../scripts/is-main-module.mjs';
 
 export const fixturePath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'repo-mode-plans.json');
 export const guardedRuntimeLists = Object.freeze(['neutral', 'claude', 'copilot', 'claude,codex']);
@@ -146,7 +147,7 @@ export async function collectRepoModeRuns(rootDirectory, makeTarget) {
   return runs;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv[2]) {
+if (isMainModule(import.meta.url) && process.argv[2]) {
   const created = [];
   const makeTarget = async () => {
     const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-fixture-'));
