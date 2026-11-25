@@ -7,6 +7,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { isMainModule } from './is-main-module.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -144,14 +145,17 @@ function listPackedFiles(root, failures) {
   }
 }
 
-// Distributable surfaces changed since the base ref need a higher version.
-// RELEASE_BASE_REF selects the base (default `main`). In CI (env.CI set) a base
-// that cannot be resolved fails the gate; locally it is skipped with a notice.
+// Distributable surfaces changed since the base ref need a higher X.Y.Z.
+// RELEASE_BASE_REF selects the base; by default `origin/main` when it exists
+// (what CI compares with), else `main`, so a stale local `main` cannot pass a
+// change CI rejects. In CI (env.CI set) a base that cannot be resolved fails
+// the gate; locally it is skipped with a notice.
 export function enforceVersionBump({ root, version, env = process.env }) {
   const failures = [];
   const notices = [];
-  const releaseBaseRef = env.RELEASE_BASE_REF || 'main';
   const strict = Boolean(env.CI);
+  const releaseBaseRef = env.RELEASE_BASE_REF
+    || (runGit(root, ['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main^{commit}']) ? 'origin/main' : 'main');
   const skip = (reason) => {
     if (strict) {
       failures.push(`Version-bump gate cannot run in CI: ${reason}. Check out full history (fetch-depth: 0) and set RELEASE_BASE_REF to a fetched ref.`);
@@ -170,11 +174,15 @@ export function enforceVersionBump({ root, version, env = process.env }) {
   const mergeBase = runGit(root, ['merge-base', 'HEAD', releaseBaseRef]);
   if (!mergeBase) return skip(`cannot find a merge base between HEAD and ${releaseBaseRef}`);
 
-  const listChanges = (args) => runGit(root, ['diff', '--name-only', ...args])?.split('\n').filter(Boolean) ?? [];
+  // --no-renames lists both sides of a move, so moving a file out of a
+  // distributable folder counts; untracked files count as local changes.
+  const listChanges = (args) => runGit(root, ['diff', '--name-only', '--no-renames', ...args])?.split('\n').filter(Boolean) ?? [];
+  const untracked = runGit(root, ['ls-files', '--others', '--exclude-standard'])?.split('\n').filter(Boolean) ?? [];
   const changedFiles = [...new Set([
     ...listChanges([`${mergeBase}..HEAD`]),
     ...listChanges(['--cached']),
-    ...listChanges([])
+    ...listChanges([]),
+    ...untracked
   ])];
 
   const requiresBump = changedFiles.some((file) => (
@@ -206,6 +214,8 @@ export function enforceVersionBump({ root, version, env = process.env }) {
     failures.push(`package.json version "${version}" must start with a numeric X.Y.Z (see docs/versioning.md).`);
   } else if (base && compareVersionCore(current, base) < 0) {
     failures.push(`package.json version ${version} must not be lower than ${baseVersion} on ${releaseBaseRef}.`);
+  } else if (base && compareVersionCore(current, base) === 0) {
+    failures.push(`package.json version ${version} must raise X.Y.Z above ${baseVersion} on ${releaseBaseRef}; changing only the suffix is not a bump.`);
   }
   return { failures, notices };
 }
@@ -241,7 +251,7 @@ async function readIfExists(file) {
   }
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   const result = await validateReleaseReadiness();
   for (const notice of result.notices) console.warn(`Notice: ${notice}`);
   if (!result.ok) {

@@ -7,6 +7,31 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.23.1-script-guards
+
+Kit checks that passed without checking. No CLI command, flag or output
+changes.
+
+- The kit scripts and the shipped skill scripts (`verify-prd-index.mjs`,
+  `validation-fingerprint.mjs`, `prd-size-signals.mjs`) run when called
+  through a symbolic link (macOS `/tmp` and `/var` are ones); before, they
+  exited 0 without doing anything. The kit scripts share
+  `scripts/is-main-module.mjs`; the shipped ones carry the same check.
+- `check:release` compares with `origin/main` when it exists (what CI
+  compares with), so a stale local `main` no longer passes; a moved file and
+  an untracked file under a distributable folder count as changes, and
+  changing only the version suffix is not a bump: `X.Y.Z` must rise.
+- `check:templates` skips other checkouts under `.claude/worktrees/` and
+  reports a runtime folder it cannot read; `check:legal` leaves files Git
+  ignores (such as `.DS_Store`) out of the overlay inventory and, when the
+  inventory differs, prints the `remainingInventory` values the record
+  expects.
+- `check` and the tests work in a checkout whose path holds a space.
+- `scripts/build-plugin.mjs --publish`: a missing `origin/main` suggests
+  `git fetch origin`, which also brings `origin/plugin`, and a publish with
+  neither a local branch `plugin` nor `origin/plugin` says it starts a new
+  history and how to build on the remote branch instead.
+
 ## 0.23.0-plugin-mode
 
 Plugin mode (pilot): for Claude Code and GitHub Copilot, the kit can run as

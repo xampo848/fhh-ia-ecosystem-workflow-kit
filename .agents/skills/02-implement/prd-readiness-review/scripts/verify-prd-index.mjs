@@ -5,7 +5,7 @@
 // Needs only Node.js. It compares identifiers and the PRD hash; it does not
 // judge whether an index entry describes its PRD section correctly.
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 // Ids may carry a letter suffix (AC-1a, P2-S2b) or omit the dash (AC1).
@@ -50,7 +50,17 @@ function argument(name) {
   return position >= 0 ? process.argv[position + 1] : undefined;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// Compared through realpath: run through a symbolic link (the temporary folders
+// on macOS are one), a plain comparison would skip main and exit 0 silently.
+function isMainModule() {
+  try {
+    return Boolean(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule()) {
   const prdPath = argument('--prd');
   const indexPath = argument('--index');
   if (!prdPath) {

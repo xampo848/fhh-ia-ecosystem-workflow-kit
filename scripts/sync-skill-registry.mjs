@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { isMainModule } from './is-main-module.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const indexRelativePath = '.agents/skills/index.md';
@@ -255,7 +256,7 @@ export async function writeSkillRegistry({ root = packageRoot } = {}) {
   }
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   const mode = process.argv.includes('--write') ? 'write' : 'check';
   if (mode === 'write') {
     await writeSkillRegistry();

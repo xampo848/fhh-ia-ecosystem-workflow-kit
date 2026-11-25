@@ -6,6 +6,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { isMainModule } from './is-main-module.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -93,7 +94,7 @@ export async function writeLevelPrefilter({ root = packageRoot } = {}) {
   return written;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   if (process.argv.includes('--write')) {
     const written = await writeLevelPrefilter();
     console.log(`Level pre-filter synchronized (${written} adapter files updated).`);

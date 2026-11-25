@@ -9,7 +9,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { fileURLToPath } from 'node:url';
+import { isMainModule } from './is-main-module.mjs';
 
 // Relative weights per token, used only to compare shares. They are
 // proportions, not billed USD: input 1, cache read 0.1, cache write 1.25 (5 min)
@@ -400,8 +400,7 @@ export async function runMeasureCli(argv, { home = os.homedir(), cwd = process.c
   }
 }
 
-const invokedPath = process.argv[1] ? await fs.realpath(process.argv[1]).catch(() => null) : null;
-if (invokedPath === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   const { exitCode, stdout, stderr } = await runMeasureCli(process.argv.slice(2));
   if (stdout) console.log(stdout);
   if (stderr) console.error(stderr);

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { parseArgs } from '../src/cli/args.mjs';
 import { runDoctor } from '../src/doctor.mjs';
@@ -10,7 +11,7 @@ import { decideContextualTier } from '../scripts/copilot-model-routing.mjs';
 import { buildInstallPlan, buildUpdatePlan, installStateRelativePath } from '../src/planner.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 async function readCatalog() {
   return JSON.parse(await fs.readFile(path.join(root, 'scripts/delegate-agent-catalog.json'), 'utf8'));

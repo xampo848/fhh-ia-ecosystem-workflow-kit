@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import packageJson from '../package.json' with { type: 'json' };
 import { applyJournalRelativePath } from '../src/apply.mjs';
 import { runCli } from '../src/cli.mjs';
@@ -15,7 +16,7 @@ import { installStateRelativePath } from '../src/planner.mjs';
 import { kitLocationBlockName, pluginAdapterContent, pluginListTimeoutMs } from '../src/plugin-mode.mjs';
 import { createMemoryIo, hashTree, makeTempRepo } from './helpers.mjs';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const adapterTemplate = (relativePath) => fs.readFile(path.join(root, 'templates', 'runtime-adapters', relativePath), 'utf8');
 const kitTemplate = (relativePath) => fs.readFile(path.join(root, 'templates', 'repo-overlay-fhh-ia-ecosystem-full', relativePath), 'utf8');
 const pluginId = 'fhh@fhh-ia-ecosystem';

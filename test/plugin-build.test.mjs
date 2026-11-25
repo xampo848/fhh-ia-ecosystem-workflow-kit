@@ -824,6 +824,9 @@ test('--publish commits dist/plugin to the local branch plugin as the configured
   // Printing the identity it commits with is part of the command's contract.
   assert.ok(first.stdout.includes(`Publishing as ${publisherLine}`), first.stdout);
   assert.match(first.stdout, /git push origin plugin/);
+  // Neither a local branch nor origin/plugin: the commit starts a new history,
+  // and the output says how to build on the remote branch if it exists.
+  assert.match(first.stdout, /starts a new history of plugin.*git fetch origin/s);
   assert.deepEqual(await checkout(), before);
   // The temporary index is removed.
   assert.deepEqual(await fs.readdir(tmp), []);
@@ -838,6 +841,7 @@ test('--publish commits dist/plugin to the local branch plugin as the configured
   assert.equal(again.status, 0, again.stderr);
   assert.ok(again.stdout.includes(`Publishing as ${publisherLine}`), again.stdout);
   assert.match(again.stdout, /no commit created/);
+  assert.doesNotMatch(again.stdout, /starts a new history/);
   assert.equal(git('rev-parse', 'plugin'), firstTip);
 
   const remoteRefs = spawnSync('git', ['ls-remote', remote], { env: gitless, encoding: 'utf8' });
@@ -1055,7 +1059,7 @@ test('--publish publishes only a commit contained in origin/main, as last fetche
     {
       name: 'a missing origin/main is refused with the way to get it',
       arrange: async (root, git) => git('update-ref', '-d', 'refs/remotes/origin/main'),
-      refused: /origin\/main is not present locally: fetch it first/
+      refused: /origin\/main is not present locally: fetch it first \(git fetch origin[,)]/
     },
     {
       name: 'HEAD equal to origin/main publishes',

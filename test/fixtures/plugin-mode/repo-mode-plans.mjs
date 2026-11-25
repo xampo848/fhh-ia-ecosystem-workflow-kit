@@ -1,6 +1,7 @@
-// What repo mode did in workflow-kit 0.22.0 (commit 558e9fb, the last commit
-// before plugin mode), as the AC-19 and T6 guards of test/plugin-mode.test.mjs
-// compare it, per runtime list:
+// What repo mode does in the release the fixture was last regenerated at
+// (0.23.1-script-guards; first generated from 0.22.0, commit 558e9fb, the last
+// commit before plugin mode), as the AC-19 and T6 guards of
+// test/plugin-mode.test.mjs compare it, per runtime list:
 //
 // - plans: for `init` on an empty repository and for `update` right after
 //   that init, the operation, class, path and content hash of every planned
@@ -10,17 +11,18 @@
 //   file of the tree `init` wrote; plus `init` over a folder at
 //   `.claude/settings.json`, a path repo mode never writes.
 //
-// The same collectors run on this checkout (the tests) and on the files of
-// that commit (to write the fixture), so both sides are shaped the same way.
+// The same collectors run on this checkout (the tests) and on the files of a
+// commit (to write the fixture), so both sides are shaped the same way.
 // The package version, the target folder, timestamps and the checksums that
 // carry the version are normalized, and the CLI runs without Node's own
 // process warnings, so only a change of behaviour differs, on any Node.
 //
-// Regenerate the fixture (only when a change is meant to change repo mode;
-// then the fixture no longer describes 558e9fb and the comment of the guards
-// has to say which commit it describes), from the repository root:
+// Regenerate the fixture only when a change is meant to change what repo mode
+// installs: commit that change (with its version raise), then, from the
+// repository root, run the collectors on the files of that commit, and update
+// the release named in the first lines of this header:
 //
-//   dir=$(mktemp -d) && git archive 558e9fb | tar -x -C "$dir"
+//   dir=$(mktemp -d) && git archive HEAD | tar -x -C "$dir"
 //   ln -s "$PWD/node_modules" "$dir/node_modules"
 //   node test/fixtures/plugin-mode/repo-mode-plans.mjs "$dir"
 //   rm -rf "$dir"
@@ -34,8 +36,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { isMainModule } from '../../../scripts/is-main-module.mjs';
 
-export const fixturePath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'repo-mode-plans-558e9fb.json');
+export const fixturePath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'repo-mode-plans.json');
 export const guardedRuntimeLists = Object.freeze(['neutral', 'claude', 'copilot', 'claude,codex']);
 
 const sha256 = (content) => createHash('sha256').update(content).digest('hex');
@@ -144,7 +147,7 @@ export async function collectRepoModeRuns(rootDirectory, makeTarget) {
   return runs;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv[2]) {
+if (isMainModule(import.meta.url) && process.argv[2]) {
   const created = [];
   const makeTarget = async () => {
     const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-fixture-'));

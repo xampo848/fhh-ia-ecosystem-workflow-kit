@@ -3,9 +3,10 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { runbookSections, validateKitBoundary } from '../scripts/validate-kit-boundary.mjs';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const copied = ['.agents', 'templates', 'package.json', 'AGENTS.md', 'CLAUDE.md', 'ANTIGRAVITY.md', '.github'];
 
 // A disposable copy of the parts of the kit source that the boundary covers.

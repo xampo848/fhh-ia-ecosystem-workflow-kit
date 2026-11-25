@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
   buildSkillRegistryArtifacts,
   checkSkillRegistry
@@ -37,7 +38,7 @@ test('checked-in registry artifacts match canonical Markdown', async () => {
 });
 
 test('a kit registry row with the project-only class Runbook fails the check and names the row', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'skill-registry-'));
   const registry = await fs.readFile(path.join(root, '.agents/skills/registry.md'), 'utf8');
   await fs.mkdir(path.join(dir, '.agents/skills'), { recursive: true });

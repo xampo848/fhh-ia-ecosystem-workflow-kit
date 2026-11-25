@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -63,6 +63,40 @@ test('validateLegalReadiness rejects a same-count overlay path replacement', asy
 
   assert.equal(result.ok, false);
   assert.ok(result.failures.some((failure) => failure.includes('maintainer-attested overlay path/content inventory differs')));
+});
+
+test('check:legal prints the expected overlay inventory, and those values renew the record', async () => {
+  const root = await copyLegalFixture();
+  await fs.writeFile(path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents/new-reviewed-file.md'), '# New file\n', 'utf8');
+  const script = path.join(sourceRoot, 'scripts/validate-legal-readiness.mjs');
+
+  const changed = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
+
+  assert.equal(changed.status, 1, changed.stderr);
+  const printed = changed.stderr.match(/\[legal-check\] Expected remainingInventory[^\n]*: (\{[^\n]*\})/);
+  assert.ok(printed, changed.stderr);
+  const expected = JSON.parse(printed[1]);
+  assert.deepEqual(Object.keys(expected).sort(), ['fileCount', 'pathContentSha256']);
+
+  const recordPath = path.join(root, 'docs/legal/overlay-authorship.json');
+  const record = JSON.parse(await fs.readFile(recordPath, 'utf8'));
+  Object.assign(record.remainingInventory, expected);
+  await fs.writeFile(recordPath, JSON.stringify(record, null, 2), 'utf8');
+
+  const renewed = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
+  assert.equal(renewed.status, 0, renewed.stderr);
+  assert.doesNotMatch(renewed.stderr, /Expected remainingInventory/);
+});
+
+test('validateLegalReadiness ignores files Git ignores under the overlay template', async () => {
+  const root = await copyLegalFixture();
+  await fs.writeFile(path.join(root, '.gitignore'), '.DS_Store\n', 'utf8');
+  const before = validateLegalReadiness({ root });
+  await fs.writeFile(path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents/.DS_Store'), 'finder metadata', 'utf8');
+
+  const after = validateLegalReadiness({ root });
+
+  assert.deepEqual(after, before);
 });
 
 async function copyLegalFixture() {

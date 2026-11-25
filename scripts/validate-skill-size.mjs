@@ -6,6 +6,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { isMainModule } from './is-main-module.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const skillLineLimit = 200;
@@ -62,7 +63,7 @@ export async function validateSkillSize({ root = packageRoot } = {}) {
   return { ok: failures.length === 0, failures, fileCount: measured.length };
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   const result = await validateSkillSize();
   if (!result.ok) {
     console.error('Skill size validation failed:');

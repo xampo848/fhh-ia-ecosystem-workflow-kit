@@ -3,13 +3,14 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { buildInstallPlan, parseRuntimeList } from '../src/planner.mjs';
 import { validateClaudeSkills } from '../scripts/sync-claude-skills.mjs';
 import { skillLineLimit, validateSkillSize } from '../scripts/validate-skill-size.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (relativePath) => fs.readFile(path.join(root, relativePath), 'utf8');
 
 test('own skill files respect the 200-line limit and references say when to read them', async () => {

@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { validateDocs } from '../scripts/validate-docs.mjs';
 import { makeTempRepo } from './helpers.mjs';
 
@@ -32,7 +33,7 @@ test('validateDocs rejects removal of the public-release GO decision', async () 
 });
 
 test('cross-runtime baseline documents preserve unknown runtime evidence and required fields', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const [matrix, runbook] = await Promise.all([
     fs.readFile(path.join(root, 'docs/workflow/cross-runtime-capability-matrix.md'), 'utf8'),
     fs.readFile(path.join(root, 'docs/workflow/cross-runtime-delegation-runbook.md'), 'utf8')
@@ -49,7 +50,7 @@ test('cross-runtime baseline documents preserve unknown runtime evidence and req
 });
 
 test('cross-runtime baseline documents prohibit unobserved compatibility claims', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const documents = await Promise.all([
     fs.readFile(path.join(root, 'docs/workflow/cross-runtime-capability-matrix.md'), 'utf8'),
     fs.readFile(path.join(root, 'docs/workflow/cross-runtime-delegation-runbook.md'), 'utf8')
@@ -63,7 +64,7 @@ test('cross-runtime baseline documents prohibit unobserved compatibility claims'
 });
 
 test('diagnostics policy keeps opt-in local storage and forbids secrets, prompts, and invented telemetry', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const [policy, gitignore] = await Promise.all([
     fs.readFile(path.join(root, 'docs/workflow/delegation-diagnostics-policy.md'), 'utf8'),
     fs.readFile(path.join(root, '.gitignore'), 'utf8')
@@ -79,7 +80,7 @@ test('diagnostics policy keeps opt-in local storage and forbids secrets, prompts
 });
 
 test('cross-runtime benchmark contract forbids unearned savings claims and unsourced cost figures', async () => {
-  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const benchmark = await fs.readFile(path.join(root, 'docs/workflow/cross-runtime-delegation-benchmark.md'), 'utf8');
 
   assert.match(benchmark, /No runtime pilot has been executed yet/);
@@ -90,7 +91,7 @@ test('cross-runtime benchmark contract forbids unearned savings claims and unsou
 });
 
 async function copyDocsFixture() {
-  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const targetRoot = await makeTempRepo('workflow-kit-docs-');
   for (const entry of ['README.md', 'RELEASE.md', 'NOTICE', 'THIRD_PARTY_NOTICES.md', 'docs', 'examples']) {
     await fs.cp(path.join(sourceRoot, entry), path.join(targetRoot, entry), { recursive: true });

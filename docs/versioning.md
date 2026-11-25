@@ -30,7 +30,8 @@ released it. Tags of the current lines:
 
 | Tag | Notes |
 | --- | --- |
-| `v0.23.0-plugin-mode` | current |
+| `v0.23.1-script-guards` | current |
+| `v0.23.0-plugin-mode` | |
 | `v0.22.0-manifest-updater` | |
 | `v0.21.0-project-runbooks` | |
 | `v0.20.0-kit-overlay-contract` | |
@@ -86,36 +87,20 @@ When you raise `package.json.version`, follow these steps in order:
 2. Renew the overlay authorship record. Step 1 changes the overlay template, so
    `check:legal` fails ("maintainer-attested overlay file inventory changed" or
    "path/content inventory differs") until `remainingInventory` in
-   `docs/legal/overlay-authorship.json` is updated. Its two fields are
-   `fileCount` (the number of files under the template, without the paths of
-   `externalPathCoverage`) and `pathContentSha256` (the SHA-256 of every such
-   path, `NUL`, the SHA-256 of its content and a newline, in path order). The
-   check does not print the new values; this command, run from the
-   repository root on a checkout without untracked or ignored files under the
-   template, prints them in the format `check:legal` uses:
+   `docs/legal/overlay-authorship.json` is updated. The check then prints the
+   values the record expects, computed from the files on disk (untracked files
+   under the template count; files Git ignores, such as `.DS_Store`, do not):
 
-   ```bash
-   node --input-type=module -e '
-   import { createHash } from "node:crypto";
-   import fs from "node:fs";
-   import path from "node:path";
-   const record = JSON.parse(fs.readFileSync("docs/legal/overlay-authorship.json", "utf8"));
-   const base = record.remainingInventory.path;
-   const skip = record.externalPathCoverage.map((entry) => entry.path);
-   const files = fs.readdirSync(base, { recursive: true }).map((file) => path.join(base, file))
-     .filter((file) => fs.lstatSync(file).isFile() && !skip.some((prefix) => file === prefix || file.startsWith(`${prefix}/`)))
-     .map((file) => path.relative(base, file).split(path.sep).join("/")).sort();
-   const digest = createHash("sha256");
-   for (const file of files) digest.update(file).update("\0").update(createHash("sha256").update(fs.readFileSync(path.join(base, file))).digest("hex")).update("\n");
-   console.log(JSON.stringify({ fileCount: files.length, pathContentSha256: digest.digest("hex") }));
-   '
+   ```text
+   [legal-check] Expected remainingInventory in docs/legal/overlay-authorship.json (copy it only after reviewing the template changes): {"fileCount":178,"pathContentSha256":"…"}
    ```
 
-   Copy both values into `remainingInventory`, set the top-level
-   `lastVerified` field of the same file to the date of the renewal (by hand:
-   `check:legal` does not check that date), then run `bun run check:legal`. Renewing the record is a maintainer attestation that
-   the changed template files are authorized for publication; any other
-   template change between releases needs the same renewal.
+   After reviewing the template changes, copy both values into
+   `remainingInventory`, set the top-level `lastVerified` field of the same
+   file to the date of the renewal (by hand: `check:legal` does not check that
+   date), then run `bun run check:legal`. Renewing the record is a maintainer
+   attestation that the changed template files are authorized for publication;
+   any other template change between releases needs the same renewal.
 3. Run `node scripts/build-plugin.mjs --write`: the plugin marketplace
    (`.claude-plugin/marketplace.json`) carries the package version, so
    `check:workflow` also fails until it is regenerated. The command also
@@ -126,11 +111,13 @@ When you raise `package.json.version`, follow these steps in order:
    cannot remove is reported with the commands that remove it.
 
 A template change can also break the repo-mode guard of
-`test/plugin-mode.test.mjs`, which compares the repo-mode plans with a fixture
-generated from commit `558e9fb`. When the change to the repo-mode plan is
-intended, regenerate the fixture with the command in the header of
-`test/fixtures/plugin-mode/repo-mode-plans.mjs`, pointed at the new base
-commit, and review its diff before committing it.
+`test/plugin-mode.test.mjs`, which compares the repo-mode plans with the
+fixture `test/fixtures/plugin-mode/repo-mode-plans.json`, generated from the
+release named in the header of `test/fixtures/plugin-mode/repo-mode-plans.mjs`.
+When the change to the repo-mode plan is intended, commit it with the version
+raise, regenerate the fixture from that commit with the command in that
+header, update the release it names, and review the fixture's diff before
+committing it.
 
 The marketplace committed in `main` points at the branch `plugin`. That branch
 does not exist on the remote until the first publish and its approved push, so

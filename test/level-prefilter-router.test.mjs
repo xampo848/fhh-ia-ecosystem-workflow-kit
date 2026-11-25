@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
   extractPrefilterBlock,
   prefilterEndMarker,
@@ -11,7 +12,7 @@ import {
   validateLevelPrefilter
 } from '../scripts/sync-level-prefilter.mjs';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const routerDir = '.agents/skills/00-router/workflow-router';
 
 async function read(relativePath) {

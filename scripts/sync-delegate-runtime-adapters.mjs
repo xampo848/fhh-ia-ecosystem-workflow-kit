@@ -10,6 +10,7 @@ import {
   renderCodexAgent,
   renderCopilotAgent
 } from '../src/model-profiles.mjs';
+import { isMainModule } from './is-main-module.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -221,7 +222,7 @@ ${Object.entries(runtimeCapabilities).map(([runtime, capabilities]) => `| ${runt
 `;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   const shouldWrite = process.argv.includes('--write');
   const result = shouldWrite
     ? { ok: true, count: await writeDelegateRuntimeAdapters() }

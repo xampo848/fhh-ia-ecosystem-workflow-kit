@@ -5,6 +5,7 @@ import path from 'node:path';
 import { execFile, spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { promisify } from 'node:util';
+import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 import { validateDelegateRuntimeAdapters } from '../scripts/sync-delegate-runtime-adapters.mjs';
 import { validateTemplatePacks } from '../scripts/validate-template-packs.mjs';
@@ -21,7 +22,7 @@ test('template manifest declares expected packs', () => {
 });
 
 test('every installable stack pack is declared in the template manifest', async () => {
-  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const stackPacks = (await fs.readdir(path.join(sourceRoot, 'templates/stack-packs'), { withFileTypes: true }))
     .filter((entry) => entry.isDirectory())
     .map((entry) => `stack-packs/${entry.name}`);
@@ -87,6 +88,38 @@ test('validateTemplatePacks mirrors every runtime adapter template file, not a f
   assert.ok(result.failures.includes('Runtime adapter file has no template twin under templates/runtime-adapters/: .codex/extra.md'), result.failures.join('\n'));
 });
 
+test('validateTemplatePacks skips nested worktrees under .claude/worktrees', async () => {
+  const root = await copyFixtureRepository();
+  const nested = path.join(root, '.claude/worktrees/other-branch/.claude/agents');
+  await fs.mkdir(nested, { recursive: true });
+  await fs.writeFile(path.join(nested, 'extra.md'), '# Another checkout\n', 'utf8');
+
+  const result = await validateTemplatePacks({ root });
+
+  assert.deepEqual(result.failures.filter((failure) => failure.includes('.claude/worktrees/')), []);
+});
+
+test('validateTemplatePacks reports a runtime folder it cannot read instead of skipping it', async () => {
+  const root = await copyFixtureRepository();
+  await fs.rm(path.join(root, '.antigravity'), { recursive: true, force: true });
+  await fs.writeFile(path.join(root, '.antigravity'), 'not a folder\n', 'utf8');
+
+  const result = await validateTemplatePacks({ root });
+
+  assert.ok(result.failures.some((failure) => failure.startsWith('Runtime folder could not be read: .antigravity')), result.failures.join('\n'));
+});
+
+test('the repository fixture keeps .github and .gitignore and leaves out nested worktrees', async () => {
+  const root = await copyFixtureRepository();
+
+  for (const kept of ['.github/workflows/ci.yml', '.gitignore']) {
+    await fs.access(path.join(root, kept));
+  }
+  for (const dropped of ['.git', 'node_modules', '.claude/worktrees']) {
+    await assert.rejects(fs.access(path.join(root, dropped)), `${dropped} must not be copied`);
+  }
+});
+
 test('validateDelegateRuntimeAdapters catches manual edits to generated adapters', async () => {
   const root = await copyFixtureRepository();
   const target = path.join(root, '.claude/agents/capitana-alcance.md');
@@ -99,7 +132,7 @@ test('validateDelegateRuntimeAdapters catches manual edits to generated adapters
 });
 
 test('generated delegate artifacts publish model routing capabilities', async () => {
-  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const catalog = JSON.parse(await fs.readFile(path.join(sourceRoot, 'scripts/delegate-agent-catalog.json'), 'utf8'));
   const matrix = await fs.readFile(
     path.join(sourceRoot, '.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md'),
@@ -321,7 +354,7 @@ test('Copilot model routing accepts a single permitted model without demanding a
 });
 
 test('Copilot delegate adapters emit tier model arrays and explicit identity guidance without touching other runtimes', async () => {
-  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const catalog = JSON.parse(await fs.readFile(path.join(sourceRoot, 'scripts/delegate-agent-catalog.json'), 'utf8'));
   const { tiers, agentTiers } = catalog.copilotModelRouting;
 
@@ -352,7 +385,7 @@ test('Copilot delegate adapters emit tier model arrays and explicit identity gui
 });
 
 test('Copilot invocation protocol is mirrored and keeps selection, correction, consent, and evidence limits explicit', async () => {
-  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const overlay = path.join(sourceRoot, 'templates/repo-overlay-fhh-ia-ecosystem-full');
   const shared = [
     '.agents/skills/02-implement/implement-change/reference/level-n3.md',
@@ -407,7 +440,7 @@ test('Copilot invocation protocol is mirrored and keeps selection, correction, c
 });
 
 test('Copilot model routing CLI reports selection, blocked outcomes, and usage errors with distinct exit codes', async () => {
-  const script = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../scripts/copilot-model-routing.mjs');
+  const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../scripts/copilot-model-routing.mjs');
   const run = (args) => execFileAsync(process.execPath, [script, ...args]).then(
     ({ stdout }) => ({ code: 0, stdout }),
     (error) => ({ code: error.code, stdout: error.stdout, stderr: error.stderr })
@@ -807,7 +840,7 @@ test('budget fallback stays inside the required tier and never downgrades', asyn
 });
 
 test('contextual structured CLI accepts task context, token counts, and a budget from stdin and blocks malformed input', async () => {
-  const script = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../scripts/copilot-model-routing.mjs');
+  const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../scripts/copilot-model-routing.mjs');
   const request = {
     agentSlug: 'qa-relampago',
     availableModels: ['Claude Sonnet 5.5', 'GPT-6.1 Sol'],
@@ -966,7 +999,7 @@ test('Copilot evidence verifier rejects missing or malformed inputs', () => {
 });
 
 test('Copilot evidence verifier CLI maps verdicts to distinct exit codes', async () => {
-  const script = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../scripts/verify-copilot-model-evidence.mjs');
+  const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../scripts/verify-copilot-model-evidence.mjs');
   const dir = await makeTempRepo('copilot-evidence-');
   const logPath = path.join(dir, 'chat.log');
   await fs.writeFile(logPath, `${sonnetLine}\n${ccreq('22222222', { chain: 'gpt-6.1-sol' })}\n`, 'utf8');
@@ -995,7 +1028,7 @@ test('Copilot evidence verifier CLI maps verdicts to distinct exit codes', async
 const portableHelpers = ['copilot-model-routing.mjs', 'delegate-agent-catalog.json', 'verify-copilot-model-evidence.mjs'];
 
 test('Copilot portable helpers are byte-identical generated copies of the scripts sources', async () => {
-  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const overlay = path.join(sourceRoot, 'templates/repo-overlay-fhh-ia-ecosystem-full');
 
   for (const file of portableHelpers) {
@@ -1006,7 +1039,7 @@ test('Copilot portable helpers are byte-identical generated copies of the script
 });
 
 test('Copilot portable CLIs run in a consumer root that has only the installed model-routing helpers', async () => {
-  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const overlayHelpers = path.join(sourceRoot, 'templates/repo-overlay-fhh-ia-ecosystem-full/.agents/model-routing');
   const consumer = await fs.realpath(await makeTempRepo('copilot-consumer-'));
   const helpers = path.join(consumer, '.agents/model-routing');
@@ -1066,7 +1099,7 @@ test('Copilot portable CLIs run in a consumer root that has only the installed m
 });
 
 test('Copilot model routing CLI reports non-object or malformed --input as a usage error without a stack trace', async () => {
-  const script = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../scripts/copilot-model-routing.mjs');
+  const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../scripts/copilot-model-routing.mjs');
   const dir = await makeTempRepo('copilot-input-');
 
   for (const [name, body] of [['null', 'null'], ['array', '[]'], ['number', '7'], ['string', '"x"'], ['truncated', '{']]) {
@@ -1084,7 +1117,7 @@ test('Copilot model routing CLI reports non-object or malformed --input as a usa
 });
 
 test('Copilot routing CLI accepts structured files, stdin, legacy arguments, and explicit roots', async () => {
-  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const script = path.join(sourceRoot, 'scripts/copilot-model-routing.mjs');
   const consumer = await makeTempRepo('copilot-api-');
   const request = { agentSlug: 'turbo-backend', availableModels: ['Claude Sonnet 5.5 (copilot)'] };
@@ -1126,7 +1159,7 @@ test('Copilot CLI APIs report catalog parse and IO errors as usage errors withou
 });
 
 async function copyFixturePackage() {
-  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const targetRoot = await makeTempRepo('workflow-kit-template-pack-');
   await fs.cp(path.join(sourceRoot, 'templates'), path.join(targetRoot, 'templates'), { recursive: true });
   await fs.mkdir(path.join(targetRoot, 'scripts'), { recursive: true });
@@ -1136,16 +1169,20 @@ async function copyFixturePackage() {
   return targetRoot;
 }
 
+// Copies the checkout without Git metadata, installed dependencies (at any
+// depth) and other checkouts nested under .claude/worktrees/.
+const fixtureSkippedPaths = new Set(['.git', '.claude/worktrees']);
+
 async function copyFixtureRepository() {
-  const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const targetRoot = await makeTempRepo('workflow-kit-repo-pack-');
   await fs.cp(sourceRoot, targetRoot, {
     recursive: true,
     filter(source) {
-      const relative = path.relative(sourceRoot, source);
+      const relative = path.relative(sourceRoot, source).split(path.sep).join('/');
       if (relative === '') return true;
-      if (relative.startsWith('.git')) return false;
-      if (relative.startsWith('node_modules')) return false;
+      if (fixtureSkippedPaths.has(relative)) return false;
+      if (path.basename(source) === 'node_modules') return false;
       return true;
     }
   });

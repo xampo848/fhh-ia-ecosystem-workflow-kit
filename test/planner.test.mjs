@@ -3,13 +3,14 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { extractManagedBlock, loadKitManifest } from '../src/kit-manifest.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan, installStateRelativePath, readManagedInstallState, selectPlanOperations } from '../src/planner.mjs';
 import manifest from '../templates/template-manifest.json' with { type: 'json' };
 import { hashTree, makeTempRepo } from './helpers.mjs';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const templates = path.join(root, 'templates');
 const sha = (content) => createHash('sha256').update(content, 'utf8').digest('hex');
 const read = (target, relativePath) => fs.readFile(path.join(target, relativePath), 'utf8');

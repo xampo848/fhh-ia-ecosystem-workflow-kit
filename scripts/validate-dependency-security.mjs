@@ -3,6 +3,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { isMainModule } from './is-main-module.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sha256 = (content) => createHash('sha256').update(content).digest('hex');
@@ -110,8 +111,7 @@ export async function runDependencySecurity({ root = repositoryRoot } = {}) {
   return evaluateDependencyAudit({ status: result.status, report, verification });
 }
 
-const invokedPath = process.argv[1] ? await fs.realpath(process.argv[1]).catch(() => null) : null;
-if (invokedPath === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   try {
     const result = await runDependencySecurity();
     console.log(JSON.stringify(result, null, 2));

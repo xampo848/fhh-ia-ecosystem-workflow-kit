@@ -23,7 +23,7 @@
 // <out>, a new directory or an empty one; --publish runs it on the exported
 // commit with that commit's code.
 import { spawnSync } from 'node:child_process';
-import { existsSync, realpathSync, rmSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -38,6 +38,7 @@ import {
 } from '../src/model-profiles.mjs';
 import { marketplaceName, pluginBranch, pluginEntryPoints, pluginName, pluginPathRule } from '../src/plugin-mode.mjs';
 import { claudeSkillDescription, claudeSkillEntries, listFiles } from './sync-claude-skills.mjs';
+import { isMainModule } from './is-main-module.mjs';
 
 export { marketplaceName, pluginName };
 
@@ -68,6 +69,7 @@ export const pluginBuildInputs = [
   ...pluginLegalFiles,
   pluginLegalDirectory,
   'scripts/build-plugin.mjs',
+  'scripts/is-main-module.mjs',
   'scripts/sync-claude-skills.mjs',
   'scripts/validate-legal-readiness.mjs',
   'src/model-profiles.mjs',
@@ -755,7 +757,7 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
   const mainBranch = `${pluginRemote}/${sourceBranch}`;
   const mainTip = commitOf(run, `refs/remotes/${mainBranch}`);
   if (!mainTip) {
-    throw new Error(`Refusing to publish: ${mainBranch} is not present locally: fetch it first (git fetch ${pluginRemote} ${sourceBranch}) and rerun. Publishing never fetches, and it only publishes a commit that ${mainBranch} contains.`);
+    throw new Error(`Refusing to publish: ${mainBranch} is not present locally: fetch it first (git fetch ${pluginRemote}, which also brings ${pluginRemote}/${pluginBranch} when the remote has it) and rerun. Publishing never fetches, and it only publishes a commit that ${mainBranch} contains.`);
   }
   if (run(['merge-base', '--is-ancestor', 'HEAD', mainTip]).status !== 0) {
     throw new Error(`Refusing to publish: HEAD (${source.stdout}) is not contained in ${mainBranch}. Publish only a released commit: merge it into ${sourceBranch}, fetch, check out a commit that ${mainBranch} contains and rerun. Publishing never fetches: ${mainBranch} is the copy last fetched.`);
@@ -773,6 +775,11 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
   }
   const parent = localTip ?? remoteTip;
   const base = localTip ? pluginBranch : remoteBranch;
+  if (!parent) {
+    // Right for the first publish; otherwise origin/plugin was never fetched
+    // here, and the push of an unrelated history would be rejected.
+    log(`No local branch ${pluginBranch} and no ${remoteBranch}: this commit starts a new history of ${pluginBranch}. If the remote already has ${pluginBranch}, fetch it first (git fetch ${pluginRemote}) and rerun, so the commit builds on it.`);
+  }
 
   // A real path: the child node runs the exported script by it.
   const temporary = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-plugin-publish-')));
@@ -893,9 +900,7 @@ async function main(argv) {
   return 0;
 }
 
-// Compared through realpath: run through a symbolic link (the temporary folder
-// on macOS is one), a plain comparison would skip main and exit 0 silently.
-if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   try {
     process.exitCode = await main(process.argv.slice(2));
   } catch (error) {

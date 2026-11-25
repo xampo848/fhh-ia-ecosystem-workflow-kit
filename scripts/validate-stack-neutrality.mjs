@@ -8,6 +8,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { isMainModule } from './is-main-module.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const coreRoots = ['.agents/skills/00-router', '.agents/skills/01-product', '.agents/skills/02-implement', '.agents/skills/03-quality', '.agents/skills/06-patterns/authoring', '.agents/delegation'];
@@ -79,7 +80,7 @@ export async function validateStackNeutrality({ root = packageRoot } = {}) {
   return { ok: failures.length === 0, failures, ruleCount: seen.size };
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   const result = await validateStackNeutrality();
   if (!result.ok) {
     console.error('Stack neutrality validation failed:');

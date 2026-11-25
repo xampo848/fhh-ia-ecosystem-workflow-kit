@@ -186,7 +186,17 @@ function main(argv) {
   throw new Error('Use one of: fingerprint, decide, record.');
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// Compared through realpath: run through a symbolic link (the temporary folders
+// on macOS are one), a plain comparison would skip main and exit 0 silently.
+function isMainModule() {
+  try {
+    return Boolean(process.argv[1]) && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule()) {
   try {
     process.exitCode = main(process.argv.slice(2));
   } catch (error) {
