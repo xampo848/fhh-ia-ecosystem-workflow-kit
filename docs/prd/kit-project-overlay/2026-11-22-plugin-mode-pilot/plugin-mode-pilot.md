@@ -672,7 +672,7 @@ _(Vacio = PRD listo para implementar)_
 
 Esta seccion es el registro durable de cierre: un resumen, no una bitacora. `implement-change` la completa antes de eliminar los artefactos temporales de `.ai-work/<prd-slug>/`.
 
-**Estado**: En progreso (Fases 1 y 2 cerradas; Fase 3 pendiente)
+**Estado**: En progreso (Fases 1, 2 y 3 implementadas; falta la QA final del revisor independiente y el cierre del workspace)
 
 ### Fase 1 - Build del plugin (cerrada 2026-11-22, con una ronda de reparación)
 
@@ -706,15 +706,29 @@ Validaciones: `npm test` 537/537, con binarios `claude` y `copilot` falsos prime
 Real: `doctor` sobre una instalación `init --mode plugin --runtime claude,copilot` termina en ok, con `mode/plugin-not-installed` como aviso y la línea informativa de Copilot.
 Límites registrados: R7 (backups del cambio de modo), R8, R9 (adaptadores que el cambio no reescribe), R10 (rutas del kit en `context.md`).
 
+### Ronda de reparación de la Fase 2 y cuarta ronda de publicación (2026-11-24)
+
+| Ronda | Resultado | Evidencia |
+| --- | --- | --- |
+| P1-R4 | `--publish` corre el chequeo legal y el script de build del árbol exportado de HEAD en otro proceso (opción interna `--out`): una edición oculta con `skip-worktree` o `assume-unchanged` en el código generador no llega a la rama `plugin` (D17, autorizada por el usuario) | Commit `60eb457`; corrida roja registrada |
+| P2-R1 | D16 (limpieza por unión de runtimes), D15 (settings del proyecto respetados), `doctor` tolerante en modo repo, orden de errores de `558e9fb`, ejecutor con SIGKILL, paradas que avisan cuando un comando deja fuera un runtime, comando `--edited` completo, estado con `mode` desconocido inutilizable, guards contra un fixture de `558e9fb` | Commit `c942706`; corrida roja: 16 fallan |
+
+### Fase 3 - Docs y smoke final (2026-11-25)
+
+| Slice | Resultado | Evidencia |
+| --- | --- | --- |
+| P3-S1 | `docs/README.md`, `docs/quickstart.md` (sección 11), `docs/github-install.md` y la matriz de runtimes explican los dos modos, la instalación por persona y la postura de obligatoriedad, los cambios de modo y sus paradas, los backups, las reglas de settings, la fijación de versión y la publicación, los códigos `mode/*` y lo verificado por runtime | Commit `8a0ddf4`; comandos documentados ejecutados en dry run |
+| P3-S2 | Smoke final sobre un repo creado con `init --mode plugin --runtime claude,copilot` y el plugin de `dist/plugin` cargado por sesión | Claude Code: pasa (12 skills `fhh:*`, sin duplicados, `kit-root` cargado por el modelo, kit leído del plugin, overlay y runbook del repo). Copilot CLI (gpt-4.1, el único modelo de la cuenta): el plugin carga, sus skills aparecen sin prefijo, solo `kit-root` es visible al modelo (S12), la instrucción del adaptador llega al modelo y `kit-root` da la raíz cuando se invoca; el modelo no carga `kit-root` por su cuenta ni encuentra el router: ruteo no verificado. El adaptador pasó a nombrar la skill por runtime (commit `d96f6e9`). VS Code no se ejecutó (decisión del usuario) |
+
 | Campo | Evidencia durable |
 | --- | --- |
-| Cambios entregados | |
-| Criterios de aceptacion | |
-| Validaciones ejecutadas | |
-| Calidad y QA | |
-| Referencia de cambio | |
-| Riesgos o waivers | |
-| Checks reutilizados | |
-| Iteraciones y causa | |
-| Modo de ejecucion | |
-| Fecha de cierre | |
+| Cambios entregados | Build del plugin `fhh` en `dist/plugin/` y publicación en la rama `plugin` (`scripts/build-plugin.mjs`, `.claude-plugin/marketplace.json`); `--mode repo|plugin` en `init` y `update` con los dos cambios de modo y sus paradas (`src/planner.mjs`, `src/plugin-mode.mjs`, `src/cli/*`, `src/runtime-matrix.mjs`); `doctor` de modos (`src/doctor.mjs`); pregunta de modo en el TUI; renderers con variante plugin (`src/model-profiles.mjs`); parámetro opcional en `src/project-instructions.mjs`; docs y matriz |
+| Criterios de aceptacion | AC-1 a AC-19: COMPLETE (`test/plugin-build.test.mjs`, `test/plugin-mode.test.mjs`, `test/plugin-mode-doctor.test.mjs`, `test/plugin-mode-tui.test.mjs`). AC-20: COMPLETE para docs y Claude Code; Copilot parcial (ruteo no verificado con gpt-4.1; VS Code no ejecutado) |
+| Validaciones ejecutadas | `npm test` 563/563 (420 originales sin modificar; binarios `claude` y `copilot` falsos en el PATH sin llamadas); `check`, `check:workflow`, `check:docs`, `check:legal` PASS; `check:release` FAIL solo por la versión, que asigna el orquestador; `claude plugin validate` PASS |
+| Calidad y QA | Quality gate del kit aplicado por slice; cinco revisiones independientes del orquestador con rondas de reparación (Fase 1: 4 rondas, las dos últimas autorizadas por el usuario; Fase 2: 1 ronda). QA final pendiente: la hace el revisor independiente del orquestador sobre reparaciones y docs |
+| Referencia de cambio | Rama `fhh/f4-plugin-mode-19e58c`, commits `f7a91ee`..`d96f6e9` sobre `558e9fb`; sin push ni PR |
+| Riesgos o waivers | Sin waivers. Riesgos abiertos: Copilot sin verificar en ruteo y VS Code (S7, S9, S11, S13 de agentes); la rama `plugin` no existe en el remoto hasta el primer `--publish` y su push aprobado; límites R7 a R11; `NODE_OPTIONS` del que publica pasa al proceso de build; scripts del kit con guarda de `main` que no corre bajo rutas con symlink (fuera de F4) |
+| Checks reutilizados | Ninguno |
+| Iteraciones y causa | Fase 1, ronda 1: `hueco del PRD` (D13, raíz del plugin cargaba `bin/` y dependencias); rondas 2 a 4: `error de implementación` (seguridad de `--publish`). Fase 2, ronda 1: `error de implementación` (runtimes que salen, `doctor` en modo repo, textos). Smoke de la Fase 3: `hueco del PRD` (Copilot no antepone el nombre del plugin a sus skills) |
+| Modo de ejecucion | supervisado (pausa de revisión del orquestador tras cada fase) |
+| Fecha de cierre | Pendiente de la QA final |
