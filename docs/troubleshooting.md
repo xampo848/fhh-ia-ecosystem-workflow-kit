@@ -198,6 +198,9 @@ would build and names what is pending and how to resolve it.
 | `managed/install-state-unusable` | error | `install-state.json` cannot be read | restore it from Git, or upgrade the CLI if a newer version wrote it |
 | `managed/symlink` | warning | a path the kit manages is, or passes through, a symbolic link | replace the link with a real file or folder; `init` and `update` refuse to write through it |
 | `managed/toolkit-version-mismatch` | warning | the last apply used another workflow-kit version than this CLI | run `workflow-kit update` (dry run first) |
+| `managed/apply-lock-held` | error | `.agents/workflow-kit/apply.lock` is held by a workflow-kit run that is still going, so it is changing this repository | wait for it to finish; only if you are sure none is running, remove the lock file |
+| `managed/apply-lock-stale` | warning | `.agents/workflow-kit/apply.lock` was left by a run that no longer runs | nothing to do: the next apply or rollback takes it over |
+| `managed/file-empty` | error | a kit file or adapter is empty, so the agent finds no rules in it | run the `update` command in the message: it takes the kit version back, with a backup |
 | `managed/path-unreadable` | error | `doctor` met a path it cannot read: a file where a folder of the path should be (for example `.agents/project` as a file), a folder where a file should be, or no permission | fix that path, then run `doctor` again |
 | `boundary/pending-edited_kit_file`, `boundary/pending-unrecorded_kit_file` | warning | a kit file differs from what the kit recorded (or was never recorded) | `workflow-kit update --edited <path>=<decision>` with `keep` or `discard` (or `shadow` when the message offers it) |
 | `boundary/pending-unmarked_adapter` | warning | an adapter has no `workflow-kit:managed` block and was edited | `--edited <path>=<decision>` with `keep` or `discard`, or `split` when offered |

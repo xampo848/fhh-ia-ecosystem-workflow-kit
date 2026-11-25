@@ -44,14 +44,20 @@ export function defaultProfileFor(catalog, runtime) {
 export function parseProfileOption(value) {
   const profiles = {};
   if (value === undefined || value === null || String(value).trim() === '') return profiles;
-  for (const token of String(value).split(',').map((item) => item.trim()).filter(Boolean)) {
-    const [runtime, profile] = token.split('=').map((item) => item?.trim());
+  for (const token of String(value).split(',').map((item) => item.trim())) {
+    const parts = token.split('=').map((item) => item.trim());
+    const [runtime, profile] = parts;
+    if (token === '' || parts.length !== 2) {
+      throw new Error(`Invalid --profile entry "${token}": use <runtime>=<${profileChoices}>, separated by commas.`);
+    }
     if (!profiledRuntimes.includes(runtime)) {
       throw new Error(`Unsupported --profile runtime "${runtime}". Use one of: ${profiledRuntimes.join(', ')}.`);
     }
     if (!modelProfileNames.includes(profile)) {
       throw new Error(`Unsupported --profile value "${profile}" for ${runtime}. Use one of: ${modelProfileNames.join(', ')}.`);
     }
+    // Two profiles for one runtime would keep the last one without a word.
+    if (Object.hasOwn(profiles, runtime)) throw new Error(`--profile gives ${runtime} more than one profile (${profiles[runtime]} and ${profile}); give one.`);
     profiles[runtime] = profile;
   }
   return profiles;
@@ -61,6 +67,12 @@ export function parseProfileOption(value) {
 // catalog default for the runtime. Only selected runtimes with agent files get
 // an entry.
 export function resolveModelProfiles({ catalog, runtimes = [], requested = {}, stored = {} }) {
+  // A requested profile for a runtime this run does not install would be
+  // ignored without a word (update without --runtime uses the recorded ones).
+  const ignored = Object.keys(requested ?? {}).filter((runtime) => !runtimes.includes(runtime));
+  if (ignored.length > 0) {
+    throw new Error(`--profile names ${ignored.join(', ')}, but the runtimes are ${runtimes.join(', ')}, so that profile would be ignored. Add the runtime with --runtime or drop it from --profile. Nothing was written.`);
+  }
   const resolved = {};
   for (const runtime of runtimes) {
     if (!profiledRuntimes.includes(runtime)) continue;

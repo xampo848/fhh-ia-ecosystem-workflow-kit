@@ -6,7 +6,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { applyInstallPlan } from '../src/apply.mjs';
 import { runCli } from '../src/cli.mjs';
-import { runDoctor } from '../src/doctor.mjs';
+import { formatDoctorResult, runDoctor } from '../src/doctor.mjs';
 import { buildInstallPlan, installStateRelativePath } from '../src/planner.mjs';
 import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
 import { createMemoryIo, makeTempRepo } from './helpers.mjs';
@@ -17,6 +17,32 @@ async function write(target, relativePath, content) {
   const file = path.join(target, relativePath);
   await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.writeFile(file, content, 'utf8');
+}
+
+const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// The words of a command doctor printed, as a POSIX shell splits them (plain
+// words and single-quoted ones, the only quoting doctor uses).
+export function shellWords(command) {
+  const words = [];
+  for (const match of command.matchAll(/'((?:[^']|'\\'')*)'|(\S+)/g)) words.push(match[1] !== undefined ? match[1].replaceAll("'\\''", "'") : match[2]);
+  return words;
+}
+
+// Runs a printed `workflow-kit ...` command from another folder, as a person
+// pasting it would.
+export async function runPrinted(command) {
+  const [bin, ...args] = shellWords(command);
+  assert.equal(bin, 'workflow-kit', command);
+  const previous = process.cwd();
+  process.chdir(await makeTempRepo());
+  try {
+    const io = createMemoryIo();
+    const code = await runCli(args, io);
+    return { code, ...io.output };
+  } finally {
+    process.chdir(previous);
+  }
 }
 
 // Each expected finding: [code, path, message pattern, severity].
@@ -95,7 +121,7 @@ test('doctor lists what update leaves pending and what is neither kit nor projec
   const result = await runDoctor({ targetPath: target });
 
   assertFindings(result, [
-    ['boundary/pending-edited_kit_file', '.agents/instructions.md', /workflow-kit update --edited \.agents\/instructions\.md=<decision>`, where <decision> is keep or discard/],
+    ['boundary/pending-edited_kit_file', '.agents/instructions.md', new RegExp(`Decide with \`workflow-kit update --target ${escape(target)} --edited \\.agents/instructions\\.md=keep\` \\(leaves it as it is; the next update lists it again\\) or \`workflow-kit update --target ${escape(target)} --edited \\.agents/instructions\\.md=discard\` \\(takes the kit version; a backup keeps yours\\), then add --apply --yes\\.$`)],
     ['boundary/pending-retired_edited', retired, /the kit no longer ships it; delete it or keep it as project content outside the kit folders/],
     ['boundary/adapter-block-edited', 'CLAUDE.md', /next update restores the block.*move your text outside the markers/],
     ['boundary/unowned-path', own, /neither kit nor project; move it to \.agents\/project\/ \(skills go to \.agents\/project\/skills\/<name>\/ with a row in \.agents\/project\/index\.md\)/],
@@ -156,9 +182,9 @@ test('with a 1.0.0 state doctor asks for the migration and lists what it would l
   const result = await runDoctor({ targetPath: target });
 
   assertFindings(result, [
-    ['managed/legacy-layout', installStateRelativePath, /run workflow-kit update \(dry run first\) to migrate to the kit\/project overlay layout/],
-    ['boundary/pending-edited_kit_file', '.agents/instructions.md', /workflow-kit update --edited \.agents\/instructions\.md=<decision>`, where <decision> is keep or discard/],
-    ['boundary/pending-unmarked_adapter', 'CLAUDE.md', /workflow-kit update --edited CLAUDE\.md=<decision>`, where <decision> is keep, discard or split/],
+    ['managed/legacy-layout', installStateRelativePath, new RegExp(`run \`workflow-kit update --target ${escape(target)}\` \\(dry run first\\) to migrate to the kit/project overlay layout`)],
+    ['boundary/pending-edited_kit_file', '.agents/instructions.md', new RegExp(`\`workflow-kit update --target ${escape(target)} --edited \\.agents/instructions\\.md=keep\` \\(.*\\) or \`workflow-kit update --target ${escape(target)} --edited \\.agents/instructions\\.md=discard\` \\(`)],
+    ['boundary/pending-unmarked_adapter', 'CLAUDE.md', new RegExp(`\`workflow-kit update --target ${escape(target)} --edited CLAUDE\\.md=keep\` \\(.*\\), \`workflow-kit update --target ${escape(target)} --edited CLAUDE\\.md=discard\` \\(.*\\) or \`workflow-kit update --target ${escape(target)} --edited CLAUDE\\.md=split\` \\(keeps your own lines next to a new block\\)`)],
     ['boundary/pending-kit_skill_name', `${kitNamed}/`, /move the folder by hand to \.agents\/project\/skills\/<name>\/.*add its row to \.agents\/project\/index\.md/],
     ['boundary/pending-catalog_row_not_moved', ghostPath, /`ghost`.*add the row to \.agents\/project\/index\.md by hand/]
   ]);
@@ -173,7 +199,7 @@ test('doctor reports an unusable or unfinished apply journal as an error with th
   const cases = [
     ['{ not json', 'managed/apply-journal-unusable', /cannot be read \(not valid JSON\), so rollback cannot use it\. Fix it by hand \(Git does not track it\); only if you will not roll back the last apply, move it out of \.agents\/workflow-kit\/\. init and update stop until then\.$/],
     ['{"schemaVersion":"2.0.0"}', 'managed/apply-journal-unusable', /cannot be read \(unsupported format\)/],
-    [JSON.stringify({ schemaVersion: '2.0.0', appliedAt: '2026-01-01T00:00:00.000Z', completed: false, files: [] }), 'managed/apply-incomplete', /did not finish \(2026-01-01T00:00:00\.000Z\)\. Run `workflow-kit rollback --apply --yes`/]
+    [JSON.stringify({ schemaVersion: '2.0.0', appliedAt: '2026-01-01T00:00:00.000Z', completed: false, files: [] }), 'managed/apply-incomplete', /did not finish \(2026-01-01T00:00:00\.000Z\)\. Run `workflow-kit rollback --target \S+ --apply --yes`/]
   ];
   for (const [content, code, message] of cases) {
     await write(target, journalPath, content);
@@ -297,7 +323,31 @@ test('doctor fails when a generated agent does not match the equilibrado profile
   assert.equal(await runCli(['doctor', '--target', target], io), 1);
   assert.match(io.output.stdout, /model-profile\/agent-mismatch/);
   assert.match(io.output.stdout, /Expected `model: sonnet` for the equilibrado profile but found `model: opus`/);
-  assert.match(io.output.stdout, /update --profile claude=equilibrado --apply --yes/);
+  // The agent is an edited kit file: the fix names --edited ... =discard, with
+  // the absolute target, and runs as printed from another folder.
+  const fix = io.output.stdout.match(/Run `(workflow-kit update [^`]+)` to regenerate it\./)?.[1];
+  assert.equal(fix, `workflow-kit update --target ${target} --profile claude=equilibrado --edited .claude/agents/testinator-5000.md=discard --apply --yes`);
+  assert.equal((await runPrinted(fix)).code, 0);
+  const after = createMemoryIo();
+  assert.equal(await runCli(['doctor', '--target', target], after), 0, after.output.stdout);
+  assert.match(after.output.stdout, /^Doctor: ok$/m);
+});
+
+// The fix doctor printed before only re-ran update with the profile, which
+// leaves an edited agent as it is: doctor failed again with the same error.
+test('the model-profile fix doctor prints settles an agent whose model line was removed', async () => {
+  const target = await makeTempRepo();
+  assert.equal(await runCli(['init', '--target', target, '--runtime', 'claude', '--apply', '--yes'], createMemoryIo()), 0);
+  const agent = path.join(target, '.claude/agents/arquitecta-fases.md');
+  await fs.writeFile(agent, (await fs.readFile(agent, 'utf8')).replace(/^model: .*\n/m, ''), 'utf8');
+
+  const result = await runDoctor({ targetPath: target });
+  const finding = result.diagnostics.find((item) => item.code === 'model-profile/agent-mismatch');
+  const fix = finding.message.match(/Run `([^`]+)`/)[1];
+  assert.equal(fix, `workflow-kit update --target ${target} --profile claude=calidad --edited .claude/agents/arquitecta-fases.md=discard --apply --yes`);
+  assert.equal((await runPrinted(fix)).code, 0);
+  assert.equal((await runDoctor({ targetPath: target })).ok, true);
+  assert.match(await fs.readFile(agent, 'utf8'), /^model: opus$/m);
 });
 
 // Final review 10: every fixed code doctor emits has a row or a bullet in the
@@ -310,4 +360,157 @@ test('every fixed doctor code is documented in docs/troubleshooting.md', async (
   const codes = [...new Set(sources.flatMap((source) => [...source.matchAll(/'((?:managed|boundary|project-context)\/[a-z-]+)'/g)].map((match) => match[1])))];
   assert.ok(codes.length > 10, codes.join(', '));
   assert.deepEqual(codes.filter((code) => !guide.includes(`\`${code}\``)), []);
+});
+
+// Every workflow-kit command doctor prints carries the absolute target, quoted
+// for a shell, so it runs as printed from another folder and acts on the
+// target, never on the folder it is pasted in.
+test('every command doctor prints names the absolute target and runs as printed from another folder', async () => {
+  const target = path.join(await makeTempRepo(), "team's repo");
+  await fs.mkdir(target);
+  assert.equal(await runCli(['init', '--target', target, '--runtime', 'claude', '--apply', '--yes'], createMemoryIo()), 0);
+  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nlocal rule\n');
+  const statePath = path.join(target, installStateRelativePath);
+  const state = JSON.parse(await fs.readFile(statePath, 'utf8'));
+  state.toolkitVersion = '0.0.1-older';
+  await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+
+  const relative = path.relative(process.cwd(), target);
+  const io = createMemoryIo();
+  await runCli(['doctor', '--target', relative], io);
+  const commands = [...io.output.stdout.matchAll(/`(workflow-kit [^`]+)`/g)].map((match) => match[1]);
+  const quoted = `'${target.replaceAll("'", "'\\''")}'`;
+  assert.ok(commands.length >= 3, io.output.stdout);
+  assert.match(io.output.stdout, /\[managed\/toolkit-version-mismatch\].*Managed files were last applied with workflow-kit 0\.0\.1-older/);
+  assert.doesNotMatch(io.output.stdout, /<repo>/);
+  for (const command of commands) {
+    assert.ok(command.startsWith(`workflow-kit update --target ${quoted}`), command);
+    const before = await fs.readFile(statePath, 'utf8');
+    const result = await runPrinted(command);
+    assert.equal(result.code, 0, `${command}\n${result.stderr}`);
+    assert.match(result.stdout, new RegExp(`^Target: ${escape(target)}$`, 'm'), command);
+    assert.equal(await fs.readFile(statePath, 'utf8'), before, `${command} is a dry run`);
+  }
+});
+
+test('doctor on a path that does not exist says so in one finding, without a list of missing files', async () => {
+  const target = path.join(await makeTempRepo(), 'no-such-repo');
+  const io = createMemoryIo();
+  assert.equal(await runCli(['doctor', '--target', target], io), 1);
+  assert.match(io.output.stdout, new RegExp(`^- \\[target/not-found\\] \\.: ${escape(target)} does not exist\\. Check --target`, 'm'));
+  assert.doesNotMatch(io.output.stdout, /Missing files:/);
+  const file = path.join(await makeTempRepo(), 'a-file');
+  await fs.writeFile(file, 'x');
+  assert.match(formatDoctorResult(await runDoctor({ targetPath: file })), /\[target\/not-found\] \.: .* is not a folder\./);
+});
+
+test('missing files come after what explains them: no install, or an install from another version', async () => {
+  const empty = await makeTempRepo();
+  const none = formatDoctorResult(await runDoctor({ targetPath: empty })).split('\n');
+  const noneHint = none.findIndex((line) => line.startsWith('No workflow-kit install-state here'));
+  assert.ok(noneHint >= 0 && noneHint === none.indexOf('Missing files:') - 1, none.slice(0, 12).join('\n'));
+  assert.ok(none[noneHint].includes(`\`workflow-kit init --target ${empty}\``));
+
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+  const statePath = path.join(target, installStateRelativePath);
+  const state = JSON.parse(await fs.readFile(statePath, 'utf8'));
+  await fs.writeFile(statePath, JSON.stringify({ ...state, toolkitVersion: '0.21.0' }, null, 2));
+  await fs.rm(path.join(target, '.agents/kit-boundary.md'));
+  const lines = formatDoctorResult(await runDoctor({ targetPath: target })).split('\n');
+  const hint = lines.findIndex((line) => line.startsWith('This install was last applied with workflow-kit 0.21.0'));
+  assert.ok(hint >= 0 && hint === lines.indexOf('Missing files:') - 1, lines.slice(0, 12).join('\n'));
+  assert.ok(lines[hint].includes(`run \`workflow-kit update --target ${target}\` (a dry run first)`));
+
+  // A current install with a missing file gets no such line.
+  await fs.writeFile(statePath, JSON.stringify(state, null, 2));
+  assert.equal((await runDoctor({ targetPath: target })).missingHint, null);
+});
+
+test('an emptied kit file is an error with the command that takes the kit version back, and that command works', async () => {
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+  await fs.writeFile(path.join(target, '.agents/instructions.md'), '\n');
+
+  const result = await runDoctor({ targetPath: target });
+  assert.equal(result.ok, false);
+  assertFindings(result, [['managed/file-empty', '.agents/instructions.md', new RegExp(`^This workflow-kit file is empty, so the agent finds no rules in it\\. Run \`workflow-kit update --target ${escape(target)} --edited \\.agents/instructions\\.md=discard --apply --yes\``), 'error']]);
+  const fix = result.diagnostics.find((item) => item.code === 'managed/file-empty').message.match(/`([^`]+)`/)[1];
+  assert.equal((await runPrinted(fix)).code, 0);
+  assert.equal((await runDoctor({ targetPath: target })).ok, true);
+});
+
+// A backtick in the target path would close a single-backtick span early:
+// such a command goes between double backticks and still runs as printed.
+test('a command doctor prints for a target with a backtick keeps an unambiguous delimiter and runs as printed', async () => {
+  const target = path.join(await makeTempRepo(), 'repo `with` ticks');
+  await fs.mkdir(target);
+  assert.equal(await runCli(['init', '--target', target, '--runtime', 'claude', '--apply', '--yes'], createMemoryIo()), 0);
+  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nlocal rule\n');
+
+  const finding = (await runDoctor({ targetPath: target })).diagnostics.find((item) => item.code === 'boundary/pending-edited_kit_file');
+  const commands = [...finding.message.matchAll(/`` (workflow-kit .+?) ``/g)].map((match) => match[1]);
+  assert.equal(commands.length, 2, finding.message);
+  for (const command of commands) {
+    assert.ok(command.startsWith(`workflow-kit update --target '${target}'`), command);
+    const result = await runPrinted(command);
+    assert.equal(result.code, 0, `${command}\n${result.stderr}`);
+    assert.match(result.stdout, new RegExp(`^Target: ${escape(target)}$`, 'm'));
+  }
+});
+
+// The updater's apply lock: a live one is an error (a run is changing the
+// repository), a stale one a warning (the next apply takes it over).
+test('doctor reports the apply lock: held by a running process is an error, one left behind is a warning', async () => {
+  const lockPath = '.agents/workflow-kit/apply.lock';
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+  assert.equal((await runDoctor({ targetPath: target })).diagnostics.some((item) => item.path === lockPath), false, 'no lock, no finding');
+
+  await write(target, lockPath, `${JSON.stringify({ pid: process.pid, startedAt: '2026-01-01T00:00:00.000Z' })}\n`);
+  const held = await runDoctor({ targetPath: target });
+  assertFindings(held, [['managed/apply-lock-held', lockPath, new RegExp(`^${escape(lockPath)} is held by process ${process.pid}, taken \\d+ s ago: a workflow-kit run is changing this repository\\. If you are sure no workflow-kit command is running`), 'error']]);
+  assert.equal(held.ok, false);
+
+  await write(target, lockPath, '');
+  const stale = await runDoctor({ targetPath: target });
+  assertFindings(stale, [['managed/apply-lock-stale', lockPath, new RegExp(`^${escape(lockPath)} was left by a workflow-kit run that no longer runs; the next apply or rollback takes it over\\.$`), 'warning']]);
+  assert.equal(stale.ok, true, 'a stale lock does not fail doctor');
+});
+
+// A rollback that started and did not finish has its own wording, and the
+// command doctor names carries the target (the journal message does not).
+test('an interrupted apply or rollback is managed/apply-incomplete with its own wording and a rollback command that names the target', async () => {
+  for (const interrupted of ['apply', 'rollback']) {
+    const target = await makeTempRepo();
+    await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
+    const journalPath = path.join(target, '.agents/workflow-kit/last-apply.json');
+    const journal = JSON.parse(await fs.readFile(journalPath, 'utf8'));
+    if (interrupted === 'apply') journal.completed = false;
+    else journal.rollbackStartedAt = '2026-01-02T03:04:05.000Z';
+    await fs.writeFile(journalPath, `${JSON.stringify(journal, null, 2)}\n`);
+
+    const result = await runDoctor({ targetPath: target });
+    const finding = result.diagnostics.find((item) => item.code === 'managed/apply-incomplete');
+    assert.equal(result.ok, false, interrupted);
+    assert.match(finding.message, interrupted === 'rollback'
+      ? /^A workflow-kit rollback of the apply of .* started \(2026-01-02T03:04:05\.000Z\) and did not finish, so the repository is partly rolled back\. Run `workflow-kit rollback --target .* --apply --yes` again to finish it, then run init or update again\.$/
+      : /^The last workflow-kit apply did not finish \(.*\)\. Run `workflow-kit rollback --target .* --apply --yes` first, then run init or update again\.$/, interrupted);
+    assert.ok(finding.message.includes(`\`workflow-kit rollback --target ${target} --apply --yes\``), finding.message);
+    assert.doesNotMatch(finding.message, /`workflow-kit rollback --apply --yes`/);
+    // The printed command runs from another folder and clears the finding.
+    assert.equal((await runPrinted(`workflow-kit rollback --target ${target} --apply --yes`)).code, 0, interrupted);
+    assert.equal((await runDoctor({ targetPath: target })).diagnostics.some((item) => item.code === 'managed/apply-incomplete'), false, interrupted);
+  }
+});
+
+test('doctor on a file as the target says it is not a folder, not a journal problem', async () => {
+  const file = path.join(await makeTempRepo(), 'a-file');
+  await fs.writeFile(file, 'x');
+  const result = await runDoctor({ targetPath: file });
+  assert.deepEqual(result.diagnostics.map((item) => item.code), ['target/not-found']);
+  assert.doesNotMatch(JSON.stringify(result.diagnostics), /apply|journal/i);
+  const io = createMemoryIo();
+  assert.equal(await runCli(['doctor', '--target', file], io), 1);
+  assert.match(io.output.stdout, /is not a folder\./);
 });

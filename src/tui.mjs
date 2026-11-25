@@ -7,7 +7,7 @@ import { writingOperations } from './fs-safety.mjs';
 import { formatDoctorResult, runDoctor } from './doctor.mjs';
 import { lineDiff } from './plan-insight.mjs';
 import { buildInstallPlan, buildUpdatePlan, detectStackPack, formatPlan, readManagedInstallState, selectPlanOperations } from './planner.mjs';
-import { formatPluginInstallSteps, pluginName } from './plugin-mode.mjs';
+import { formatPluginInstallSteps, pluginName, shellWord } from './plugin-mode.mjs';
 import {
   createCapabilityGuide,
   defaultIntentFor,
@@ -48,13 +48,13 @@ import {
 import { buildUpgradePlan, commandExists as upgradeCommandExists, currentToolkitMetadata, formatUpgradePlan, globalUpgradeWorkingDirectory, resolveUpgradePackageManager, runUpgradePlan } from './upgrade.mjs';
 
 const RUNTIME_OPTIONS = [
-  { value: 'neutral', label: 'No extra adapters', description: 'Install full workflow content without runtime adapters.' },
-  { value: 'codex', label: 'Codex', description: 'Full workflow + Codex adapter.' },
-  { value: 'copilot', label: 'GitHub Copilot', description: 'Full workflow + Copilot adapter.' },
-  { value: 'claude', label: 'Claude Code', description: 'Full workflow + Claude adapter.' },
-  { value: 'antigravity', label: 'Antigravity', description: 'Full workflow + Antigravity adapter.' },
-  { value: 'all', label: 'Install all adapters', description: 'Codex, GitHub Copilot, Claude Code and Antigravity.' },
-  { value: 'custom', label: 'Custom list', description: 'Type your own comma-separated runtime list.' }
+  { value: 'neutral', label: 'Sin adaptadores extra', description: 'Instala el workflow completo sin adaptadores de runtime.' },
+  { value: 'codex', label: 'Codex', description: 'Agrega el adaptador de Codex, que lleva a Codex al workflow.' },
+  { value: 'copilot', label: 'GitHub Copilot', description: 'Agrega el adaptador de Copilot, que lleva a Copilot al workflow (en el repositorio, o como plugin si eliges el modo plugin después).' },
+  { value: 'claude', label: 'Claude Code', description: 'Agrega el adaptador de Claude Code, que lleva a Claude Code al workflow (en el repositorio, o como plugin si eliges el modo plugin después).' },
+  { value: 'antigravity', label: 'Antigravity', description: 'Agrega el adaptador de Antigravity, que lleva a Antigravity al workflow.' },
+  { value: 'all', label: 'Instalar todos los adaptadores', description: 'Codex, GitHub Copilot, Claude Code y Antigravity.' },
+  { value: 'custom', label: 'Lista propia', description: 'Escribe tu propia lista de runtimes, separados por comas.' }
 ];
 
 // Update and doctor work on an existing install: start from the runtimes it
@@ -76,21 +76,21 @@ async function storedRuntimeDefaults(mode, targetPath) {
 }
 
 const CAPABILITY_OPTIONS = [
-  { value: 'context7', label: 'Context7', description: 'Up-to-date docs MCP.' },
-  { value: 'engram', label: 'Engram', description: 'Durable memory MCP.' },
-  { value: 'codebase-memory-mcp', label: 'Codebase Memory MCP', description: 'Code graph and structural search MCP.' },
-  { value: 'all', label: 'Set up all optional capabilities', description: 'Context7, Engram and Codebase Memory MCP.' }
+  { value: 'context7', label: 'Context7', description: 'MCP de documentación al día.' },
+  { value: 'engram', label: 'Engram', description: 'MCP de memoria persistente.' },
+  { value: 'codebase-memory-mcp', label: 'Codebase Memory MCP', description: 'MCP de grafo de código y búsqueda estructural.' },
+  { value: 'all', label: 'Configurar todas las herramientas opcionales', description: 'Context7, Engram y Codebase Memory MCP.' }
 ];
 
 const CAPABILITY_SCOPE_OPTIONS = [
-  { value: 'user/global', label: 'All my projects (global)', description: 'Installed once for your user; available in every project.' },
-  { value: 'repo/project', label: 'This project only', description: 'Configured only in this repository.' },
-  { value: 'hybrid', label: 'Both (global + this project)', description: 'Installed for your user and connected in this repository.' }
+  { value: 'user/global', label: 'Todos mis proyectos (global)', description: 'Se instala una vez para tu usuario; disponible en todos tus proyectos.' },
+  { value: 'repo/project', label: 'Solo este proyecto', description: 'Se configura solo en este repositorio.' },
+  { value: 'hybrid', label: 'Ambos (global + este proyecto)', description: 'Se instala para tu usuario y se conecta en este repositorio.' }
 ];
 
 const CAPABILITY_INTENT_OPTIONS = [
-  { value: 'attach-only', label: 'Already installed: just connect', description: 'The tool is already on this machine; only connect it to the workflow.' },
-  { value: 'install+attach', label: 'Install and connect', description: 'Install the tool, then connect it to the workflow.' }
+  { value: 'attach-only', label: 'Ya instalada: solo conectar', description: 'La herramienta ya está en esta máquina; solo se conecta al workflow.' },
+  { value: 'install+attach', label: 'Instalar y conectar', description: 'Instala la herramienta y después la conecta al workflow.' }
 ];
 
 const TUI_MODE_OPTIONS = [
@@ -109,28 +109,28 @@ const WRITE_OPERATIONS = writingOperations;
 const defaultCommandExists = upgradeCommandExists;
 
 function explainExistingRepoBehavior(write, paint) {
-  write(`${paint.bold('Existing repo behavior')}\n`);
-  write(`${paint.dim('- Own skills go to .agents/project/skills/<name>/ with a row in .agents/project/index.md; SKILL.md files under .agents/skills/ that the kit does not ship are not registered.')}\n`);
-  write(`${paint.dim('- Old docs are never moved automatically by the TUI.')}\n`);
-  write(`${paint.dim('- Review docs/workflow/migration/legacy-docs-map.md and relocate docs manually if needed.')}\n\n`);
+  write(`${paint.bold('Qué pasa en un repo existente')}\n`);
+  write(`${paint.dim('- Las skills propias van a .agents/project/skills/<name>/ con una fila en .agents/project/index.md; un SKILL.md bajo .agents/skills/ que el kit no trae no se registra.')}\n`);
+  write(`${paint.dim('- El TUI nunca mueve solo los docs antiguos.')}\n`);
+  write(`${paint.dim('- Revisa docs/workflow/migration/legacy-docs-map.md y mueve los docs a mano si hace falta.')}\n\n`);
 }
 
 // Files with your own edits (PRD manifest-updater 2.4, D5): one question for
 // all of them, or one per file offering only the decisions that apply to it.
-const EDITED_FILES_QUESTION = 'Some workflow files in this project have your own edits. What should the update do with them?';
+const EDITED_FILES_QUESTION = 'Algunos archivos del workflow de este proyecto tienen ediciones tuyas. ¿Qué hace la actualización con ellos?';
 const EDITED_FILES_OPTIONS = [
-  { value: 'keep', label: 'Keep my edits (recommended)', description: 'Every edited file stays as it is and stays pending; the update changes nothing in them.' },
-  { value: 'replace-all', label: 'Replace all edited files with the kit version', description: 'Every edited kit file gets the kit version. An adapter without markers keeps your own text outside the new markers, or stays pending when that is not possible (for example Windows line endings). A backup copy of your version is saved first.' },
-  { value: 'file-by-file', label: 'Decide file by file', description: 'One question per edited file, with only the choices that apply to it and a short diff.' }
+  { value: 'keep', label: 'Conservar mis ediciones (recomendado)', description: 'Cada archivo editado queda como está; la actualización no los cambia y la próxima actualización los vuelve a listar.' },
+  { value: 'replace-all', label: 'Reemplazar todos los archivos editados por la versión del kit', description: 'Cada archivo del kit editado recibe la versión del kit. Un adaptador sin marcadores conserva tu texto fuera de los marcadores nuevos, o queda pendiente cuando no se puede (por ejemplo con finales de línea de Windows). Antes se guarda una copia de respaldo de tu versión.' },
+  { value: 'file-by-file', label: 'Decidir archivo por archivo', description: 'Una pregunta por archivo editado, solo con las opciones que le aplican y un diff corto.' }
 ];
 const EDITED_DECISION_OPTIONS = {
-  keep: () => ({ label: 'Keep my edits in this file', description: 'The file stays as it is and stays pending.' }),
-  discard: () => ({ label: 'Take the kit version', description: 'The file gets the kit version; a backup copy of your version is saved first.' }),
+  keep: () => ({ label: 'Conservar mis ediciones en este archivo', description: 'El archivo queda como está; la próxima actualización lo vuelve a listar.' }),
+  discard: () => ({ label: 'Tomar la versión del kit', description: 'El archivo recibe la versión del kit; antes se guarda una copia de respaldo de tu versión.' }),
   shadow: (relativePath) => ({
-    label: 'Move my version to a project shadow',
-    description: `Copy your version to .agents/project/shadows/${path.posix.basename(path.posix.dirname(relativePath))}/ and take the kit version.`
+    label: 'Mover mi versión a un shadow del proyecto',
+    description: `Copia tu versión a .agents/project/shadows/${path.posix.basename(path.posix.dirname(relativePath))}/ y toma la versión del kit.`
   }),
-  split: () => ({ label: 'Split: kit block plus my text', description: 'The file gets the kit block between markers; your own text stays outside the markers.' })
+  split: () => ({ label: 'Dividir: bloque del kit más mi texto', description: 'El archivo recibe el bloque del kit entre marcadores; tu propio texto queda fuera de los marcadores.' })
 };
 const EDITED_DIFF_MAX_LINES = 12;
 
@@ -152,12 +152,12 @@ function pendingEditedFiles(plan) {
 async function askEditedFileDecisions({ plan, prompter, write, paint }) {
   const { decidable, listed } = pendingEditedFiles(plan);
   if (listed.length > 0) {
-    write(`\n${paint.copperInk(`${listed.length} file(s) stay pending; there is no choice to make for them here:`)}\n`);
+    write(`\n${paint.copperInk(`${listed.length} archivo(s) quedan pendientes; aquí no hay nada que elegir para ellos:`)}\n`);
     listed.forEach((item) => write(`  - ${item.relativePath}${item.reason ? ` (${item.reason})` : ''}\n`));
   }
   if (decidable.length === 0) return undefined;
 
-  write(`\n${paint.copperInk(`Detected ${decidable.length} managed file(s) with local edits.`)}\n`);
+  write(`\n${paint.copperInk(`Se detectaron ${decidable.length} archivo(s) gestionados con ediciones locales.`)}\n`);
   const policy = await prompter.chooseOption({
     title: EDITED_FILES_QUESTION,
     defaultValue: 'keep',
@@ -171,7 +171,7 @@ async function askEditedFileDecisions({ plan, prompter, write, paint }) {
     const decisions = {};
     for (const item of decidable) {
       if (item.decisions.includes('split')) decisions[item.relativePath] = 'split';
-      else if (item.reason === 'unmarked_adapter') write(`${paint.copperInk(`${item.relativePath} stays pending: Replace all cannot keep its own text (split does not apply). Decide it file by file or with --edited.`)}\n`);
+      else if (item.reason === 'unmarked_adapter') write(`${paint.copperInk(`${item.relativePath} queda pendiente: «Reemplazar todos» no puede conservar su texto propio (split no aplica). Decídelo archivo por archivo o con --edited.`)}\n`);
       else decisions[item.relativePath] = 'discard';
     }
     return Object.keys(decisions).length > 0 ? decisions : undefined;
@@ -180,10 +180,10 @@ async function askEditedFileDecisions({ plan, prompter, write, paint }) {
   const edited = {};
   for (const item of decidable) {
     const diff = lineDiff(await fs.readFile(item.targetFile, 'utf8'), item.content ?? '', { maxLines: EDITED_DIFF_MAX_LINES });
-    write(`\n${paint.bold(item.relativePath)} ${paint.dim(`(taking the kit version changes +${diff.added} -${diff.removed} lines)`)}\n`);
+    write(`\n${paint.bold(item.relativePath)} ${paint.dim(`(tomar la versión del kit cambia +${diff.added} -${diff.removed} líneas)`)}\n`);
     write(`${paint.dim(diff.lines.join('\n'))}\n\n`);
     edited[item.relativePath] = await prompter.chooseOption({
-      title: `${item.relativePath}: what should the update do with your edits?`,
+      title: `${item.relativePath}: ¿qué hace la actualización con tus ediciones?`,
       defaultValue: 'keep',
       defaultIndex: 0,
       options: item.decisions.map((decision) => ({ value: decision, ...EDITED_DECISION_OPTIONS[decision](item.relativePath) }))
@@ -215,9 +215,9 @@ function defaultRunCommand({ command, args, cwd, write, paint }) {
 
     child.on('error', (error) => {
       const reason = error && error.code === 'ENOENT'
-        ? `${command} is not available in PATH`
+        ? `${command} no está en el PATH`
         : String(error?.message ?? error);
-      write(`${paint.red(`Command failed to start: ${reason}`)}\n`);
+      write(`${paint.red(`El comando no pudo iniciarse: ${reason}`)}\n`);
       resolve({ ok: false, code: null, reason });
     });
 
@@ -226,7 +226,7 @@ function defaultRunCommand({ command, args, cwd, write, paint }) {
         resolve({ ok: true, code });
         return;
       }
-      write(`${paint.red(`Command exited with code ${code}`)}\n`);
+      write(`${paint.red(`El comando terminó con código ${code}`)}\n`);
       resolve({ ok: false, code, reason: `exit-${code}` });
     });
   });
@@ -237,28 +237,28 @@ function buildCapabilityInstallSteps({ capability, intent, runtimes, cwd }) {
     return {
       capability,
       steps: [],
-      skipped: 'Selected mode is attach-only.',
+      skipped: 'El modo elegido es solo conectar (attach-only).',
       notes: []
     };
   }
 
   if (capability === 'context7') {
-    const installStep = { label: 'Install @upstash/context7-mcp', command: 'bun', args: ['add', '-g', '@upstash/context7-mcp'] };
+    const installStep = { label: 'Instalar @upstash/context7-mcp', command: 'bun', args: ['add', '-g', '@upstash/context7-mcp'] };
 
     return {
       capability,
       steps: [installStep],
       skipped: null,
       notes: [
-        'Context7 still requires manual MCP configuration with your API key.',
-        'Use the generated guide to add Context7 entries for your runtimes (Codex, Copilot, or workspace MCP).'
+        'Context7 todavía requiere configurar el MCP a mano con tu API key.',
+        'Usa la guía generada para agregar las entradas de Context7 de tus runtimes (Codex, Copilot o el MCP del workspace).'
       ]
     };
   }
 
   if (capability === 'codebase-memory-mcp') {
     const installStep = {
-      label: 'Install codebase-memory-mcp (official installer with UI)',
+      label: 'Instalar codebase-memory-mcp (instalador oficial con UI)',
       command: 'bash',
       args: ['-lc', 'curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash -s -- --ui']
     };
@@ -267,9 +267,9 @@ function buildCapabilityInstallSteps({ capability, intent, runtimes, cwd }) {
       capability,
       steps: [
         installStep,
-        { label: 'Attach codebase-memory-mcp to detected runtimes', command: 'codebase-memory-mcp', args: ['install'] },
+        { label: 'Conectar codebase-memory-mcp a los runtimes detectados', command: 'codebase-memory-mcp', args: ['install'] },
         {
-          label: 'Index current project with codebase-memory-mcp',
+          label: 'Indexar el proyecto actual con codebase-memory-mcp',
           command: 'codebase-memory-mcp',
           args: ['cli', 'index_repository', JSON.stringify({ repo_path: cwd })]
         }
@@ -281,14 +281,14 @@ function buildCapabilityInstallSteps({ capability, intent, runtimes, cwd }) {
 
   if (capability === 'engram') {
     const steps = [
-      { label: 'Install engram', command: 'brew', args: ['install', 'gentleman-programming/tap/engram'] }
+      { label: 'Instalar engram', command: 'brew', args: ['install', 'gentleman-programming/tap/engram'] }
     ];
 
     if (runtimes.has('codex')) {
-      steps.push({ label: 'Attach engram to Codex', command: 'engram', args: ['setup', 'codex'] });
+      steps.push({ label: 'Conectar engram a Codex', command: 'engram', args: ['setup', 'codex'] });
     }
     if (runtimes.has('copilot')) {
-      steps.push({ label: 'Attach engram to GitHub Copilot', command: 'engram', args: ['setup', 'vscode-copilot'] });
+      steps.push({ label: 'Conectar engram a GitHub Copilot', command: 'engram', args: ['setup', 'vscode-copilot'] });
     }
 
     return {
@@ -302,7 +302,7 @@ function buildCapabilityInstallSteps({ capability, intent, runtimes, cwd }) {
   return {
     capability,
     steps: [],
-    skipped: `Auto-install is not implemented for capability \"${capability}\".`,
+    skipped: `La instalación automática no existe para la herramienta \"${capability}\".`,
     notes: []
   };
 }
@@ -332,7 +332,7 @@ async function runCapabilityAutoInstall({ selections, runtimes, cwd, write, pain
     // which by now has already applied the workflow files.
     const installer = item.steps[0]?.command;
     if ((installer === 'bun' || installer === 'brew') && !(await commandExists(installer))) {
-      queue.push({ ...item, steps: [], skipped: `${installer} is required in PATH to install it.` });
+      queue.push({ ...item, steps: [], skipped: `Para instalarla hace falta ${installer} en el PATH.` });
     } else {
       queue.push(item);
     }
@@ -354,7 +354,7 @@ async function runCapabilityAutoInstall({ selections, runtimes, cwd, write, pain
     };
   }
 
-  write(`\n${paint.bold('Automatic optional capability install')}\n`);
+  write(`\n${paint.bold('Instalación automática de herramientas opcionales')}\n`);
 
   let attempted = 0;
   let succeeded = 0;
@@ -375,12 +375,12 @@ async function runCapabilityAutoInstall({ selections, runtimes, cwd, write, pain
 
       if (!result.ok) {
         failed += 1;
-        write(`${paint.red(`  ! failed: ${step.command} ${step.args.join(' ')}`)}\n`);
+        write(`${paint.red(`  ! falló: ${step.command} ${step.args.join(' ')}`)}\n`);
         break;
       }
 
       succeeded += 1;
-      write(`${paint.copper('  done')}\n`);
+      write(`${paint.copper('  listo')}\n`);
     }
   }
 
@@ -410,12 +410,12 @@ async function withSpinner({ write, paint, label, enabled }, action) {
     const result = await action();
     active = false;
     clearInterval(timer);
-    write(`\r${paint.copper(`${label} done`)}\n`);
+    write(`\r${paint.copper(`${label} listo`)}\n`);
     return result;
   } catch (error) {
     active = false;
     clearInterval(timer);
-    write(`\r${paint.red(`${label} failed`)}\n`);
+    write(`\r${paint.red(`${label} falló`)}\n`);
     throw error;
   } finally {
     if (active) clearInterval(timer);
@@ -433,9 +433,9 @@ async function collectCapabilitiesFlow({
   let wantCapabilityGuide = !askOpenGuide;
   if (askOpenGuide) {
     if (scriptedMode) {
-      wantCapabilityGuide = await prompter.confirm('Open optional capability setup guide? [no]: ');
+      wantCapabilityGuide = await prompter.confirm('¿Abrir la guía de herramientas opcionales? [no]: ');
     } else {
-      wantCapabilityGuide = await prompter.confirm('Open optional capability setup guide?', false);
+      wantCapabilityGuide = await prompter.confirm('¿Abrir la guía de herramientas opcionales?', false);
     }
   }
 
@@ -448,12 +448,12 @@ async function collectCapabilitiesFlow({
 
   const chosenCapabilities = scriptedMode
     ? await prompter.chooseOptions({
-      title: 'Select one or more optional capabilities',
+      title: 'Elige una o más herramientas opcionales',
       defaultValues: ['context7'],
       options: CAPABILITY_OPTIONS
     })
     : await prompter.chooseOptions({
-      title: 'Select one or more optional capabilities',
+      title: 'Elige una o más herramientas opcionales',
       options: CAPABILITY_OPTIONS,
       defaultValues: ['context7']
     });
@@ -465,12 +465,12 @@ async function collectCapabilitiesFlow({
 
   const chosenScope = scriptedMode
     ? await prompter.chooseOption({
-      title: 'Select capability scope',
+      title: 'Elige el alcance de la herramienta',
       defaultIndex: 2,
       options: CAPABILITY_SCOPE_OPTIONS
     })
     : await prompter.chooseOption({
-      title: 'Select capability scope',
+      title: 'Elige el alcance de la herramienta',
       options: CAPABILITY_SCOPE_OPTIONS,
       defaultValue: 'hybrid'
     });
@@ -479,17 +479,17 @@ async function collectCapabilitiesFlow({
     const intentDefault = defaultIntentFor(capability);
     const intentOptions = CAPABILITY_INTENT_OPTIONS.map((item) => ({
       ...item,
-      label: item.value === intentDefault ? `${item.label} (recommended)` : item.label
+      label: item.value === intentDefault ? `${item.label} (recomendado)` : item.label
     }));
 
     const chosenIntent = scriptedMode
       ? await prompter.chooseOption({
-        title: `Select install mode for ${capability}`,
+        title: `Elige cómo instalar ${capability}`,
         defaultIndex: intentDefault === 'attach-only' ? 0 : 1,
         options: intentOptions
       })
       : await prompter.chooseOption({
-        title: `Select install mode for ${capability}`,
+        title: `Elige cómo instalar ${capability}`,
         options: intentOptions,
         defaultValue: intentDefault
       });
@@ -513,9 +513,9 @@ async function collectCapabilitiesFlow({
 
   if (capabilitySelections.some((item) => item.intent === 'install+attach')) {
     if (scriptedMode) {
-      shouldAutoInstallCapabilities = await prompter.confirm('Automatically run install commands for all install+attach optional capabilities? [no]: ');
+      shouldAutoInstallCapabilities = await prompter.confirm('¿Ejecutar ahora los comandos de instalación de las herramientas opcionales marcadas «Instalar y conectar»? [no]: ');
     } else {
-      shouldAutoInstallCapabilities = await prompter.confirm('Automatically run install commands for all install+attach optional capabilities?', false);
+      shouldAutoInstallCapabilities = await prompter.confirm('¿Ejecutar ahora los comandos de instalación de las herramientas opcionales marcadas «Instalar y conectar»?', false);
     }
   }
 
@@ -534,7 +534,7 @@ async function stopInstallOverExistingInstall({ mode, targetPath, write, paint }
     return false;
   }
   if (!state) return false;
-  write(`${paint.copperInk(`.agents/workflow-kit/install-state.json already records an install (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}). Choose Update to bring it to this version (or run workflow-kit update; --runtime, --stack and --profile change those choices). Install would reset them. Nothing was written.`)}\n`);
+  write(`${paint.copperInk(`.agents/workflow-kit/install-state.json ya registra una instalación (runtimes: ${(state.runtimes ?? []).join(', ') || 'ninguno'}). Elige «Actualizar el workflow de un proyecto» para llevarla a esta versión (o ejecuta workflow-kit update; --runtime, --stack y --profile cambian esas elecciones). Instalar las reiniciaría. No se escribió nada.`)}\n`);
   return true;
 }
 
@@ -551,6 +551,16 @@ export async function runTui(options = {}) {
   const commandExists = options.commandExists ?? defaultCommandExists;
   const runCommand = options.runCommand ?? defaultRunCommand;
   const runUpgradeExecutor = options.runUpgradeExecutor ?? runUpgradePlan;
+  // The menu reads a terminal: without one (stdin at end of file, a pipe or
+  // /dev/null) every prompt would end at once and look like a cancel with
+  // exit 0, which a script reads as success. This error stays in English,
+  // like the parser errors scripts read.
+  const input = options.stdin ?? process.stdin;
+  if (!scriptedMode && !options.prompter && !input.isTTY) {
+    const writeError = options.writeError ?? ((message) => process.stderr.write(message));
+    writeError('workflow-kit tui needs an interactive terminal (stdin is not one). In scripts, use the commands instead: init, update, export, doctor, rollback or upgrade (see workflow-kit --help). Nothing was written.\n');
+    return { code: 2, applied: false };
+  }
   // options.prompter stands in for the interactive prompter (tests).
   const prompter = scriptedMode
     ? createScriptedPrompter({ ask: options.ask, write, paint })
@@ -585,37 +595,37 @@ export async function runTui(options = {}) {
       renderStageHeader(write, paint, {
         step: 2,
         total: 4,
-        title: 'Target selection',
-        subtitle: 'Choose the project whose workflow should be checked. Nothing is written.'
+        title: 'Elegir el proyecto',
+        subtitle: 'Elige el proyecto cuyo workflow quieres revisar. No se escribe nada.'
       });
 
       targetPath = scriptedMode
-        ? await prompter.promptText('Target path [.]: ', '.')
-        : await prompter.promptText('Target path', '.');
+        ? await prompter.promptText('Ruta del proyecto [.]: ', '.')
+        : await prompter.promptText('Ruta del proyecto', '.');
 
       renderStageHeader(write, paint, {
         step: 3,
         total: 4,
-        title: 'Runtime adapters',
-        subtitle: 'Select runtimes so doctor validates the correct adapter surface.'
+        title: 'Adaptadores de runtime',
+        subtitle: 'Elige los runtimes para que doctor revise los adaptadores correctos.'
       });
 
       const runtimeChoices = await prompter.chooseOptions({
-        title: 'Select one or more runtimes',
+        title: 'Elige uno o más runtimes',
         options: RUNTIME_OPTIONS,
         defaultValues: (await storedRuntimeDefaults(mode, targetPath)).values
       });
 
       const customRuntimes = runtimeChoices.includes('custom')
-        ? await prompter.promptText(scriptedMode ? 'Custom runtimes [neutral]: ' : 'Custom runtimes (comma-separated)', (await storedRuntimeDefaults(mode, targetPath)).custom)
+        ? await prompter.promptText(scriptedMode ? 'Runtimes propios [neutral]: ' : 'Runtimes propios (separados por comas)', (await storedRuntimeDefaults(mode, targetPath)).custom)
         : '';
       runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
 
       renderStageHeader(write, paint, {
         step: 4,
         total: 4,
-        title: 'Doctor results',
-        subtitle: 'Review repository health before deciding whether to run install, update, or manual fixes.'
+        title: 'Resultado de doctor',
+        subtitle: 'Revisa el estado del repositorio antes de decidir si instalar, actualizar o corregir a mano.'
       });
 
       const doctorResult = await runDoctor({
@@ -639,13 +649,13 @@ export async function runTui(options = {}) {
       renderStageHeader(write, paint, {
         step: 2,
         total: 4,
-        title: 'workflow-kit source',
-        subtitle: 'Choose the Git branch or tag to install workflow-kit from. No project is changed.'
+        title: 'Origen de workflow-kit',
+        subtitle: 'Elige la rama o el tag de Git desde el que instalar workflow-kit. No cambia ningún proyecto.'
       });
 
       const ref = scriptedMode
-        ? await prompter.promptText(`Git ref [${metadata.defaultUpgradeRef}]: `, metadata.defaultUpgradeRef)
-        : await prompter.promptText('Git ref (branch or tag)', metadata.defaultUpgradeRef);
+        ? await prompter.promptText(`Ref de Git [${metadata.defaultUpgradeRef}]: `, metadata.defaultUpgradeRef)
+        : await prompter.promptText('Ref de Git (rama o tag)', metadata.defaultUpgradeRef);
 
       const packageManager = await resolveUpgradePackageManager(undefined, commandExists);
       const upgradePlan = buildUpgradePlan({ ref, packageManager });
@@ -653,8 +663,8 @@ export async function runTui(options = {}) {
       renderStageHeader(write, paint, {
         step: 3,
         total: 4,
-        title: 'Update preview',
-        subtitle: 'This updates workflow-kit itself on this machine. Projects stay as they are until you update each one.'
+        title: 'Vista previa de la actualización',
+        subtitle: 'Esto actualiza workflow-kit en esta máquina. Los proyectos quedan como están hasta que actualices cada uno.'
       });
 
       write(`${formatUpgradePlan(upgradePlan)}\n\n`);
@@ -662,16 +672,16 @@ export async function runTui(options = {}) {
       renderStageHeader(write, paint, {
         step: 4,
         total: 4,
-        title: 'Update workflow-kit',
-        subtitle: 'The current process will remain on the old code until you launch workflow-kit again.'
+        title: 'Actualizar workflow-kit',
+        subtitle: 'Este proceso sigue con el código anterior hasta que vuelvas a abrir workflow-kit.'
       });
 
       const shouldUpgrade = scriptedMode
-        ? await prompter.confirm('Update workflow-kit on this machine now? Type yes to continue [no]: ')
-        : await prompter.confirm('Update workflow-kit on this machine now?', false);
+        ? await prompter.confirm('¿Actualizar workflow-kit en esta máquina ahora? Escribe sí para continuar [no]: ')
+        : await prompter.confirm('¿Actualizar workflow-kit en esta máquina ahora?', false);
 
       if (!shouldUpgrade) {
-        write(`${paint.copperInk('Aborted. workflow-kit was not changed.')}\n`);
+        write(`${paint.copperInk('Cancelado. workflow-kit no cambió.')}\n`);
         return { code: 0, applied: false, mode, upgradePlan };
       }
 
@@ -682,12 +692,12 @@ export async function runTui(options = {}) {
       });
 
       if (!result.ok) {
-        write(`${paint.red('workflow-kit update failed.')}\n`);
+        write(`${paint.red('La actualización de workflow-kit falló.')}\n`);
         return { code: 2, applied: false, mode, upgradePlan, upgradeResult: result };
       }
 
-      write(`${paint.copper('workflow-kit updated.')} ${renderChip(paint, 'RESTART NEXT', 'copper')}\n`);
-      write(`${paint.dim('Next step: launch workflow-kit again and choose «Actualizar el workflow de un proyecto» in each project.') }\n`);
+      write(`${paint.copper('workflow-kit actualizado.')} ${renderChip(paint, 'REINICIA DESPUÉS', 'copper')}\n`);
+      write(`${paint.dim('Siguiente paso: abre workflow-kit de nuevo y elige «Actualizar el workflow de un proyecto» en cada proyecto.') }\n`);
       return { code: 0, applied: false, mode, upgradePlan, upgradeResult: result };
     }
 
@@ -695,37 +705,37 @@ export async function runTui(options = {}) {
       renderStageHeader(write, paint, {
         step: 2,
         total: 4,
-        title: 'Working directory',
-        subtitle: 'Directory used as execution context for optional capability commands.'
+        title: 'Carpeta de trabajo',
+        subtitle: 'Carpeta donde se ejecutan los comandos de las herramientas opcionales.'
       });
 
       targetPath = scriptedMode
-        ? await prompter.promptText('Working directory [.]: ', '.')
-        : await prompter.promptText('Working directory', '.');
+        ? await prompter.promptText('Carpeta de trabajo [.]: ', '.')
+        : await prompter.promptText('Carpeta de trabajo', '.');
 
       renderStageHeader(write, paint, {
         step: 3,
         total: 4,
-        title: 'Runtime adapters',
-        subtitle: 'Select runtimes so capability guides and attach steps are contextualized.'
+        title: 'Adaptadores de runtime',
+        subtitle: 'Elige los runtimes para que las guías y los pasos de conexión se ajusten a ellos.'
       });
 
       const runtimeChoices = await prompter.chooseOptions({
-        title: 'Select one or more runtimes',
+        title: 'Elige uno o más runtimes',
         options: RUNTIME_OPTIONS,
         defaultValues: (await storedRuntimeDefaults(mode, targetPath)).values
       });
 
       const customRuntimes = runtimeChoices.includes('custom')
-        ? await prompter.promptText(scriptedMode ? 'Custom runtimes [neutral]: ' : 'Custom runtimes (comma-separated)', (await storedRuntimeDefaults(mode, targetPath)).custom)
+        ? await prompter.promptText(scriptedMode ? 'Runtimes propios [neutral]: ' : 'Runtimes propios (separados por comas)', (await storedRuntimeDefaults(mode, targetPath)).custom)
         : '';
       runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
 
       renderStageHeader(write, paint, {
         step: 4,
         total: 4,
-        title: 'Optional capabilities',
-        subtitle: 'Review, configure and optionally auto-install selected capabilities.'
+        title: 'Herramientas opcionales',
+        subtitle: 'Revisa, configura y, si quieres, instala las herramientas elegidas.'
       });
 
       const { capabilitySelections, shouldAutoInstallCapabilities } = await collectCapabilitiesFlow({
@@ -749,25 +759,25 @@ export async function runTui(options = {}) {
           runCommand
         });
 
-        write(`\n${paint.bold('Optional capabilities auto-install summary')}\n`);
-        write(`Commands attempted: ${capabilityInstallResult.attempted}\n`);
-        write(`Commands succeeded: ${paint.copper(String(capabilityInstallResult.succeeded))}\n`);
-        write(`Commands failed: ${capabilityInstallResult.failed > 0 ? paint.red(String(capabilityInstallResult.failed)) : paint.copper('0')}\n`);
+        write(`\n${paint.bold('Resumen de la instalación automática de herramientas opcionales')}\n`);
+        write(`Comandos intentados: ${capabilityInstallResult.attempted}\n`);
+        write(`Comandos exitosos: ${paint.copper(String(capabilityInstallResult.succeeded))}\n`);
+        write(`Comandos fallidos: ${capabilityInstallResult.failed > 0 ? paint.red(String(capabilityInstallResult.failed)) : paint.copper('0')}\n`);
         if (capabilityInstallResult.skipped.length > 0) {
-          write(`${paint.copperInk('Skipped capabilities:')}\n`);
+          write(`${paint.copperInk('Herramientas omitidas:')}\n`);
           capabilityInstallResult.skipped.forEach((item) => {
             write(`- ${item.capability}: ${item.reason}\n`);
           });
         }
         if (capabilityInstallResult.notes.length > 0) {
-          write(`${paint.copperInk('Manual configuration required:')}\n`);
+          write(`${paint.copperInk('Configuración manual necesaria:')}\n`);
           for (const note of capabilityInstallResult.notes) {
             write(`- ${note}\n`);
           }
         }
       }
 
-      write(`${paint.copper('Capabilities flow completed.')} ${renderChip(paint, 'SYSTEM READY', 'copper')}\n`);
+      write(`${paint.copper('Flujo de herramientas completado.')} ${renderChip(paint, 'SISTEMA LISTO', 'copper')}\n`);
       return {
         code: 0,
         applied: false,
@@ -782,46 +792,46 @@ export async function runTui(options = {}) {
       renderStageHeader(write, paint, {
         step: 2,
         total: 6,
-        title: 'Target selection',
+        title: 'Elegir el proyecto',
         subtitle: mode === 'update'
-          ? 'Choose the project whose workflow files should be updated to this workflow-kit version.'
+          ? 'Elige el proyecto cuyos archivos del workflow quieres llevar a esta versión de workflow-kit.'
           : mode === 'export'
-            ? 'Choose where the workflow package should be exported.'
-            : 'Choose where the workflow package will be installed.'
+            ? 'Elige dónde exportar el paquete del workflow.'
+            : 'Elige dónde instalar el paquete del workflow.'
       });
 
-      targetPath = await prompter.promptText(mode === 'export' ? 'Output path [.]: ' : 'Target path [.]: ', '.');
+      targetPath = await prompter.promptText(mode === 'export' ? 'Carpeta de salida [.]: ' : 'Ruta del proyecto [.]: ', '.');
       write('\n');
       if (await stopInstallOverExistingInstall({ mode, targetPath, write, paint })) return { code: 1, applied: false, mode };
 
       renderStageHeader(write, paint, {
         step: 3,
         total: 6,
-        title: mode === 'update' ? 'Update package' : mode === 'export' ? 'Export package' : 'Install package',
+        title: mode === 'update' ? 'Paquete a actualizar' : mode === 'export' ? 'Paquete a exportar' : 'Paquete a instalar',
         subtitle: mode === 'update'
-          ? 'Managed files will be updated selectively, with backups and protected skips.'
+          ? 'Los archivos gestionados se actualizan uno por uno, con backups y sin tocar tus ediciones.'
           : mode === 'export'
-            ? 'workflow-kit will write the workflow files into the output folder; no project is touched.'
-          : 'workflow-kit installs the complete FHH IA Ecosystem workflow by default.'
+            ? 'workflow-kit escribe los archivos del workflow en la carpeta de salida; no toca ningún proyecto.'
+          : 'workflow-kit instala por defecto el workflow completo de FHH IA Ecosystem.'
       });
       const packageDetails = installPackageDetails(overlay);
-      write(`${renderChip(paint, 'INSTALL PACKAGE', packageDetails.tone)} ${paint.dim(packageDetails.summary)}\n\n`);
+      write(`${renderChip(paint, 'PAQUETE', packageDetails.tone)} ${paint.dim(packageDetails.summary)}\n\n`);
 
       renderStageHeader(write, paint, {
         step: 4,
         total: 6,
-        title: 'Runtime adapters',
-        subtitle: 'Select which editor or agent surfaces should be wired into the workflow.'
+        title: 'Adaptadores de runtime',
+        subtitle: 'Elige qué editores o agentes se conectan al workflow.'
       });
 
       const runtimeChoices = await prompter.chooseOptions({
-        title: 'Select one or more runtimes',
+        title: 'Elige uno o más runtimes',
         defaultValues: (await storedRuntimeDefaults(mode, targetPath)).values,
         options: RUNTIME_OPTIONS
       });
 
       const customRuntimes = runtimeChoices.includes('custom')
-        ? await prompter.promptText('Custom runtimes [neutral]: ', (await storedRuntimeDefaults(mode, targetPath)).custom)
+        ? await prompter.promptText('Runtimes propios [neutral]: ', (await storedRuntimeDefaults(mode, targetPath)).custom)
         : '';
       runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
 
@@ -830,45 +840,45 @@ export async function runTui(options = {}) {
       renderStageHeader(write, paint, {
         step: 2,
         total: 6,
-        title: 'Target selection',
+        title: 'Elegir el proyecto',
         subtitle: mode === 'update'
-          ? 'Choose the project whose workflow files should be updated to this workflow-kit version.'
+          ? 'Elige el proyecto cuyos archivos del workflow quieres llevar a esta versión de workflow-kit.'
           : mode === 'export'
-            ? 'Choose where the workflow package should be exported.'
-            : 'Choose where the workflow package will be installed.'
+            ? 'Elige dónde exportar el paquete del workflow.'
+            : 'Elige dónde instalar el paquete del workflow.'
       });
 
-      targetPath = await prompter.promptText(mode === 'export' ? 'Output path' : 'Target path', '.');
+      targetPath = await prompter.promptText(mode === 'export' ? 'Carpeta de salida' : 'Ruta del proyecto', '.');
       if (await stopInstallOverExistingInstall({ mode, targetPath, write, paint })) return { code: 1, applied: false, mode };
 
       renderStageHeader(write, paint, {
         step: 3,
         total: 6,
-        title: mode === 'update' ? 'Update package' : mode === 'export' ? 'Export package' : 'Install package',
+        title: mode === 'update' ? 'Paquete a actualizar' : mode === 'export' ? 'Paquete a exportar' : 'Paquete a instalar',
         subtitle: mode === 'update'
-          ? 'Managed files will be updated selectively, with backups and protected skips.'
+          ? 'Los archivos gestionados se actualizan uno por uno, con backups y sin tocar tus ediciones.'
           : mode === 'export'
-            ? 'workflow-kit will write the workflow files into the output folder; no project is touched.'
-          : 'workflow-kit installs the complete FHH IA Ecosystem workflow by default.'
+            ? 'workflow-kit escribe los archivos del workflow en la carpeta de salida; no toca ningún proyecto.'
+          : 'workflow-kit instala por defecto el workflow completo de FHH IA Ecosystem.'
       });
       const packageDetails = installPackageDetails(overlay);
-      write(`${renderChip(paint, 'INSTALL PACKAGE', packageDetails.tone)} ${paint.dim(packageDetails.summary)}\n\n`);
+      write(`${renderChip(paint, 'PAQUETE', packageDetails.tone)} ${paint.dim(packageDetails.summary)}\n\n`);
 
       renderStageHeader(write, paint, {
         step: 4,
         total: 6,
-        title: 'Runtime adapters',
-        subtitle: 'Select which editor or agent surfaces should be wired into the workflow.'
+        title: 'Adaptadores de runtime',
+        subtitle: 'Elige qué editores o agentes se conectan al workflow.'
       });
 
       const runtimeChoices = await prompter.chooseOptions({
-        title: 'Select one or more runtimes',
+        title: 'Elige uno o más runtimes',
         options: RUNTIME_OPTIONS,
         defaultValues: (await storedRuntimeDefaults(mode, targetPath)).values
       });
 
       const customRuntimes = runtimeChoices.includes('custom')
-        ? await prompter.promptText('Custom runtimes (comma-separated)', (await storedRuntimeDefaults(mode, targetPath)).custom)
+        ? await prompter.promptText('Runtimes propios (separados por comas)', (await storedRuntimeDefaults(mode, targetPath)).custom)
         : '';
       runtime = selectedRuntimeList(runtimeChoices, customRuntimes).join(',');
 
@@ -935,10 +945,10 @@ export async function runTui(options = {}) {
 
           // Asked once: the plan is rebuilt when the user changes options.
           if (adoptExistingAnswer === undefined) {
-            write(`\n${paint.copperInk('No install state found for this repository.')}\n`);
+            write(`\n${paint.copperInk('Este repositorio no tiene install-state.')}\n`);
             adoptExistingAnswer = scriptedMode
-              ? await prompter.confirm('Bootstrap a safe baseline with adopt-existing? Type yes to continue [no]: ')
-              : await prompter.confirm('Bootstrap a safe baseline with adopt-existing?', true);
+              ? await prompter.confirm('¿Crear una línea base segura con adopt-existing? Escribe sí para continuar [no]: ')
+              : await prompter.confirm('¿Crear una línea base segura con adopt-existing?', true);
           }
 
           if (!adoptExistingAnswer) throw error;
@@ -974,7 +984,7 @@ export async function runTui(options = {}) {
     let plan = await withSpinner({
       write,
       paint,
-      label: 'Building plan',
+      label: 'Armando el plan',
       enabled: animate
     }, () => buildPlan({ edited, backupMode }));
 
@@ -984,7 +994,7 @@ export async function runTui(options = {}) {
         plan = await withSpinner({
           write,
           paint,
-          label: 'Rebuilding plan with your decisions on edited files',
+          label: 'Rearmando el plan con tus decisiones sobre los archivos editados',
           enabled: animate
         }, () => buildPlan({ edited, backupMode }));
       }
@@ -992,19 +1002,19 @@ export async function runTui(options = {}) {
 
     if (advancedApplyPrompts) {
       const selectedBackupMode = await prompter.chooseOption({
-        title: 'Backup mode for write operations',
+        title: 'Backups al escribir',
         defaultValue: backupMode,
         defaultIndex: 0,
         options: [
           {
-            label: 'Safe (with backup) - recommended',
+            label: 'Seguro (con backup), recomendado',
             value: 'required',
-            description: 'Create a backup file before overwrite/merge writes.'
+            description: 'Crea un archivo de backup antes de sobrescribir o fusionar.'
           },
           {
-            label: 'Fast (no backup)',
+            label: 'Rápido (sin backup)',
             value: 'none',
-            description: 'Write directly without backup files.'
+            description: 'Escribe directo, sin archivos de backup.'
           }
         ]
       });
@@ -1014,7 +1024,7 @@ export async function runTui(options = {}) {
         plan = await withSpinner({
           write,
           paint,
-          label: `Rebuilding plan with backup mode: ${backupMode}`,
+          label: `Rearmando el plan con el modo de backup: ${backupMode}`,
           enabled: animate
         }, () => buildPlan({ edited, backupMode }));
       }
@@ -1023,12 +1033,12 @@ export async function runTui(options = {}) {
       // (selectPlanOperations keeps them): their files are not offered;
       // retired deletes are.
       const migrationWrites = plan.operations.filter((item) => item.migration && isWriteOperation(item)).length;
-      const wholeBlock = plan.modeSwitch ? 'The mode switch' : 'The layout migration';
-      if (migrationWrites > 0) write(`${paint.dim(`${wholeBlock} (${migrationWrites} files) is applied as one block and is not listed here.`)}\n`);
+      const wholeBlock = plan.modeSwitch ? 'El cambio de modo' : 'La migración de layout';
+      if (migrationWrites > 0) write(`${paint.dim(`${wholeBlock} (${migrationWrites} archivos) se aplica como un solo bloque y no se lista aquí.`)}\n`);
       const writableOperations = plan.operations.filter((item) => isWriteOperation(item) && !item.migration);
       if (writableOperations.length > 0) {
         const selectedWritablePaths = await prompter.chooseOptions({
-          title: 'Select files to modify',
+          title: 'Elige los archivos a modificar',
           options: writableOperations.map((item) => ({
             label: `${item.relativePath} (${item.operation})`,
             value: item.relativePath,
@@ -1053,14 +1063,14 @@ export async function runTui(options = {}) {
 
     let showFullPreview = false;
     if (scriptedMode) {
-      showFullPreview = await prompter.confirm('Show full operation list? [no]: ');
+      showFullPreview = await prompter.confirm('¿Mostrar la lista completa de operaciones? [no]: ');
     } else {
-      showFullPreview = await prompter.confirm('Show full operation list?', false);
+      showFullPreview = await prompter.confirm('¿Mostrar la lista completa de operaciones?', false);
     }
 
     if (showFullPreview) {
       const fullPreview = colorizeFullPlanPreview(paint, formatPlan(plan));
-      write(`\n${paint.indigo(paint.bold('Full preview'))}\n${fullPreview}\n\n`);
+      write(`\n${paint.indigo(paint.bold('Vista previa completa'))}\n${fullPreview}\n\n`);
     }
 
     const { capabilitySelections, shouldAutoInstallCapabilities } = await collectCapabilitiesFlow({
@@ -1076,32 +1086,34 @@ export async function runTui(options = {}) {
     renderStageHeader(write, paint, {
       step: 6,
       total: 6,
-      title: 'Apply confirmation',
-      subtitle: 'Nothing is written until you explicitly confirm this final step.'
+      title: 'Confirmar',
+      subtitle: 'No se escribe nada hasta que confirmes este último paso.'
     });
 
     if (scriptedMode) {
-      shouldApply = await prompter.confirm(paint.bold('Apply these changes? Type yes to write files [no]: '));
+      shouldApply = await prompter.confirm(paint.bold('¿Aplicar estos cambios? Escribe sí para escribir los archivos [no]: '));
     } else {
-      shouldApply = await prompter.confirm('Apply these changes now?', false);
+      shouldApply = await prompter.confirm('¿Aplicar estos cambios ahora?', false);
     }
 
     if (!shouldApply) {
-      write(`${paint.copperInk(mode === 'export' ? 'Aborted. No files were exported.' : 'Aborted. No files were written.')}\n`);
+      write(`${paint.copperInk(mode === 'export' ? 'Cancelado. No se exportó ningún archivo.' : 'Cancelado. No se escribió ningún archivo.')}\n`);
       return { code: 0, applied: false, plan };
     }
 
     const applied = await applyInstallPlan(plan);
-    const { writeCount, backupCount, modifiedSkips, unmanagedSkips, adopted, retiredDeleted, projectFilesMoved } = countAppliedOperations(applied);
-    write(`\n${paint.copper(mode === 'export' ? 'Export completed successfully.' : 'Apply completed successfully.')} ${renderChip(paint, 'SYSTEM READY', 'copper')}\n`);
-    write(`${mode === 'export' ? 'Exported files' : 'Applied writes'}: ${paint.copper(String(writeCount))}\n`);
-    write(`Backups created: ${paint.copperInk(String(backupCount))}\n`);
+    const { writeCount, backupCount, modifiedSkips, unmanagedSkips, projectOwned, changedSincePlan, adopted, retiredDeleted, projectFilesMoved } = countAppliedOperations(applied);
+    write(`\n${paint.copper(mode === 'export' ? 'Exportación completada.' : 'Cambios aplicados.')} ${renderChip(paint, 'SISTEMA LISTO', 'copper')}\n`);
+    write(`${mode === 'export' ? 'Archivos exportados' : 'Escrituras aplicadas'}: ${paint.copper(String(writeCount))}\n`);
+    write(`Backups creados: ${paint.copperInk(String(backupCount))}\n`);
     if (mode === 'update') {
-      write(`Protected local edits (skipped): ${paint.copperInk(String(modifiedSkips))}\n`);
-      write(`Unmanaged files (skipped): ${paint.copperInk(String(unmanagedSkips))}\n`);
-      write(`Adopted baseline files: ${paint.indigo(String(adopted))}\n`);
-      write(`Retired files deleted (backup kept): ${paint.copperInk(String(retiredDeleted))}\n`);
-      write(`Project files moved to .agents/project/: ${paint.copperInk(String(projectFilesMoved))}\n`);
+      write(`Ediciones locales protegidas (omitidas): ${paint.copperInk(String(modifiedSkips))}\n`);
+      write(`Archivos no gestionados (omitidos): ${paint.copperInk(String(unmanagedSkips))}\n`);
+      write(`Archivos del proyecto que se dejan como están: ${paint.copperInk(String(projectOwned))}\n`);
+      write(`Archivos adoptados como línea base: ${paint.indigo(String(adopted))}\n`);
+      write(`Archivos retirados borrados (con backup): ${paint.copperInk(String(retiredDeleted))}\n`);
+      write(`Archivos del proyecto movidos a .agents/project/: ${paint.copperInk(String(projectFilesMoved))}\n`);
+      if (changedSincePlan > 0) write(`No se borraron (cambiaron desde el plan, quedan como están): ${paint.copperInk(String(changedSincePlan))}\n`);
     }
 
     // Verify the result right away so a broken install or update is visible
@@ -1112,11 +1124,11 @@ export async function runTui(options = {}) {
       const errors = doctorResult.diagnostics.filter((item) => item.severity === 'error');
       const warnings = doctorResult.diagnostics.filter((item) => item.severity !== 'error');
       const healthy = doctorResult.ok;
-      write(`Doctor: ${healthy ? paint.copper('ok') : paint.copperInk('failed')} (${errors.length} errors, ${warnings.length} warnings, ${doctorResult.missing.length} missing files)\n`);
+      write(`Doctor: ${healthy ? paint.copper('ok') : paint.copperInk('con fallas')} (${errors.length} errores, ${warnings.length} avisos, ${doctorResult.missing.length} archivos faltantes)\n`);
       for (const item of [...errors, ...warnings].slice(0, 8)) {
         write(`  - [${item.code}] ${item.path}\n`);
       }
-      if (!healthy || warnings.length > 0) write(`${paint.dim('Run workflow-kit doctor --target <repo> for the full messages.')}\n`);
+      if (!healthy || warnings.length > 0) write(`${paint.dim(`Ejecuta workflow-kit doctor --target ${shellWord(doctorResult.targetPath)} para ver los mensajes completos.`)}\n`);
     }
 
     // Plugin mode: the repository only declares the plugin; print how to install it.
@@ -1134,18 +1146,18 @@ export async function runTui(options = {}) {
         runCommand
       });
 
-      write(`\n${paint.bold('Optional capabilities auto-install summary')}\n`);
-      write(`Commands attempted: ${capabilityInstallResult.attempted}\n`);
-      write(`Commands succeeded: ${paint.copper(String(capabilityInstallResult.succeeded))}\n`);
-      write(`Commands failed: ${capabilityInstallResult.failed > 0 ? paint.red(String(capabilityInstallResult.failed)) : paint.copper('0')}\n`);
+      write(`\n${paint.bold('Resumen de la instalación automática de herramientas opcionales')}\n`);
+      write(`Comandos intentados: ${capabilityInstallResult.attempted}\n`);
+      write(`Comandos exitosos: ${paint.copper(String(capabilityInstallResult.succeeded))}\n`);
+      write(`Comandos fallidos: ${capabilityInstallResult.failed > 0 ? paint.red(String(capabilityInstallResult.failed)) : paint.copper('0')}\n`);
       if (capabilityInstallResult.skipped.length > 0) {
-        write(`${paint.copperInk('Skipped capabilities:')}\n`);
+        write(`${paint.copperInk('Herramientas omitidas:')}\n`);
         capabilityInstallResult.skipped.forEach((item) => {
           write(`- ${item.capability}: ${item.reason}\n`);
         });
       }
       if (capabilityInstallResult.notes.length > 0) {
-        write(`${paint.copperInk('Manual configuration required:')}\n`);
+        write(`${paint.copperInk('Configuración manual necesaria:')}\n`);
         for (const note of capabilityInstallResult.notes) {
           write(`- ${note}\n`);
         }
@@ -1154,10 +1166,10 @@ export async function runTui(options = {}) {
 
     // F9: in plugin mode the kit is not in the repository; the repository only
     // declares the plugin, whose install command is printed above.
-    let closingLine = 'The target repository now has the complete FHH IA Ecosystem workflow package installed.';
-    if (mode === 'update') closingLine = "The project's workflow files now match this workflow-kit version.";
-    else if (mode === 'export') closingLine = 'The output directory now contains the complete FHH IA Ecosystem workflow package.';
-    else if (plan.nextInstallState?.mode === 'plugin') closingLine = `The repository is set up for the plugin ${pluginName}; install the plugin with the command printed above.`;
+    let closingLine = 'El repositorio ya tiene instalado el paquete completo del workflow FHH IA Ecosystem.';
+    if (mode === 'update') closingLine = 'Los archivos del workflow del proyecto ya están en esta versión de workflow-kit.';
+    else if (mode === 'export') closingLine = 'La carpeta de salida ya tiene el paquete completo del workflow FHH IA Ecosystem.';
+    else if (plan.nextInstallState?.mode === 'plugin') closingLine = `El repositorio quedó preparado para el plugin ${pluginName}; instálalo con el comando de arriba.`;
     write(`${paint.dim(closingLine)}\n`);
     return {
       code: 0,
@@ -1169,7 +1181,7 @@ export async function runTui(options = {}) {
     };
   } catch (error) {
     if (error instanceof Error && error.name === 'ExitPromptError') {
-      write(`\n${paint.yellow('Canceled by user. No files were written.')}\n`);
+      write(`\n${paint.yellow('Cancelado por ti. No se escribió ningún archivo.')}\n`);
       return { code: 0, applied: false };
     }
     throw error;

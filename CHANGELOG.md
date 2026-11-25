@@ -7,6 +7,99 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.23.3-strict-cli
+
+The command line says no instead of ignoring what it was given, `doctor` prints
+commands that run as printed, and `upgrade` no longer removes workflow-kit
+before it knows it can install the new one. In your projects, `workflow-kit
+update` only changes `kit_version` in `.agents/workflow-kit/manifest.json`
+(until then `doctor` warns that the last apply used another version).
+
+Invocations that used to run now stop with exit code 2, naming the flag and
+the command, and write nothing:
+
+- A flag the command does not read: `init --output <folder>` (it installed
+  into the current folder; use `--target`), `doctor --apply --yes`,
+  `rollback --runtime …`, `init --ref …`, `init --edited …`, `tui --target …`,
+  `export --target …`, `upgrade --target …`, and `--overlay` on commands that do
+  not read it. Each command's flags are in `workflow-kit <command> --help`.
+- An empty value: `--target ''` (for example an unset shell variable) used to
+  mean the current folder, and `--runtime ''` or `--runtime ,` used to mean
+  `neutral`. A value flag given twice (`--target a --target b`) used to keep
+  the last one.
+- `--profile` with a runtime twice (`claude=calidad,claude=costo`), an entry
+  with a second `=` (`claude=calidad=x`), or a runtime this command does not
+  install (`init --runtime claude --profile codex=costo`; `update` checks it
+  against the runtimes the install records). The `--profile` example with
+  `codex` in `docs/quickstart.md` is such a case unless the install records
+  `codex`.
+- `--runtime` with a name that is not `codex`, `copilot`, `claude`,
+  `antigravity`, `opencode` or `neutral` is rejected in the parser (the same
+  runtimes as before).
+
+`--help` lists the valid `--runtime` values, and `workflow-kit <command> --help`
+prints that command only. Plans, summaries and every valid invocation print
+what they printed before, except where listed here.
+
+`doctor`:
+
+- Every command it prints carries the absolute, quoted `--target` (and the
+  `claude` plugin commands start with `cd <target> &&`), so pasting it from
+  another folder acts on the project, not on that folder. The `--edited
+  <path>=<decision>` advice is one command per decision instead of
+  `<decision>`.
+- The fix for `model-profile/agent-mismatch` adds `--edited <agent>=discard`
+  when the agent is an edited kit file; before, `update --profile … --apply
+  --yes` left it as it was and `doctor` failed again.
+- New findings: `mode/kit-location-missing` (error: a plugin-mode adapter lost
+  its `workflow-kit:kit-location` block, so the agent is never told where the
+  kit is; `update` restores it), `target/not-found` (the path does not exist or
+  is not a folder; before it listed about 250 missing files), `managed/file-empty`
+  (error: an emptied kit file or adapter, with the command that takes the kit
+  version back), `managed/apply-lock-held` (error) and `managed/apply-lock-stale`
+  (warning) for `.agents/workflow-kit/apply.lock`. An interrupted rollback keeps
+  its own wording, and the rollback command in the journal messages names the
+  target.
+- Missing files come after a line that explains them: no install here, or an
+  install last applied with another workflow-kit version (run `update` first).
+- Plugin settings: an `enabledPlugins` entry set to `null` or a string next to
+  the project's own marketplace is reported as not enabled; a plugin with the
+  same version number and another suffix no longer gets `claude plugin update`
+  as the only advice.
+
+Plugin mode settings: an empty or blank settings file is filled with the
+declaration (with a backup) instead of being reported as invalid; a settings
+file with a repeated key is never rewritten (the plan and `doctor` name the
+key, so no earlier entry is dropped silently); `claude plugin list` output
+above 1 MB is read. The install steps printed after `init --mode plugin
+--apply` say they fail until the `plugin` branch is published.
+
+`upgrade`:
+
+- It verifies the ref before removing anything: a branch or tag by name, a full
+  40-character commit by fetching it, and a short commit only when it is a
+  branch or tag tip (give the full commit otherwise). A mistyped commit used
+  to pass the check, then remove the installed workflow-kit and fail.
+- It needs `git` on the PATH: without it the upgrade stops before the removal
+  (before, it skipped the check and removed). `git` runs without prompting for
+  credentials and with a 30-second limit, and an unwritable temporary folder is
+  a message, not a stack trace.
+- If the install fails after the removal, the message says workflow-kit is not
+  installed now and names a command that can work.
+
+`tui`:
+
+- Every prompt, option, description and message of the guided menu is in
+  Spanish; command, flag, runtime and profile names and file paths are not
+  translated, and the plan, `doctor` and migration text it prints stays in
+  English. The menu needs a terminal: with stdin at end of file or a pipe it
+  exits 2 with an error in English (it printed "Canceled by user" and exited 0).
+- The yes/no questions accept `sí`, `si`, `s`, `y` and `yes`, and `no` or `n`
+  (anything else is asked again), show `(s/N)` and answer `Sí` or `No`; the key
+  hints are in Spanish. After an update the summary lists the project-owned
+  files left as they are and the deletes not done because the file changed
+  since the plan, and project-owned seeds no longer count as unmanaged files.
+
 ## 0.23.2-apply-recovery
 
 An interrupted or concurrent apply can always be undone exactly, and a run

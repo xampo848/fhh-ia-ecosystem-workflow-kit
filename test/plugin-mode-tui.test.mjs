@@ -15,8 +15,8 @@ const modeQuestionTitle = installModeQuestion('claude').title;
 const claudeInstallCommand = pluginInstallCommand('claude');
 // F9: the closing line of a repo-mode install, which a plugin-mode install
 // must not print (the kit is not in the repository).
-const repoInstalledLine = 'The target repository now has the complete FHH IA Ecosystem workflow package installed.';
-const pluginReadyLine = 'The repository is set up for the plugin fhh; install the plugin with the command printed above.';
+const repoInstalledLine = 'El repositorio ya tiene instalado el paquete completo del workflow FHH IA Ecosystem.';
+const pluginReadyLine = 'El repositorio quedó preparado para el plugin fhh; instálalo con el comando de arriba.';
 
 // The interactive prompter answers like inquirer does: a value per question.
 // An answer is a value, or a function of the question; a question without an
@@ -94,11 +94,11 @@ test('AC-18: an interactive plugin install and a TUI update, both with a partial
 
   const install = await runInteractive({
     'Elige una opción': 'install',
-    'Target path': target,
-    'Select one or more runtimes': ['claude'],
+    'Ruta del proyecto': target,
+    'Elige uno o más runtimes': ['claude'],
     [modeQuestionTitle]: 'plugin',
-    'Select files to modify': allBut('.agents/project/backend.md', '.agents/project/frontend.md'),
-    'Apply these changes now?': true
+    'Elige los archivos a modificar': allBut('.agents/project/backend.md', '.agents/project/frontend.md'),
+    '¿Aplicar estos cambios ahora?': true
   });
 
   assert.equal(install.result.applied, true);
@@ -113,9 +113,9 @@ test('AC-18: an interactive plugin install and a TUI update, both with a partial
 
   const update = await runInteractive({
     'Elige una opción': 'update',
-    'Target path': target,
-    'Select files to modify': allBut('.agents/project/frontend.md'),
-    'Apply these changes now?': true
+    'Ruta del proyecto': target,
+    'Elige los archivos a modificar': allBut('.agents/project/frontend.md'),
+    '¿Aplicar estos cambios ahora?': true
   });
 
   assert.equal(update.result.applied, true);
@@ -132,8 +132,8 @@ test('an interactive install with codex is not asked the install mode and plans 
 
   const { result, asked, output } = await runInteractive({
     'Elige una opción': 'install',
-    'Target path': target,
-    'Select one or more runtimes': ['codex']
+    'Ruta del proyecto': target,
+    'Elige uno o más runtimes': ['codex']
   });
 
   assert.equal(result.applied, false);

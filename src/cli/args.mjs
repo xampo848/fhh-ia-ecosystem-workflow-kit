@@ -1,9 +1,49 @@
 import { editedDecisions } from '../planner.mjs';
 import { installModes } from '../plugin-mode.mjs';
-import { pluginRuntimes } from '../runtime-matrix.mjs';
+import { pluginRuntimes, supportedRuntimes } from '../runtime-matrix.mjs';
 
-export function printHelp() {
-  return `Usage:\n  workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--mode repo|plugin] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--diff] [--backup-mode required|none]\n  workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--mode repo|plugin] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--diff] [--adopt-existing] [--backup-mode required|none] [--edited <path>=<decision>]... [--edited all=<decision>]\n  workflow-kit upgrade [--ref <git-ref>] [--package-manager bun] [--dry-run] [--apply --yes]\n  workflow-kit export [--output <path>] [--dry-run] [--apply --yes] [--runtime <list>] [--backup-mode required|none]\n  workflow-kit doctor [--target <path>] [--runtime <list>]\n  workflow-kit rollback [--target <path>] [--dry-run] [--apply --yes]\n  workflow-kit tui\n  workflow-kit --help | --version\n\nCommands:\n  init      Install the workflow into a project\n  update    Update the workflow installed in a project to this workflow-kit version\n  upgrade   Update workflow-kit itself (this tool) on this machine; projects are not changed\n  export    Write the workflow files into a folder without touching any project\n  doctor    Check the workflow installed in a project (read-only)\n  rollback  Undo the last init or update applied to a project\n  tui       Guided menu for all of the above\n\nWithout --apply --yes every command is a dry run and writes nothing.\nupdate --edited decides on a file the dry run lists as pending (repeat the flag per file, or use all=):\nkeep leaves it as it is, discard takes the kit version, shadow moves the edit to a project shadow (only while\nmigrating from install-state 1.0.0), split keeps the own lines of an adapter without markers below the new block.\n--mode repo (the default for init) installs the kit files in the project. --mode plugin (runtimes claude, copilot)\ninstalls only the adapters, the project overlay and the plugin declaration: the kit runs as the plugin fhh,\nwhich each person installs once per clone.\n`;
+const usageLines = {
+  init: 'workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--mode repo|plugin] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--diff] [--backup-mode required|none]',
+  update: 'workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--mode repo|plugin] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--diff] [--adopt-existing] [--backup-mode required|none] [--edited <path>=<decision>]... [--edited all=<decision>]',
+  upgrade: 'workflow-kit upgrade [--ref <git-ref>] [--package-manager bun] [--dry-run] [--apply --yes]',
+  export: 'workflow-kit export --output <path> [--dry-run] [--apply --yes] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--backup-mode required|none]',
+  doctor: 'workflow-kit doctor [--target <path>] [--runtime <list>]',
+  rollback: 'workflow-kit rollback [--target <path>] [--dry-run] [--apply --yes]',
+  tui: 'workflow-kit tui'
+};
+
+const commandSummaries = {
+  init: 'Install the workflow into a project',
+  update: 'Update the workflow installed in a project to this workflow-kit version',
+  upgrade: 'Update workflow-kit itself (this tool) on this machine; projects are not changed',
+  export: 'Write the workflow files into a folder without touching any project',
+  doctor: 'Check the workflow installed in a project (read-only)',
+  rollback: 'Undo the last init or update applied to a project',
+  tui: 'Guided menu for init, update, export, doctor, rollback and upgrade'
+};
+
+const runtimeNote = `--runtime takes a comma-separated list of: ${[...supportedRuntimes, 'neutral'].join(', ')} (neutral: no runtime adapter).`;
+const dryRunNote = 'Without --apply --yes every command is a dry run and writes nothing.';
+const editedNote = 'update --edited decides on a file the dry run lists as pending (repeat the flag per file, or use all=):\nkeep leaves it as it is (the next update lists it again), discard takes the kit version, shadow moves the edit to a project shadow (only while\nmigrating from install-state 1.0.0), split keeps the own lines of an adapter without markers below the new block.';
+const modeNote = '--mode repo (the default for init) installs the kit files in the project. --mode plugin (runtimes claude, copilot)\ninstalls only the adapters, the project overlay and the plugin declaration: the kit runs as the plugin fhh,\nwhich each person installs once per clone.';
+
+// The notes each command's own --help carries.
+const commandNotes = {
+  init: [runtimeNote, dryRunNote, modeNote],
+  update: [runtimeNote, dryRunNote, editedNote, modeNote],
+  upgrade: [dryRunNote],
+  export: [runtimeNote, dryRunNote],
+  doctor: [runtimeNote, 'doctor only reads: it never writes, so it takes no --apply, --yes or --dry-run.'],
+  rollback: [dryRunNote],
+  tui: ['The menu needs an interactive terminal; in scripts use the other commands.']
+};
+
+export function printHelp(command) {
+  if (Object.hasOwn(usageLines, command)) {
+    return `Usage:\n  ${usageLines[command]}\n\n${command}: ${commandSummaries[command]}.\n\n${commandNotes[command].join('\n')}\n`;
+  }
+  const commands = Object.entries(commandSummaries).map(([name, summary]) => `  ${name.padEnd(9)} ${summary}`).join('\n');
+  return `Usage:\n${Object.values(usageLines).map((line) => `  ${line}`).join('\n')}\n  workflow-kit --help | --version\n  workflow-kit <command> --help\n\nCommands:\n${commands}\n\n${runtimeNote}\n${dryRunNote}\n${editedNote}\n${modeNote}\n`;
 }
 
 const valueFlags = {
@@ -18,6 +58,55 @@ const valueFlags = {
   '--stack': 'stack',
   '--mode': 'mode'
 };
+
+// The flags each command reads. Any other flag is an error, never dropped:
+// `init --output <dir>` would otherwise install into the current folder.
+// --overlay has one value and stays accepted where it is read (not in --help).
+const applyFlags = ['--dry-run', '--apply', '--yes'];
+const commandFlags = {
+  init: ['--target', '--runtime', '--overlay', '--profile', '--stack', '--mode', '--diff', '--backup-mode', ...applyFlags],
+  update: ['--target', '--runtime', '--overlay', '--profile', '--stack', '--mode', '--diff', '--backup-mode', '--adopt-existing', '--edited', ...applyFlags],
+  upgrade: ['--ref', '--package-manager', ...applyFlags],
+  export: ['--output', '--runtime', '--overlay', '--profile', '--stack', '--backup-mode', ...applyFlags],
+  doctor: ['--target', '--runtime', '--overlay'],
+  rollback: ['--target', ...applyFlags],
+  tui: []
+};
+
+function assertFlagApplies(command, flag) {
+  const allowed = commandFlags[command];
+  // An unknown command is reported by its own message; --mode has its own.
+  if (!allowed || flag === '--mode' || allowed.includes(flag)) return;
+  const hint = flag === '--output' && command !== 'export'
+    ? ' To choose the project folder, use --target <path>.'
+    : flag === '--target' && command === 'export' ? ' export writes into --output <path>.' : '';
+  const accepted = allowed.filter((item) => item !== '--overlay');
+  throw new Error(`${flag} does not apply to ${command}.${hint} ${command} accepts ${accepted.length > 0 ? accepted.join(', ') : 'no flags'} (see workflow-kit ${command} --help). Nothing was written.`);
+}
+
+// --runtime is checked here, so an empty list never falls back to neutral.
+function assertRuntimeList(value) {
+  const items = value.split(',').map((item) => item.trim());
+  const valid = [...supportedRuntimes, 'neutral'];
+  if (items.some((item) => item === '')) throw new Error(`Invalid --runtime "${value}": the list has an empty entry. Use a comma-separated list of: ${valid.join(', ')}. Nothing was written.`);
+  const unknown = items.filter((item) => !valid.includes(item));
+  if (unknown.length > 0) throw new Error(`Unsupported runtime: ${unknown.join(', ')}. Use a comma-separated list of: ${valid.join(', ')}. Nothing was written.`);
+}
+
+// A profile only for runtimes the same command line selects (update without
+// --runtime checks it against the recorded runtimes, in resolveModelProfiles).
+// The values are checked by the planner, after the paths (as in 558e9fb).
+function assertProfileRuntimes(profile, runtime, command, mode) {
+  // Without --runtime, update uses the recorded runtimes and plugin mode
+  // stops on its own ("plugin mode needs --runtime").
+  if (runtime === undefined && (command === 'update' || mode === 'plugin')) return;
+  const named = profile.split(',').map((token) => token.split('=')[0].trim()).filter(Boolean);
+  const selected = String(runtime ?? 'neutral').split(',').map((item) => item.trim());
+  const outside = [...new Set(named.filter((item) => !selected.includes(item)))];
+  if (outside.length === 0) return;
+  const why = runtime === undefined ? `${command} without --runtime installs neutral` : `--runtime is ${runtime}`;
+  throw new Error(`--profile names ${outside.join(', ')}, which this ${command} does not install (${why}), so the profile would be ignored. Add the runtime to --runtime or drop it from --profile. Nothing was written.`);
+}
 
 // --mode chooses where the kit lives (PRD plugin-mode-pilot 2.4) and only
 // init and update install anything.
@@ -93,6 +182,7 @@ export function parseArgs(argv) {
   }
 
   let explicitDryRun = false;
+  const seen = new Set();
   for (let index = 0; index < rest.length; index += 1) {
     const arg = rest[index];
     const takeValue = () => {
@@ -100,11 +190,19 @@ export function parseArgs(argv) {
       // A flag name where a value belongs means the value was forgotten; using
       // it would, for example, install into the current directory by accident.
       if (value === undefined || value.startsWith('--')) throw new Error(`Missing value for ${arg}`);
+      // An empty value (an unset shell variable) is never a default either.
+      if (value.trim() === '') throw new Error(`Empty value for ${arg}: give it a value or leave the flag out. Nothing was written.`);
       index += 1;
       return value;
     };
-    if (Object.hasOwn(valueFlags, arg)) options[valueFlags[arg]] = takeValue();
-    else if (arg === '--edited') parseEdited(takeValue(), (options.edited ??= {}));
+    const known = Object.hasOwn(valueFlags, arg) || ['--edited', '--diff', '--dry-run', '--apply', '--yes', '--adopt-existing'].includes(arg);
+    if (known) assertFlagApplies(first, arg);
+    if (Object.hasOwn(valueFlags, arg)) {
+      // A value flag given twice would keep only one of them without a word.
+      if (seen.has(arg)) throw new Error(`${arg} is given more than once; give it once. Nothing was written.`);
+      seen.add(arg);
+      options[valueFlags[arg]] = takeValue();
+    } else if (arg === '--edited') parseEdited(takeValue(), (options.edited ??= {}));
     else if (arg === '--diff') options.diff = true;
     else if (arg === '--dry-run') explicitDryRun = true;
     else if (arg === '--apply') { options.apply = true; options.dryRun = false; }
@@ -114,6 +212,8 @@ export function parseArgs(argv) {
     else throw new Error(`Unknown argument: ${arg}`);
   }
 
+  if (options.runtime !== undefined) assertRuntimeList(options.runtime);
+  if (options.profile !== undefined) assertProfileRuntimes(options.profile, options.runtime, first, options.mode);
   if (options.mode !== undefined) assertModeOption(first, rest, options.mode);
 
   if (explicitDryRun && options.apply) {

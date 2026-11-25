@@ -23,7 +23,7 @@ const operationFor = (plan, relativePath) => plan.operations.find((item) => item
 const instructionsPath = '.agents/instructions.md';
 // A kit leaf skill the manifest lets be shadowed.
 const leafSkillPath = '.agents/skills/02-implement/validation-runner/SKILL.md';
-const editedFilesQuestion = 'Some workflow files in this project have your own edits. What should the update do with them?';
+const editedFilesQuestion = 'Algunos archivos del workflow de este proyecto tienen ediciones tuyas. ¿Qué hace la actualización con ellos?';
 
 // The numbered options of the last question with this title, as printed.
 function optionsOf(output, title) {
@@ -32,7 +32,7 @@ function optionsOf(output, title) {
   assert.ok(start > -1, `question not shown: ${title}`);
   const options = [];
   for (const line of lines.slice(start + 1)) {
-    const match = line.match(/^  (\d+)\) (.+?)( \(default\))?$/);
+    const match = line.match(/^  (\d+)\) (.+?)( \(por defecto\))?$/);
     if (match) options.push({ number: match[1], label: match[2] });
     else if (!line.startsWith('     ')) break;
   }
@@ -60,13 +60,13 @@ test('tui previews plan and default decline writes nothing', async () => {
   assert.equal(result.code, 0);
   assert.equal(result.applied, false);
   assert.match(output, /FHH IA Ecosystem/);
-  assert.match(output, /Full FHH IA Ecosystem flow selected \(recommended\)\./);
-  assert.match(output, /Mission control/);
-  assert.match(output, /Legacy docs are not moved automatically/);
+  assert.match(output, /Flujo completo de FHH IA Ecosystem elegido \(recomendado\)\./);
+  assert.match(output, /Panel de control/);
+  assert.match(output, /Los docs antiguos no se mueven solos/);
   // Round 4 (N9): own skills are not registered from the kit tree.
   assert.doesNotMatch(output, /auto-registered/);
-  assert.match(output, /Own skills go to \.agents\/project\/skills\/<name>\/ with a row in \.agents\/project\/index\.md/);
-  assert.match(output, /Aborted\. No files were written\./);
+  assert.match(output, /Las skills propias van a \.agents\/project\/skills\/<name>\/ con una fila en \.agents\/project\/index\.md/);
+  assert.match(output, /Cancelado\. No se escribió ningún archivo\./);
   await assert.rejects(fs.access(path.join(target, '.agents/instructions.md')), { code: 'ENOENT' });
 });
 
@@ -86,8 +86,8 @@ test('tui confirmed apply writes selected files through planner apply', async ()
   assert.equal(result.applied, true);
   assert.match(output, /¿Cómo se cobra Codex en este proyecto\?/);
   assert.match(output, /¿Cómo se cobra Claude Code en este proyecto\?/);
-  assert.match(output, /Apply completed successfully\./);
-  assert.match(output, /Applied writes:/);
+  assert.match(output, /Cambios aplicados\./);
+  assert.match(output, /Escrituras aplicadas:/);
   await fs.access(path.join(target, '.agents/instructions.md'));
   await fs.access(path.join(target, 'AGENTS.md'));
   await fs.access(path.join(target, '.github/copilot-instructions.md'));
@@ -108,8 +108,8 @@ test('tui advanced apply prompts can disable backups and apply only selected fil
   assert.equal(result.code, 0);
   assert.equal(result.applied, true);
   assert.equal(result.plan.summary.overwrite_no_backup > 0 || result.plan.summary.merge_no_backup > 0 || result.plan.summary.create > 0, true);
-  assert.match(output, /Applied writes: 1/);
-  assert.match(output, /Backups created: 0/);
+  assert.match(output, /Escrituras aplicadas: 1/);
+  assert.match(output, /Backups creados: 0/);
   assert.equal(result.plan.operations.length, 1);
   await fs.access(path.join(target, result.plan.operations[0].relativePath));
 });
@@ -175,8 +175,8 @@ test('tui auto-installs context7 package and reports manual configuration steps'
   assert.equal(result.capabilityInstallResult.attempted, 1);
   assert.equal(result.capabilityInstallResult.succeeded, 1);
   assert.equal(result.capabilityInstallResult.failed, 0);
-  assert.match(output, /Manual configuration required:/);
-  assert.match(output, /Context7 still requires manual MCP configuration with your API key\./);
+  assert.match(output, /Configuración manual necesaria:/);
+  assert.match(output, /Context7 todavía requiere configurar el MCP a mano con tu API key\./);
 });
 
 test('tui capabilities-only mode runs optional capabilities without applying workflow files', async () => {
@@ -219,9 +219,9 @@ test('tui update mode applies managed workflow updates without reinstall flow se
   assert.equal(result.mode, 'update');
   assert.equal(result.applied, true);
   assert.equal(result.plan.previousToolkitVersion, null);
-  assert.match(output, /Protected local edits \(skipped\):/);
-  assert.match(output, /workflow-kit version +: /);
-  assert.match(output, /Project workflow version: none recorded/);
+  assert.match(output, /Ediciones locales protegidas \(omitidas\):/);
+  assert.match(output, /Versión de workflow-kit +: /);
+  assert.match(output, /Versión del workflow del proyecto: sin registro/);
 });
 
 test('tui update shows the stack pack and the one-time migrations before applying', async () => {
@@ -243,7 +243,7 @@ test('tui update shows the stack pack and the one-time migrations before applyin
   assert.equal(result.mode, 'update');
   assert.equal(result.plan.stackPack, 'none');
   assert.match(output, /Stack pack +: none/);
-  assert.match(output, /Migrations \(applied once\)/);
+  assert.match(output, /Migraciones \(se aplican una vez\)/);
   assert.match(output, /No stack pack: the repository does not look like Rails \+ React/);
   await assert.rejects(fs.access(path.join(target, '.agents/project/stack.md')), { code: 'ENOENT' });
 });
@@ -262,7 +262,7 @@ test('tui install over an installed repository stops before asking anything else
   });
 
   assert.deepEqual({ code: result.code, applied: result.applied }, { code: 1, applied: false });
-  assert.match(output, /already records an install \(runtimes: codex\)\. Choose Update/);
+  assert.match(output, /ya registra una instalación \(runtimes: codex\)\. Elige «Actualizar el workflow de un proyecto»/);
   assert.doesNotMatch(output, /Select one or more runtimes/);
 });
 
@@ -280,11 +280,11 @@ test('tui update keeps every edited file pending when the user keeps the default
 
   assert.equal(result.applied, true);
   assert.equal(await fs.readFile(path.join(target, 'docs/workflow/README.md'), 'utf8'), 'local override\n');
-  assert.match(output, /Detected 1 managed file\(s\) with local edits\./);
+  assert.match(output, /Se detectaron 1 archivo\(s\) gestionados con ediciones locales\./);
   assert.deepEqual(optionsOf(output, editedFilesQuestion).map((option) => option.label), [
-    'Keep my edits (recommended)',
-    'Replace all edited files with the kit version',
-    'Decide file by file'
+    'Conservar mis ediciones (recomendado)',
+    'Reemplazar todos los archivos editados por la versión del kit',
+    'Decidir archivo por archivo'
   ]);
   assert.equal(operationFor(result.plan, 'docs/workflow/README.md').operation, 'skip_modified');
 });
@@ -316,7 +316,7 @@ test('tui Replace all takes the kit version with a backup and keeps the own text
   assert.match(claude, /<!-- workflow-kit:managed:start -->/);
   assert.ok(claude.includes(ownNote.trim()), 'CLAUDE.md keeps its own text');
   assert.equal(await fs.readFile(path.join(target, legacy.ownContext.newPath), 'utf8'), legacy.ownContext.content);
-  assert.match(output, /Protected local edits \(skipped\): 0/);
+  assert.match(output, /Ediciones locales protegidas \(omitidas\): 0/);
 });
 
 // Round 4 (N7): where split does not apply (an adapter with Windows line
@@ -338,7 +338,7 @@ test('tui Replace all leaves pending an unmarked adapter split cannot keep', asy
   assert.equal(await fs.readFile(claudePath, 'utf8'), crlf);
   assert.equal(operationFor(result.plan, 'CLAUDE.md').operation, 'skip_modified');
   assert.doesNotMatch(await fs.readFile(path.join(target, instructionsPath), 'utf8'), /Local edit\./);
-  assert.match(output, /CLAUDE\.md stays pending: Replace all cannot keep its own text/);
+  assert.match(output, /CLAUDE\.md queda pendiente: «Reemplazar todos» no puede conservar su texto propio/);
 });
 
 test('tui update decides file by file with only the valid decisions, a short diff, and lists the files it cannot ask about (AC-15)', async () => {
@@ -358,25 +358,25 @@ test('tui update decides file by file with only the valid decisions, a short dif
   });
 
   assert.equal(result.applied, true);
-  assert.deepEqual(optionsOf(output, `${instructionsPath}: what should the update do with your edits?`).map((option) => option.label), [
-    'Keep my edits in this file',
-    'Take the kit version'
+  assert.deepEqual(optionsOf(output, `${instructionsPath}: ¿qué hace la actualización con tus ediciones?`).map((option) => option.label), [
+    'Conservar mis ediciones en este archivo',
+    'Tomar la versión del kit'
   ]);
-  assert.deepEqual(optionsOf(output, `${leafSkillPath}: what should the update do with your edits?`).map((option) => option.label), [
-    'Keep my edits in this file',
-    'Take the kit version',
-    'Move my version to a project shadow'
+  assert.deepEqual(optionsOf(output, `${leafSkillPath}: ¿qué hace la actualización con tus ediciones?`).map((option) => option.label), [
+    'Conservar mis ediciones en este archivo',
+    'Tomar la versión del kit',
+    'Mover mi versión a un shadow del proyecto'
   ]);
-  assert.match(output, /Copy your version to \.agents\/project\/shadows\/validation-runner\/ and take the kit version/);
+  assert.match(output, /Copia tu versión a \.agents\/project\/shadows\/validation-runner\/ y toma la versión del kit/);
   // The short diff of what taking the kit version would change.
   assert.match(output, /^- Local edit\.$/m);
   assert.match(output, new RegExp(`${ownCopy.replaceAll('.', '\\.')} \\(kit_skill_name\\)`));
-  assert.doesNotMatch(output, new RegExp(`${ownCopy.replaceAll('.', '\\.')}: what should the update`));
+  assert.doesNotMatch(output, new RegExp(`${ownCopy.replaceAll('.', '\\.')}: ¿qué hace la actualización`));
 
   assert.doesNotMatch(await fs.readFile(path.join(target, instructionsPath), 'utf8'), /Local edit\./);
   assert.match(await fs.readFile(path.join(target, '.agents/project/shadows/validation-runner/SKILL.md'), 'utf8'), /\nLocal edit\.\n$/);
-  assert.match(output, /Retired files deleted \(backup kept\): 1/);
-  assert.match(output, /Project files moved to \.agents\/project\/: 4/);
+  assert.match(output, /Archivos retirados borrados \(con backup\): 1/);
+  assert.match(output, /Archivos del proyecto movidos a \.agents\/project\/: 4/);
 });
 
 test('tui partial selection keeps the layout migration whole and lets a retired delete be deselected', async () => {
@@ -385,7 +385,7 @@ test('tui partial selection keeps the layout migration whole and lets a retired 
   let output = '';
   let offered = [];
   const keepAllButRetired = (written) => {
-    offered = optionsOf(written, 'Select files to modify');
+    offered = optionsOf(written, 'Elige los archivos a modificar');
     return offered.filter((option) => !option.label.startsWith(`${legacy.retiredPath} `)).map((option) => option.number).join(',');
   };
 
@@ -397,7 +397,7 @@ test('tui partial selection keeps the layout migration whole and lets a retired 
   });
 
   assert.equal(result.applied, true);
-  assert.match(output, /The layout migration \(\d+ files\) is applied as one block and is not listed here\./);
+  assert.match(output, /La migración de layout \(\d+ archivos\) se aplica como un solo bloque y no se lista aquí\./);
   assert.ok(offered.some((option) => option.label.startsWith(`${legacy.retiredPath} `)), 'the retired delete is offered');
   const movedSource = `${legacy.localSkill.oldDir}/SKILL.md`;
   assert.ok(!offered.some((option) => option.label.startsWith(`${movedSource} `)), 'a migration operation is not offered');
@@ -455,8 +455,8 @@ test('tui main menu tells updating workflow-kit apart from updating a project wo
   assert.match(output, /Actualizar workflow-kit \(esta herramienta\)/);
   assert.match(output, /No cambia ningún proyecto/);
   assert.match(output, /No actualiza workflow-kit\./);
-  assert.match(output, /This updates workflow-kit itself on this machine\. Projects stay as they are/);
-  assert.match(output, /Aborted\. workflow-kit was not changed\./);
+  assert.match(output, /Esto actualiza workflow-kit en esta máquina\. Los proyectos quedan como están/);
+  assert.match(output, /Cancelado\. workflow-kit no cambió\./);
   assert.doesNotMatch(output, /toolkit (binary|surface)/i);
 });
 
@@ -474,8 +474,8 @@ test('tui export mode writes workflow files into the selected output directory',
 
   assert.equal(result.mode, 'export');
   assert.equal(result.applied, true);
-  assert.match(output, /Export completed successfully\./);
-  assert.match(output, /Exported files:/);
+  assert.match(output, /Exportación completada\./);
+  assert.match(output, /Archivos exportados:/);
   await fs.access(path.join(target, '.agents/instructions.md'));
   await fs.access(path.join(target, 'AGENTS.md'));
 });
@@ -554,4 +554,50 @@ test('tui preselects the costo profile when an API key is present and installs m
   assert.match(sherlock, /^model: haiku$/m);
   const state = JSON.parse(await fs.readFile(path.join(target, '.agents/workflow-kit/install-state.json'), 'utf8'));
   assert.deepEqual(state.modelProfiles, { claude: 'costo' });
+});
+
+// Without a terminal every prompt ends at once; that is not a cancel by the
+// user, and exit 0 would read as success in a script.
+test('tui with stdin at end of file or a pipe exits 2 and says it needs a terminal', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const bin = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'bin', 'workflow-kit.mjs');
+  const cwd = await makeTempRepo();
+  for (const input of [{ stdio: ['ignore', 'pipe', 'pipe'] }, { input: '1\n' }]) {
+    const result = spawnSync(process.execPath, [bin, 'tui'], { cwd, encoding: 'utf8', env: { ...process.env, NODE_NO_WARNINGS: '1' }, timeout: 20000, ...input });
+    assert.equal(result.status, 2, result.stdout + result.stderr);
+    assert.match(result.stderr, /^workflow-kit tui needs an interactive terminal \(stdin is not one\)\. In scripts, use the commands instead/m);
+    assert.doesNotMatch(result.stdout + result.stderr, /Canceled by user|Cancelado por ti/);
+  }
+  assert.deepEqual(await fs.readdir(cwd), []);
+
+  const errors = [];
+  const result = await runTui({ write: () => {}, writeError: (text) => errors.push(text), stdin: { isTTY: false } });
+  assert.deepEqual(result, { code: 2, applied: false });
+  assert.equal(errors.length, 1);
+});
+
+// The two lines the CLI update summary gained with the apply lock work: seeds
+// the project owns are counted apart from unmanaged files, and a delete the
+// apply did not do because the file changed since the plan is listed.
+test('tui update summary counts project-owned seeds apart and lists a delete kept because the file changed since the plan', async () => {
+  const owned = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: owned, runtime: 'neutral' }));
+  let ownedOutput = '';
+  const ownedResult = await runTui({ ask: scriptedAsk(['2', owned, '', '', '', 'yes']), color: false, write: (message) => { ownedOutput += message; } });
+  assert.equal(ownedResult.applied, true);
+  assert.match(ownedOutput, /^Archivos no gestionados \(omitidos\): 0$/m, 'a seed the project owns is not an unmanaged file');
+  assert.match(ownedOutput, /^Archivos del proyecto que se dejan como están: [1-9]\d*$/m);
+  assert.doesNotMatch(ownedOutput, /No se borraron/, 'the line appears only when a delete was kept');
+
+  const target = await makeTempRepo();
+  const legacy = await installLegacy0181(target);
+  let output = '';
+  const editRetiredThenConfirm = async () => {
+    await fs.appendFile(path.join(target, legacy.retiredPath), '\nEdited after the plan.\n');
+    return 'yes';
+  };
+  const result = await runTui({ ask: scriptedAsk(['2', target, '', '', '', '', '', editRetiredThenConfirm], () => output), color: false, write: (message) => { output += message; }, enableScriptedAdvancedPrompts: true });
+  assert.equal(result.applied, true, output.slice(-1500));
+  assert.match(output, /^No se borraron \(cambiaron desde el plan, quedan como están\): 1$/m);
+  assert.match(await fs.readFile(path.join(target, legacy.retiredPath), 'utf8'), /Edited after the plan\./, 'the changed file was kept');
 });

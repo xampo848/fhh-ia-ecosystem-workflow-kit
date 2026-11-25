@@ -82,7 +82,7 @@ function renderProgressBar(paint, current, total, width = 28) {
 }
 
 export function renderStageHeader(write, paint, { step, total, title, subtitle }) {
-  write(`${renderChip(paint, `STEP ${step}`, 'copper')} ${paint.bold(title)}\n`);
+  write(`${renderChip(paint, `PASO ${step}`, 'copper')} ${paint.bold(title)}\n`);
   write(`${renderProgressBar(paint, step, total)}\n`);
   if (subtitle) write(`${paint.dim(subtitle)}\n`);
   write('\n');
@@ -198,7 +198,7 @@ function resolveIntroProfile(profile) {
 function renderLogoFrame(paint, frame = 0, { profile = 'standard' } = {}) {
   const introProfile = resolveIntroProfile(profile);
   const title = 'FHH IA ECOSYSTEM';
-  const subtitle = 'ecosystem install presentation';
+  const subtitle = 'presentación de la instalación';
   const borderChars = ['=', '-', '='];
   const borderChar = borderChars[frame % borderChars.length];
   const borderStart = frame % 2 === 0 ? INTRO_PALETTE.copper : INTRO_PALETTE.ember;
@@ -269,8 +269,8 @@ export async function animateIntro(write, paint, { animate = true, profile = 'st
     write(`${lines.join('\n')}\n`);
   }
 
-  write(`${paint.bold(`${introTone(paint, 'copper', 'FHH ')}${paint.pureWhite('IA')}${introTone(paint, 'copper', ' Ecosystem')}`)} ${paint.dim(':: launch console')}\n`);
-  write(`${paint.dim('Presentacion del workflow: diseña, implementa y valida con IA de forma guiada.')}\n\n`);
+  write(`${paint.bold(`${introTone(paint, 'copper', 'FHH ')}${paint.pureWhite('IA')}${introTone(paint, 'copper', ' Ecosystem')}`)} ${paint.dim(':: consola de inicio')}\n`);
+  write(`${paint.dim('Presentación del workflow: diseña, implementa y valida con IA de forma guiada.')}\n\n`);
 }
 
 function renderBox(write, paint, title, rows) {
@@ -285,58 +285,58 @@ function renderBox(write, paint, title, rows) {
   write(`${paint.cyan(`+${'-'.repeat(width)}+`)}\n`);
 }
 
-const DASHBOARD_LABEL_WIDTH = 'Project workflow version'.length;
+const DASHBOARD_LABEL_WIDTH = 'Versión del workflow del proyecto'.length;
 
 function renderDashboard(write, paint, plan) {
   const totalOps = plan.operations.length;
   const runtimeLabel = plan.runtimes.join(', ');
   const { label: packageLabel } = installPackageDetails(plan.overlay);
-  const packageLine = plan.mode === 'update' ? 'Update package' : 'Install package';
+  const packageLine = plan.mode === 'update' ? 'Paquete a actualizar' : 'Paquete a instalar';
   const row = (label, value) => `${label.padEnd(DASHBOARD_LABEL_WIDTH)}: ${value}`;
   const rows = [
-    row('Target', plan.targetPath),
-    row('workflow-kit version', plan.toolkitVersion ?? 'unknown'),
-    row('Project workflow version', plan.previousToolkitVersion ?? 'none recorded'),
+    row('Proyecto', plan.targetPath),
+    row('Versión de workflow-kit', plan.toolkitVersion ?? 'desconocida'),
+    row('Versión del workflow del proyecto', plan.previousToolkitVersion ?? 'sin registro'),
     row('Runtimes', runtimeLabel),
     row(packageLine, packageLabel),
-    row('Stack pack', plan.stackPack ?? 'none')
+    row('Stack pack', plan.stackPack ?? 'ninguno')
   ];
 
   if (plan.mode !== 'export') {
-    rows.push(row('Legacy docs', 'Manual migration map only'));
+    rows.push(row('Docs antiguos', 'Solo el mapa de migración manual'));
   }
 
   rows.push(
-    row('Total actions', totalOps),
-    row('Create', plan.summary.create),
-    row('No change', plan.summary.unchanged),
-    row('Merge safe', plan.summary.merge_with_backup),
-    row('Merge fast', plan.summary.merge_no_backup),
-    row('Overwrite safe', plan.summary.overwrite_with_backup),
-    row('Overwrite fast', plan.summary.overwrite_no_backup),
-    row('Delete (backup kept)', plan.summary.delete_with_backup ?? 0)
+    row('Acciones en total', totalOps),
+    row('Crear', plan.summary.create),
+    row('Sin cambios', plan.summary.unchanged),
+    row('Fusionar con backup', plan.summary.merge_with_backup),
+    row('Fusionar sin backup', plan.summary.merge_no_backup),
+    row('Sobrescribir con backup', plan.summary.overwrite_with_backup),
+    row('Sobrescribir sin backup', plan.summary.overwrite_no_backup),
+    row('Borrar (con backup)', plan.summary.delete_with_backup ?? 0)
   );
 
-  renderBox(write, paint, 'Mission control', rows);
+  renderBox(write, paint, 'Panel de control', rows);
 
   write('\n');
-  write(`${renderChip(paint, `${plan.summary.create} create`, 'green')} `);
-  write(`${renderChip(paint, `${plan.summary.unchanged} unchanged`, 'blue')} `);
-  write(`${renderChip(paint, `${plan.summary.merge_with_backup} backup merge`, 'yellow')} `);
-  write(`${renderChip(paint, `${plan.summary.merge_no_backup} direct merge`, 'copperInk')} `);
-  write(`${renderChip(paint, `${plan.summary.overwrite_with_backup} backup overwrite`, 'yellow')} `);
-  write(`${renderChip(paint, `${plan.summary.overwrite_no_backup} direct overwrite`, 'copperInk')} `);
-  write(`${renderChip(paint, `${plan.summary.delete_with_backup ?? 0} backup delete`, 'yellow')}\n\n`);
+  write(`${renderChip(paint, `${plan.summary.create} crear`, 'green')} `);
+  write(`${renderChip(paint, `${plan.summary.unchanged} sin cambios`, 'blue')} `);
+  write(`${renderChip(paint, `${plan.summary.merge_with_backup} fusionar con backup`, 'yellow')} `);
+  write(`${renderChip(paint, `${plan.summary.merge_no_backup} fusionar directo`, 'copperInk')} `);
+  write(`${renderChip(paint, `${plan.summary.overwrite_with_backup} sobrescribir con backup`, 'yellow')} `);
+  write(`${renderChip(paint, `${plan.summary.overwrite_no_backup} sobrescribir directo`, 'copperInk')} `);
+  write(`${renderChip(paint, `${plan.summary.delete_with_backup ?? 0} borrar con backup`, 'yellow')}\n\n`);
 }
 
 export function renderSummary(write, paint, plan) {
   renderStageHeader(write, paint, {
     step: 4,
     total: 5,
-    title: 'Plan preview',
+    title: 'Vista previa del plan',
     subtitle: plan.mode === 'update'
-      ? 'Review the managed update blueprint before deciding whether to write files.'
-      : 'Review the install blueprint before deciding whether to write files.'
+      ? 'Revisa el plan de actualización antes de decidir si escribir los archivos.'
+      : 'Revisa el plan de instalación antes de decidir si escribir los archivos.'
   });
 
   renderDashboard(write, paint, plan);
@@ -345,21 +345,21 @@ export function renderSummary(write, paint, plan) {
   // pack), so they are shown before the user decides, each with the files it
   // leaves pending and its notes (the same lines as the dry run).
   if (Array.isArray(plan.migrations) && plan.migrations.length > 0) {
-    write(`${paint.bold('Migrations')} ${paint.dim('(applied once)')}\n`);
+    write(`${paint.bold('Migraciones')} ${paint.dim('(se aplican una vez)')}\n`);
     plan.migrations.forEach((item) => {
       write(`  ${paint.copperInk('•')} ${item.summary}\n`);
       for (const pending of item.pending ?? []) {
         const decisions = pending.decisions ? `: ${pending.decisions.join(' | ')}` : '';
-        write(`    - ${paint.copperInk('pending')} ${pending.relativePath} (${pending.reason})${decisions}\n`);
+        write(`    - ${paint.copperInk('pendiente')} ${pending.relativePath} (${pending.reason})${decisions}\n`);
       }
-      for (const note of item.notes ?? []) write(`    - ${paint.dim(`note: ${note}`)}\n`);
+      for (const note of item.notes ?? []) write(`    - ${paint.dim(`nota: ${note}`)}\n`);
     });
     write('\n');
   }
 
   const previewOps = plan.operations.slice(0, 8);
   if (previewOps.length > 0) {
-    write(`${paint.bold('Preview operations')} ${paint.dim('(first 8)')}\n`);
+    write(`${paint.bold('Primeras operaciones')} ${paint.dim('(las 8 primeras)')}\n`);
     previewOps.forEach((item) => {
       const tone = item.operation === 'create'
         ? 'green'
@@ -369,20 +369,20 @@ export function renderSummary(write, paint, plan) {
       write(`  ${renderChip(paint, item.operation, tone)} ${item.relativePath}\n`);
     });
     if (plan.operations.length > previewOps.length) {
-      write(`  ${paint.dim(`... ${plan.operations.length - previewOps.length} more operations`)}\n`);
+      write(`  ${paint.dim(`... ${plan.operations.length - previewOps.length} operaciones más`)}\n`);
     }
   }
 
   if (plan.mode !== 'export') {
-    write(`\n${paint.bold('What happens automatically')}\n`);
-    write(`  ${paint.dim('Own skills go to .agents/project/skills/<name>/ with a row in .agents/project/index.md; a SKILL.md under .agents/skills/ that the kit does not ship is not registered (doctor names it).')}\n`);
-    write(`  ${paint.dim('Legacy docs are not moved automatically; workflow-kit only creates the migration map.')}\n`);
+    write(`\n${paint.bold('Qué pasa automáticamente')}\n`);
+    write(`  ${paint.dim('Las skills propias van a .agents/project/skills/<name>/ con una fila en .agents/project/index.md; un SKILL.md bajo .agents/skills/ que el kit no trae no se registra (doctor lo nombra).')}\n`);
+    write(`  ${paint.dim('Los docs antiguos no se mueven solos; workflow-kit solo crea el mapa de migración.')}\n`);
   }
 
-  write(`\n${paint.bold('Optional capabilities')}\n`);
-  write(`  ${paint.dim('You can attach external capabilities later (for example: Engram, Context7, codebase-memory-mcp).')}\n`);
-  write(`  ${paint.dim('Follow the neutral policy in .agents/integrations/README: classify intent, confirm source/scope, then install+attach or attach-only.')}\n`);
-  write(`  ${paint.dim('No optional capability install command runs automatically from this TUI.')}\n`);
+  write(`\n${paint.bold('Herramientas opcionales')}\n`);
+  write(`  ${paint.dim('Puedes conectar herramientas externas después (por ejemplo: Engram, Context7, codebase-memory-mcp).')}\n`);
+  write(`  ${paint.dim('Sigue la política neutral de .agents/integrations/README: clasifica la intención, confirma origen y alcance, y luego instala y conecta, o solo conecta.')}\n`);
+  write(`  ${paint.dim('Este TUI no ejecuta solo ningún comando de instalación de herramientas opcionales.')}\n`);
   write('\n');
 }
 
@@ -457,18 +457,18 @@ export function colorizeFullPlanPreview(paint, formattedPlan) {
 }
 
 export function renderCapabilityGuide(write, paint, guide, capability) {
-  renderBox(write, paint, 'Capability confirmation', [
-    `Capability : ${capability}`,
-    `Source     : ${guide.source}`,
-    `Scope      : ${guide.scope}`,
-    `Mode       : ${guide.intent}`,
-    `Effect     : ${guide.effect}`,
+  renderBox(write, paint, 'Confirmar herramienta', [
+    `Herramienta : ${capability}`,
+    `Origen      : ${guide.source}`,
+    `Alcance     : ${guide.scope}`,
+    `Modo        : ${guide.intent}`,
+    `Efecto      : ${guide.effect}`,
     `${guide.runtimeHint}`
   ]);
   write('\n');
-  write(`${paint.bold('Recommended commands (official docs)')}\n`);
+  write(`${paint.bold('Comandos recomendados (docs oficiales)')}\n`);
   write(`${guide.commands.join('\n')}\n\n`);
-  write(`${paint.bold('Notes')}\n`);
+  write(`${paint.bold('Notas')}\n`);
   guide.notes.forEach((note) => write(`- ${note}\n`));
   write('\n');
 }

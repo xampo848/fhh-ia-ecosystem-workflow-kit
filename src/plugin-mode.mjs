@@ -45,7 +45,7 @@ export const cliUpgradeCommand = 'workflow-kit upgrade --apply --yes';
 
 // A command a stop names, ready for a shell: the words as given, then
 // `--target <path>` (quoted when needed), so it runs from any folder.
-const shellWord = (word) => (/^[\w@%+=:,./-]+$/.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`);
+export const shellWord = (word) => (/^[\w@%+=:,./-]+$/.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`);
 export const withTarget = (command, targetPath) => (targetPath === undefined ? command : `${command} --target ${shellWord(targetPath)}`);
 
 // -1, 0 or 1 by the numeric part of two versions (`0.23.0-plugin-mode` reads
@@ -70,7 +70,7 @@ export function pluginInstallCommand(runtime) {
 export function formatPluginInstallSteps(runtimes) {
   const lines = runtimes.filter((runtime) => pluginRuntimes.includes(runtime))
     .map((runtime) => `- ${runtimeLabels[runtime]}: ${pluginInstallCommand(runtime)}`);
-  return `Install the plugin ${pluginName}:\n${lines.join('\n')}\nEach person runs it once per clone of this repository; the repository only declares the plugin.\n`;
+  return `Install the plugin ${pluginName}:\n${lines.join('\n')}\nEach person runs it once per clone of this repository; the repository only declares the plugin.\nThe marketplace serves the plugin only after the kit's \`${pluginBranch}\` branch is published; until then these commands fail.\n`;
 }
 
 // Plugin mode needs at least one runtime and only runtimes with a plugin. The
@@ -129,6 +129,12 @@ const isDeclared = (settings) => isKitMarketplace(settings) && enablesPlugin(set
 // the kit's.
 const disabledByProject = (settings) => settings.enabledPlugins?.[pluginId] === false;
 const pluginEntryMissing = (settings) => settings.enabledPlugins?.[pluginId] === undefined;
+// Neither true nor false (missing, null, a string...): the plugin is not on.
+const pluginEntryNotEnabled = (settings) => ![true, false].includes(settings.enabledPlugins?.[pluginId]);
+// How the plugin entry reads in a message.
+export const describePluginEntry = (settings) => (pluginEntryMissing(settings)
+  ? `${pluginEntryKey} is missing`
+  : `${pluginEntryKey} is ${JSON.stringify(settings.enabledPlugins[pluginId])}, not true`);
 const marketplaceCustomized = (settings) => settings.extraKnownMarketplaces?.[marketplaceName] !== undefined && !isKitMarketplace(settings);
 // Something leaving plugin mode removes: an entry the kit writes.
 const carriesKitEntry = (settings) => enablesPlugin(settings) || isKitMarketplace(settings);
@@ -157,22 +163,73 @@ async function readPluginSettings({ targetPath, runtimes, tolerant = false }) {
       existing = null;
     }
     let settings = null;
-    if (existing !== null) {
+    let duplicateKey = null;
+    if (existing !== null && existing.trim() === '') {
+      // An empty file has nothing to keep: it is filled like a missing one
+      // (with a backup, as it exists).
+      settings = {};
+    } else if (existing !== null) {
       try {
         settings = JSON.parse(existing);
       } catch {
         settings = null;
       }
       if (!isPlainObject(settings) || declarationKeys.some((key) => settings[key] !== undefined && !isPlainObject(settings[key]))) settings = null;
+      // JSON.parse keeps the last of two equal keys: rewriting the file would
+      // drop the others without a word, so it is never touched.
+      duplicateKey = settings === null ? null : firstDuplicateKey(existing);
+      if (duplicateKey !== null) settings = null;
     }
-    files.push({ runtime, base: { relativePath, targetFile, sourcePath: null }, existing, settings });
+    files.push({ runtime, base: { relativePath, targetFile, sourcePath: null }, existing, settings, duplicateKey });
   }
   return files;
 }
 
+// The first key a JSON object of `text` (valid JSON) repeats, as a path
+// such as `enabledPlugins.fhh@fhh-ia-ecosystem`, or null.
+export function firstDuplicateKey(text) {
+  const stack = [];
+  let index = 0;
+  const readString = () => {
+    const from = index;
+    index += 1;
+    while (text[index] !== '"') index += text[index] === '\\' ? 2 : 1;
+    index += 1;
+    return JSON.parse(text.slice(from, index));
+  };
+  let pendingKey = null;
+  while (index < text.length) {
+    const char = text[index];
+    const top = stack.at(-1);
+    if (char === '"') {
+      const value = readString();
+      if (top?.type === 'object' && top.expectKey) {
+        if (top.keys.has(value)) return [...stack.map((frame) => frame.key).filter((key) => key !== null), value].join('.');
+        top.keys.add(value);
+        top.expectKey = false;
+        pendingKey = value;
+      }
+      continue;
+    }
+    if (char === '{' || char === '[') {
+      stack.push({ type: char === '{' ? 'object' : 'array', keys: new Set(), expectKey: char === '{', key: top?.type === 'object' ? pendingKey : null });
+    } else if (char === '}' || char === ']') {
+      stack.pop();
+    } else if (char === ',' && top?.type === 'object') {
+      top.expectKey = true;
+    }
+    index += 1;
+  }
+  return null;
+}
+
 // Keep the file's indentation so the diff shows only the declaration.
 const serializeLike = (existing, settings) => `${JSON.stringify(settings, null, existing.match(/\n([ \t]+)"/)?.[1] ?? 2)}\n`;
-const invalidSettings = (base, existing, manualAction) => ({ ...base, operation: 'skip_unmanaged', content: existing, reason: 'invalid_settings_json', manualFragment: JSON.stringify(declarationFragment(), null, 2), manualAction });
+// A file with a repeated key gets no fragment to add by hand: the repeated
+// key goes first.
+const invalidSettings = (base, existing, manualAction, duplicateKey = null) => (duplicateKey === null
+  ? { ...base, operation: 'skip_unmanaged', content: existing, reason: 'invalid_settings_json', manualFragment: JSON.stringify(declarationFragment(), null, 2), manualAction }
+  : { ...base, operation: 'skip_unmanaged', content: existing, reason: 'duplicate_settings_key', note: `the key ${duplicateKey} appears more than once, and rewriting the file would keep only the last one; remove the repeated key, then run this again` });
 
 // D15: the plan line of a settings file the project decided on.
 function projectChoice(base, existing, settings) {
@@ -181,7 +238,7 @@ function projectChoice(base, existing, settings) {
     ...(marketplaceCustomized(settings) ? [['marketplace_customized', `${marketplaceEntryKey} is the project's own entry (set it to ${kitMarketplaceEntry()} to use the kit's)`]] : []),
     // M3: next to the project's own marketplace the kit adds nothing, so a
     // missing plugin entry leaves the plugin off; the plan says so.
-    ...(marketplaceCustomized(settings) && pluginEntryMissing(settings) ? [['plugin_not_enabled', `${pluginEntryKey} is missing, so the plugin is not enabled (set it to true to load the plugin from that marketplace)`]] : [])
+    ...(marketplaceCustomized(settings) && pluginEntryNotEnabled(settings) ? [['plugin_not_enabled', `${describePluginEntry(settings)}, so the plugin is not enabled (set it to true to load the plugin from that marketplace)`]] : [])
   ];
   if (choices.length === 0) return null;
   return { ...base, operation: 'skip_unmanaged', content: existing, reason: choices[0][0], note: `the project's choice, left as it is: ${choices.map(([, text]) => text).join('; ')}` };
@@ -195,13 +252,13 @@ function projectChoice(base, existing, settings) {
 // plugin off or uses its own marketplace entry is not touched either (D15).
 export async function planPluginSettings({ targetPath, runtimes }) {
   const operations = [];
-  for (const { base, existing, settings } of await readPluginSettings({ targetPath, runtimes })) {
+  for (const { base, existing, settings, duplicateKey } of await readPluginSettings({ targetPath, runtimes })) {
     if (existing === null) {
       operations.push({ ...base, operation: 'create', content: `${JSON.stringify(declarationFragment(), null, 2)}\n` });
       continue;
     }
     if (settings === null) {
-      operations.push(invalidSettings(base, existing, 'add this to it'));
+      operations.push(invalidSettings(base, existing, 'add this to it', duplicateKey));
       continue;
     }
     const choice = projectChoice(base, existing, settings);
@@ -230,10 +287,10 @@ export async function planPluginSettings({ targetPath, runtimes }) {
 // one is never touched and the plan shows what to remove by hand.
 export async function planPluginSettingsRemoval({ targetPath, runtimes }) {
   const operations = [];
-  for (const { base, existing, settings } of await readPluginSettings({ targetPath, runtimes })) {
+  for (const { base, existing, settings, duplicateKey } of await readPluginSettings({ targetPath, runtimes })) {
     if (existing === null) continue;
     if (settings === null) {
-      operations.push(invalidSettings(base, existing, 'remove this from it'));
+      operations.push(invalidSettings(base, existing, 'remove this from it', duplicateKey));
       continue;
     }
     const removals = [
@@ -276,14 +333,18 @@ export async function runtimesDeclaringPlugin({ targetPath }) {
 // the project's choices the kit leaves as they are (D15). `tolerant`: a file
 // that cannot be read reads as missing.
 export async function inspectPluginSettings({ targetPath, runtimes, tolerant = false }) {
-  return (await readPluginSettings({ targetPath, runtimes, tolerant })).map(({ base, existing, settings }) => ({
+  return (await readPluginSettings({ targetPath, runtimes, tolerant })).map(({ base, existing, settings, duplicateKey }) => ({
     relativePath: base.relativePath,
     exists: existing !== null,
+    empty: existing !== null && existing.trim() === '',
     valid: settings !== null,
+    duplicateKey,
     declared: settings !== null && isDeclared(settings),
     enabled: settings !== null && enablesPlugin(settings),
     disabledByProject: settings !== null && disabledByProject(settings),
     pluginEntryMissing: settings !== null && pluginEntryMissing(settings),
+    pluginEntryNotEnabled: settings !== null && pluginEntryNotEnabled(settings),
+    pluginEntryText: settings === null ? null : describePluginEntry(settings),
     marketplaceCustomized: settings !== null && marketplaceCustomized(settings)
   }));
 }
@@ -294,6 +355,7 @@ export const claudePluginListCommand = Object.freeze({ file: 'claude', args: Obj
 // What a person runs to check by hand.
 export const claudePluginListHint = 'claude plugin list';
 export const pluginListTimeoutMs = 5000;
+export const pluginListMaxBuffer = 64 * 1024 * 1024;
 
 // Default command executor: resolves `{ code, stdout }` once the command
 // exits; rejects when it cannot start (ENOENT) or at the timeout. At the
@@ -304,7 +366,8 @@ export function runCommand(file, args, { cwd, timeoutMs }) {
   return new Promise((resolve, reject) => {
     let settled = false;
     let timer;
-    const child = execFile(file, args, { cwd, timeout: timeoutMs, killSignal: 'SIGKILL', shell: false, windowsHide: true }, (runError, stdout) => {
+    // The list of every installed plugin can pass the 1 MB default buffer.
+    const child = execFile(file, args, { cwd, timeout: timeoutMs, killSignal: 'SIGKILL', shell: false, windowsHide: true, maxBuffer: pluginListMaxBuffer }, (runError, stdout) => {
       clearTimeout(timer);
       if (settled) return;
       settled = true;
