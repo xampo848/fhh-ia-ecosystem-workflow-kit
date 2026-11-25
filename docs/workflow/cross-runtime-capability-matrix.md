@@ -60,7 +60,7 @@ statuses above. It is separate from the delegation baseline.
 | --- | --- | --- |
 | Claude Code | supported | `observed` by a smoke: the plugin loads, its skills are `fhh:*`, `fhh:kit-root` gives the kit root, and the overlay is read from the repository |
 | VS Code Copilot | supported format | `documented` only, not verified here |
-| Copilot CLI | supported format | partly `observed` by a smoke (CLI 1.0.51, model gpt-4.1, the only one available to the test account): the plugin loads with `--plugin-dir`; its skills are listed without a prefix (`kit-root`, `create-prd`); only `kit-root` is visible to the model; the adapter's kit-location instruction reaches the model, and `kit-root` gives the kit root when it is invoked. With the entry points named in the adapter, gpt-4.1 names the right router path but answers without reading any file, so routing is not verified; stronger models were not available to test |
+| Copilot CLI | supported | `observed` by a smoke (Copilot CLI 1.0.115, model choice `auto`, which ran `mai-code-2-flash` and `gpt-6-luna`; the test account refuses an explicit model such as `gpt-6.1-terra`, `gpt-6.2-sol` or `gpt-6.2-astra`): the plugin loads with `--plugin-dir`; its skills are listed without a prefix (`kit-root`, `create-prd`) and only `kit-root` is visible to the model; the model loads `kit-root` by itself, reads the contract and the router from the plugin, and reads the project context, catalog and runbook from the repository. With the older `gpt-4.1` (CLI 1.0.51) the model answered without reading files |
 | Copilot cloud agent | not verified | `unknown` |
 | Codex, Cursor | not supported yet | planned for a future phase |
 | Antigravity, opencode | repo mode only | no plugin mode |
@@ -76,6 +76,8 @@ Not verified for Copilot (assumptions of the pilot):
   (`plugin`).
 - S12: observed in Copilot CLI (the model sees only `kit-root`); not checked in
   VS Code.
+- Explicit model choice (`gpt-6.1-terra`, `gpt-6.2-sol`, `gpt-6.2-astra`) was
+  not available to the test account; those models were not run.
 - S13: Copilot CLI lists plugin skills without a prefix, so the adapter names
   the skill both ways (`fhh:kit-root` in Claude Code, `kit-root` in Copilot);
   whether Copilot prefixes a plugin's agents is not verified.

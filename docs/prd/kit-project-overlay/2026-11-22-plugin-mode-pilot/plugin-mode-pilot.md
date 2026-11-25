@@ -578,7 +578,7 @@ flowchart TD
 - Fijar el marketplace a un tag cuando el repo tenga tags de versión.
 - Que `check:legal` imprima los valores esperados de `docs/legal/overlay-authorship.json`, para que `docs/versioning.md` deje de repetir el algoritmo del digest (hallazgo QA-8; los validadores están fuera de F4).
 - Guarda de `main` de los scripts del kit bajo rutas con symlink: varios validadores terminan en 0 sin ejecutar (hallazgo de la ronda de publicación; fuera de F4).
-- Ruteo en Copilot con un modelo más capaz que gpt-4.1, y prueba en VS Code.
+- Prueba en VS Code y con los modelos de Copilot elegidos a mano (Terra, Sol, Astra) en una cuenta que los permita.
 
 ---
 
@@ -733,11 +733,11 @@ Límites registrados: R7 (backups del cambio de modo), R8, R9 (adaptadores que e
 | Campo | Evidencia durable |
 | --- | --- |
 | Cambios entregados | Build del plugin `fhh` en `dist/plugin/` y publicación en la rama `plugin` (`scripts/build-plugin.mjs`, `.claude-plugin/marketplace.json`); `--mode repo|plugin` en `init` y `update` con los dos cambios de modo y sus paradas (`src/planner.mjs`, `src/plugin-mode.mjs`, `src/cli/*`, `src/runtime-matrix.mjs`); `doctor` de modos (`src/doctor.mjs`); pregunta de modo en el TUI; renderers con variante plugin (`src/model-profiles.mjs`); parámetro opcional en `src/project-instructions.mjs`; docs y matriz |
-| Criterios de aceptacion | AC-1 a AC-19: COMPLETE (`test/plugin-build.test.mjs`, `test/plugin-mode.test.mjs`, `test/plugin-mode-doctor.test.mjs`, `test/plugin-mode-tui.test.mjs`). AC-20: COMPLETE para docs y Claude Code; Copilot parcial (ruteo no verificado con gpt-4.1; VS Code no ejecutado) |
+| Criterios de aceptacion | AC-1 a AC-19: COMPLETE (`test/plugin-build.test.mjs`, `test/plugin-mode.test.mjs`, `test/plugin-mode-doctor.test.mjs`, `test/plugin-mode-tui.test.mjs`). AC-20: COMPLETE (docs, Claude Code y Copilot CLI en modo `auto`; VS Code no ejecutado, y los modelos Terra, Sol y Astra no disponibles en la cuenta de prueba) |
 | Validaciones ejecutadas | `npm test` 566/566 (420 originales sin modificar; binarios `claude` y `copilot` falsos en el PATH sin llamadas); `check`, `check:workflow`, `check:docs`, `check:legal` PASS; `check:release` FAIL solo por la versión, que asigna el orquestador; `claude plugin validate` PASS |
 | Calidad y QA | Quality gate del kit aplicado por slice; cinco revisiones independientes del orquestador con rondas de reparación (Fase 1: 4 rondas, las dos últimas autorizadas por el usuario; Fase 2: 1 ronda). QA final propia (QA Relampago, contexto limpio) sobre `7e18dcc`: 10 hallazgos (1 alto: índice del PRD desactualizado; 4 medios; 5 bajos), corregidos en `25c5927`, `3ffeb72` y `fe8b9c2` salvo QA-8, aceptado como trabajo futuro; re-QA sobre `fe8b9c2`: sin bloqueantes, 4 menores nuevos (N1-N4) corregidos al cierre. Pendiente: la pasada del revisor independiente del orquestador |
 | Referencia de cambio | Rama `fhh/f4-plugin-mode-19e58c`, commits `f7a91ee`..HEAD sobre `558e9fb` (el último commit de cierre lo nombra el reporte al orquestador); sin push ni PR |
-| Riesgos o waivers | Sin waivers. Riesgos abiertos: Copilot sin verificar en ruteo y VS Code (S7, S9, S11, S13 de agentes); la rama `plugin` no existe en el remoto hasta el primer `--publish` y su push aprobado; límites R7 a R11; scripts del kit con guarda de `main` que no corre bajo rutas con symlink (fuera de F4) |
+| Riesgos o waivers | Sin waivers. Riesgos abiertos: VS Code sin ejecutar y modelos de Copilot elegidos a mano (Terra, Sol, Astra) sin probar (S7, S9, S11, S13 de agentes); la rama `plugin` no existe en el remoto hasta el primer `--publish` y su push aprobado; límites R7 a R11; scripts del kit con guarda de `main` que no corre bajo rutas con symlink (fuera de F4) |
 | Checks reutilizados | Ninguno |
 | Iteraciones y causa | Fase 1, ronda 1: `hueco del PRD` (D13, raíz del plugin cargaba `bin/` y dependencias); rondas 2 a 4: `error de implementación` (seguridad de `--publish`). Fase 2, ronda 1: `error de implementación` (runtimes que salen, `doctor` en modo repo, textos). Smoke de la Fase 3: `hueco del PRD` (Copilot no antepone el nombre del plugin a sus skills; puntos de entrada para un modelo más débil). QA final: `error de implementación` (sugerencia de `--mode`, `doctor` en modo repo) y `hueco del PRD` (índice, tabla de códigos) |
 | Modo de ejecucion | supervisado (pausa de revisión del orquestador tras cada fase) |
