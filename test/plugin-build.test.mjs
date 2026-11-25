@@ -32,7 +32,7 @@ import {
   renderClaudeAgent,
   renderCopilotAgent
 } from '../src/model-profiles.mjs';
-import { pluginPathRule } from '../src/plugin-mode.mjs';
+import { pluginEntryPoints, pluginPathRule } from '../src/plugin-mode.mjs';
 import { hashTree, makeTempRepo } from './helpers.mjs';
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -230,6 +230,11 @@ test('kit-root is model-loadable, names the plugin, and gives the kit root, the 
   const description = frontmatter(content).match(/^description: "(.*)"$/m)?.[1] ?? '';
   assert.ok(description.includes('plugin fhh'), description);
   assert.ok(content.includes(pluginPathRule), 'kit-root carries the shared path rule');
+  // The entry points spare a weaker model from guessing paths (P3-S2 smoke).
+  assert.ok(content.includes(pluginEntryPoints), 'kit-root names the entry points');
+  for (const kitPath of pluginEntryPoints.match(/`(\.agents\/[^`]+)`/g).map((quoted) => quoted.slice(1, -1)).filter((entry) => !entry.startsWith('.agents/project/'))) {
+    assert.ok(existsSync(path.join(builtDir, kitPath)), `entry point ${kitPath} is in the plugin`);
+  }
   for (const phrase of [
     'Kit root: `${CLAUDE_PLUGIN_ROOT}`',
     'the folder that contains `skills/` and `.agents/`',

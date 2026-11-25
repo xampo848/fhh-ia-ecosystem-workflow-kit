@@ -36,7 +36,7 @@ import {
   renderClaudeAgent,
   renderCopilotAgent
 } from '../src/model-profiles.mjs';
-import { marketplaceName, pluginBranch, pluginName, pluginPathRule } from '../src/plugin-mode.mjs';
+import { marketplaceName, pluginBranch, pluginEntryPoints, pluginName, pluginPathRule } from '../src/plugin-mode.mjs';
 import { claudeSkillDescription, claudeSkillEntries, listFiles } from './sync-claude-skills.mjs';
 
 export { marketplaceName, pluginName };
@@ -176,6 +176,8 @@ The workflow kit runs as the plugin \`${pluginName}\`.
 ${kitRootSentence}
 
 ${pluginPathRule}
+
+${pluginEntryPoints}
 
 Delegates: In Claude Code, a delegate is the plugin agent \`${pluginName}:<slug>\`, unless the project defines an agent with that slug: then the project agent wins. In Copilot, name a delegate by its alias (the \`name\` of its agent file); whether Copilot prefixes plugin agents is not documented. Every delegation brief carries the line \`Kit root: <absolute path>\`.
 

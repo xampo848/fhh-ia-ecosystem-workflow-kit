@@ -159,7 +159,7 @@ test('AC-6: the adapters carry the template block plus kit-location, keep own te
       assert.equal(expected.replace(`${location}\n`, '').replace(`<!-- ${managedBlockName}:start -->\n\n`, `<!-- ${managedBlockName}:start -->\n`), template, `${name}: ${relativePath}`);
       // Each runtime names the skill its own way (P3-S2 smoke): Claude Code
       // prefixes plugin skills, Copilot CLI lists them without a prefix.
-      for (const required of ['`fhh`', '`fhh:kit-root` in Claude Code', '`kit-root` in Copilot', pluginMode.pluginPathRule, claudeInstall, copilotInstall, 'N0']) {
+      for (const required of ['`fhh`', '`fhh:kit-root` in Claude Code', '`kit-root` in Copilot', pluginMode.pluginPathRule, pluginMode.pluginEntryPoints, claudeInstall, copilotInstall, 'N0']) {
         assert.ok(location.includes(required), `${name}: ${relativePath} kit-location names ${required}`);
       }
       if (own === null) assert.equal(written, expected, `${name}: ${relativePath}`);

@@ -21,6 +21,10 @@ export const pluginBranch = 'plugin';
 // resolves in the repository.
 export const pluginPathRule = 'Path rule: a path that a kit file names is read under the kit root when that file exists there; when it does not exist there, it resolves in the repository. So `.agents/project/**`, the install state, the diagnostics, the apply journal, the seeds, `.ai-work/**` and the project\'s own files always resolve in the repository: the plugin ships none of them. Never write under the kit root.';
 
+// The files to start from, so a model does not guess paths (P3-S2 smoke:
+// a weaker model searched the repository and invented the router path).
+export const pluginEntryPoints = 'Entry points: under the kit root, `.agents/instructions.md` (the contract), `.agents/skills/index.md` (the skill catalog) and `.agents/skills/00-router/workflow-router/SKILL.md` (the router); in the repository, `.agents/project/index.md` (project skills and runbooks), `.agents/project/routing.md` and `.agents/project/context.md`, read when they exist.';
+
 // Plugin identity and declaration (PRD 2.1, 2.3). The marketplace repository
 // comes from package.json, as the build reads it.
 export const pluginId = `${pluginName}@${marketplaceName}`;
@@ -74,6 +78,7 @@ function kitLocationBlock() {
     start,
     `Kit location: the workflow kit runs as the plugin \`${pluginName}\`, so the kit files are not in this repository. Before N2/N3 work, or before reading a kit path, load ${kitRootSkill}: it gives the kit root.`,
     pluginPathRule,
+    pluginEntryPoints,
     `If that skill is not available, the plugin is not installed: do only N0 work and tell the user the install command (\`${installCommands.claude}\` in Claude Code, \`${installCommands.copilot}\` in Copilot).`,
     end
   ].join('\n');
