@@ -7,6 +7,91 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.23.0-plugin-mode
+
+Plugin mode (pilot): for Claude Code and GitHub Copilot, the kit can run as
+the plugin `fhh` from the marketplace `fhh-ia-ecosystem` instead of being
+committed in the repository. The kit is the same in both modes; the project
+overlay `.agents/project/` stays in the repository. This is the plugin mode
+phase (F4) of the kit/project overlay epic. Repo mode, the default, behaves
+as in `0.22.0`: its plans are checked against a fixture generated from the
+previous release.
+
+- `init --mode repo|plugin` and `update --mode repo|plugin` (runtimes
+  `claude` and `copilot` for plugin). A plugin-mode install keeps in the
+  repository only the adapters (with a `workflow-kit:kit-location` block that
+  names the skill `fhh:kit-root` in Claude Code and `kit-root` in Copilot),
+  the plugin declaration in `.claude/settings.json` and
+  `.github/copilot/settings.json`, `install-state.json` (`mode: "plugin"`),
+  the overlay seeds and `.gitignore`: 3 kit-owned files for Claude Code, 6
+  for Copilot, 8 for both. A non-default `--profile` still writes the
+  project's own agents. `update` keeps the recorded mode unless `--mode` is
+  given. Each person installs the plugin once per clone
+  (`claude plugin install fhh@fhh-ia-ecosystem --scope project`,
+  `copilot plugin install fhh@fhh-ia-ecosystem`); the kit prints these
+  commands and never installs the plugin.
+- Mode switches both ways with `update --mode plugin` and `update --mode repo`,
+  undone by `rollback`. The switch to plugin is all or nothing: an edited kit
+  file stops it and is listed, and only `--edited <path>=discard` (or
+  `all=discard`) settles it in the same command. Repo to plugin deletes the
+  recorded kit files with a backup next to each one. Every refused
+  combination stops before writing and names the command to run next: a
+  runtime without a plugin, `init --mode plugin` over an install, an older
+  install-state (`1.0.0`), an exported folder, `export --mode`,
+  `update --adopt-existing --mode plugin`, `update --runtime` with a runtime
+  without a plugin in plugin mode, and `export --output` into a plugin-mode
+  repository. A wrong `--mode` value never picks a mode.
+- Settings merge: plugin mode adds only
+  `extraKnownMarketplaces["fhh-ia-ecosystem"]` and
+  `enabledPlugins["fhh@fhh-ia-ecosystem"]`, and repo mode removes only those
+  two entries; the file is never deleted. A project that turned the plugin
+  off (`false`) or points the marketplace entry elsewhere, such as a fork,
+  keeps its choice: the plan says so and `doctor` names it. The merge writes
+  normalized JSON (LF line endings; numbers as JavaScript reads them, so `1.0`
+  becomes `1` and an integer beyond 2^53 loses precision); the original is in
+  the backup.
+- `doctor` prints `Install mode: plugin` and expects only the plugin-mode
+  files. New codes: `mode/repo-and-plugin` (error: the kit would load twice),
+  and the warnings `mode/plugin-not-declared`, `mode/plugin-not-installed`,
+  `mode/plugin-version-mismatch`, `mode/plugin-install-unverified`,
+  `mode/plugin-disabled`, `mode/plugin-disabled-by-project`,
+  `mode/marketplace-customized` and `mode/adapter-not-tracked`. It runs
+  `claude plugin list --json` (read-only, 5 seconds at most) only in plugin
+  mode with Claude Code; for Copilot it prints the commands to check instead.
+- Build and publish: `node scripts/build-plugin.mjs` checks and `--write`
+  rebuilds the plugin into the git-ignored `dist/plugin/` and the marketplace
+  `.claude-plugin/marketplace.json` (now part of `check:workflow`).
+  `--publish` builds from the tracked content of `HEAD` (read from Git's raw
+  objects, so attributes, filters, `core.autocrlf` and replacement objects
+  change nothing) with
+  that commit's own build code, and commits it to the local branch `plugin`;
+  it never fetches, pushes or changes Git configuration, refreshes
+  `dist/plugin/` only after the commit, and cleans up when interrupted. It
+  refuses when `plugin` is a symbolic reference or is checked out, Git has no
+  identity for the repository, a build input has uncommitted changes,
+  `origin/main` is missing or does not contain `HEAD`, the legal check or the
+  build fails, the local `plugin` does not contain `origin/plugin` or holds
+  commits `--publish` did not write (or its history cannot be read), a path
+  is outside printable ASCII or would be written outside its folder, or the
+  content changed under an already
+  published version (`--same-version` overrides only that). The marketplace in `main` points at
+  the branch `plugin`, which exists only after the first approved publish and
+  push; plugin installs fail until then.
+- TUI: Install asks for the mode only when every chosen runtime has a plugin;
+  switching mode is done from the CLI.
+- Verified: Claude Code loads the plugin, its skills are `fhh:*` and
+  `fhh:kit-root` gives the kit root while the overlay is read from the
+  repository; Copilot CLI 1.0.115 loads it with `--plugin-dir` and the model
+  follows the adapter, but only with the model choice `auto` (the explicit
+  models tried were not available to the test account). Not verified: VS Code
+  Copilot, the Copilot cloud agent, a real install from the GitHub
+  marketplace (the branch `plugin` is not published yet), and Windows. See
+  the capability matrix in `docs/workflow/cross-runtime-capability-matrix.md`.
+- Upgrade the CLI before using plugin mode: an older CLI reads a plugin-mode
+  state as a repo-mode install and its `update` reinstalls the kit files;
+  `doctor` then reports `mode/repo-and-plugin`, and `update --mode plugin`
+  with a current CLI repairs it.
+
 ## 0.22.0-manifest-updater
 
 `workflow-kit update` now follows the kit manifest: it replaces what the kit

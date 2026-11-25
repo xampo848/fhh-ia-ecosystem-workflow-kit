@@ -21,7 +21,7 @@ What the installed workflow does:
 One neutral source of truth lives in `.agents/`; runtime files such as
 `CLAUDE.md` or `AGENTS.md` are thin adapters that point back to it.
 
-> Status: public GitHub install, version `0.22.0-manifest-updater`. The CLI and
+> Status: public GitHub install, version `0.23.0-plugin-mode`. The CLI and
 > TUI install, update, export, check, and roll back the workflow, with dry-run
 > by default and backups before every overwrite. The package is intentionally
 > **not published to npm**.
@@ -43,7 +43,7 @@ workflow-kit --help
 ```
 
 `main` installs the latest merged version. To pin a release instead, append
-`#<tag>`, for example `#v0.22.0-manifest-updater`; every released version has a
+`#<tag>`, for example `#v0.23.0-plugin-mode`; every released version has a
 `v<version>` tag, listed on the repository's
 [Releases page](https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/releases).
 SSH install and access details:
@@ -124,6 +124,7 @@ apply in both. Example prompts for each phase are in
 | `--apply --yes` | Write. Both are required; combining `--apply` with `--dry-run` is an error. |
 | `--target <path>` / `--output <path>` | Repository to install into / export folder. |
 | `--runtime <list>` | Comma-separated runtimes, see [Supported runtimes](#supported-runtimes). |
+| `--mode repo\|plugin` | `init`/`update` only: install mode. `repo` (the default for `init`) commits the kit in the project; `plugin` (pilot, runtimes `claude` and `copilot`) runs the kit as the plugin `fhh`. `update` keeps the recorded mode unless you pass it. See [Plugin mode](docs/quickstart.md#11-plugin-mode-pilot). |
 | `--profile <runtime>=<calidad\|equilibrado\|costo>` | Model profile per runtime, for example `claude=costo,codex=calidad`. |
 | `--stack none\|rails-react` | Install the Rails + React stack rules as `.agents/project/stack.md`. |
 | `--diff` | Show the line diff of every file that would change. |
@@ -175,6 +176,10 @@ workflow-kit rollback --target /path/to/repo --apply --yes
 - `antigravity` — adds `ANTIGRAVITY.md` and Antigravity adapter notes.
 - `opencode` — uses the shared `AGENTS.md` bootstrap.
 
+These are repo-mode installs. Plugin mode (pilot) covers `claude` and
+`copilot` only; see [Plugin mode](docs/quickstart.md#11-plugin-mode-pilot) and
+the [capability matrix](docs/workflow/cross-runtime-capability-matrix.md#plugin-mode).
+
 ## Safety guarantees
 
 - Dry-run is the default; writing requires `--apply --yes`.
@@ -211,7 +216,8 @@ fhh-ia-ecosystem-workflow-kit/
   templates/                 # full workflow overlay, runtime adapters, stack packs
   docs/                      # user guides, PRDs, plans, legal records
   examples/                  # adoption scenarios
-  scripts/                   # validation guardrails and sync scripts
+  .claude-plugin/            # plugin marketplace (plugin mode, generated)
+  scripts/                   # validation guardrails, sync scripts, plugin build
   test/                      # Node test suite
 ```
 
@@ -224,7 +230,9 @@ bun run check:templates && bun run check:docs && bun run check:legal && bun run 
 
 `check:workflow` also verifies generated artifacts (skill registry, delegate
 adapters, level pre-filter copies, Claude skill wrappers) and the structural
-rules; regenerate with the matching `node scripts/sync-*.mjs --write`. See
+rules, and that `.claude-plugin/marketplace.json` matches the plugin build;
+regenerate with the matching `node scripts/sync-*.mjs --write` or
+`node scripts/build-plugin.mjs --write`. See
 [CONTRIBUTING.md](CONTRIBUTING.md) and the [Release Checklist](RELEASE.md).
 
 ## Documentation

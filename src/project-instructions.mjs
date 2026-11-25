@@ -104,7 +104,7 @@ function warning(code, relativePath, message) {
   return { code, path: relativePath, message, severity: 'warning' };
 }
 
-export async function projectInstructionDiagnostics({ targetPath, runtimes = [] }) {
+export async function projectInstructionDiagnostics({ targetPath, runtimes = [], kitQualityGate = null }) {
   const diagnostics = [];
   const inspection = await inspectProjectInstructions({ targetPath });
   for (const name of projectInstructionNames) {
@@ -113,7 +113,7 @@ export async function projectInstructionDiagnostics({ targetPath, runtimes = [] 
       diagnostics.push(warning('project-instructions/not-migrated', copilotWrapperPath(name), `Project rules still live only in the Copilot folder, so other runtimes skip them. Run workflow-kit update to copy them to ${neutralInstructionPath(name)} and regenerate this file from it.`));
       continue;
     }
-    const expected = wrapperBody(name, state.neutral, state.kitDefault);
+    const expected = wrapperBody(name, state.neutral, kitQualityGate ?? state.kitDefault);
     if (expected !== null && state.wrapper !== null && runtimes.includes('copilot')) {
       const parsed = splitWrapper(state.wrapper);
       if (parsed.generated && parsed.body.trim() !== expected.trim()) {

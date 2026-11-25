@@ -1,3 +1,6 @@
+import { pluginName } from '../plugin-mode.mjs';
+import { pluginRuntimes } from '../runtime-matrix.mjs';
+
 export function toInquirerChoices(options) {
   return options.map((option) => {
     const choice = {
@@ -199,6 +202,21 @@ export function stackPackQuestion({ detected = 'none' } = {}) {
     title: '¿Instalar un stack pack con las reglas de tu stack?',
     options,
     defaultIndex: Math.max(0, options.findIndex((option) => option.value === detected))
+  };
+}
+
+// PRD plugin-mode-pilot 2.6: asked only in an interactive install, and only
+// when every chosen runtime has a plugin (null otherwise). Repo is the default.
+export function installModeQuestion(runtimeList = '') {
+  const runtimes = [...runtimeSet(runtimeList)];
+  if (runtimes.length === 0 || runtimes.some((runtime) => !pluginRuntimes.includes(runtime))) return null;
+  return {
+    title: '¿Cómo instalar el kit en este repositorio?',
+    options: [
+      { value: 'repo', label: 'Archivos en el repo', description: 'El modo de hoy: los archivos del kit quedan en el repositorio. Funciona con todos los runtimes.' },
+      { value: 'plugin', label: `Plugin ${pluginName}`, description: 'El kit corre como plugin de Claude Code o Copilot; el repositorio guarda solo el adaptador, la declaración del plugin y su overlay. Cada persona instala el plugin una vez por clon.' }
+    ],
+    defaultIndex: 0
   };
 }
 

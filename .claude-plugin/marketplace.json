@@ -1,0 +1,21 @@
+{
+  "name": "fhh-ia-ecosystem",
+  "owner": {
+    "name": "fhh-ia-ecosystem"
+  },
+  "metadata": {
+    "description": "Marketplace of the fhh workflow kit plugin.",
+    "version": "0.23.0-plugin-mode"
+  },
+  "plugins": [
+    {
+      "name": "fhh",
+      "source": {
+        "source": "github",
+        "repo": "xampo848/fhh-ia-ecosystem-workflow-kit",
+        "ref": "plugin"
+      },
+      "description": "Workflow kit: routed workflow skills and delegates that run from the plugin while each repository keeps its own project overlay."
+    }
+  ]
+}

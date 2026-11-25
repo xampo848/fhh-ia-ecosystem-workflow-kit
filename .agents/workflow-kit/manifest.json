@@ -2,7 +2,7 @@
   "$schema": "./manifest.schema.json",
   "schema_version": "2.0.0",
   "name": "fhh-ia-ecosystem-workflow-kit",
-  "kit_version": "0.22.0-manifest-updater",
+  "kit_version": "0.23.0-plugin-mode",
   "description": "Closed list of the paths the workflow kit owns in a target repository. A path belongs to the kit only when an entry below covers it; everything under project_root belongs to the project. The most specific entry wins.",
   "contract": ".agents/kit-boundary.md",
   "project_root": ".agents/project/",

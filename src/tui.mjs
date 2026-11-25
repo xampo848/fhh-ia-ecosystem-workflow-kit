@@ -7,9 +7,11 @@ import { writingOperations } from './fs-safety.mjs';
 import { formatDoctorResult, runDoctor } from './doctor.mjs';
 import { lineDiff } from './plan-insight.mjs';
 import { buildInstallPlan, buildUpdatePlan, detectStackPack, formatPlan, readManagedInstallState, selectPlanOperations } from './planner.mjs';
+import { formatPluginInstallSteps, pluginName } from './plugin-mode.mjs';
 import {
   createCapabilityGuide,
   defaultIntentFor,
+  installModeQuestion,
   installPackageDetails,
   modelProfileQuestions,
   stackPackQuestion,
@@ -549,9 +551,10 @@ export async function runTui(options = {}) {
   const commandExists = options.commandExists ?? defaultCommandExists;
   const runCommand = options.runCommand ?? defaultRunCommand;
   const runUpgradeExecutor = options.runUpgradeExecutor ?? runUpgradePlan;
+  // options.prompter stands in for the interactive prompter (tests).
   const prompter = scriptedMode
     ? createScriptedPrompter({ ask: options.ask, write, paint })
-    : createInteractivePrompter();
+    : options.prompter ?? createInteractivePrompter();
 
   try {
     await animateIntro(write, paint, { animate, profile: introProfile });
@@ -618,7 +621,8 @@ export async function runTui(options = {}) {
       const doctorResult = await runDoctor({
         targetPath,
         runtime,
-        overlay
+        overlay,
+        commandExecutor: options.commandExecutor
       });
       write(`${formatDoctorResult(doctorResult)}\n`);
       return {
@@ -872,6 +876,20 @@ export async function runTui(options = {}) {
 
     }
 
+    // PRD plugin-mode-pilot 2.6: an interactive install asks the install mode
+    // when every chosen runtime has a plugin. Scripted runs keep repo; update
+    // keeps the recorded mode (the planner reads it from install-state).
+    let installMode;
+    const modeQuestion = mode === 'install' && !scriptedMode ? installModeQuestion(runtime) : null;
+    if (modeQuestion) {
+      installMode = await prompter.chooseOption({
+        title: modeQuestion.title,
+        options: modeQuestion.options,
+        defaultIndex: modeQuestion.defaultIndex,
+        defaultValue: modeQuestion.options[modeQuestion.defaultIndex].value
+      });
+    }
+
     // D-07: ask the billing model once per subscription-capable runtime on
     // install/export; update keeps the profile stored in install-state.
     const profile = mode === 'update'
@@ -944,6 +962,7 @@ export async function runTui(options = {}) {
         overlay,
         profile,
         stack,
+        mode: installMode,
         export: mode === 'export',
         ensureWorkspaceIgnore: mode !== 'export',
         recordJournal: mode !== 'export',
@@ -1000,10 +1019,12 @@ export async function runTui(options = {}) {
         }, () => buildPlan({ edited, backupMode }));
       }
 
-      // The layout migration is applied whole (selectPlanOperations keeps it):
-      // its files are not offered; retired deletes are.
+      // The layout migration and a mode switch are applied whole
+      // (selectPlanOperations keeps them): their files are not offered;
+      // retired deletes are.
       const migrationWrites = plan.operations.filter((item) => item.migration && isWriteOperation(item)).length;
-      if (migrationWrites > 0) write(`${paint.dim(`The layout migration (${migrationWrites} files) is applied as one block and is not listed here.`)}\n`);
+      const wholeBlock = plan.modeSwitch ? 'The mode switch' : 'The layout migration';
+      if (migrationWrites > 0) write(`${paint.dim(`${wholeBlock} (${migrationWrites} files) is applied as one block and is not listed here.`)}\n`);
       const writableOperations = plan.operations.filter((item) => isWriteOperation(item) && !item.migration);
       if (writableOperations.length > 0) {
         const selectedWritablePaths = await prompter.chooseOptions({
@@ -1086,7 +1107,8 @@ export async function runTui(options = {}) {
     // Verify the result right away so a broken install or update is visible
     // here and not in the next AI session.
     if (mode !== 'export') {
-      const doctorResult = await runDoctor({ targetPath, runtime, overlay });
+      // options.commandExecutor stands in for the command doctor runs (tests).
+      const doctorResult = await runDoctor({ targetPath, runtime, overlay, commandExecutor: options.commandExecutor });
       const errors = doctorResult.diagnostics.filter((item) => item.severity === 'error');
       const warnings = doctorResult.diagnostics.filter((item) => item.severity !== 'error');
       const healthy = doctorResult.ok;
@@ -1096,6 +1118,9 @@ export async function runTui(options = {}) {
       }
       if (!healthy || warnings.length > 0) write(`${paint.dim('Run workflow-kit doctor --target <repo> for the full messages.')}\n`);
     }
+
+    // Plugin mode: the repository only declares the plugin; print how to install it.
+    if (plan.nextInstallState?.mode === 'plugin') write(formatPluginInstallSteps(plan.runtimes));
 
     let capabilityInstallResult = null;
     if (shouldAutoInstallCapabilities) {
@@ -1127,11 +1152,13 @@ export async function runTui(options = {}) {
       }
     }
 
-    write(`${paint.dim(mode === 'update'
-      ? "The project's workflow files now match this workflow-kit version."
-      : mode === 'export'
-        ? 'The output directory now contains the complete FHH IA Ecosystem workflow package.'
-        : 'The target repository now has the complete FHH IA Ecosystem workflow package installed.') }\n`);
+    // F9: in plugin mode the kit is not in the repository; the repository only
+    // declares the plugin, whose install command is printed above.
+    let closingLine = 'The target repository now has the complete FHH IA Ecosystem workflow package installed.';
+    if (mode === 'update') closingLine = "The project's workflow files now match this workflow-kit version.";
+    else if (mode === 'export') closingLine = 'The output directory now contains the complete FHH IA Ecosystem workflow package.';
+    else if (plan.nextInstallState?.mode === 'plugin') closingLine = `The repository is set up for the plugin ${pluginName}; install the plugin with the command printed above.`;
+    write(`${paint.dim(closingLine)}\n`);
     return {
       code: 0,
       applied: true,

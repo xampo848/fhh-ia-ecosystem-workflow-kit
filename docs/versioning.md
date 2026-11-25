@@ -30,7 +30,8 @@ released it. Tags of the current lines:
 
 | Tag | Notes |
 | --- | --- |
-| `v0.22.0-manifest-updater` | current |
+| `v0.23.0-plugin-mode` | current |
+| `v0.22.0-manifest-updater` | |
 | `v0.21.0-project-runbooks` | |
 | `v0.20.0-kit-overlay-contract` | |
 | `v0.19.2-visual-lock` | |
@@ -73,6 +74,129 @@ the next tagged version instead. Older `0.7.x` tags are on the
 the release checklist.
 
 ## Release gates
+
+When you raise `package.json.version`, follow these steps in order:
+
+1. Set the same value as `kit_version` in `.agents/workflow-kit/manifest.json`
+   and in its template copy
+   (`templates/repo-overlay-fhh-ia-ecosystem-full/.agents/workflow-kit/manifest.json`);
+   `check:workflow` fails until both match, and the plugin build refuses a
+   shipped manifest whose `kit_version` is not the package version; its
+   message names each copy that still differs.
+2. Renew the overlay authorship record. Step 1 changes the overlay template, so
+   `check:legal` fails ("maintainer-attested overlay file inventory changed" or
+   "path/content inventory differs") until `remainingInventory` in
+   `docs/legal/overlay-authorship.json` is updated. Its two fields are
+   `fileCount` (the number of files under the template, without the paths of
+   `externalPathCoverage`) and `pathContentSha256` (the SHA-256 of every such
+   path, `NUL`, the SHA-256 of its content and a newline, in path order). The
+   check does not print the new values; this command, run from the
+   repository root on a checkout without untracked or ignored files under the
+   template, prints them in the format `check:legal` uses:
+
+   ```bash
+   node --input-type=module -e '
+   import { createHash } from "node:crypto";
+   import fs from "node:fs";
+   import path from "node:path";
+   const record = JSON.parse(fs.readFileSync("docs/legal/overlay-authorship.json", "utf8"));
+   const base = record.remainingInventory.path;
+   const skip = record.externalPathCoverage.map((entry) => entry.path);
+   const files = fs.readdirSync(base, { recursive: true }).map((file) => path.join(base, file))
+     .filter((file) => fs.lstatSync(file).isFile() && !skip.some((prefix) => file === prefix || file.startsWith(`${prefix}/`)))
+     .map((file) => path.relative(base, file).split(path.sep).join("/")).sort();
+   const digest = createHash("sha256");
+   for (const file of files) digest.update(file).update("\0").update(createHash("sha256").update(fs.readFileSync(path.join(base, file))).digest("hex")).update("\n");
+   console.log(JSON.stringify({ fileCount: files.length, pathContentSha256: digest.digest("hex") }));
+   '
+   ```
+
+   Copy both values into `remainingInventory`, set the top-level
+   `lastVerified` field of the same file to the date of the renewal (by hand:
+   `check:legal` does not check that date), then run `bun run check:legal`. Renewing the record is a maintainer attestation that
+   the changed template files are authorized for publication; any other
+   template change between releases needs the same renewal.
+3. Run `node scripts/build-plugin.mjs --write`: the plugin marketplace
+   (`.claude-plugin/marketplace.json`) carries the package version, so
+   `check:workflow` also fails until it is regenerated. The command also
+   rebuilds the plugin folder `dist/plugin/`, which is never committed. It
+   validates a fresh build before replacing `dist/plugin/`, so a failed build
+   leaves the previous folder and the marketplace as they were. It removes the
+   folders an interrupted build left in `dist/` (`.plugin-build-*`); one it
+   cannot remove is reported with the commands that remove it.
+
+A template change can also break the repo-mode guard of
+`test/plugin-mode.test.mjs`, which compares the repo-mode plans with a fixture
+generated from commit `558e9fb`. When the change to the repo-mode plan is
+intended, regenerate the fixture with the command in the header of
+`test/fixtures/plugin-mode/repo-mode-plans.mjs`, pointed at the new base
+commit, and review its diff before committing it.
+
+The marketplace committed in `main` points at the branch `plugin`. That branch
+does not exist on the remote until the first publish and its approved push, so
+the marketplace cannot install the plugin before then.
+
+To publish the plugin `fhh`, merge the release into `main`, fetch, check out a
+commit that `origin/main` contains and run
+`node scripts/build-plugin.mjs --publish` from the kit repository itself (its
+top level, not a copy inside another repository). It builds from the tracked
+content of `HEAD`, written into a temporary folder from Git's raw objects, and
+with the build code of that content (its own `scripts/build-plugin.mjs`, run
+in a separate `node`): files Git ignores and edits hidden with
+`git update-index --skip-worktree` or `--assume-unchanged` never reach the
+published plugin through its content or its build code. Attributes
+(`.git/info/attributes` included), clean and smudge filters and line-ending
+settings such as `core.autocrlf` change no byte on either side: the source is
+read and the build is stored as they are. Replacement objects
+(`refs/replace/*`) are ignored: every git call reads the objects themselves. The publish steps
+themselves (export, run that build, commit) are the `--publish` code of the
+working tree's `scripts/build-plugin.mjs`, so run it from a checkout whose
+copy of that script matches `HEAD`. It runs the legal check of that
+content on it, validates the build as check mode does and commits it to the
+local branch `plugin` (moving only that branch, never one it points at)
+without touching the current branch; `dist/plugin/` is refreshed with the same
+build only after that commit, so a refusal leaves it as it was. It never
+fetches, never pushes and never changes the Git configuration. Interrupted
+with Ctrl-C or `SIGTERM`, it removes its temporary folder and ends with exit
+status 130 or 143: before the commit it commits nothing; after it, it names the
+commit the branch holds and leaves `dist/plugin/` for `--write`.
+It stops, without committing, when:
+
+- the branch `plugin` is a symbolic reference (for example to `main`): a
+  commit to it would move the branch it points at;
+- the branch `plugin` is checked out in any worktree of the repository;
+- Git has no `user.name` or `user.email` for the repository: publishing reads
+  them with `git config` and ignores the inherited `GIT_*` variables
+  (`GIT_AUTHOR_*` and `GIT_CONFIG_GLOBAL` included); it always prints the
+  identity it commits with;
+- a file the build reads has uncommitted changes (staged, unstaged or
+  untracked); the message names them;
+- `origin/main` is not present locally (fetch it first), or it does not
+  contain `HEAD`: only a commit already on `main` is published;
+- the legal check (`node scripts/validate-legal-readiness.mjs`) fails on the
+  source commit; the message quotes its failures (after a version raise, step 2
+  above);
+- the build does not validate, or the marketplace is out of sync;
+- the local branch `plugin` does not contain `origin/plugin` (it is behind or
+  diverged): bring it up to date first;
+- the local branch `plugin` holds a commit `--publish` did not write (its
+  message does not start with `Publish plugin fhh `), so its history would be
+  pushed with the plugin, or its history cannot be read;
+- the source commit has two paths this file system cannot tell apart, or a
+  link that would carry a write outside the temporary folder;
+- the build holds a path outside printable ASCII, which git could store under
+  another name;
+- the content changed but the version is the one already published on the
+  branch `plugin`. People who installed the plugin see a kit change only when
+  the published version changes, because Claude Code pins a plugin to its
+  `version`: raise the version first. `--same-version` publishes anyway.
+
+A clone without a local branch `plugin` publishes on top of `origin/plugin`,
+so the commit stays a fast-forward of the remote. That remote-tracking branch
+must be present locally: whoever publishes fetches it first. The commit
+message names the version and the source commit
+(`Publish plugin fhh <version> from <commit>`). Then push the branch with
+explicit approval: `git push origin plugin`.
 
 Every version must pass (CI runs the same set; there `check:templates` runs
 inside `check:workflow`):

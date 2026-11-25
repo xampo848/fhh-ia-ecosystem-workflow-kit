@@ -139,7 +139,7 @@ installed version, so a mistyped ref or a network failure changes nothing. To
 pin a release, pass its tag (see [Versioning](versioning.md)):
 
 ```bash
-workflow-kit upgrade --ref v0.22.0-manifest-updater --apply --yes
+workflow-kit upgrade --ref v0.23.0-plugin-mode --apply --yes
 ```
 
 After that, run `update` in each project you manage to bring its workflow to
@@ -291,3 +291,163 @@ Practical notes:
 
 - "What else is needed besides install (agents, skills, hooks)?"
 : Run `docs/workflow/runbooks/runtime-native-readiness-checklist.md` and complete adapter, skill-registry, and project instruction-hook checks.
+
+## 11. Plugin mode (pilot)
+
+The kit installs in one of two modes. The kit itself is the same in both.
+
+| | Repo mode (default) | Plugin mode (pilot) |
+| --- | --- | --- |
+| Runtimes | all | Claude Code and GitHub Copilot only |
+| Where the kit runs from | files committed in the repository | the plugin `fhh` from the marketplace `fhh-ia-ecosystem` |
+| What the repository holds | the whole kit (`.agents`, skills, `docs/workflow`) | the adapters (with a kit-location block), the plugin declaration, `install-state.json`, and the overlay seeds in `.agents/project/` |
+
+Plugin mode keeps few files the kit owns and updates: 3 for Claude Code
+(`CLAUDE.md`, `.claude/settings.json`, `install-state.json`), 6 for Copilot, 8
+for both. The seeds (`.agents/project/*.md` and `paths.json`) and `.gitignore`
+come on top; they are yours to edit. A non-default model profile
+(`--profile`) writes the project's own agents in the repository, 13 per
+runtime, in plugin mode too.
+
+### Install and switch
+
+```bash
+workflow-kit init --mode plugin --runtime claude --target /path/to/repo
+workflow-kit init --mode plugin --runtime claude,copilot --target /path/to/repo
+```
+
+Both are dry runs until you add `--apply --yes`. `update` keeps the mode the
+install records. To change mode:
+
+```bash
+workflow-kit update --mode plugin --target /path/to/repo   # repo -> plugin
+workflow-kit update --mode repo --target /path/to/repo     # plugin -> repo
+workflow-kit rollback --target /path/to/repo               # undo the switch
+```
+
+The switch to plugin is all or nothing. If you edited a kit file, the command
+stops and lists it. Settle each one in the same command with
+`--edited <path>=discard` (repeat the flag per file), or `--edited all=discard`
+for all of them. `keep`, `shadow` and `split` are rejected for these files. To
+keep an edit, move it to a project shadow first (see
+`.agents/kit-boundary.md` in the kit), then switch. The TUI asks for the mode
+on install, only when every chosen runtime has a plugin; switching mode is
+done from the CLI.
+
+### Every person installs the plugin
+
+Declaring the plugin in the repository only enables it: it does not download
+it. Each person installs it once per clone:
+
+```bash
+claude plugin install fhh@fhh-ia-ecosystem --scope project
+copilot plugin install fhh@fhh-ia-ecosystem
+```
+
+The kit prints these commands after an apply, and `workflow-kit` never
+installs the plugin for anyone; `doctor` only reports it. A team that must
+enforce the kit uses repo mode, or its organization's managed settings, which
+the kit does not manage.
+
+### Commands that stop
+
+These stop without writing and name the command to run next:
+
+| Situation | The stop names |
+| --- | --- |
+| `init --mode plugin` with a runtime that has no plugin (codex, antigravity, opencode, neutral) | `--runtime claude,copilot`, or `init --mode repo` (T3) |
+| `init --mode plugin` in a repository that already has an install | `update --mode plugin` (T4) |
+| `init --mode plugin` in a repository with an older install-state (1.0.0) | `update` first, then `update --mode plugin` (T5) |
+| `update --mode plugin` on an older install-state (1.0.0) | `update` first (migration), then `update --mode plugin` (T10) |
+| `update --mode plugin` on an exported folder | `init --mode plugin --target <repo>` (T11) |
+| `export --mode <x>` | `export --output <path>` without `--mode` (T12) |
+| `update --adopt-existing --mode plugin` | `update --adopt-existing --runtime <list>` first (T13) |
+| `update --runtime` with a runtime that has no plugin, in plugin mode | `update --mode repo --runtime <list>` (T14) |
+| `export --output` pointing at a plugin-mode repository | export to another folder (T17) |
+
+### What a switch leaves behind
+
+- Repo to plugin deletes the kit files the install recorded, with a backup next
+  to each one: about 290 `*.workflow-kit-backup-<stamp>` files for a Claude
+  install. Git shows them as untracked. `rollback` needs them.
+- Once the switch is verified and you do not want a rollback, list them and
+  then remove them. Run this only after verifying, from the repository root:
+
+  ```bash
+  find . -type f -name '*.workflow-kit-backup-*' -not -path './.git/*' -not -path './node_modules/*'
+  find . -type f -name '*.workflow-kit-backup-*' -not -path './.git/*' -not -path './node_modules/*' -delete
+  ```
+
+  The pattern also matches backups of earlier applies, so read the list first.
+- `docs/README.md` keeps its docs-workflow block; its links resolve under the
+  kit root, where the plugin carries `docs/workflow/`.
+- A runtime you leave out of the switch keeps its adapters as project files.
+  When the install ends in plugin mode, `doctor` lists them
+  (`mode/adapter-not-tracked`). When it ends in repo mode, those adapters get
+  the repo-mode block back and `doctor` stays silent, as for any runtime
+  dropped in repo mode. Dropping a runtime in the same command as the switch
+  or in a separate `update` before it leaves the same files.
+
+### Settings files
+
+For plugin mode the kit adds two entries to `.claude/settings.json` and
+`.github/copilot/settings.json`: `extraKnownMarketplaces["fhh-ia-ecosystem"]`
+and `enabledPlugins["fhh@fhh-ia-ecosystem"]`. Switching to repo mode removes
+only those two entries; the file is never deleted. The kit respects a
+project that turned the plugin off (`false`) or points the marketplace entry
+somewhere else, such as a fork: it leaves that as it is, the plan says so,
+and `doctor` names it. The merge rewrites the JSON with normalized
+formatting (the file's indentation, LF line endings) and rewrites numbers as
+JavaScript reads them: `1.0` becomes `1`, and an integer beyond 2^53 loses
+precision (`12345678901234567890` becomes `12345678901234567000`). The
+original is in the backup.
+
+### Versions and publishing
+
+The marketplace in `main` points at the branch `plugin`, which exists only
+after the first publish and its approved push. Until then, plugin installs
+fail. Claude Code pins a plugin to its version, so people see a kit change
+only when a new version is published, never by following `main`. The release
+steps are in [Versioning](versioning.md).
+
+Everyone who runs `workflow-kit` on a plugin-mode repository needs a CLI with
+plugin mode (`0.23.0-plugin-mode` or later; run
+`workflow-kit upgrade --apply --yes` first). An older CLI reads the state as a
+repo-mode install, and its `update` reinstalls the kit files in the
+repository; `doctor` then reports `mode/repo-and-plugin`, and
+`workflow-kit update --mode plugin` with a current CLI repairs it.
+
+### `doctor` in plugin mode
+
+`doctor` expects only the plugin-mode files. It runs
+`claude plugin list --json` (read-only, bounded to 5 seconds) only in plugin
+mode with Claude Code chosen, and prints `Install mode: plugin`.
+
+| Code | Severity | Meaning |
+| --- | --- | --- |
+| `mode/repo-and-plugin` | error | the kit would load twice: kit files in a plugin-mode repository, or the plugin enabled in a repo-mode one |
+| `mode/plugin-not-declared` | warning | a settings file lacks the declaration, or is not valid JSON |
+| `mode/plugin-not-installed` | warning | Claude Code does not list `fhh@fhh-ia-ecosystem` |
+| `mode/plugin-version-mismatch` | warning | the installed plugin version differs from this CLI's |
+| `mode/plugin-install-unverified` | warning | the check could not run (no `claude`, timeout, bad output) |
+| `mode/plugin-disabled` | warning | Claude Code lists the plugin as installed but disabled |
+| `mode/plugin-disabled-by-project` | warning | the project's settings turn the plugin off |
+| `mode/marketplace-customized` | warning | the marketplace entry is not the kit's |
+| `mode/adapter-not-tracked` | warning | an adapter with a kit block whose runtime is not recorded |
+
+For Copilot, `doctor` has no documented way to read installed plugins, so it
+prints an informational line with `copilot plugin list` and the install
+command instead of a diagnostic.
+
+### Known limits
+
+- Some kit files name repo-mode agent paths (`.claude/agents/*`); in plugin mode
+  those agents come from the plugin and are launched by name (`fhh:<slug>`).
+- If `.agents/project/context.md` names a kit path in backticks (for example
+  `.agents/instructions.md`), `doctor` warns `project-context/missing-path`,
+  because it looks for it in the repository. It is a warning only.
+- `--profile` writes the project's own agents in the repository, also in plugin
+  mode. A kept edited agent is pending after you return to the default profile.
+- Runtime support and what is verified: see the
+  [capability matrix](workflow/cross-runtime-capability-matrix.md#plugin-mode).
+
