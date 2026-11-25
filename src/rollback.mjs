@@ -61,7 +61,7 @@ export async function buildRollbackPlan(options = {}) {
   if (!journal) return buildLegacyRollbackPlan(targetPath);
 
   const operations = [];
-  // Entries written after 0.23.0 carry the checksum the file had before the
+  // Entries written since 0.23.2 carry the checksum the file had before the
   // run, so a file an interrupted run never reached is told apart from one
   // it wrote and one edited after it.
   const knowsPrevious = journal.files.every((entry) => Object.hasOwn(entry, 'previousChecksum'));
@@ -160,7 +160,7 @@ async function buildLegacyRollbackPlan(targetPath) {
   return { targetPath, source: 'backups', operations };
 }
 
-// Journals of 0.23.0 and before do not record the folders their run created:
+// Journals written before 0.23.2 do not record the folders their run created:
 // the empty folders above a removed file go, as those versions did.
 async function removeEmptyParents(targetPath, file) {
   let directory = path.dirname(file);

@@ -60,7 +60,7 @@ and restores the previous install state. As a fallback, you
 can restore any file by hand from the `.workflow-kit-backup-<timestamp>` file
 created during apply (files written with `--backup-mode none` have none).
 
-After `0.23.0`, the journal is written before the first write of a run and lists
+Since `0.23.2`, the journal is written before the first write of a run and lists
 every file the run is about to touch with the checksum it had before, and it
 is marked finished only at the end. A run stopped at any point (an error,
 Ctrl-C, `SIGTERM`, or a process killed outright) therefore leaves a journal
@@ -122,7 +122,7 @@ Behavior on update (since `0.22.0`, by the class each path has in
 No write replaces content without a backup unless that content matches the
 hash the kit recorded for it, whatever `--backup-mode` says.
 
-Checks that stop a run before it writes anything (after `0.23.0`):
+Checks that stop a run before it writes anything (since `0.23.2`):
 
 - **One run at a time.** An apply or rollback holds
   `.agents/workflow-kit/apply.lock` while it writes; a second apply or

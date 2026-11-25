@@ -437,7 +437,7 @@ test('temporary files a killed run left in .agents/workflow-kit are removed by t
   assert.equal(await exists(target, `.agents/workflow-kit/.workflow-kit-tmp-${gone}`), false);
 });
 
-test('rolling back a journal from 0.22 or 0.23.0 leaves no empty .agents/workflow-kit behind', async () => {
+test('rolling back a journal written before 0.23.2 leaves no empty .agents/workflow-kit behind', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
   const journal = await readJson(target, applyJournalRelativePath);

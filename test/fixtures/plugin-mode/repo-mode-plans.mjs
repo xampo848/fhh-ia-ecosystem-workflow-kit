@@ -13,8 +13,8 @@
 //
 // The same collectors run on this checkout (the tests) and on the files of a
 // commit (to write the fixture), so both sides are shaped the same way.
-// The package version, the target folder, timestamps and the checksums that
-// carry the version are normalized, and the CLI runs without Node's own
+// The package version, the target folder, timestamps, the process id of an
+// apply journal and the checksums that carry the version are normalized, and the CLI runs without Node's own
 // process warnings, so only a change of behaviour differs, on any Node.
 //
 // Regenerate the fixture only when a change is meant to change what repo mode
@@ -54,14 +54,12 @@ const normalizedContent = (content, version) => (typeof content === 'string' ? c
 // One line per planned file: "<operation> <class> <path> <content hash>"
 // (class "-" for a file without one, such as .gitignore; hash "-" for an
 // operation without content).
-// `undo` (tests only, see runCli): `file(relativePath, content)` undoes an
-// intentional change in the planned content.
-export const planShape = (plan, version, undo = undefined) => plan.operations.map(({ operation, relativePath, class: fileClass, content }) =>
-  `${operation} ${fileClass ?? '-'} ${relativePath} ${content === undefined || content === null ? '-' : sha256(normalizedContent(undo?.file && typeof content === 'string' ? undo.file(relativePath, content) : content, version)).slice(0, 16)}`);
+export const planShape = (plan, version) => plan.operations.map(({ operation, relativePath, class: fileClass, content }) =>
+  `${operation} ${fileClass ?? '-'} ${relativePath} ${content === undefined || content === null ? '-' : sha256(normalizedContent(content, version)).slice(0, 16)}`);
 
 // `planOptions` reaches both plans (for example `{ mode: 'repo' }`, which the
 // modules of 558e9fb ignore).
-export async function collectRepoModePlans(rootDirectory, makeTarget, planOptions = {}, undo = undefined) {
+export async function collectRepoModePlans(rootDirectory, makeTarget, planOptions = {}) {
   const sourceDirectory = path.join(rootDirectory, 'src');
   const version = await packageVersionOf(rootDirectory);
   const { buildInstallPlan, buildUpdatePlan } = await import(pathToFileURL(path.join(sourceDirectory, 'planner.mjs')).href);
@@ -70,19 +68,21 @@ export async function collectRepoModePlans(rootDirectory, makeTarget, planOption
   for (const runtime of guardedRuntimeLists) {
     const target = await makeTarget();
     const init = await buildInstallPlan({ targetPath: target, runtime, ...planOptions });
-    plans.init[runtime] = planShape(init, version, undo);
+    plans.init[runtime] = planShape(init, version);
     await applyInstallPlan(init);
-    plans.update[runtime] = planShape(await buildUpdatePlan({ targetPath: target, ...planOptions }), version, undo);
+    plans.update[runtime] = planShape(await buildUpdatePlan({ targetPath: target, ...planOptions }), version);
   }
   return plans;
 }
 
 const runFile = promisify(execFile);
 
+// The process id an apply journal records (since 0.23.2) differs per run.
 function normalizeText(text, { target, version }) {
   return text.replaceAll(target, '<target>').replaceAll(version, versionMark)
     .replace(/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z/g, '<time>')
-    .replace(/\d{8}T\d{6}Z/g, '<stamp>');
+    .replace(/\d{8}T\d{6}Z/g, '<stamp>')
+    .replace(/"pid": \d+/g, '"pid": "<pid>"');
 }
 
 // Node's own process warnings (Node 20 warns that importing JSON modules is
@@ -97,11 +97,7 @@ function outputShape(text) {
   return { sha256: sha256(text).slice(0, 16), lines: text.split('\n').filter((line) => !/^- [a-z_]+: \S+$/.test(line)) };
 }
 
-// `context.undo` (tests only): the intentional changes since 558e9fb, undone
-// before shaping, so everything else still compares exactly. `output(step,
-// text)` gets the normalized output of a run, `file(relativePath, content)`
-// the content of a file of the tree. The fixture is written without it.
-async function runCli(rootDirectory, args, context, step) {
+async function runCli(rootDirectory, args, context) {
   const bin = path.join(rootDirectory, 'bin', 'workflow-kit.mjs');
   let result;
   try {
@@ -111,8 +107,7 @@ async function runCli(rootDirectory, args, context, step) {
     if (typeof error.code !== 'number') throw error;
     result = { code: error.code, stdout: error.stdout, stderr: error.stderr };
   }
-  const text = `exit ${result.code}\n${normalizeText(result.stdout, context)}\n--- stderr ---\n${normalizeText(result.stderr, context)}`;
-  return outputShape(context.undo?.output ? context.undo.output(step, text) : text);
+  return outputShape(`exit ${result.code}\n${normalizeText(result.stdout, context)}\n--- stderr ---\n${normalizeText(result.stderr, context)}`);
 }
 
 // The hash of every file under the target. A checksum of a file's raw content
@@ -124,13 +119,9 @@ async function treeShape(context) {
   for (const relativePath of (await fs.readdir(context.target, { recursive: true })).sort()) {
     const absolutePath = path.join(context.target, relativePath);
     if (!(await fs.lstat(absolutePath)).isFile()) continue;
-    const posixPath = relativePath.split(path.sep).join('/');
-    const read = await fs.readFile(absolutePath, 'utf8');
-    const content = context.undo?.file ? context.undo.file(posixPath, read) : read;
-    raw[posixPath] = content;
-    // Keyed by what is on disk (what a state or journal records), valued by
-    // the content as compared.
-    checksums.set(sha256(read), sha256(normalizeText(content, context)));
+    const content = await fs.readFile(absolutePath, 'utf8');
+    raw[relativePath.split(path.sep).join('/')] = content;
+    checksums.set(sha256(content), sha256(normalizeText(content, context)));
   }
   return Object.fromEntries(Object.entries(raw).map(([relativePath, content]) => [
     relativePath,
@@ -138,23 +129,23 @@ async function treeShape(context) {
   ]));
 }
 
-export async function collectRepoModeRuns(rootDirectory, makeTarget, undo = undefined) {
+export async function collectRepoModeRuns(rootDirectory, makeTarget) {
   const version = await packageVersionOf(rootDirectory);
   const runs = {};
   for (const runtime of guardedRuntimeLists) {
-    const context = { target: await fs.realpath(await makeTarget()), version, undo };
+    const context = { target: await fs.realpath(await makeTarget()), version };
     const init = ['init', '--target', context.target, '--runtime', runtime];
     runs[runtime] = {
-      initDryRun: await runCli(rootDirectory, init, context, 'initDryRun'),
-      initApply: await runCli(rootDirectory, [...init, '--apply', '--yes'], context, 'initApply'),
+      initDryRun: await runCli(rootDirectory, init, context),
+      initApply: await runCli(rootDirectory, [...init, '--apply', '--yes'], context),
       tree: await treeShape(context),
-      doctor: await runCli(rootDirectory, ['doctor', '--target', context.target], context, 'doctor'),
-      updateDryRun: await runCli(rootDirectory, ['update', '--target', context.target], context, 'updateDryRun')
+      doctor: await runCli(rootDirectory, ['doctor', '--target', context.target], context),
+      updateDryRun: await runCli(rootDirectory, ['update', '--target', context.target], context)
     };
   }
-  const context = { target: await fs.realpath(await makeTarget()), version, undo };
+  const context = { target: await fs.realpath(await makeTarget()), version };
   await fs.mkdir(path.join(context.target, '.claude', 'settings.json'), { recursive: true });
-  runs.settingsFolder = await runCli(rootDirectory, ['init', '--target', context.target, '--runtime', 'claude'], context, 'settingsFolder');
+  runs.settingsFolder = await runCli(rootDirectory, ['init', '--target', context.target, '--runtime', 'claude'], context);
   return runs;
 }
 

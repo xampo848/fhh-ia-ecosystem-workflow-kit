@@ -21,7 +21,7 @@ What the installed workflow does:
 One neutral source of truth lives in `.agents/`; runtime files such as
 `CLAUDE.md` or `AGENTS.md` are thin adapters that point back to it.
 
-> Status: public GitHub install, version `0.23.1-script-guards`. The CLI and
+> Status: public GitHub install, version `0.23.2-apply-recovery`. The CLI and
 > TUI install, update, export, check, and roll back the workflow, with dry-run
 > by default and backups before every overwrite. The package is intentionally
 > **not published to npm**.
@@ -43,7 +43,7 @@ workflow-kit --help
 ```
 
 `main` installs the latest merged version. To pin a release instead, append
-`#<tag>`, for example `#v0.23.1-script-guards`; every released version has a
+`#<tag>`, for example `#v0.23.2-apply-recovery`; every released version has a
 `v<version>` tag, listed on the repository's
 [Releases page](https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/releases).
 SSH install and access details:

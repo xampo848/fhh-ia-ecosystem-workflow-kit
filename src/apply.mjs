@@ -30,7 +30,7 @@ export function applyJournalProblem(journal) {
     && insideTarget(entry.relativePath) && journalActions.has(entry.action)
     && (entry.backup == null || insideTarget(entry.backup)) && stringOrNull(entry.writtenChecksum ?? null)
     && stringOrNull(entry.previousChecksum ?? null))
-    // Written by versions after 0.23.0: the folders the run created and its process id.
+    // Written since 0.23.2: the folders the run created and its process id.
     && (journal.createdDirectories === undefined || (Array.isArray(journal.createdDirectories) && journal.createdDirectories.every(insideTarget)))
     && (journal.pid === undefined || Number.isInteger(journal.pid))
     && stringOrNull(journal.stateChecksum ?? null);
