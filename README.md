@@ -21,7 +21,7 @@ What the installed workflow does:
 One neutral source of truth lives in `.agents/`; runtime files such as
 `CLAUDE.md` or `AGENTS.md` are thin adapters that point back to it.
 
-> Status: public GitHub install, version `0.23.3-strict-cli`. The CLI
+> Status: public GitHub install, version `0.23.4-docs-sync`. The CLI
 > installs, updates, exports, checks and rolls back the workflow (the TUI does
 > all of that except rollback), with dry-run by default and backups before
 > every overwrite. The package is intentionally

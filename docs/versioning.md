@@ -67,6 +67,7 @@ accepted only when it is the tip of a branch or tag, so use the full hash.
 
 | Version | Commit on `main` |
 | --- | --- |
+| `0.23.4-docs-sync` | the squash merge of this release; its hash is added after the merge |
 | `0.23.3-strict-cli` | `96ec070136314053080535e3c40ce73c874268d7` |
 | `0.23.2-apply-recovery` | `0699ed2ec7e45ad0937a2f315b31aabc2938951d` |
 | `0.23.1-script-guards` | `f0bfc61123e866d9b258212f3224f4a8a6bff229` |
