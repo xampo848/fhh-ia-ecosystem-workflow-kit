@@ -12,7 +12,7 @@ import { applyJournalRelativePath } from '../src/apply.mjs';
 import { runCli } from '../src/cli.mjs';
 import { formatDoctorResult, runDoctor } from '../src/doctor.mjs';
 import { installStateRelativePath } from '../src/planner.mjs';
-import { pluginListTimeoutMs } from '../src/plugin-mode.mjs';
+import { kitLocationBlockName, pluginAdapterContent, pluginListTimeoutMs } from '../src/plugin-mode.mjs';
 import { createMemoryIo, hashTree, makeTempRepo } from './helpers.mjs';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -272,6 +272,36 @@ test('AC-19: doctor on a repo-mode install runs no command and prints no install
     'Diagnostics:'
   ]);
   assert.deepEqual(result.diagnostics.map((item) => item.code), ['project-context/not-initialized']);
+});
+
+// QA-3 (D16, AC-19): in repo mode an entrypoint with the kit's block whose
+// runtime is not recorded is what 558e9fb leaves for a dropped runtime, so
+// doctor reports exactly what it reported before; only one that still carries
+// the kit-location block (a mixed state) is mode/adapter-not-tracked.
+test('AC-19: in repo mode an untracked adapter is mode/adapter-not-tracked only when it carries the kit-location block', async () => {
+  const template = await adapterTemplate('agents-md/AGENTS.md');
+  const cases = [
+    { name: 'the kit managed block, no kit-location', content: template, warned: false },
+    { name: 'a kit-location block', content: pluginAdapterContent(template, 'workflow-kit:managed'), warned: true }
+  ];
+  for (const { name, content, warned } of cases) {
+    const target = await install('claude', 'repo');
+    const { calls, executor } = executorDouble(installed(packageJson.version));
+    const baseline = await doctor(target, executor);
+    await write(target, 'AGENTS.md', content);
+    assert.equal(content.includes(kitLocationBlockName), warned, name);
+
+    const result = await doctor(target, executor);
+
+    assert.deepEqual(calls, [], name);
+    if (!warned) {
+      assert.equal(formatDoctorResult(result), formatDoctorResult(baseline), name);
+      continue;
+    }
+    const finding = assertFinding(result, 'mode/adapter-not-tracked', 'AGENTS.md', ['does not track or refresh it', '`workflow-kit update --runtime claude,codex`', 'delete the file'], 'warning');
+    assert.equal(finding.message.includes('no longer'), false, finding.message);
+    assert.deepEqual(result.diagnostics.filter((item) => item !== finding), baseline.diagnostics, name);
+  }
 });
 
 // D15: a value the project chose in its settings file is reported as that

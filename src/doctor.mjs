@@ -13,7 +13,7 @@ import { classifyPath, currentPathFor, defaultBlockName, extractManagedBlock, is
 import { backupFileMarker, layoutMigrationId, projectIndexPath, projectIndexTableRows, shadowManifestName, skillsRoot, unquote, walkTree } from './migration.mjs';
 import {
   claudePluginEnableCommand, claudePluginListHint, claudePluginUpdateCommand, copilotPluginListCommand, inspectInstalledPlugins, inspectPluginSettings,
-  kitMarketplaceEntry, marketplaceEntryKey, pluginAdapterContent, pluginBranch, pluginDeclarationFragment, pluginEntryKey, pluginId, pluginInstallCommand
+  kitLocationBlockName, kitMarketplaceEntry, marketplaceEntryKey, pluginAdapterContent, pluginBranch, pluginDeclarationFragment, pluginEntryKey, pluginId, pluginInstallCommand
 } from './plugin-mode.mjs';
 import { pluginRuntimes, pluginSettingsPaths, runtimeEntrypoints, supportedRuntimes } from './runtime-matrix.mjs';
 import { validateWorkflowContract } from './workflow-contract/index.mjs';
@@ -217,10 +217,13 @@ async function declarationDiagnostics({ targetPath, runtimes }) {
 
 // D16: an entrypoint with a workflow-kit block that neither a recorded
 // runtime nor install-state claims (a runtime left out by an update, or a
-// switch) is a project file the kit no longer refreshes. The finding names
-// the update that takes it back (for the runtimes it most likely belongs to:
-// the ones with most such entrypoints) and that deleting it drops it. A file
-// doctor cannot read is skipped.
+// switch) is a project file the kit does not track or refresh. In repo mode
+// only one that still carries the kit-location block is reported (a real mix
+// of modes): one with the repo-mode block is what 558e9fb leaves for a
+// dropped runtime, and repo-mode doctor stays as it was (AC-19). The finding
+// names the update that takes it back (for the runtimes it most likely
+// belongs to: the ones with most such entrypoints) and that deleting it drops
+// it. A file doctor cannot read is skipped.
 async function untrackedAdapterDiagnostics({ targetPath, manifest, state, pluginMode }) {
   if (!state) return [];
   const recorded = state.runtimes.filter((runtime) => runtime !== 'neutral');
@@ -229,7 +232,8 @@ async function untrackedAdapterDiagnostics({ targetPath, manifest, state, plugin
   for (const relativePath of new Set(Object.values(runtimeEntrypoints).flat())) {
     if (claimed.has(relativePath) || Object.hasOwn(state.files, relativePath) || classifyPath(manifest, relativePath)?.class !== 'adapter') continue;
     const content = await readOptional(resolveInsideTarget(targetPath, relativePath)).catch(() => null);
-    if (content !== null && !extractManagedBlock(content, classifyPath(manifest, relativePath)?.block ?? defaultBlockName).error) untracked.add(relativePath);
+    if (content === null || extractManagedBlock(content, classifyPath(manifest, relativePath)?.block ?? defaultBlockName).error) continue;
+    if (pluginMode || !extractManagedBlock(content, kitLocationBlockName).error) untracked.add(relativePath);
   }
   const keepCommand = (runtime) => `workflow-kit update${pluginMode && !pluginRuntimes.includes(runtime) ? ' --mode repo' : ''} --runtime ${[...recorded, runtime].join(',')}`;
   return [...untracked].sort().map((relativePath) => {
@@ -238,7 +242,7 @@ async function untrackedAdapterDiagnostics({ targetPath, manifest, state, plugin
     const best = Math.max(...candidates.map(score));
     const commands = candidates.filter((runtime) => score(runtime) === best).map((runtime) => `\`${keepCommand(runtime)}\``);
     const keep = commands.length > 1 ? `${commands.slice(0, -1).join(', ')} or ${commands.at(-1)}` : commands[0];
-    return warning('mode/adapter-not-tracked', relativePath, `This entrypoint has a workflow-kit block, but its runtime is not recorded in install-state, so workflow-kit no longer refreshes it. To keep it, run ${keep}; to drop it, delete the file.`);
+    return warning('mode/adapter-not-tracked', relativePath, `This entrypoint has a workflow-kit block, but its runtime is not recorded in install-state, so workflow-kit does not track or refresh it. To keep it, run ${keep}; to drop it, delete the file.`);
   });
 }
 

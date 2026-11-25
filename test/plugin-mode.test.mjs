@@ -243,7 +243,6 @@ test('AC-7: the settings declaration is created, merged keeping other keys and o
 // that works; for T3 the test runs that command.
 test('AC-8: --mode stops name the next command, write nothing, and the named command works', async () => {
   const cases = [
-    { name: 'unknown mode value', args: (target) => ['init', '--target', target, '--mode', 'cloud'], names: [/repo/, /plugin/], next: (target) => `workflow-kit init --target ${target} --mode repo` },
     { name: 'runtime without plugin (T3)', args: (target) => ['init', '--target', target, '--mode', 'plugin', '--runtime', 'codex'], names: [/--runtime claude,copilot/], next: () => 'workflow-kit init --mode repo --runtime codex' },
     { name: 'no runtime (T3)', args: (target) => ['init', '--target', target, '--mode', 'plugin'], names: [/--runtime claude,copilot/], next: () => 'workflow-kit init --mode repo' },
     { name: 'export (T12)', args: (target) => ['export', '--output', target, '--mode', 'plugin'], names: [/export has no install mode/], next: () => 'workflow-kit export --output <path>' },
@@ -269,6 +268,46 @@ test('AC-8: --mode stops name the next command, write nothing, and the named com
   }
   assert.equal(parseArgs(['init', '--mode', 'plugin']).mode, 'plugin');
   assert.equal(parseArgs(['update', '--mode', 'repo']).mode, 'repo');
+});
+
+// QA-2: an invalid --mode value never picks a mode for the user. update names
+// itself without --mode (it keeps the recorded mode); init names both values.
+// Either way the named commands drop --apply and --yes, so they are dry runs:
+// the test runs each one and nothing is written.
+test('AC-8: an invalid --mode value names dry-run commands that keep the recorded mode (update) or name both modes (init)', async () => {
+  const cases = [
+    {
+      name: 'update on a plugin install',
+      install: pluginInstall,
+      args: ['update', '--mode', 'plugn'],
+      commands: (target) => [`workflow-kit update --target ${target}`]
+    },
+    {
+      name: 'init',
+      install: async () => {},
+      args: ['init', '--mode', 'Plugin', '--runtime', 'claude'],
+      commands: (target) => ['repo', 'plugin'].map((mode) => `workflow-kit init --target ${target} --runtime claude --mode ${mode}`)
+    }
+  ];
+  for (const { name, install, args, commands } of cases) {
+    const target = await makeTempRepo();
+    await install(target);
+    const before = await hashTree(target);
+    const stop = await cli([args[0], '--target', target, ...args.slice(1), '--apply', '--yes']);
+    assert.notEqual(stop.code, 0, name);
+    assert.match(stop.stderr, /Valid values: repo, plugin/, name);
+    assert.match(stop.stderr, /Nothing was written/, name);
+    const named = [...stop.stderr.matchAll(/`(workflow-kit [^`]*)`/g)].map((match) => match[1]);
+    assert.deepEqual(named, commands(target), `${name}\n${stop.stderr}`);
+    assert.deepEqual(await hashTree(target), before, `${name}: the stop writes nothing`);
+    for (const command of named) {
+      assert.equal(/--apply|--yes/.test(command), false, `${name}: ${command} is a dry run`);
+      const run = await cli(command.split(' ').slice(1));
+      assert.equal(run.code, 0, `${name}: ${command}\n${run.stderr}`);
+      assert.deepEqual(await hashTree(target), before, `${name}: ${command} writes nothing`);
+    }
+    if (args[0] === 'update') assert.equal((await stateOf(target)).mode, 'plugin', name);
+  }
 });
 
 // D2: the plugin ships the default profile; a project with another profile
@@ -921,10 +960,12 @@ test('F2 (D16): dropping copilot in plugin mode removes its declaration and agen
   const result = await runDoctor({ targetPath: target });
   assert.equal(result.ok, true, JSON.stringify(result.diagnostics, null, 2));
   assert.deepEqual(result.diagnostics.filter((item) => item.code === 'mode/repo-and-plugin'), []);
-  assertUntracked(result, copilotAdapters, 'workflow-kit update --runtime claude,copilot');
+  // QA-3: in repo mode the adapters left out carry the repo-mode block, which
+  // is what 558e9fb leaves for a dropped runtime: no warning.
+  assertUntracked(result, [], 'none');
 });
 
-test('F3 (D16): leaving plugin mode with another runtime list takes kit-location out of every adapter, untracks the ones left out, and doctor names the command that keeps them', async () => {
+test('F3 (D16): leaving plugin mode with another runtime list takes kit-location out of every adapter and untracks the ones left out; repo-mode doctor does not warn about them, and the update that keeps them works', async () => {
   const cases = [
     { init: 'claude,copilot', runtime: 'claude', untracked: runtimeEntrypoints.copilot, keep: 'claude,copilot' },
     { init: 'claude', runtime: 'codex', untracked: ['CLAUDE.md'], keep: 'codex,claude' }
@@ -948,7 +989,7 @@ test('F3 (D16): leaving plugin mode with another runtime list takes kit-location
     for (const name of init.split(',')) assert.equal(await declaresPlugin(target, settingsPaths[name]), false, `${label}: ${settingsPaths[name]}`);
     const result = await runDoctor({ targetPath: target });
     assert.equal(result.ok, true, `${label}: ${JSON.stringify(result.diagnostics, null, 2)}`);
-    assertUntracked(result, untracked, `workflow-kit update --runtime ${keep}`);
+    assertUntracked(result, [], 'none');
 
     const kept = await cli(['update', '--target', target, '--runtime', keep, '--apply', '--yes']);
     assert.equal(kept.code, 0, `${label}: ${kept.stderr}`);

@@ -381,9 +381,12 @@ These stop without writing and name the command to run next:
   The pattern also matches backups of earlier applies, so read the list first.
 - `docs/README.md` keeps its docs-workflow block; its links resolve under the
   kit root, where the plugin carries `docs/workflow/`.
-- A runtime you leave out of the switch keeps its adapters as project files,
-  and `doctor` lists them (`mode/adapter-not-tracked`). Drop a runtime in a
-  separate `update`, before the switch, not in the same command.
+- A runtime you leave out of the switch keeps its adapters as project files.
+  When the install ends in plugin mode, `doctor` lists them
+  (`mode/adapter-not-tracked`). When it ends in repo mode, those adapters get
+  the repo-mode block back and `doctor` stays silent, as for any runtime
+  dropped in repo mode. Drop a runtime in a separate `update`, before the
+  switch, not in the same command.
 
 ### Settings files
 

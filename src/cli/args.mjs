@@ -31,6 +31,11 @@ function withoutMode(args) {
   return args.filter((arg, index) => arg !== '--mode' && args[index - 1] !== '--mode');
 }
 
+// A suggestion after a wrong --mode value is a dry run: it never applies.
+function asDryRun(args) {
+  return args.filter((arg) => arg !== '--apply' && arg !== '--yes');
+}
+
 function assertModeOption(command, rest, mode) {
   const valid = `Valid values: ${installModes.join(', ')}; --mode applies only to ${modeCommands.join(' and ')}.`;
   if (command === 'export') {
@@ -39,10 +44,13 @@ function assertModeOption(command, rest, mode) {
   if (!modeCommands.includes(command)) {
     throw new Error(`--mode does not apply to ${command}. ${valid} Run \`${commandLine([command, ...withoutMode(rest)])}\` without it. Nothing was written.`);
   }
+  // A wrong value never picks a mode for the user: update keeps the mode the
+  // install records, and init names each valid value.
   if (!installModes.includes(mode)) {
-    const repoArgs = [...rest];
-    repoArgs[repoArgs.lastIndexOf('--mode') + 1] = 'repo';
-    throw new Error(`Unsupported --mode value "${mode}". ${valid} For example: \`${commandLine([command, ...repoArgs])}\`. Nothing was written.`);
+    const next = command === 'update'
+      ? `Without --mode, update keeps the mode this install records; see its plan with \`${commandLine([command, ...asDryRun(withoutMode(rest))])}\`.`
+      : `See the plan of each mode with ${installModes.map((value) => `\`${commandLine([command, ...asDryRun(withoutMode(rest)), '--mode', value])}\``).join(' or ')}.`;
+    throw new Error(`Unsupported --mode value "${mode}". ${valid} ${next} Nothing was written.`);
   }
 }
 
