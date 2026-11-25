@@ -12,7 +12,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   expectedMarketplace,
   expectedPluginFiles,
@@ -1207,4 +1207,21 @@ test('--publish builds on origin/plugin when there is no local branch, and refus
     assert.doesNotMatch(result.stderr, /--force|reset|rebase/);
     assert.equal(git.refs(), before);
   });
+});
+
+test('--publish runs the build and the legal check of the source commit without the NODE_OPTIONS it inherits', async () => {
+  const { root, publish } = await gitFixture();
+  const probeDir = await makeTempRepo('workflow-kit-plugin-node-options-');
+  const log = path.join(probeDir, 'loaded.log');
+  const probe = path.join(probeDir, 'probe.mjs');
+  // Preloaded into every node process that honours NODE_OPTIONS: it records
+  // the command line, so the test can tell the publishing script from the
+  // processes it starts on the source commit.
+  await fs.writeFile(probe, `import fs from 'node:fs';\nfs.appendFileSync(${JSON.stringify(log)}, process.argv.slice(1).join(' ') + '\\n');\n`, 'utf8');
+  const result = publish([], { NODE_OPTIONS: `--import=${pathToFileURL(probe).href}` });
+  assert.equal(result.status, 0, result.stderr);
+  const loaded = (await fs.readFile(log, 'utf8')).trim().split('\n');
+  assert.ok(loaded.some((line) => line.includes('--publish')), 'the publishing script itself still honours its environment');
+  assert.ok(!loaded.some((line) => line.includes('--out') || line.includes('--input-type')), `a process on the source commit loaded NODE_OPTIONS: ${loaded.join(' | ')}`);
+  assert.ok(existsSync(path.join(root, 'dist/plugin/plugin.json')));
 });

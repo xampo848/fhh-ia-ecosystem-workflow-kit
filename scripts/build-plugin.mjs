@@ -578,8 +578,11 @@ async function exportHead({ runOk, gitEnv, folder }) {
 
 // Runs node on the exported source commit with the sanitized environment: the
 // code that runs is the commit's, never a file of the working tree.
+// NODE_OPTIONS is dropped too: an inherited --import or --require would run
+// code that is not the commit's inside that process.
 function runSourceNode(sourceRoot, args, env) {
-  const result = spawnSync(process.execPath, args, { cwd: sourceRoot, env, encoding: 'utf8' });
+  const { NODE_OPTIONS: _ignored, ...sourceEnv } = env;
+  const result = spawnSync(process.execPath, args, { cwd: sourceRoot, env: sourceEnv, encoding: 'utf8' });
   if (result.error) throw new Error(`Refusing to publish: could not run node on the source commit: ${result.error.message}`);
   return result;
 }
