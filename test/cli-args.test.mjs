@@ -287,3 +287,27 @@ test('init --mode plugin --profile without --runtime gets the plugin-mode stop, 
   assert.match(help.output.stdout, /^tui: Guided menu for init, update, export, doctor, rollback and upgrade\.$/m);
   assert.doesNotMatch(help.output.stdout + printHelp(), /all of the above/);
 });
+
+// A stop message names a command to run; the stricter parser must accept every
+// one of them. The commands that carry flags are found in the source of the
+// modules that print them (doctor's are run as printed in doctor.test.mjs).
+test('every command a stop message or summary prints with flags is accepted by the parser', async () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const files = (await fs.readdir(path.join(root, 'src'), { recursive: true })).filter((file) => file.endsWith('.mjs') && !['cli/args.mjs', 'doctor.mjs'].includes(file));
+  const commands = new Set();
+  for (const file of files) {
+    const source = await fs.readFile(path.join(root, 'src', file), 'utf8');
+    for (const match of source.matchAll(/workflow-kit (init|update|upgrade|export|doctor|rollback)( --[^`'"\\\n]*)?/g)) {
+      const filled = match[0]
+        .replace(/<runtime>=<[^>]*>/g, 'claude=calidad').replace(/\$\{[^}]*\}/g, 'claude').replace(/<list>|<lista>/g, 'claude')
+        .replace(/<repo>|<ruta>/g, '/tmp/r').replace(/<path>/g, 'a.md').replace(/<decision>/g, 'keep')
+        .replace(/ \(.*$/, '').replace(/ (again|next|to|in|failed|stopped|para)\b.*$/, '').trim();
+      commands.add(filled);
+    }
+  }
+  assert.ok(commands.size >= 8, [...commands].join('\n'));
+  for (const command of commands) {
+    const [, name, ...args] = command.split(/\s+/);
+    assert.doesNotThrow(() => parseArgs([name, ...args]), command);
+  }
+});
