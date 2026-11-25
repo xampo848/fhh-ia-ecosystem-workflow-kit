@@ -110,11 +110,15 @@ usually means a manual edit or a copy from another project. Do not fix the
 agent by hand; run the fix `doctor` prints. It is one command that carries the
 absolute `--target` and, for an agent that the update plan holds as an edited
 kit file, the `--edited <path>=discard` decision, so it runs as printed from
-any folder. The generic form is:
+any folder and settles the error (the discarded file keeps a backup). For an
+edited Claude Code agent it looks like this:
 
 ```bash
-workflow-kit update --target /path/to/repo --profile claude=calidad --apply --yes
+workflow-kit update --target /path/to/repo --profile claude=calidad --edited .claude/agents/<agent>.md=discard --apply --yes
 ```
+
+Without `--edited`, a plain `update --profile` leaves an edited agent as it is
+and the error stays.
 
 Use the profile you actually want (`calidad` for subscriptions, `equilibrado`
 for subscriptions that often hit their weekly limits, `costo` for Copilot or
@@ -215,7 +219,6 @@ plan. Run the one you want as printed, from any folder.
 | `boundary/pending-retired_edited` | warning | the kit no longer ships this file and you edited it | delete it, or keep it as project content outside the kit folders |
 | `boundary/pending-symlink`, `-project_skill_exists`, `-kit_skill_name`, `-invalid_skill_name`, `-mixed_with_kit_files`, `-binary_file` | warning | an own skill could not move to the overlay during the migration | follow the step in the message, move the folder by hand to `.agents/project/skills/<name>/` and add its row to `.agents/project/index.md` |
 | `target/not-found` | error | `--target` is not a folder, or does not exist | check `--target`: `doctor` checks the folder of a project where workflow-kit is installed |
-| `managed/file-empty` | error | a kit file or adapter is empty, so the agent finds no rules in it | run the `update` command in the message: it takes the kit version back, with a backup |
 | `mode/kit-location-missing` | error | plugin mode: an adapter's workflow-kit block lost its `kit-location` block | run the `update` command in the message; it restores the block with a backup |
 | `boundary/pending-legacy_path_unsupported` | warning | the legacy context is not UTF-8 text or a folder is in the way | fix the file, then run `update` |
 | `boundary/pending-catalog_row_not_moved` | warning | a project row of an old catalog could not be moved | add it to `.agents/project/index.md` by hand |
@@ -283,12 +286,17 @@ git rm --cached .agents/workflow-kit/last-apply.json
 `install-state.json` in the same directory stays versioned: it records which
 files the kit manages.
 
-In TUI update mode, when managed local edits are detected, workflow-kit now asks what to do:
+In the TUI update flow, when managed files have local edits, it asks what to
+do with them:
 
-- protect local edits (keep `skip_modified`)
-- overwrite with backup (apply update and keep a restore copy)
+- `Conservar mis ediciones (recomendado)`: every edited file stays as it is and
+  the next update lists it again;
+- `Reemplazar todos los archivos editados por la versión del kit`: a backup of
+  your version is saved first;
+- `Decidir archivo por archivo`: one question per file, with only the choices
+  that apply to it.
 
-Choose overwrite only when you intentionally want toolkit content to replace local changes.
+Replace only when you intentionally want kit content to replace local changes.
 
 ## Unsupported runtime
 

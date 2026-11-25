@@ -142,11 +142,11 @@ Apply the latest `main` version to your machine:
 workflow-kit upgrade --apply --yes
 ```
 
-`upgrade` checks the ref before it removes the installed version (a branch or
-tag by name; a full 40-character commit hash by fetching it; a short hash only
-when it is the tip of a branch or tag), so a mistyped ref or a network failure
-changes nothing. To
-pin a version, pass a tag or, for versions without a tag, a full commit hash
+`upgrade` needs `git` and `bun` on your `PATH`. It checks the ref before it
+removes the installed version (a branch or tag by name; a full 40-character
+commit hash by fetching it; a short hash only when it is the tip of a branch or
+tag), so a mistyped ref, a network failure or a missing `git` changes nothing.
+To pin a version, pass a tag or, for versions without a tag, a full commit hash
 (the remote has tags only up to `v0.17.3-contract-gaps`; see
 [Versioning](versioning.md)):
 
@@ -164,6 +164,11 @@ the new version.
 workflow-kit tui
 ```
 
+The menu is in Spanish and has no `rollback` option (run that command). It needs an interactive terminal: without one (a pipe,
+a script, CI) it exits with code 2 and writes nothing, so use the commands
+there. Yes/no questions accept `sí`, `si`, `s` or `no`, `n` (also `yes`, `y`),
+and ask again on any other answer.
+
 The first screen, `¿Qué quieres hacer?`, offers these options:
 
 | Option | What it acts on | CLI equivalent |
@@ -176,14 +181,15 @@ The first screen, `¿Qué quieres hacer?`, offers these options:
 | `Instalar solo herramientas opcionales (MCP)` | optional MCP tools, no workflow files | — |
 
 After the first screen the flow asks, in order and only when it applies:
-the project path; the runtimes; the install mode (repo or plugin; asked on
-`Instalar`, only when every chosen runtime has a plugin); the model profile
-(on install and export, once per Claude Code or Codex runtime; `Actualizar`
-keeps the stored one); the stack pack (on install, or on an update whose
-install predates stack packs; the detected stack is preselected); the backup
-mode and which files to change; and finally the apply confirmation. Choosing
-`Exportar`, `Revisar` or `Actualizar workflow-kit` skips the questions that
-do not apply to it.
+the project path (`Elegir el proyecto`); the runtimes (`Adaptadores de
+runtime`); the install mode (repo or plugin; asked on `Instalar`, only when
+every chosen runtime has a plugin); the model profile (on install and export,
+once per Claude Code or Codex runtime; `Actualizar` keeps the stored one); the
+stack pack (on install, or on an update whose install predates stack packs; the
+detected stack is preselected); the backup mode (`Backups al escribir`) and
+which files to change (`Elige los archivos a modificar`); and finally the apply
+confirmation (`Confirmar`). Choosing `Exportar`, `Revisar` or `Actualizar
+workflow-kit` skips the questions that do not apply to it.
 
 Updating the tool and updating a project are separate: after
 `Actualizar workflow-kit (esta herramienta)`, launch the TUI again and choose
@@ -191,7 +197,7 @@ Updating the tool and updating a project are separate: after
 
 Every flow that writes shows a preview before asking whether to write. The default confirmation writes nothing.
 It can also open an optional capability guide (Context7, Engram, codebase-memory-mcp) with source/scope/mode confirmation and official install commands.
-The install package is fixed to `Full FHH IA Ecosystem`.
+The install package is fixed to `FHH IA Ecosystem completo`.
 
 ## 7. Export templates without treating the output as a repo install
 
@@ -424,7 +430,8 @@ A settings file that repeats a key (two `enabledPlugins` objects, for example)
 is left as it is: rewriting it would keep only the last one. The plan lists it
 as `skip_unmanaged` with the reason `duplicate_settings_key`, and `doctor`
 names the repeated key in `mode/plugin-not-declared`. Remove the repeated key,
-then run `init` or `update` again.
+then run `init` or `update` again. An empty or blank settings file is not an
+error: the plan fills it (`merge_with_backup`).
 
 For plugin mode the kit adds two entries to `.claude/settings.json` and
 `.github/copilot/settings.json`: `extraKnownMarketplaces["fhh-ia-ecosystem"]`

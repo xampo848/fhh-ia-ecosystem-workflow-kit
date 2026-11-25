@@ -21,9 +21,10 @@ What the installed workflow does:
 One neutral source of truth lives in `.agents/`; runtime files such as
 `CLAUDE.md` or `AGENTS.md` are thin adapters that point back to it.
 
-> Status: public GitHub install, version `0.23.3-strict-cli`. The CLI and
-> TUI install, update, export, check, and roll back the workflow, with dry-run
-> by default and backups before every overwrite. The package is intentionally
+> Status: public GitHub install, version `0.23.3-strict-cli`. The CLI
+> installs, updates, exports, checks and rolls back the workflow (the TUI does
+> all of that except rollback), with dry-run by default and backups before
+> every overwrite. The package is intentionally
 > **not published to npm**.
 
 ## GitHub install
@@ -110,16 +111,19 @@ apply in both. Example prompts for each phase are in
 | --- | --- |
 | `init` | Plans or applies a first install of the workflow into `--target`. |
 | `update` | Updates the workflow installed in a project (`--target`) to this workflow-kit version. Refreshes only the files workflow-kit manages; protects your local edits. |
-| `upgrade` | Updates `workflow-kit` itself (this tool) on your machine; it does not change any project (it checks the ref before removing the installed version: a full commit hash is fetched, a short one is accepted only as a branch or tag tip). |
+| `upgrade` | Updates `workflow-kit` itself (this tool) on your machine; it does not change any project (it needs `git`, and checks the ref before removing the installed version: a full commit hash is fetched, a short one is accepted only as a branch or tag tip). |
 | `export` | Writes the templates to `--output` without treating it as an install. |
 | `doctor` | Checks installed files and workflow semantics; prints stable diagnostic codes. |
 | `rollback` | Undoes the last applied `init`/`update`: restores changed files from their backups, removes files that run created, and restores the previous install state. |
-| `tui` | Guided menu for every command above plus optional capabilities; see [Guided TUI](docs/quickstart.md#6-guided-tui). |
+| `tui` | Guided menu (in Spanish) for `init`, `update`, `export`, `doctor`, `upgrade` and the optional capabilities; `rollback` is a command only; see [Guided TUI](docs/quickstart.md#6-guided-tui). |
 
 `workflow-kit --help` prints the full usage, and `workflow-kit <command> --help`
 the flags and notes of one command. A flag a command does not read is an
-error that names the flags it accepts, so nothing is dropped silently. `tui`
-needs an interactive terminal; in scripts use the other commands. Main flags:
+error that names the flags it accepts, so nothing is dropped silently. An empty
+value (`--target ''`) or a value flag given twice is an error too; these stop
+with exit code 2 and write nothing. `tui` is in Spanish and needs an
+interactive terminal (without one it exits with code 2); in scripts use the
+other commands. Main flags:
 
 | Flag | Meaning |
 | --- | --- |

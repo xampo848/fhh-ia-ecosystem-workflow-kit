@@ -59,7 +59,8 @@ workflow-kit upgrade --apply --yes
 workflow-kit update --target /path/to/repo --apply --yes
 ```
 
-`upgrade` checks the ref before it removes the installed version: a branch or tag by name, and a full
+`upgrade` needs `git` and `bun` on your `PATH`. It checks the ref before it
+removes the installed version: a branch or tag by name, and a full
 40-character commit hash by fetching that commit. A short commit hash is
 accepted only when it is the tip of a branch or tag, so use the full hash.
 
