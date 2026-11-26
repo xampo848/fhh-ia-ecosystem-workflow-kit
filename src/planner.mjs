@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isSupportedRuntime, pluginRuntimes, pluginSettingsPaths, runtimeEntrypoints, runtimeTemplatePaths, supportedRuntimes } from './runtime-matrix.mjs';
 import { defaultProfileFor, loadDelegateCatalog, modelProfileNames, parseProfileOption, renderClaudeAgent, renderCopilotAgent, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
-import { assertPluginRuntimes, carriesKitLocationMarker, compareVersionCores, kitLocationBlockName, planPluginSettings, planPluginSettingsRemoval, pluginAdapterContent, pluginName, runtimesDeclaringPlugin, withTarget } from './plugin-mode.mjs';
+import { assertPluginRuntimes, carriesKitLocationMarker, code, compareVersionCores, kitLocationBlockName, planPluginSettings, planPluginSettingsRemoval, pluginAdapterContent, pluginName, rollbackCommand, runtimesDeclaringPlugin, withTarget } from './plugin-mode.mjs';
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
 import { assertNameLengths, assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
@@ -184,13 +184,13 @@ export async function lastApplyProblem(targetPath) {
   // A rollback that started and did not finish leaves the repository partly
   // rolled back: it stops the next run like an unfinished apply (`message`
   // says which; doctor reports both as managed/apply-incomplete).
-  const message = unfinishedJournalMessage(journal);
+  const message = unfinishedJournalMessage(journal, targetPath);
   if (message === null) return null;
   return { kind: 'incomplete', appliedAt: journal.appliedAt ?? 'unknown date', ...(typeof journal.rollbackStartedAt === 'string' ? { rollback: true, message } : {}) };
 }
 
 export const unusableJournalMessage = (reason) => `${applyJournalRelativePath} cannot be read (${reason}), so rollback cannot use it. Fix it by hand (Git does not track it); only if you will not roll back the last apply, move it out of .agents/workflow-kit/`;
-export const incompleteApplyMessage = (appliedAt) => `The last workflow-kit apply did not finish (${appliedAt}). Run \`workflow-kit rollback --apply --yes\` first`;
+export const incompleteApplyMessage = (appliedAt, targetPath) => `The last workflow-kit apply did not finish (${appliedAt}). Run ${rollbackCommand(targetPath)} first`;
 
 // A journal that did not finish while another run holds the lock is that
 // run's own, still being written: say so instead of sending the user to roll
@@ -204,7 +204,7 @@ async function assertLastApplyFinished(targetPath) {
     if (holder) throw new Error(runInProgressMessage(holder));
   }
   if (problem?.kind === 'unusable') throw new Error(`${unusableJournalMessage(problem.reason)}. Then run this command again. Nothing was written.`);
-  if (problem?.kind === 'incomplete') throw new Error(`${problem.message ?? incompleteApplyMessage(problem.appliedAt)}, then run this command again. Nothing was written.`);
+  if (problem?.kind === 'incomplete') throw new Error(`${problem.message ?? incompleteApplyMessage(problem.appliedAt, targetPath)}, then run this command again. Nothing was written.`);
 }
 
 // Newer by the numeric release ("0.23.0-plugin-mode" reads as 0.23.0): the
@@ -271,12 +271,12 @@ async function assertNoInstallState(targetPath, manifest, { exporting = false, p
   // Plugin-mode stops name commands with --target, so they run from any
   // folder as printed; the repo-mode text stays as 558e9fb wrote it.
   if (state?.schemaVersion === legacyInstallStateSchemaVersion) {
-    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run \`${pluginMode ? applyCommand(withTarget('workflow-kit update', targetPath)) : 'workflow-kit update'}\` to migrate this repository${pluginMode ? `, then \`${pluginUpdateCommand(runtimeList, targetPath)}\`` : ''}; init would replace project content.${pluginMode ? `${noPluginNote(runtime)}${leftOutNote(runtimeList, state.runtimes, runtime)}` : ''} Nothing was written.`);
+    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run ${code(pluginMode ? applyCommand(withTarget('workflow-kit update', targetPath)) : withTarget('workflow-kit update', targetPath))} to migrate this repository${pluginMode ? `, then ${code(pluginUpdateCommand(runtimeList, targetPath))}` : ''}; init would replace project content.${pluginMode ? `${noPluginNote(runtime)}${leftOutNote(runtimeList, state.runtimes, runtime)}` : ''} Nothing was written.`);
   }
   if (state) {
     let pluginWay = '';
-    if (pluginMode) pluginWay = state.mode === 'export' ? ` ${exportIsACopy(runtimeList)}` : ` To use plugin mode, run \`${pluginUpdateCommand(runtimeList, targetPath)}\`.${noPluginNote(runtime)}${leftOutNote(runtimeList, state.runtimes, runtime)}`;
-    throw new Error(`${installStateRelativePath} already records an install (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}). Run \`workflow-kit update\` instead (with \`--runtime <list>\`, \`--stack\` or \`--profile\` to change those choices); init would reset the recorded runtimes, stack and profiles and replace pending edited files.${pluginWay} Nothing was written.`);
+    if (pluginMode) pluginWay = state.mode === 'export' ? ` ${exportIsACopy(runtimeList)}` : ` To use plugin mode, run ${code(pluginUpdateCommand(runtimeList, targetPath))}.${noPluginNote(runtime)}${leftOutNote(runtimeList, state.runtimes, runtime)}`;
+    throw new Error(`${installStateRelativePath} already records an install (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}). Run ${code(withTarget('workflow-kit update', targetPath))} instead (with \`--runtime <list>\`, \`--stack\` or \`--profile\` to change those choices); init would reset the recorded runtimes, stack and profiles and replace pending edited files.${pluginWay} Nothing was written.`);
   }
 }
 
@@ -303,10 +303,10 @@ function resolveUpdateMode(requestedMode, existingState, runtime, targetPath) {
     // M5: the bootstrap keeps every runtime asked for; the switch after it
     // names only those with a plugin, and the stop says which ones it leaves.
     const adoptList = runtime === undefined ? runtimeList : parseRuntimeList(runtime).join(',');
-    throw new Error(`update --adopt-existing --mode plugin: there is no install state to switch from. Run \`${applyCommand(withTarget(`workflow-kit update --adopt-existing --runtime ${adoptList}`, targetPath))}\` first to bootstrap a safe baseline, then \`${pluginUpdateCommand(runtimeList, targetPath)}\`.${noPluginNote(runtime)}${adoptList === runtimeList ? '' : leftOutNote(runtimeList, adoptList.split(','), runtime)} Nothing was written.`);
+    throw new Error(`update --adopt-existing --mode plugin: there is no install state to switch from. Run ${code(applyCommand(withTarget(`workflow-kit update --adopt-existing --runtime ${adoptList}`, targetPath)))} first to bootstrap a safe baseline, then ${code(pluginUpdateCommand(runtimeList, targetPath))}.${noPluginNote(runtime)}${adoptList === runtimeList ? '' : leftOutNote(runtimeList, adoptList.split(','), runtime)} Nothing was written.`);
   }
   if (existingState.schemaVersion === legacyInstallStateSchemaVersion) {
-    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}, and its layout migration has to run before a mode switch. Run \`${applyCommand(withTarget('workflow-kit update', targetPath))}\` first, then \`${pluginUpdateCommand(runtimeList, targetPath)}\`.${noPluginNote(runtime)}${leftOutNote(runtimeList, existingState.runtimes, runtime)} Nothing was written.`);
+    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}, and its layout migration has to run before a mode switch. Run ${code(applyCommand(withTarget('workflow-kit update', targetPath)))} first, then ${code(pluginUpdateCommand(runtimeList, targetPath))}.${noPluginNote(runtime)}${leftOutNote(runtimeList, existingState.runtimes, runtime)} Nothing was written.`);
   }
   if (existingState.mode === 'export') {
     throw new Error(`update --mode plugin: ${installStateRelativePath} records an export. ${exportIsACopy(runtimeList)} Nothing was written.`);
@@ -432,7 +432,7 @@ export async function buildUpdatePlan(options = {}) {
   await assertRawStateNotNewer(stateFilePath, options.toolkitVersion);
   const existingState = await readInstallState(stateFilePath, manifest);
   if (!existingState && !options.adoptExisting) {
-    throw new Error('No install state found. Run `workflow-kit update --adopt-existing --runtime <list>` first to bootstrap a safe baseline.');
+    throw new Error(`No install state found. Run ${code(withTarget('workflow-kit update --adopt-existing --runtime <list>', targetPath))} first to bootstrap a safe baseline.`);
   }
   assertStateNotNewer(existingState, options.toolkitVersion);
   const { mode: installMode, switchTo } = resolveUpdateMode(options.mode, existingState, options.runtime, targetPath);
@@ -817,7 +817,7 @@ function assertModeSwitchSettled(operations, runtimeFlag = '', targetPath = unde
   const discardable = pending.filter((item) => item.decisions?.includes('discard'));
   const fixByHand = discardable.length < pending.length ? 'Fix the markers of each file no --edited decision applies to, then run' : 'Run';
   const perFile = discardable.length > 0
-    ? `${fixByHand} \`${command} ${discardable.map((item) => `--edited ${item.relativePath}=discard`).join(' ')}\` (one \`--edited <path>=<decision>\` per file, all in the same command${discardable.some((item) => item.decisions.some((decision) => decision !== 'discard')) ? '; another decision listed for a file can replace discard' : ''}), or \`${command} --edited all=discard\` for all of them; a discarded file keeps a backup next to it.`
+    ? `${fixByHand} ${code(`${command} ${discardable.map((item) => `--edited ${item.relativePath}=discard`).join(' ')}`)} (one \`--edited <path>=<decision>\` per file, all in the same command${discardable.some((item) => item.decisions.some((decision) => decision !== 'discard')) ? '; another decision listed for a file can replace discard' : ''}), or \`${command} --edited all=discard\` for all of them; a discarded file keeps a backup next to it.`
     : 'Fix the markers of each file by hand, then switch.';
   throw new Error([
     `update --mode plugin switches this install from repo mode to plugin mode, and a switch is applied whole, so each file below needs a decision first.`,

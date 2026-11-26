@@ -57,7 +57,7 @@ function assertStopped(result, signal, label) {
   if (signal === 'SIGKILL') assert.equal(result.signal, 'SIGKILL', `${label}: ${result.stderr}`);
   else {
     assert.equal(result.code, { SIGINT: 130, SIGTERM: 143 }[signal], `${label}: ${result.stdout}\n${result.stderr}`);
-    assert.match(result.stderr, /workflow-kit rollback --apply --yes/, label);
+    assert.match(result.stderr, /workflow-kit rollback --target \S+ --apply --yes/, label);
   }
 }
 
@@ -578,7 +578,7 @@ test('a rollback stopped by SIGINT, SIGTERM or SIGKILL is recorded: update stops
     for (const args of [['update', '--target', target], ['update', '--target', target, '--apply', '--yes'], ['init', '--target', target, '--apply', '--yes']]) {
       const blocked = await cli(args);
       assert.equal(blocked.code, 2, `${signal}: ${args.join(' ')}`);
-      assert.match(blocked.stderr, /A workflow-kit rollback of the apply of .+ started \(.+\) and did not finish, so the repository is partly rolled back\. Run `workflow-kit rollback --apply --yes` again to finish it/, `${signal}: ${args.join(' ')}`);
+      assert.match(blocked.stderr, /A workflow-kit rollback of the apply of .+ started \(.+\) and did not finish, so the repository is partly rolled back\. Run `workflow-kit rollback --target \S+ --apply --yes` again to finish it/, `${signal}: ${args.join(' ')}`);
     }
     assert.deepEqual(await hashTree(target), partly, `${signal}: nothing written while it is pending`);
     const doctor = await runDoctor({ targetPath: target });

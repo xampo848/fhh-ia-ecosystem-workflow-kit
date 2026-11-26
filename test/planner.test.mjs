@@ -485,7 +485,7 @@ test('init over a 2.0.0 install stops before planning and points to update', asy
   await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nOwn rule.\n');
   const before = await hashTree(target);
 
-  await assert.rejects(buildInstallPlan({ targetPath: target, runtime: 'neutral' }), new Error(`${installStateRelativePath} already records an install (runtimes: claude). Run \`workflow-kit update\` instead (with \`--runtime <list>\`, \`--stack\` or \`--profile\` to change those choices); init would reset the recorded runtimes, stack and profiles and replace pending edited files. Nothing was written.`));
+  await assert.rejects(buildInstallPlan({ targetPath: target, runtime: 'neutral' }), new Error(`${installStateRelativePath} already records an install (runtimes: claude). Run \`workflow-kit update --target ${target}\` instead (with \`--runtime <list>\`, \`--stack\` or \`--profile\` to change those choices); init would reset the recorded runtimes, stack and profiles and replace pending edited files. Nothing was written.`));
 
   assert.deepEqual(await hashTree(target), before);
 });

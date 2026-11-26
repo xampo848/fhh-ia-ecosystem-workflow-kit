@@ -948,7 +948,7 @@ test('AC-14: T4, T5, T10, T11, T13, T17 and an incomplete apply stop without wri
       },
       args: ['update', '--mode', 'plugin'],
       names: ['did not finish', 'then run this command again'],
-      commands: ['workflow-kit rollback --apply --yes'],
+      commands: ['workflow-kit rollback --target <T> --apply --yes'],
       again: true
     }
   ];

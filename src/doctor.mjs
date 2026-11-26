@@ -12,7 +12,7 @@ import { applyJournalRelativePath, describeTargetLock } from './apply.mjs';
 import { blockMarkers, classifyPath, currentPathFor, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, projectIndexPath, projectIndexTableRows, shadowManifestName, skillsRoot, unquote, walkTree } from './migration.mjs';
 import {
-  carriesKitLocationMarker, claudePluginEnableCommand, claudePluginListHint, claudePluginUpdateCommand, cliUpgradeCommand, compareVersionCores, copilotPluginListCommand, inspectInstalledPlugins, inspectPluginSettings,
+  carriesKitLocationMarker, claudePluginEnableCommand, claudePluginListHint, claudePluginUpdateCommand, cliUpgradeCommand, code, kitCommand, compareVersionCores, copilotPluginListCommand, inspectInstalledPlugins, inspectPluginSettings,
   kitLocationBlockName, kitMarketplaceEntry, marketplaceEntryKey, pluginAdapterContent, pluginBranch, pluginDeclarationFragment, pluginEntryKey, pluginId, pluginInstallCommand, shellWord
 } from './plugin-mode.mjs';
 import { pluginRuntimes, pluginSettingsPaths, runtimeEntrypoints, supportedRuntimes } from './runtime-matrix.mjs';
@@ -30,16 +30,9 @@ function checksum(content) {
 const warning = (code, relativePath, message) => ({ code, path: relativePath, message, severity: 'warning' });
 const error = (code, relativePath, message) => ({ code, path: relativePath, message, severity: 'error' });
 
-// Every workflow-kit command doctor names carries the absolute target, quoted
-// for a shell, so it runs as printed from any folder (and never acts on the
-// folder it is pasted in).
-export function kitCommand(targetPath, subcommand, ...args) {
-  return ['workflow-kit', subcommand, '--target', targetPath, ...args].map(shellWord).join(' ');
-}
-// A command in a message, between backticks; one that holds a backtick (a
-// target path can) goes between double backticks, so the delimiter stays
-// unambiguous.
-const code = (command) => (command.includes('`') ? `\`\` ${command} \`\`` : `\`${command}\``);
+// Every workflow-kit command doctor names carries the absolute target
+// (kitCommand lives in plugin-mode.mjs, shared with planner, apply, rollback).
+export { kitCommand };
 // A project-scoped runtime command runs in the target.
 const inTarget = (targetPath, command) => `cd ${shellWord(targetPath)} && ${command}`;
 
@@ -115,15 +108,11 @@ function targetRepoContractDiagnostic(item) {
   return warning(item.code, item.path, `SKILL.md under .agents/skills/ that the kit registry does not list, so it is not kit content and the router does not load it. If a boundary/* finding names it or its folder, follow that; otherwise move the skill to ${projectSkillsHint} with a row in ${projectIndexPath}.`);
 }
 
-// The messages of the journal name `workflow-kit rollback --apply --yes`
-// without a target; pasted from another folder that would roll back that
-// folder, so doctor names the target.
-const bareRollback = '`workflow-kit rollback --apply --yes`';
 function journalDiagnostics(problem, targetPath) {
   if (problem?.kind === 'unusable') return [error('managed/apply-journal-unusable', applyJournalRelativePath, `${unusableJournalMessage(problem.reason)}. init and update stop until then.`)];
   if (problem?.kind === 'incomplete') {
     // An interrupted rollback has its own wording.
-    const message = (problem.message ?? incompleteApplyMessage(problem.appliedAt)).replaceAll(bareRollback, code(kitCommand(targetPath, 'rollback', '--apply', '--yes')));
+    const message = problem.message ?? incompleteApplyMessage(problem.appliedAt, targetPath);
     return [error('managed/apply-incomplete', applyJournalRelativePath, `${message}, then run init or update again.`)];
   }
   return [];

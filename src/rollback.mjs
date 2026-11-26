@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { rollbackCommand } from './plugin-mode.mjs';
 import { acquireTargetLock, applyJournalProblem, assertObservedUnchanged, assertTargetNotLocked, applyJournalRelativePath, freeBackupStamp, interruptedCode, observeTarget, removeCreatedDirectories, removeTemporaryLeftovers } from './apply.mjs';
 import { checksumOf, copyFileAtomic, findSymlinkInPath, resolveInsideTarget, writeFileAtomic } from './fs-safety.mjs';
 import { installStateRelativePath, readManagedInstallState } from './planner.mjs';
@@ -207,7 +208,7 @@ export async function applyRollbackPlan(plan, { signal } = {}) {
     const usedBackups = [];
     for (const item of plan.operations) {
       if (signal?.aborted) {
-        throw Object.assign(new Error(`Interrupted before ${item.relativePath}: rollback stopped between two files. Its journal stays; run \`workflow-kit rollback --apply --yes\` again to finish it.`), { code: interruptedCode });
+        throw Object.assign(new Error(`Interrupted before ${item.relativePath}: rollback stopped between two files. Its journal stays; run ${rollbackCommand(plan.targetPath)} again to finish it.`), { code: interruptedCode });
       }
       if (item.action === 'restore') {
         const keptCopy = copyStamp && item.keepsCopy ? await keepCurrentContent(item, copyStamp) : null;

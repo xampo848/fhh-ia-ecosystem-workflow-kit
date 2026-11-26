@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { rollbackCommand } from './plugin-mode.mjs';
 import { assertNoSymlinkWrites, checksumOf, temporaryFileMarker, temporaryPathFor, writeFileAtomic } from './fs-safety.mjs';
 
 // Record of the last apply that wrote something. `workflow-kit rollback` reads
@@ -313,11 +314,12 @@ export async function assertObservedUnchanged(observed, targetPath, stateFilePat
 // A journal whose run did not finish, or whose rollback started and did not
 // finish: what the next init or update has to stop on (shared with the
 // planner gate and doctor through lastApplyProblem). Null for a finished run.
-export function unfinishedJournalMessage(journal) {
+export function unfinishedJournalMessage(journal, targetPath) {
+  const rollbackAgain = rollbackCommand(targetPath);
   if (typeof journal?.rollbackStartedAt === 'string') {
-    return `A workflow-kit rollback of the apply of ${journal.appliedAt ?? 'unknown date'} started (${journal.rollbackStartedAt}) and did not finish, so the repository is partly rolled back. Run \`workflow-kit rollback --apply --yes\` again to finish it`;
+    return `A workflow-kit rollback of the apply of ${journal.appliedAt ?? 'unknown date'} started (${journal.rollbackStartedAt}) and did not finish, so the repository is partly rolled back. Run ${rollbackAgain} again to finish it`;
   }
-  if (journal?.completed === false) return `The last workflow-kit apply did not finish (${journal.appliedAt ?? 'unknown date'}). Run \`workflow-kit rollback --apply --yes\` first`;
+  if (journal?.completed === false) return `The last workflow-kit apply did not finish (${journal.appliedAt ?? 'unknown date'}). Run ${rollbackAgain} first`;
   return null;
 }
 
@@ -330,7 +332,7 @@ async function assertTargetAsPlanned(plan, journalPath) {
   } catch {
     return;
   }
-  const unfinished = unfinishedJournalMessage(journal);
+  const unfinished = unfinishedJournalMessage(journal, plan.targetPath ? path.resolve(plan.targetPath) : undefined);
   if (unfinished) throw new Error(`${unfinished}, then run this command again. Nothing was written.`);
 }
 
@@ -345,12 +347,12 @@ export async function observeTarget(targetPath, stateFilePath) {
 
 const backupNameOf = (targetFile, stamp) => `${targetFile}.workflow-kit-backup-${stamp}`;
 
-async function copyBackup(source, backupPath) {
+async function copyBackup(source, backupPath, targetPath) {
   try {
     await fs.copyFile(source, backupPath, fs.constants.COPYFILE_EXCL);
   } catch (error) {
     if (error.code !== 'EEXIST') throw error;
-    throw new Error(`${backupPath} appeared while this run was writing, so it was not overwritten. Another program is writing to this repository: stop it, then run \`workflow-kit rollback --apply --yes\` and run this command again.`);
+    throw new Error(`${backupPath} appeared while this run was writing, so it was not overwritten. Another program is writing to this repository: stop it, then run ${rollbackCommand(targetPath)} and run this command again.`);
   }
 }
 
@@ -458,7 +460,7 @@ export async function applyInstallPlan(plan, { signal } = {}) {
 
     for (const step of writes) {
       if (signal?.aborted) {
-        throw Object.assign(new Error(`Interrupted before ${step.item.relativePath}: the run stopped between two files. Run \`workflow-kit rollback --apply --yes\` to undo what it wrote.`), { code: interruptedCode });
+        throw Object.assign(new Error(`Interrupted before ${step.item.relativePath}: the run stopped between two files. Run ${rollbackCommand(targetPath)} to undo what it wrote.`), { code: interruptedCode });
       }
       const { item } = step;
       if (step.kind === 'delete') {
@@ -472,7 +474,7 @@ export async function applyInstallPlan(plan, { signal } = {}) {
           continue;
         }
         // The backup stays next to the deleted file, so its directory stays.
-        await copyBackup(item.targetFile, step.backupPath);
+        await copyBackup(item.targetFile, step.backupPath, targetPath);
         await fs.rm(item.targetFile);
         step.result = { ...item, applied: true, backupPath: step.backupPath };
         continue;
@@ -489,7 +491,7 @@ export async function applyInstallPlan(plan, { signal } = {}) {
           await saveJournal();
         }
       }
-      if (step.backup) await copyBackup(item.targetFile, step.backupPath);
+      if (step.backup) await copyBackup(item.targetFile, step.backupPath, targetPath);
       await writeFileAtomic(item.targetFile, item.content);
       // A moved file keeps its permission bits (an executable script stays executable).
       if (item.mode !== undefined) await fs.chmod(item.targetFile, item.mode);
