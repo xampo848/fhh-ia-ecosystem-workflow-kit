@@ -52,6 +52,9 @@ SSH install and access details:
 
 From a clone of this repository, run the same commands as
 `node bin/workflow-kit.mjs <command>`.
+A local checkout installs only the kit's own files: operating-system files
+that a file manager leaves inside `templates/` (`.DS_Store`, `Thumbs.db`,
+`desktop.ini`) are skipped and never reach your project.
 
 ## Quickstart
 
@@ -137,7 +140,7 @@ other commands. Main flags:
 | `--diff` | Show the line diff of every file that would change. |
 | `--adopt-existing` | `update` only: record an install made before state tracking. |
 | `--backup-mode required\|none` | `required` (default) backs up every file before overwrite or merge; `none` skips backups, and `rollback` cannot restore those files. |
-| `--ref <git-ref>` / `--package-manager bun` | `upgrade` only: the branch, tag or full commit hash to install (use the full hash for a commit) (default `main`; tags exist only up to `v0.17.3-contract-gaps`, see [Versioning](docs/versioning.md)) and the package manager to use. |
+| `--ref <git-ref>` / `--package-manager bun` | `upgrade` only: the branch, tag or full commit hash to install (use the full hash for a commit) (default `main`; tags exist only up to `v0.17.3-contract-gaps`, see [Versioning](docs/versioning.md)) and the package manager to use; an unsupported manager is rejected in the dry run too, and nothing runs. |
 
 ## Updating
 

@@ -29,10 +29,10 @@ Operation meanings in preview:
 - `create`: new file
 - `unchanged`: no write
 - `overwrite_with_backup`: write with backup first
-- `merge_with_backup`: intelligent merge with backup first
+- `merge_with_backup`: in-place composition with backup first (an adapter's managed block, the `docs/README.md` block, plugin settings JSON); never `.agents/skills/registry.json`
 - `overwrite_no_backup` / `merge_no_backup`: same, with `--backup-mode none`
 - `skip_modified`: pending during update: a kit file you edited, or your own file at a kit path the install never recorded
-- `skip_unmanaged`: a project file the kit only seeds (or an adapter with broken markers), left as it is
+- `skip_unmanaged`: a project file the kit only seeds (`project-owned; left as it is`) or an adapter with broken markers, left as it is
 - `adopt_existing`: baseline captured during update bootstrap
 
 ## 2. Preview selected runtime adapters
@@ -58,8 +58,8 @@ unless you pass `--backup-mode none` (then `rollback` cannot restore them).
 
 For existing repositories, this apply step also enables:
 
-- skills registry JSON merge,
-- docs hub non-destructive insertion,
+- docs hub non-destructive insertion (the kit adds its marker block to `docs/README.md`),
+- replacement, with a backup, of an existing `.agents/skills/registry.json` (it is a kit file, not merged),
 - one-time legacy docs migration map generation when legacy docs are detected.
 
 ### Model profile per runtime (`calidad` / `equilibrado` / `costo`)
@@ -76,9 +76,19 @@ by how each runtime is billed:
 - `costo` (default for Copilot, and any per-token API): small models for
   reading, validation, and docs; Grande only for critical concerns.
 
-`init` asks once per Claude Code or Codex runtime (an `ANTHROPIC_API_KEY` or
-`OPENAI_API_KEY` only preselects `costo`). Non-interactive runs use the
-default. Set or change it any time, naming only runtimes the install has (the
+The guided menu asks once per Claude Code or Codex runtime (an
+`ANTHROPIC_API_KEY` or `OPENAI_API_KEY` only preselects `costo`); it does not
+ask for Copilot, which keeps its default `costo` unless you pass `--profile`.
+Commands never ask: they use the default of each runtime unless you pass
+`--profile`. Copilot accepts all three profiles
+(`--profile copilot=equilibrado`; the form is `<runtime>=<profile>`, a colon
+is rejected). The profile is stored in `install-state.json` and rewrites the
+generated `.github/agents/*.agent.md` files: their `model:` list and their
+`Model profile: … · tier: …` line follow the profile (for example
+`escriba-doc` and `lint-ranger` are Liviano in `costo` and Mediano in
+`equilibrado`; `qa-relampago` and `arquitecta-fases` are Mediano in `costo`
+and Grande in `equilibrado`). Copilot still picks the model per call from the
+list, so the profile fixes the tier, not the exact model. Set or change it any time, naming only runtimes the install has (the
 examples above install `codex` and `copilot`):
 
 ```bash
@@ -164,9 +174,11 @@ the new version.
 workflow-kit tui
 ```
 
-The menu is in Spanish and has no `rollback` option (run that command). It needs an interactive terminal: without one (a pipe,
-a script, CI) it exits with code 2 and writes nothing, so use the commands
-there. Yes/no questions accept `sí`, `si`, `s` or `no`, `n` (also `yes`, `y`),
+The menu is in Spanish. It offers install, update, export, doctor, upgrade
+and optional tools; it has no `rollback` option (run that command). It needs an
+interactive terminal: without one (a pipe, a script, CI) it exits with code 2
+and writes nothing, so use the commands there. Ctrl-C leaves the menu with exit
+code 130; answering no at a confirmation is a decline and exits 0. Yes/no questions accept `sí`, `si`, `s` or `no`, `n` (also `yes`, `y`),
 and ask again on any other answer.
 
 The first screen, `¿Qué quieres hacer?`, offers these options:
@@ -181,7 +193,9 @@ The first screen, `¿Qué quieres hacer?`, offers these options:
 | `Instalar solo herramientas opcionales (MCP)` | optional MCP tools, no workflow files | — |
 
 After the first screen the flow asks, in order and only when it applies:
-the project path (`Elegir el proyecto`); the runtimes (`Adaptadores de
+the project path (`Elegir el proyecto`; a folder is checked when you type it,
+and a missing path or a file is explained in Spanish and asked again, except
+for an export folder, which is created when missing); the runtimes (`Adaptadores de
 runtime`); the install mode (repo or plugin; asked on `Instalar`, only when
 every chosen runtime has a plugin); the model profile (on install and export,
 once per Claude Code or Codex runtime; `Actualizar` keeps the stored one); the
@@ -196,7 +210,7 @@ Updating the tool and updating a project are separate: after
 `Actualizar el workflow de un proyecto` in each project.
 
 Every flow that writes shows a preview before asking whether to write. The default confirmation writes nothing.
-It can also open an optional capability guide (Context7, Engram, codebase-memory-mcp) with source/scope/mode confirmation and official install commands.
+It can also open an optional capability guide (Context7, Engram, codebase-memory-mcp) with a confirmation and official install commands. The menu does not ask for a scope: it installs these tools globally on your machine, and says so. If a tool command fails, the menu says the flow ended with failed commands and exits with code 2 instead of the ready banner.
 The install package is fixed to `FHH IA Ecosystem completo`.
 
 ## 7. Export templates without treating the output as a repo install
@@ -380,7 +394,9 @@ claude plugin install fhh@fhh-ia-ecosystem --scope project
 copilot plugin install fhh@fhh-ia-ecosystem
 ```
 
-The kit prints these commands after an apply, and `workflow-kit` never
+The kit prints these commands after an apply (the guided menu prints the
+project-scoped one as `cd <repo> && claude plugin install … --scope project`,
+so it works from any folder), and `workflow-kit` never
 installs the plugin for anyone; `doctor` only reports it. A team that must
 enforce the kit uses repo mode, or its organization's managed settings, which
 the kit does not manage.
@@ -468,7 +484,7 @@ mode with Claude Code chosen, and prints `Install mode: plugin`.
 
 | Code | Severity | Meaning |
 | --- | --- | --- |
-| `mode/repo-and-plugin` | error | the kit would load twice: kit files in a plugin-mode repository, or the plugin enabled in a repo-mode one |
+| `mode/repo-and-plugin` | error | the kit would load twice: kit files in a plugin-mode repository, or the plugin enabled in a repo-mode one. A file counts as a kit copy only when the install recorded it, an installed runtime ships that path, or its content is identical to the kit's file; your own file at the path of a runtime that is not installed (for example `.codex/README.md` without Codex) is not reported |
 | `mode/plugin-not-declared` | warning | a settings file lacks the declaration, is not valid JSON, or repeats a key (see below) |
 | `mode/kit-location-missing` | error | an adapter of a plugin-mode install lost its `kit-location` block, so the agent is never told where the kit is; `update` restores it with a backup |
 | `mode/plugin-not-installed` | warning | Claude Code does not list `fhh@fhh-ia-ecosystem` |
@@ -488,8 +504,10 @@ command instead of a diagnostic.
 - Some kit files name repo-mode agent paths (`.claude/agents/*`); in plugin mode
   those agents come from the plugin and are launched by name (`fhh:<slug>`).
 - If `.agents/project/context.md` names a kit path in backticks (for example
-  `.agents/instructions.md`), `doctor` warns `project-context/missing-path`,
-  because it looks for it in the repository. It is a warning only.
+  `.agents/instructions.md`), `doctor` in plugin mode does not warn
+  `project-context/missing-path`: the plugin delivers kit paths, so the
+  repository does not hold them. A path of your own that is missing is still
+  reported.
 - `--profile` writes the project's own agents in the repository, also in plugin
   mode. A kept edited agent is pending after you return to the default profile.
 - Runtime support and what is verified: see the

@@ -7,7 +7,7 @@ This document focuses on practical execution and recovery for real repositories.
 ## What this guide solves
 
 - Safe installation without losing local changes.
-- Intelligent merge of workflow-kit and existing skills metadata.
+- Safe composition of workflow-kit adapters and docs hub with your existing files.
 - One-time recovery map for pre-existing docs.
 - Clear backend/frontend standards setup and migration flow.
 - Fast troubleshooting when dry-run output is confusing.
@@ -35,9 +35,9 @@ Dry-run is default and writes nothing.
 - `create`: new file will be added.
 - `unchanged`: file already matches planned content.
 - `overwrite_with_backup`: file differs; a timestamped backup will be created before write.
-- `merge_with_backup`: intelligent in-place composition (for example skills registry/docs hub) with backup first.
+- `merge_with_backup`: in-place composition (an adapter's managed block, the `docs/README.md` block) with backup first. `.agents/skills/registry.json` is never merged.
 - `skip_modified`: update mode protected local change in managed file.
-- `skip_unmanaged`: update mode found collision at unmanaged path and will not overwrite.
+- `skip_unmanaged`: update left a project file the kit only seeds as it is (`project-owned; left as it is`, for example `.agents/project/context.md`), or an adapter with broken markers. Your own file at a path the kit ships is `skip_modified` (`unrecorded_kit_file`) and waits for your decision with `--edited`.
 - `adopt_existing`: update bootstrap recorded existing file baseline.
 
 ## 2) Apply after review
@@ -139,7 +139,7 @@ Not by default. Workflow docs are added in a dedicated subtree and docs hub upda
 
 ### "What happens with my existing skills?"
 
-Skill registry JSON is merged; local catalogs in markdown are preserved if already present.
+`.agents/skills/registry.json` and the other kit catalogs are kit files, not merged: `init` replaces an existing one with a backup, and `update` leaves an edited one pending (`skip_modified`) until you choose `keep` or `discard` with `--edited`. Your own skills and rows live under `.agents/project/`, which no update edits.
 
 ### "How do I know what was changed?"
 

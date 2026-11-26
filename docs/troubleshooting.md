@@ -12,12 +12,16 @@ Recommended action:
 
 ## Dry-run shows `merge_with_backup`
 
-This is a smart composition write. The installer merges content and still creates a backup first.
+This is a smart composition write. The installer composes the file in place and still creates a backup first.
 
 Typical paths:
 
-- `.agents/skills/registry.json`
-- `docs/README.md`
+- an adapter you already had (`CLAUDE.md`, `AGENTS.md`, the Copilot instruction files): the kit adds its `workflow-kit:managed` block and keeps your text
+- `docs/README.md`: the kit adds its marker block
+
+`.agents/skills/registry.json` is never merged: it is a kit file. `init` replaces
+an existing one with a backup, and `update` leaves an edited one pending
+(`skip_modified`) until you choose `keep` or `discard`.
 
 Recommended action:
 
@@ -34,8 +38,15 @@ Run `doctor` with the same runtime options used for install. If files are still 
 Each diagnostic includes a stable code, path, severity, and remediation text.
 Common cases:
 
-- `copilot/missing-apply-to`: add YAML frontmatter with `applyTo: "**"` to the
-  repository-wide Copilot instruction file.
+- `copilot/missing-apply-to`: `.github/instructions/ai-workflow.instructions.md`
+  lost its front matter. Put these three lines at the very top of that file
+  (not in `.github/copilot-instructions.md`), then run `doctor` again:
+
+  ```text
+  ---
+  applyTo: "**"
+  ---
+  ```
 - `adapter/missing-turn-intake`, `*/missing-rerouting-guarantee`,
   `*/missing-execution-gate`: the runtime adapter lacks the shared bootstrap
   block. Run `workflow-kit update`; as a warning it means the adapter still has
@@ -150,7 +161,7 @@ quirks, and pointers to architecture docs. Discovery reads it first.
 | --- | --- | --- |
 | `project-context/not-initialized` | the file is still the installed template | run an initial Discovery of the project (an N2 task), review the result, and remove the template marker |
 | `project-context/too-long` | more than 200 lines | point to other documents instead of copying them |
-| `project-context/missing-path` | it names a path that no longer exists | fix it at the next closure; only the orchestrator edits this file |
+| `project-context/missing-path` | it names a path that no longer exists (in plugin mode, kit paths are skipped: the plugin delivers them) | fix it at the next closure; only the orchestrator edits this file |
 | `project-context/both-paths` | the file exists at both paths | merge the legacy file into `.agents/project/context.md` and delete `.agents/project-context.md` |
 
 ## Doctor reports `workspace/*` or `prd/section-10-oversized` warnings
@@ -173,9 +184,16 @@ lives in `.ai-work/<prd-slug>/`, ignored by Git. These warnings never fail
 - `skip_modified`: a kit file you edited, an adapter without markers, or your
   own file at a kit path the install never recorded (`unrecorded_kit_file`) is
   pending. The plan lists the decisions it accepts, for example
-  `keep | discard`.
-- `skip_unmanaged`: a project file the kit only seeds, or an adapter whose
-  markers are broken, so update does not overwrite it.
+  `keep | discard`. A kit file reached through a symbolic link offers only
+  `keep`: the plan says "symbolic link (<path>), so only keep applies". The kit
+  does not write through links, so `--edited all=discard` leaves that file as
+  it is and discards the rest, and `--edited <path>=discard` on it is rejected.
+  Replace the link with a regular file to get the other decisions.
+- `skip_unmanaged`: a project file the kit only seeds (the plan says
+  `project-owned; left as it is`, for example `.agents/project/context.md`),
+  or an adapter whose markers are broken, so update does not overwrite it.
+  Your own file at a path the kit ships is not `skip_unmanaged`: it is
+  `skip_modified` (`unrecorded_kit_file`) and waits for your decision.
 
 Decide a pending file with `--edited` (since `0.22.0`; see
 `docs/migration.md`, "Deciding edited files"):
@@ -205,13 +223,13 @@ plan. Run the one you want as printed, from any folder.
 | Code | Severity | Meaning | Action |
 | --- | --- | --- | --- |
 | `managed/legacy-layout` | warning | the install still has `install-state` `1.0.0` | run `workflow-kit update` (dry run first) to migrate; see `docs/migration.md` |
-| `managed/apply-incomplete` | error | the last apply stopped halfway | `workflow-kit rollback --apply --yes`, then run the command again |
+| `managed/apply-incomplete` | error | the last apply stopped halfway | run the `rollback --target <repo> --apply --yes` command the message prints, then run the command again |
 | `managed/apply-journal-unusable` | error | `.agents/workflow-kit/last-apply.json` cannot be read, so `rollback` cannot use it | fix it by hand (Git does not track it); only if you will not roll back the last apply, move it out of `.agents/workflow-kit/` |
 | `managed/install-state-unusable` | error | `install-state.json` cannot be read | restore it from Git, or upgrade the CLI if a newer version wrote it |
 | `managed/symlink` | warning | a path the kit manages is, or passes through, a symbolic link | replace the link with a real file or folder; `init` and `update` refuse to write through it |
 | `managed/toolkit-version-mismatch` | warning | the last apply used another workflow-kit version than this CLI | run `workflow-kit update` (dry run first) |
-| `managed/apply-lock-held` | error | `.agents/workflow-kit/apply.lock` is held by a workflow-kit run that is still going, so it is changing this repository | wait for it to finish; only if you are sure none is running, remove the lock file |
-| `managed/apply-lock-stale` | warning | `.agents/workflow-kit/apply.lock` was left by a run that no longer runs | nothing to do: the next apply or rollback takes it over |
+| `managed/apply-lock-held` | error | `.agents/workflow-kit/apply.lock` is held by a workflow-kit run that is still going, so it is changing this repository; also reported when the lock path is a folder, and for a lock whose process is alive but has no recorded start time (an error by design: the kit cannot prove it stale) | wait for the run to finish; only if you are sure none is running, remove the lock. For a folder, the kit never deletes it: remove the folder by hand, then run the command again |
+| `managed/apply-lock-stale` | warning | `.agents/workflow-kit/apply.lock` was left by a run that no longer runs, or its content cannot be read or is not valid (no usable process id or start time) | nothing to do: the next apply or rollback takes it over. After a run killed before it wrote its record, run `rollback --target <repo> --apply --yes` to clean what it left (see below) |
 | `managed/file-empty` | error | a kit file or adapter is empty, so the agent finds no rules in it | run the `update` command in the message: it takes the kit version back, with a backup |
 | `managed/path-unreadable` | error | `doctor` met a path it cannot read: a file where a folder of the path should be (for example `.agents/project` as a file), a folder where a file should be, or no permission | fix that path, then run `doctor` again |
 | `boundary/pending-edited_kit_file`, `boundary/pending-unrecorded_kit_file` | warning | a kit file differs from what the kit recorded (or was never recorded) | `workflow-kit update --edited <path>=<decision>` with `keep` or `discard` (or `shadow` when the message offers it) |
@@ -227,7 +245,7 @@ plan. Run the one you want as printed, from any folder.
 | `boundary/shadow-invalid` | warning | a listed shadow has no valid `shadow.json` | write it as `.agents/kit-boundary.md` describes |
 | `boundary/ignored-state-key` | warning | `install-state.json` has a key that is absolute or contains `.`/`..` | remove that key |
 | `boundary/unowned-path` | warning | a file under a kit folder is neither shipped by the kit nor recorded | move it to `.agents/project/` (skills to `.agents/project/skills/<name>/` with a row in the project index) |
-| `boundary/update-plan-failed` | warning | `doctor` could not build the update plan (for example, a `1.0.0` install whose `.agents/project/index.md` has a `## Skills` or `## Shadows` table with another header, so the migration stops) | fix the error in the message, then run `doctor` again |
+| `boundary/update-plan-failed` | warning | `doctor` could not build the update plan (for example, a `1.0.0` install whose `.agents/project/index.md` cannot be extended by the migration, or a folder at the lock path) | fix the one cause the message names, then run `doctor` again |
 
 Things to know:
 
@@ -256,7 +274,22 @@ Things to know:
   stale (it has no start time, or the system cannot tell) stays, and the
   message says to remove `.agents/workflow-kit/apply.lock` only if you are sure
   no workflow-kit command is running on that repository (for example after a
-  crash); then delete the file and run the command again.
+  crash); then delete the file and run the command again. A lock with a live
+  process and no start time stays an error by design. A lock whose content is
+  not valid is reported as unreadable or invalid (`managed/apply-lock-stale`)
+  and the next apply or rollback takes it over. A folder at the lock path
+  stops `init`, `update` and `rollback` and `doctor` reports
+  `managed/apply-lock-held`; the kit never deletes it, so remove the folder by
+  hand and run the command again.
+- A run killed before it wrote its record (an apply between its lock and its
+  journal) or a rollback killed at its very end leaves the lock, temporary
+  files and empty folders it created, and maybe no journal. Run
+  `workflow-kit rollback --target /path/to/repo --apply --yes`: the dry run
+  says the run "was stopped before it finished" and lists each `remove` line
+  (the lock, the temporary files, the empty folders it created); apply removes
+  only those. It does not undo any apply, and it leaves the record of an
+  earlier finished apply alone: run rollback once more to undo that one. It
+  refuses when the lock path goes through a symbolic link.
 - "changed after this plan was made": another run changed the repository
   between your plan and your write. Nothing was written; run the command again
   so it plans from the repository as it is now. The same stop applies to

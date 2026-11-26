@@ -51,7 +51,7 @@ Qué debes ver:
 
 | Línea del plan | Valor esperado |
 | --- | --- |
-| `Toolkit version` | `0.16.1-...` o posterior |
+| `workflow-kit version` | `0.16.1-...` o posterior |
 | `Target managed version` | `0.7.37-cross-runtime-delegation-efficiency` |
 | `Runtimes` | `copilot,claude,antigravity` (salen de la instalación; no hace falta `--runtime`) |
 | `Model profiles` | `copilot=costo,claude=calidad` |
