@@ -7,6 +7,53 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.23.5-cli-fixes
+
+Fixes from the independent verification of 0.23.3. In your projects,
+`workflow-kit update` changes `kit_version` and one kit file,
+`delegate-skill-matrix.md` of `implement-prd`.
+
+- Every command a stop or `doctor` prints carries the absolute `--target`,
+  quoted for a shell, so it runs as printed from any folder. Before, a pasted
+  `workflow-kit rollback --apply --yes` acted on the folder it was pasted in.
+- After a run killed before it wrote its record, or a rollback killed at its
+  end, `workflow-kit rollback` removes what that run left (the lock, temporary
+  files, empty folders it created), lists it in the dry run, and leaves an
+  earlier finished apply alone. It refuses when the lock path goes through a
+  symbolic link.
+- The apply lock: a folder at the lock path stops `doctor`, `init`, `update`
+  and `rollback` with one message and is never deleted; a lock whose content is
+  not valid is reported as unreadable and its raw content is not printed.
+- A folder or an unreadable file where the install state, the journal or the
+  manifest goes, a read-only kit folder, and `export --output` through a broken
+  symbolic link stop with a message that names the path and the way out,
+  instead of a raw `EISDIR`, `EACCES` or `ENOTDIR`. Journal and install-state
+  messages say how to recover.
+- `upgrade --package-manager` with an unsupported value is rejected in the dry
+  run too. Printed text says `workflow-kit` where it said "toolkit" (the plan
+  header is now `workflow-kit version:`).
+- A kit file reached through a symbolic link offers only `keep`;
+  `--edited all=discard` leaves it and discards the rest. `update` on an
+  exported folder keeps `mode: "export"`. `.DS_Store`, `Thumbs.db` and
+  `desktop.ini` inside the templates of a local checkout are skipped.
+- `doctor` in plugin mode no longer reports an own file at the path of a
+  runtime that is not installed as a kit copy, nor a kit path named in
+  `.agents/project/context.md` as missing.
+- When the layout migration cannot extend `.agents/project/index.md`, the stop
+  names the one cause and its line. An index without a `## Skills` section that
+  ends inside an unclosed comment or code block now stops.
+- Guided menu: folders are checked when typed, with a retry; the scope question
+  for optional tools is gone (they are installed globally, and the menu says
+  so); a failed tool step exits 2; the adopt-existing question is no longer
+  covered by the spinner; plugin install steps start with `cd <repo> &&`;
+  Ctrl-C exits 130. `tui --help` lists what the menu offers.
+- `scripts/build-plugin.mjs --publish`: the fetch command a stop prints works
+  in a single-branch clone, and a signal while it removes its temporary folder
+  still removes it and names the commit.
+- Guides: the file that clears `copilot/missing-apply-to`, what `update` does
+  to `registry.json` and to unmanaged files, and model profiles for Copilot
+  (`--profile copilot=<name>`).
+
 ## 0.23.4-docs-sync
 
 The guides match what the kit does, and three pieces of kit text are fixed. In
