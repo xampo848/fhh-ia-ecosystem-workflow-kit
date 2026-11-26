@@ -85,9 +85,12 @@ export function pluginInstallCommand(runtime) {
 
 // After an apply in plugin mode: the repository only declares the plugin;
 // each person installs it once per clone.
-export function formatPluginInstallSteps(runtimes) {
+// With `targetPath`, a project-scoped step runs inside that repository (the
+// path is shell-quoted), so it works from any folder as printed.
+export function formatPluginInstallSteps(runtimes, targetPath = undefined) {
+  const stepIn = (command) => (targetPath !== undefined && command.includes('--scope project') ? `cd ${shellWord(targetPath)} && ${command}` : command);
   const lines = runtimes.filter((runtime) => pluginRuntimes.includes(runtime))
-    .map((runtime) => `- ${runtimeLabels[runtime]}: ${pluginInstallCommand(runtime)}`);
+    .map((runtime) => `- ${runtimeLabels[runtime]}: ${stepIn(pluginInstallCommand(runtime))}`);
   return `Install the plugin ${pluginName}:\n${lines.join('\n')}\nEach person runs it once per clone of this repository; the repository only declares the plugin.\nThe marketplace serves the plugin only after the kit's \`${pluginBranch}\` branch is published; until then these commands fail.\n`;
 }
 

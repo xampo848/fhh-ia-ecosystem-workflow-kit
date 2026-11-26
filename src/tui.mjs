@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { statSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { applyInstallPlan } from './apply.mjs';
@@ -80,12 +81,6 @@ const CAPABILITY_OPTIONS = [
   { value: 'engram', label: 'Engram', description: 'MCP de memoria persistente.' },
   { value: 'codebase-memory-mcp', label: 'Codebase Memory MCP', description: 'MCP de grafo de código y búsqueda estructural.' },
   { value: 'all', label: 'Configurar todas las herramientas opcionales', description: 'Context7, Engram y Codebase Memory MCP.' }
-];
-
-const CAPABILITY_SCOPE_OPTIONS = [
-  { value: 'user/global', label: 'Todos mis proyectos (global)', description: 'Se instala una vez para tu usuario; disponible en todos tus proyectos.' },
-  { value: 'repo/project', label: 'Solo este proyecto', description: 'Se configura solo en este repositorio.' },
-  { value: 'hybrid', label: 'Ambos (global + este proyecto)', description: 'Se instala para tu usuario y se conecta en este repositorio.' }
 ];
 
 const CAPABILITY_INTENT_OPTIONS = [
@@ -201,6 +196,32 @@ function selectedPathsFromPlan(plan) {
   return plan.operations.map((item) => item.relativePath);
 }
 
+// Why a path cannot be the project or working folder, in Spanish, or null when
+// it can. An export writes into its folder and creates it when missing.
+function folderProblem(folder, { mayCreate = false } = {}) {
+  let stat;
+  try {
+    stat = statSync(folder);
+  } catch (error) {
+    if (error.code === 'ENOENT' && mayCreate) return null;
+    if (error.code === 'ENOENT') return `La carpeta «${folder}» no existe. Escribe la ruta de una carpeta que exista (para un repositorio nuevo, créala antes, por ejemplo con git init).`;
+    if (error.code === 'ENOTDIR') return `«${folder}» no es una carpeta: un tramo de la ruta es un archivo. Escribe la ruta de una carpeta.`;
+    return `No se puede leer «${folder}» (${error.code ?? 'error'}). Escribe la ruta de otra carpeta.`;
+  }
+  return stat.isDirectory() ? null : `«${folder}» es un archivo, no una carpeta. Escribe la ruta de una carpeta.`;
+}
+
+// Asks for a folder until it is usable, so a typo is caught here and not
+// after every other question. Nothing is written.
+async function askFolder({ prompter, message, fallback, mayCreate = false, write, paint }) {
+  while (true) {
+    const answer = await prompter.promptText(message, fallback);
+    const problem = folderProblem(answer, { mayCreate });
+    if (problem === null) return answer;
+    write(`${paint.copperInk(problem)}\n`);
+  }
+}
+
 function defaultRunCommand({ command, args, cwd, write, paint }) {
   return new Promise((resolve) => {
     write(`${paint.dim(`$ ${command} ${args.join(' ')}`)}\n`);
@@ -215,9 +236,13 @@ function defaultRunCommand({ command, args, cwd, write, paint }) {
     });
 
     child.on('error', (error) => {
-      const reason = error && error.code === 'ENOENT'
-        ? `${command} no está en el PATH`
-        : String(error?.message ?? error);
+      // spawn reports a missing or unusable working folder with the same
+      // codes as a missing command: tell them apart before blaming the PATH.
+      const reason = ['ENOENT', 'ENOTDIR'].includes(error?.code) && cwd !== undefined && folderProblem(cwd) !== null
+        ? `la carpeta de trabajo «${cwd}» no existe o no es una carpeta`
+        : error && error.code === 'ENOENT'
+          ? `${command} no está en el PATH`
+          : String(error?.message ?? error);
       write(`${paint.red(`El comando no pudo iniciarse: ${reason}`)}\n`);
       resolve({ ok: false, code: null, reason });
     });
@@ -464,17 +489,9 @@ async function collectCapabilitiesFlow({
     return { capabilitySelections, shouldAutoInstallCapabilities };
   }
 
-  const chosenScope = scriptedMode
-    ? await prompter.chooseOption({
-      title: 'Elige el alcance de la herramienta',
-      defaultIndex: 2,
-      options: CAPABILITY_SCOPE_OPTIONS
-    })
-    : await prompter.chooseOption({
-      title: 'Elige el alcance de la herramienta',
-      options: CAPABILITY_SCOPE_OPTIONS,
-      defaultValue: 'hybrid'
-    });
+  // The commands install the tools globally on this machine, whichever
+  // project this is: there is no scope to choose.
+  write(`${paint.copperInk('Estas herramientas se instalan de forma global en esta máquina, no solo en este proyecto.')}\n\n`);
 
   for (const capability of capabilities) {
     const intentDefault = defaultIntentFor(capability);
@@ -497,14 +514,12 @@ async function collectCapabilitiesFlow({
 
     const guide = createCapabilityGuide({
       capability,
-      scope: chosenScope,
       intent: chosenIntent,
       runtimes: runtimeSet(runtime)
     });
 
     capabilitySelections.push({
       capability,
-      scope: chosenScope,
       intent: chosenIntent
     });
 
@@ -710,9 +725,7 @@ export async function runTui(options = {}) {
         subtitle: 'Carpeta donde se ejecutan los comandos de las herramientas opcionales.'
       });
 
-      targetPath = scriptedMode
-        ? await prompter.promptText('Carpeta de trabajo [.]: ', '.')
-        : await prompter.promptText('Carpeta de trabajo', '.');
+      targetPath = await askFolder({ prompter, message: scriptedMode ? 'Carpeta de trabajo [.]: ' : 'Carpeta de trabajo', fallback: '.', write, paint });
 
       renderStageHeader(write, paint, {
         step: 3,
@@ -778,9 +791,11 @@ export async function runTui(options = {}) {
         }
       }
 
-      write(`${paint.copper('Flujo de herramientas completado.')} ${renderChip(paint, 'SISTEMA LISTO', 'copper')}\n`);
+      const toolsFailed = (capabilityInstallResult?.failed ?? 0) > 0;
+      if (toolsFailed) write(`${paint.red('El flujo de herramientas terminó con comandos fallidos: revisa los mensajes de arriba. No quedó todo instalado.')}\n`);
+      else write(`${paint.copper('Flujo de herramientas completado.')} ${renderChip(paint, 'SISTEMA LISTO', 'copper')}\n`);
       return {
-        code: 0,
+        code: toolsFailed ? 2 : 0,
         applied: false,
         mode,
         runtimes: [...runtimeSet(runtime)],
@@ -801,7 +816,7 @@ export async function runTui(options = {}) {
             : 'Elige dónde instalar el paquete del workflow.'
       });
 
-      targetPath = await prompter.promptText(mode === 'export' ? 'Carpeta de salida [.]: ' : 'Ruta del proyecto [.]: ', '.');
+      targetPath = await askFolder({ prompter, message: mode === 'export' ? 'Carpeta de salida [.]: ' : 'Ruta del proyecto [.]: ', fallback: '.', mayCreate: mode === 'export', write, paint });
       write('\n');
       if (await stopInstallOverExistingInstall({ mode, targetPath, write, paint })) return { code: 1, applied: false, mode };
 
@@ -849,7 +864,7 @@ export async function runTui(options = {}) {
             : 'Elige dónde instalar el paquete del workflow.'
       });
 
-      targetPath = await prompter.promptText(mode === 'export' ? 'Carpeta de salida' : 'Ruta del proyecto', '.');
+      targetPath = await askFolder({ prompter, message: mode === 'export' ? 'Carpeta de salida' : 'Ruta del proyecto', fallback: '.', mayCreate: mode === 'export', write, paint });
       if (await stopInstallOverExistingInstall({ mode, targetPath, write, paint })) return { code: 1, applied: false, mode };
 
       renderStageHeader(write, paint, {
@@ -929,6 +944,15 @@ export async function runTui(options = {}) {
     let backupMode = 'required';
     let adoptExistingAnswer;
 
+    // Asked once: the plan is rebuilt when the user changes options.
+    const askAdoptExisting = async () => {
+      if (adoptExistingAnswer !== undefined) return;
+      write(`\n${paint.copperInk('Este repositorio no tiene install-state.')}\n`);
+      adoptExistingAnswer = scriptedMode
+        ? await prompter.confirm('¿Crear una línea base segura con adopt-existing? Escribe sí para continuar [no]: ')
+        : await prompter.confirm('¿Crear una línea base segura con adopt-existing?', true);
+    };
+
     const buildPlan = async ({ edited: editedValue, backupMode: backupModeValue = 'required' } = {}) => {
       if (mode === 'update') {
         try {
@@ -944,14 +968,8 @@ export async function runTui(options = {}) {
         } catch (error) {
           if (!/No install state found\./.test(String(error?.message ?? ''))) throw error;
 
-          // Asked once: the plan is rebuilt when the user changes options.
-          if (adoptExistingAnswer === undefined) {
-            write(`\n${paint.copperInk('Este repositorio no tiene install-state.')}\n`);
-            adoptExistingAnswer = scriptedMode
-              ? await prompter.confirm('¿Crear una línea base segura con adopt-existing? Escribe sí para continuar [no]: ')
-              : await prompter.confirm('¿Crear una línea base segura con adopt-existing?', true);
-          }
-
+          // Normally asked before the spinner (below); never under it.
+          await askAdoptExisting();
           if (!adoptExistingAnswer) throw error;
 
           return buildUpdatePlan({
@@ -981,6 +999,11 @@ export async function runTui(options = {}) {
         toolkitVersion: currentToolkitMetadata().version
       });
     };
+
+    // The question comes before the spinner: the spinner repaints its line
+    // every few milliseconds and would cover the question, and a Ctrl-C there
+    // would print the spinner's failure before the cancel message.
+    if (mode === 'update' && recordedState === null) await askAdoptExisting();
 
     let plan = await withSpinner({
       write,
@@ -1133,7 +1156,7 @@ export async function runTui(options = {}) {
     }
 
     // Plugin mode: the repository only declares the plugin; print how to install it.
-    if (plan.nextInstallState?.mode === 'plugin') write(formatPluginInstallSteps(plan.runtimes));
+    if (plan.nextInstallState?.mode === 'plugin') write(formatPluginInstallSteps(plan.runtimes, plan.targetPath));
 
     let capabilityInstallResult = null;
     if (shouldAutoInstallCapabilities) {
@@ -1183,7 +1206,9 @@ export async function runTui(options = {}) {
   } catch (error) {
     if (error instanceof Error && error.name === 'ExitPromptError') {
       write(`\n${paint.yellow('Cancelado por ti. No se escribió ningún archivo.')}\n`);
-      return { code: 0, applied: false };
+      // Ctrl-C is an interrupt, like SIGINT in the commands; answering "no" at
+      // the confirmation is a deliberate decline and stays 0.
+      return { code: 130, applied: false };
     }
     throw error;
   }

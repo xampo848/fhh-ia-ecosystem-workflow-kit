@@ -460,7 +460,6 @@ export function renderCapabilityGuide(write, paint, guide, capability) {
   renderBox(write, paint, 'Confirmar herramienta', [
     `Herramienta : ${capability}`,
     `Origen      : ${guide.source}`,
-    `Alcance     : ${guide.scope}`,
     `Modo        : ${guide.intent}`,
     `Efecto      : ${guide.effect}`,
     `${guide.runtimeHint}`

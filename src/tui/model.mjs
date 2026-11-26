@@ -53,7 +53,7 @@ export function defaultIntentFor(capability) {
   return 'install+attach';
 }
 
-export function createCapabilityGuide({ capability, scope, intent, runtimes }) {
+export function createCapabilityGuide({ capability, intent, runtimes }) {
   if (capability === 'context7') {
     const commands = [
       'VS Code MCP (workspace .vscode/mcp.json):',
@@ -93,7 +93,6 @@ export function createCapabilityGuide({ capability, scope, intent, runtimes }) {
         'Context7 MCP necesita Node.js >= 18.',
         'Usa la fuente oficial salvo que pidas otra.'
       ],
-      scope,
       intent,
       runtimeHint: `Runtimes detectados: ${[...runtimes].join(', ') || 'neutral'}`
     };
@@ -130,7 +129,6 @@ export function createCapabilityGuide({ capability, scope, intent, runtimes }) {
         'En Codex, Copilot y VS Code, Engram MCP corre por stdio con engram mcp.',
         'Ningún comando de instalación debe correr sin tu aprobación explícita.'
       ],
-      scope,
       intent,
       runtimeHint: `Runtimes detectados: ${[...runtimes].join(', ') || 'neutral'}`
     };
@@ -168,7 +166,6 @@ export function createCapabilityGuide({ capability, scope, intent, runtimes }) {
       'El instalador modifica la configuración local de los agentes; confirma el alcance antes de ejecutarlo.',
       'Reinicia el agente después de instalar o configurar.'
     ],
-    scope,
     intent,
     runtimeHint: `Runtimes detectados: ${[...runtimes].join(', ') || 'neutral'}`
   };

@@ -60,13 +60,11 @@ test('selectedCapabilityList expands the all choice', () => {
 test('createCapabilityGuide builds context7 guidance with official source and runtime hint', () => {
   const guide = createCapabilityGuide({
     capability: 'context7',
-    scope: 'hybrid',
     intent: 'attach-only',
     runtimes: runtimeSet('codex,copilot')
   });
 
   assert.equal(guide.source, 'upstash/context7 (packages/mcp/README.md)');
-  assert.equal(guide.scope, 'hybrid');
   assert.equal(guide.intent, 'attach-only');
   assert.equal(guide.runtimeHint, 'Runtimes detectados: codex, copilot');
   assert.match(guide.commands.join('\n'), /@upstash\/context7-mcp/);
@@ -75,7 +73,6 @@ test('createCapabilityGuide builds context7 guidance with official source and ru
 test('createCapabilityGuide builds engram guidance with memory tool effect', () => {
   const guide = createCapabilityGuide({
     capability: 'engram',
-    scope: 'repo/project',
     intent: 'attach-only',
     runtimes: runtimeSet('neutral')
   });
