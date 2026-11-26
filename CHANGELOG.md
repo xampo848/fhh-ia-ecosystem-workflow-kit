@@ -7,6 +7,36 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.23.7-pilot-fixes
+
+Fixes from a pilot that installed the kit in a fresh project and had an agent
+follow the workflow. In your projects, `workflow-kit update` changes
+`kit_version`, adds one line to `.gitignore`, and updates the kit text listed
+below. Adapters (`CLAUDE.md`, `AGENTS.md` and the others) do not change.
+
+- `.gitignore` gains `*.workflow-kit-backup-*`, so `git add -A` no longer
+  versions the copies the kit leaves next to a replaced file. `doctor` warns
+  with `workspace/backups-not-ignored` when an install lacks the line. A
+  backup that is already committed stays tracked until you run
+  `git rm --cached` on it.
+- The plugin install steps and the `mode/plugin-not-installed` finding no
+  longer say the commands fail until the `plugin` branch is published. They
+  say the marketplace serves the version published on that branch and point
+  to `workflow-kit doctor`.
+- Kit text no longer sends an agent to things an installed project lacks:
+  the kit repository's `scripts/` and `check:workflow`, `docs/foundations` and
+  `docs/standards` (now the `docs/workflow/standards` files the kit installs
+  and the project files under `.agents/project/`), and two maintainer
+  documents. `.agents/project/stack.md` is described as present only with a
+  stack pack, and the kit quality gate as the file it is, not a skill.
+- The N1 trace has one format everywhere, `N1 · surgical · <files>`.
+- `create-prd`: Phase 5 has its own entry in the skill; the PRD template no
+  longer breaks its open-questions table; the calibration step names no tool
+  of a particular runtime; `pattern-locking` gives examples from a product
+  codebase. Spanish text is neutral.
+- `check:workflow` runs a new validator, `validate-installed-paths.mjs`: it
+  fails when installed kit text cites a path that no install provides.
+
 ## 0.23.6-ac-guards
 
 No change to what the CLI does or to the kit files; in your projects,
