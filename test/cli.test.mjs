@@ -208,7 +208,7 @@ test('upgrade defaults to dry-run and prints the chosen command', async () => {
   const code = await runCli(['upgrade', '--package-manager', 'bun', '--ref', 'v0.7.1'], io);
 
   assert.equal(code, 0);
-  assert.match(io.output.stdout, /Toolkit upgrade dry-run plan/);
+  assert.match(io.output.stdout, /workflow-kit upgrade dry-run plan/);
   assert.match(io.output.stdout, /bun add -g github:xampo848\/fhh-ia-ecosystem-workflow-kit#v0.7.1/);
 });
 
@@ -218,7 +218,7 @@ test('upgrade apply requires --yes', async () => {
   const code = await runCli(['upgrade', '--apply'], io);
 
   assert.equal(code, 2);
-  assert.match(io.output.stderr, /Refusing to apply toolkit upgrade without --yes/);
+  assert.match(io.output.stderr, /Refusing to apply workflow-kit upgrade without --yes/);
 });
 
 test('rollback reports nothing to restore when no workflow-kit backups exist', async () => {

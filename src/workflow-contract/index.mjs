@@ -18,7 +18,8 @@ async function exists(root, relativePath) {
 export async function validateWorkflowContract({
   root,
   runtimes = ['neutral'],
-  checkOverlayDrift = false
+  checkOverlayDrift = false,
+  adviceTarget
 }) {
   const diagnostics = [];
   if (!await exists(root, '.agents/instructions.md')) {
@@ -43,7 +44,7 @@ export async function validateWorkflowContract({
     }));
   }
 
-  diagnostics.push(...await validateAdapterContracts({ root, runtimes }));
+  diagnostics.push(...await validateAdapterContracts({ root, runtimes, adviceTarget }));
   const skillDiagnostics = await validateSkillRegistry({ root });
   diagnostics.push(...skillDiagnostics);
   if (!skillDiagnostics.some((item) => item.code === 'skills/invalid-registry')) {

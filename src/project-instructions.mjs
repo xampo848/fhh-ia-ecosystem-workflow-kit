@@ -6,6 +6,7 @@
 // wrapper carries the kit default first and the project additions after it.
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { updateAdvice } from './plugin-mode.mjs';
 
 export const projectInstructionNames = ['quality-gate', 'backend', 'frontend'];
 export const projectInstructionTemplateMarker = '<!-- workflow-kit:project-instructions:template -->';
@@ -110,14 +111,14 @@ export async function projectInstructionDiagnostics({ targetPath, runtimes = [],
   for (const name of projectInstructionNames) {
     const state = inspection[name];
     if (state.migratedContent !== null) {
-      diagnostics.push(warning('project-instructions/not-migrated', copilotWrapperPath(name), `Project rules still live only in the Copilot folder, so other runtimes skip them. Run workflow-kit update to copy them to ${neutralInstructionPath(name)} and regenerate this file from it.`));
+      diagnostics.push(warning('project-instructions/not-migrated', copilotWrapperPath(name), `Project rules still live only in the Copilot folder, so other runtimes skip them. Run ${updateAdvice(targetPath)} to copy them to ${neutralInstructionPath(name)} and regenerate this file from it.`));
       continue;
     }
     const expected = wrapperBody(name, state.neutral, kitQualityGate ?? state.kitDefault);
     if (expected !== null && state.wrapper !== null && runtimes.includes('copilot')) {
       const parsed = splitWrapper(state.wrapper);
       if (parsed.generated && parsed.body.trim() !== expected.trim()) {
-        diagnostics.push(warning('project-instructions/wrapper-stale', copilotWrapperPath(name), `Differs from ${neutralInstructionPath(name)}. Run workflow-kit update to regenerate it; edit the neutral file, never the wrapper.`));
+        diagnostics.push(warning('project-instructions/wrapper-stale', copilotWrapperPath(name), `Differs from ${neutralInstructionPath(name)}. Run ${updateAdvice(targetPath)} to regenerate it; edit the neutral file, never the wrapper.`));
       }
     }
   }

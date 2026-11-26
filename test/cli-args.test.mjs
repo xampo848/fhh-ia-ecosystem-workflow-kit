@@ -284,7 +284,7 @@ test('init --mode plugin --profile without --runtime gets the plugin-mode stop, 
 
   const help = createMemoryIo();
   await runCli(['tui', '--help'], help);
-  assert.match(help.output.stdout, /^tui: Guided menu for init, update, export, doctor, rollback and upgrade\.$/m);
+  assert.match(help.output.stdout, /^tui: Guided menu for install, update, export, doctor, upgrade and optional tools\.$/m);
   assert.doesNotMatch(help.output.stdout + printHelp(), /all of the above/);
 });
 

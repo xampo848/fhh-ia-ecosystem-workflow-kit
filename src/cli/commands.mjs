@@ -6,7 +6,7 @@ import { formatPluginInstallSteps } from '../plugin-mode.mjs';
 import { renderPlanDiffs } from '../plan-insight.mjs';
 import { applyRollbackPlan, buildRollbackPlan, formatRollbackPlan, summarizeRollback } from '../rollback.mjs';
 import { runTui } from '../tui.mjs';
-import { buildUpgradePlan, commandExists, formatUpgradePlan, resolveUpgradePackageManager, runUpgradePlan } from '../upgrade.mjs';
+import { buildUpgradePlan, commandExists, formatUpgradePlan, normalizePackageManager, resolveUpgradePackageManager, runUpgradePlan } from '../upgrade.mjs';
 import packageJson from '../../package.json' with { type: 'json' };
 import { yesGuardMessage } from './guards.mjs';
 import { formatExportApplySummary, formatInitApplySummary, formatUpdateApplySummary } from './summaries.mjs';
@@ -90,11 +90,15 @@ export async function runUpdateCommand(options, { stdout, stderr }) {
 }
 
 export async function runUpgradeCommand(options, { stdout, stderr }) {
-  const guardMessage = yesGuardMessage(options, 'apply toolkit upgrade');
+  const guardMessage = yesGuardMessage(options, 'apply workflow-kit upgrade');
   if (guardMessage) {
     stderr.write(guardMessage);
     return 2;
   }
+
+  // A value that is not a supported manager stops in a dry run too: it is a
+  // wrong flag, not a missing install.
+  if (options.packageManager !== undefined) normalizePackageManager(options.packageManager);
 
   // A dry run executes nothing, so a missing package manager is only a note.
   let packageManager;
@@ -106,7 +110,7 @@ export async function runUpgradeCommand(options, { stdout, stderr }) {
     missingManager = error.message;
   }
   const plan = buildUpgradePlan({ ...options, packageManager });
-  stdout.write(`${options.apply ? 'Toolkit upgrade apply plan' : 'Toolkit upgrade dry-run plan'}\n${formatUpgradePlan(plan)}\n`);
+  stdout.write(`${options.apply ? 'workflow-kit upgrade apply plan' : 'workflow-kit upgrade dry-run plan'}\n${formatUpgradePlan(plan)}\n`);
   if (missingManager) stdout.write(`Note: ${missingManager} Install it before running this command with --apply --yes.\n`);
 
   if (!options.apply) return 0;

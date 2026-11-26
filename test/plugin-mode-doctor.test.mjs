@@ -264,7 +264,7 @@ test('AC-19: doctor on a repo-mode install runs no command and prints no install
   assert.equal(result.ok, true);
   assert.deepEqual(formatDoctorResult(result).split('\n').slice(0, 8), [
     `Target: ${target}`,
-    `Toolkit version: ${packageJson.version}`,
+    `workflow-kit version: ${packageJson.version}`,
     'Runtimes: claude',
     'Overlay: fhh-ia-ecosystem-full',
     'Model profiles: claude=calidad',

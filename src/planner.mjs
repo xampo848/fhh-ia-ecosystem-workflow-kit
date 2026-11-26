@@ -1049,7 +1049,7 @@ export function formatPlan(plan) {
     `Mode: ${plan.mode ?? 'init'}`,
     // Only in plugin mode, so the repo-mode output does not change.
     ...(plan.nextInstallState?.mode === 'plugin' ? ['Install mode: plugin'] : []),
-    `Toolkit version: ${plan.toolkitVersion ?? 'unknown'}`,
+    `workflow-kit version: ${plan.toolkitVersion ?? 'unknown'}`,
     `Target managed version: ${plan.previousToolkitVersion ?? 'none recorded'}`,
     `Runtimes: ${plan.runtimes.join(',')}`,
     `Overlay: ${plan.overlay}`,

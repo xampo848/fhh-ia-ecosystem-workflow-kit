@@ -331,7 +331,7 @@ test('upgrade as a dry run without bun prints the plan and a note instead of sto
     run.on('close', (code) => resolve({ code, ...output }));
   });
   assert.equal(result.code, 0, result.stderr);
-  assert.match(result.stdout, /^Toolkit upgrade dry-run plan$/m);
+  assert.match(result.stdout, /^workflow-kit upgrade dry-run plan$/m);
   assert.match(result.stdout, /^Note: bun is required in PATH for workflow-kit upgrade\. Install it before running this command with --apply --yes\.$/m);
 });
 
@@ -520,7 +520,7 @@ test('upgrade names workflow-kit and the next step as a dry run first', async ()
   assert.equal(result.code, 0, result.stderr);
   assert.match(result.stdout, /^workflow-kit upgraded from github:/m);
   assert.match(result.stdout, /^Next step: in each repository, run `workflow-kit update --target <repo>` \(dry run\), then the same command with --apply --yes\.$/m);
-  assert.doesNotMatch(result.stdout, /^Toolkit upgrade completed|^Next step: re-run/m);
+  assert.doesNotMatch(result.stdout, /^workflow-kit upgrade completed|^Next step: re-run/m);
 });
 
 test('the plugin install steps after init --mode plugin run in the target as printed', async () => {

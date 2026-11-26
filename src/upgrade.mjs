@@ -15,10 +15,12 @@ export function currentToolkitMetadata() {
   };
 }
 
+const supportedPackageManagers = ['bun'];
+
 export function normalizePackageManager(value) {
   const normalized = String(value ?? '').trim().toLowerCase();
-  if (normalized === 'bun') return normalized;
-  throw new Error(`Unsupported package manager: ${value}`);
+  if (supportedPackageManagers.includes(normalized)) return normalized;
+  throw new Error(`Unsupported package manager: ${value}. workflow-kit upgrade supports: ${supportedPackageManagers.join(', ')}. Nothing was run.`);
 }
 
 export function normalizeUpgradeRef(value) {

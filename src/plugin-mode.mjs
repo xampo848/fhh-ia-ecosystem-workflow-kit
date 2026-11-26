@@ -59,6 +59,9 @@ export function kitCommand(targetPath, subcommand, ...args) {
 // A command in a message, between backticks; one that holds a backtick (a
 // target path can) goes between double backticks, so the delimiter stays
 // unambiguous.
+// `workflow-kit update` as advice: runnable with the target when the text is
+// printed for one, the bare name when it is generic (kit validation).
+export const updateAdvice = (targetPath) => (targetPath == null ? 'workflow-kit update' : code(kitCommand(targetPath, 'update')));
 export const code = (command) => (command.includes('`') ? `\`\` ${command} \`\`` : `\`${command}\``);
 // The way out of an unfinished run: roll it back, on this target.
 export const rollbackCommand = (targetPath) => code(kitCommand(targetPath, 'rollback', '--apply', '--yes'));

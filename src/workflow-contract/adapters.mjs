@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { runtimeEntrypoints } from '../runtime-matrix.mjs';
+import { updateAdvice } from '../plugin-mode.mjs';
 import { diagnostic } from './diagnostics.mjs';
 
 function pushIfMissing({ diagnostics, relativePath, content, pattern, code, message }) {
@@ -40,9 +41,10 @@ const continuationPattern = /continuation fast-path[\s\S]*re-route only on a bre
 const legacyReroutingPattern = /do not reuse or cache the previous workflow decision across turns/i;
 const gatePattern = /Intent-only phrasing[\s\S]*not implementation authorization/i;
 const gateExceptionsPattern = /N0 acts on intent, N1 needs a short "yes", and read-only routes\s+or an explicit imperative naming the work/i;
-const staleAdapterHint = 'Run workflow-kit update to accept the current adapter, or copy its "Shared bootstrap" block from the template.';
+// adviceTarget is the project doctor checks; kit validation has none, so its advice stays generic.
+const staleAdapterHint = (adviceTarget) => `Run ${updateAdvice(adviceTarget)} to accept the current adapter, or copy its "Shared bootstrap" block from the template.`;
 
-function checkSharedBootstrap({ diagnostics, runtime, relativePath, content }) {
+function checkSharedBootstrap({ diagnostics, runtime, relativePath, content, adviceTarget }) {
   pushIfMissing({
     diagnostics,
     relativePath,
@@ -58,7 +60,7 @@ function checkSharedBootstrap({ diagnostics, runtime, relativePath, content }) {
         code: `${runtime}/missing-rerouting-guarantee`,
         path: relativePath,
         severity: 'warning',
-        message: `Uses the previous "re-route every turn" wording, which contradicts the continuation fast-path in .agents/instructions.md. ${staleAdapterHint}`
+        message: `Uses the previous "re-route every turn" wording, which contradicts the continuation fast-path in .agents/instructions.md. ${staleAdapterHint(adviceTarget)}`
       }));
     } else {
       diagnostics.push(diagnostic({
@@ -80,12 +82,12 @@ function checkSharedBootstrap({ diagnostics, runtime, relativePath, content }) {
       code: `${runtime}/missing-execution-gate`,
       path: relativePath,
       severity: 'warning',
-      message: `The execution authorization gate lacks its N0/N1 and read-only exceptions. ${staleAdapterHint}`
+      message: `The execution authorization gate lacks its N0/N1 and read-only exceptions. ${staleAdapterHint(adviceTarget)}`
     }));
   }
 }
 
-export async function validateAdapterContracts({ root, runtimes = [] }) {
+export async function validateAdapterContracts({ root, runtimes = [], adviceTarget }) {
   const diagnostics = [];
   const checkedPrefilter = new Set();
 
@@ -102,7 +104,7 @@ export async function validateAdapterContracts({ root, runtimes = [] }) {
             code: 'adapter/missing-level-prefilter',
             path: relativePath,
             severity: 'warning',
-            message: 'Missing the generated N0–N3 level pre-filter block. Every prompt will load the full workflow. Accept the updated adapter from workflow-kit update, or copy the block between the workflow-kit:level-prefilter markers from .agents/instructions.md.'
+            message: `Missing the generated N0–N3 level pre-filter block. Every prompt will load the full workflow. Accept the updated adapter from ${updateAdvice(adviceTarget)}, or copy the block between the workflow-kit:level-prefilter markers from .agents/instructions.md.`
           }));
         }
       }
@@ -130,7 +132,7 @@ export async function validateAdapterContracts({ root, runtimes = [] }) {
     if (!runtimes.includes(runtime)) continue;
     const content = await read(root, relativePath);
     if (content === null) continue;
-    checkSharedBootstrap({ diagnostics, runtime, relativePath, content });
+    checkSharedBootstrap({ diagnostics, runtime, relativePath, content, adviceTarget });
   }
 
   if (runtimes.includes('copilot')) {

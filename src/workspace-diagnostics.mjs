@@ -4,6 +4,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { gitignoreHasWorkspaceEntry, workspaceDirectory } from './planner.mjs';
+import { updateAdvice } from './plugin-mode.mjs';
 import { legacyPathFor, loadKitManifest } from './kit-manifest.mjs';
 
 export const staleWorkspaceDays = 14;
@@ -147,7 +148,7 @@ export async function workspaceDiagnostics({ targetPath, now = Date.now() }) {
       if (error.code !== 'ENOENT') throw error;
     }
     if (!gitignoreHasWorkspaceEntry(gitignore)) {
-      diagnostics.push(warning('workspace/not-ignored', '.gitignore', `${workspaceDirectory}/ holds temporary AI state but is not ignored by Git. Run workflow-kit update, or add "${workspaceDirectory}/" to .gitignore.`));
+      diagnostics.push(warning('workspace/not-ignored', '.gitignore', `${workspaceDirectory}/ holds temporary AI state but is not ignored by Git. Run ${updateAdvice(targetPath)}, or add "${workspaceDirectory}/" to .gitignore.`));
     }
   }
 

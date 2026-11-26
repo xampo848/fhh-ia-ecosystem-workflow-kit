@@ -506,8 +506,8 @@ export async function runDoctor(options = {}) {
   };
   const checks = await Promise.all([
     pluginMode
-      ? () => validateAdapterContracts({ root: targetPath, runtimes })
-      : async () => (await validateWorkflowContract({ root: targetPath, runtimes })).diagnostics.map(targetRepoContractDiagnostic),
+      ? () => validateAdapterContracts({ root: targetPath, runtimes, adviceTarget: targetPath })
+      : async () => (await validateWorkflowContract({ root: targetPath, runtimes, adviceTarget: targetPath })).diagnostics.map(targetRepoContractDiagnostic),
     () => modelProfileDiagnostics({ targetPath, present, catalog, modelProfiles, updatePlan, recordedRuntimes: storedState?.runtimes ?? [] }),
     () => workspaceDiagnostics({ targetPath }),
     () => projectContextDiagnostics({ targetPath }),
@@ -650,7 +650,7 @@ async function modelProfileDiagnostics({ targetPath, present, catalog, modelProf
 export function formatDoctorResult(result) {
   const lines = [
     `Target: ${result.targetPath}`,
-    `Toolkit version: ${packageJson.version}`,
+    `workflow-kit version: ${packageJson.version}`,
     `Runtimes: ${result.runtimes.join(',')}`,
     `Overlay: ${result.overlay}`,
     `Model profiles: ${Object.entries(result.modelProfiles ?? {}).map(([runtime, profile]) => `${runtime}=${profile}`).join(',') || 'none'}`,
