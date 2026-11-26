@@ -1,0 +1,138 @@
+# Task Tracker Template
+
+Use this template when the orchestrator initializes `.ai-work/<prd-slug>/task_tracker.toon` at Phase 2 (Slicing).
+Copy and fill all fields. Use TOON format. Do not leave placeholder text — remove any field that does not apply.
+
+The tracker is a **snapshot of the current state**: it is overwritten in
+place, never appended to. History goes to `.ai-work/<prd-slug>/events.log`, one
+line per event, which is read only on resume or audit. Target size: about 100
+lines even at N3. If the tracker grows blocks such as `previous_writer`, it is
+being used as a log; replace them.
+
+---
+
+```
+# task_tracker
+prd: <path-to-prd-file>
+level: N2 | N3
+modifiers[N]: autonomous | resume
+active_writer: <agent alias | orchestrator-inline | none>
+started: <ISO-date>
+execution_locks[N]{slice_id,path,run_id,lock_id,evidence_state}:
+  <slice-id>,<.ai-work/<prd-slug>/locks/<slice-id>.toon>,<run-id>,<lock-id>,<fresh|stale|missing>
+quality_gate: <verified path | none, with reason>
+delegation_posture: avoided | recommended | required
+delegation_reason: <one-line concrete reason, see SKILL.md Design Principle 2>
+validation_commands[N]: <command>
+loaded_docs[N]: <path>
+required_instructions[N]: <path>
+
+# delegation_envelopes
+delegation_envelopes[N]{schema_version,run_id,slice_id,execution_lock_id,role,skill_path,runtime,surface,registered_agent,requested_tier,escalation_reason,routing_mode,requested_model,availability_source,resolved_model,resolved_model_evidence,objective,context_provenance,evidence_state,status}:
+  delegation-envelope/v1,<run-id>,<slice-id>,<lock-id|none>,<role>,<exact-skill-path>,<runtime|unknown>,<surface|unknown>,<registered-agent|unknown>,<Liviano|Mediano|Grande>,<reason|none>,<auto-with-fallback|user-pinned-model|user-pinned-tier>,<model|inherit|unknown>,<source|unknown>,<confirmed-model|unknown>,<runtime-evidence|none>,<observable-objective>,<source-and-freshness|unknown>,<fresh|stale|missing>,<NOT_STARTED|IMPLEMENTED|TESTED|VALIDATED|VERIFIED|BLOCKED>
+
+# acceptance_criteria
+ac[N]{id,description,status,evidence}:
+  AC-01,<description>,NOT_STARTED,none
+  AC-02,<description>,NOT_STARTED,none
+
+# phases
+phases[N]{name,status,evidence}:
+  Phase 0 - Readiness,NOT_STARTED,none
+  Phase 1 - Discovery,NOT_STARTED,none
+  Phase 2 - Slicing,NOT_STARTED,none
+  Phase 3 - Matcher,NOT_STARTED,none
+  Phase 4 - Implementation,NOT_STARTED,none
+  Phase 5 - Contract Verification,NOT_STARTED,none
+  Phase 6 - Validation,NOT_STARTED,none
+  Phase 7 - QA,NOT_STARTED,none
+  Phase 8 - Closure,NOT_STARTED,none
+
+# slices
+slices[N]{name,owner,files_owned,status,ac_covered,round,last_check,blocker}:
+  <slice-name>,<agent-alias>,<file-path>,NOT_STARTED,<ac-ids>,<0/2>,<last command and result | none>,<blocker | none>
+
+# open_risks
+open_risks[N]: <description>
+
+# findings_ledger
+findings_ledger[N]{id,severity,file,description,pattern_protected,status,source,first_reported,resolved_in_slice}:
+  <finding-id>,<critical|high|medium|low>,<path>,<description>,<pattern name>,<open|repaired|waived_by_user>,<lint-ranger|qa-relampago>,<ISO-datetime>,<slice-id or none>
+
+# unrelated_failures
+unrelated_failures[N]{description,user_decision}:
+  <description>,<repair_now|log_as_risk|block|pending>
+
+# qa_gate
+qa_gate:
+  acceptance_criteria: COMPLETE | INCOMPLETE
+  regressions: PASS | FAIL | PARTIAL
+  standards: PASS | FAIL | PARTIAL
+  tests: PASS | FAIL | PARTIAL
+  edge_cases: PASS | FAIL | PARTIAL
+  blocking_findings_open: yes | no
+  ready_to_close: yes | no
+
+# closure_gate
+closure_gate[N]{item,status,evidence}:
+  acceptance-criteria,NOT_STARTED,none
+  regressions,NOT_STARTED,none
+  standards,NOT_STARTED,none
+  tests,NOT_STARTED,none
+  edge-cases,NOT_STARTED,none
+  qa-readiness,NOT_STARTED,none
+
+# checkpoint (only at a session cut point; see implement-change/reference/session-checkpoint.md)
+checkpoint:
+  written: <ISO-datetime>
+  trigger: <cut-point <slice-id> | size-brake <context size or substitute>>
+  route_trace: <latest routing trace line, verbatim>
+  closed_slices[N]: <slice-id>
+  next_slice: <slice-id>
+  next_lock: <.ai-work/<prd-slug>/locks/<slice-id>.toon>
+  open_decisions[N]: <question waiting for the user>
+  branch: <branch>
+  commit: <sha>
+  working_tree: <clean | uncommitted files>
+
+```
+
+## Events Log
+
+History lives outside the tracker, in `.ai-work/<prd-slug>/events.log`, one
+line per event, append-only:
+
+```
+<ISO-datetime> | <phase> | <agent> | <slice-id> | <event: launched|handoff|repair-round n|blocked|verified|waiver> | <brief>
+```
+
+Read it only on resume or audit; it is removed with `.ai-work/<prd-slug>/` at closure.
+
+## Status Values
+
+- `NOT_STARTED` — slice has not begun
+- `IMPLEMENTED` — code written, not yet tested
+- `TESTED` — tests added/run, not yet validated
+- `VALIDATED` — validation commands passed
+- `VERIFIED` — all evidence present; ready to proceed
+- `PENDING_SUBAGENT` — delegate was launched and the orchestrator is waiting for its terminal handoff
+- `BLOCKED` — stop condition triggered; awaiting user input
+
+## Update Rules
+
+- Set the slice to `PENDING_SUBAGENT` when a delegate is launched, then update again after the terminal handoff.
+- Change slice `status` in place — do not append duplicates.
+- Append one line to `events.log` for every delegation event; do not keep event history in the tracker.
+- Update `round` when a repair round starts (limit 2 per slice, see `validation-and-stop-conditions.md`) and overwrite `last_check` with the latest command and result.
+- Record matcher evidence before the implementation owner starts on the same slice.
+- Distinguish slicing, matcher, and implementation handoffs in `events.log`.
+- Add to `open_risks` whenever a subagent returns a risk.
+- Record an ignored immutable PRD-local execution lock per slice; it is coordination state, as is this tracker. Persist closure evidence in the final response and durable PRD documentation before cleanup.
+- Record only a quality-gate path confirmed to exist; a missing configured path is a stop condition, not `none`.
+- Record one `delegation-envelope/v1` row for every delegated slice. Keep `requested_model` separate from `resolved_model`; use `resolved_model: unknown` unless runtime evidence exists, and never infer it from a label, catalog, or prompt.
+- Do not set a delegated slice to `VERIFIED` unless its envelope has a present, non-`none` `execution_lock_id` matching its immutable slice lock for the same `run_id` and `slice_id`, all lock fields are complete, and `evidence_state` is `fresh`. An absent, `none`, mismatched, incomplete, stale, or missing lock/evidence record blocks `VERIFIED`; lack of runtime model evidence alone does not.
+- Mark `evidence` in `ac` when the acceptance criterion has concrete proof (test path, validation output, or explicit residual risk).
+- Update `qa_gate` and `closure_gate` after validation and QA; Phase 8 cannot be `VERIFIED` while any item is not passing with evidence.
+- Append every finding returned by `lint-ranger` or `qa-relampago` to `findings_ledger` with a stable `id`; never overwrite or delete a row. Update only its `status` in place when it is repaired or waived.
+- On a QA re-entry, read `findings_ledger` first and treat any prior row still `open` as unresolved; do not infer a fix from silence or from a passing command alone.
+- Add a row to `unrelated_failures` whenever `lint-ranger` classifies a failure as pre-existing/unrelated, and update its `user_decision` only after the user explicitly chooses `repair_now`, `log_as_risk`, or `block`.

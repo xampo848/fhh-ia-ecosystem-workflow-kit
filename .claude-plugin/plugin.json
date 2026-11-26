@@ -1,0 +1,10 @@
+{
+  "name": "fhh",
+  "version": "0.23.6-ac-guards",
+  "description": "Workflow kit: routed workflow skills and delegates that run from the plugin while each repository keeps its own project overlay.",
+  "author": {
+    "name": "fhh-ia-ecosystem"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit"
+}

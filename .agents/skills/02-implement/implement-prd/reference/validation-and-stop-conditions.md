@@ -1,0 +1,197 @@
+# Validation And Stop Conditions
+
+Read it when validating a slice, deciding whether to stop, or closing; it holds the brakes that apply at every level.
+
+## Evidence Integrity
+
+Before accepting a command result as slice evidence:
+
+1. Confirm the exact command exercised every declared `required_checks` item for the slice.
+2. Record the validated file scope and a content reference (commit SHA or file-hash manifest) in the handoff.
+3. Mark `command_scope_confirmed: no` and `evidence_state: missing` when the command cannot be shown to cover that scope; a zero exit code alone is not evidence.
+4. Mark evidence `stale` and rerun required checks when files inside the validated scope change.
+
+For delegated work, accept a reused context only when its complete content,
+provenance, and current freshness are observable. A new delegate must read its
+role-required skill, applicable instructions, and controlling source; a resume
+must revalidate the relevant delta and affected dependencies. `unknown` cannot
+be treated as proof that any of these controls occurred.
+
+Before marking a delegated slice `VERIFIED`, confirm its envelope has a
+present, non-`none`, matching, complete immutable slice `execution_lock_id` for the
+same `run_id` and `slice_id`. An absent, mismatched, incomplete, stale, or
+unknown lock state blocks `VERIFIED`; lack of runtime model identity alone does
+not.
+
+## Backend And Frontend Validation
+
+The commands belong to the project, not to this workflow. Use the validation
+commands declared in `.agents/project/context.md` (legacy: `.agents/project-context.md`), with their cost, and the
+stack rules in `.agents/project/stack.md` when present:
+
+- run the fast, focused command first; a single test file only when it is the
+  narrowest reliable check;
+- run coverage or the broad "validate everything" command only when risk
+  warrants it or at closure;
+- lint only the touched files unless the change is broad;
+- if no command is declared for a touched layer, stop and ask instead of
+  guessing one, then record it in `.agents/project/context.md` (legacy: `.agents/project-context.md`) at closure.
+
+## Auxiliary Validation Skills
+
+- Use `react-doctor` after meaningful React changes or final frontend review.
+- Use `playwright-testing` by default for most navigable user-facing UI behavior changes when tooling is available. Skip only with an explicit documented exception (backend-only/no navigable UI/purely cosmetic static change) or user waiver with risk acceptance.
+- Do not start a visible-UI coding slice while the PRD Contrato Visual is missing, `not-applicable` without reason, or still would force the implementer to invent the screen.
+- Use `frontend-design` before coding visible frontend UI only to translate or sharpen an already locked visual contract. Do not use it to invent density, hierarchy, or states after implementation has started.
+- Use `impeccable` after the lock exists when the work needs full design craft, broad refinement, or deep visual QA.
+- Do not mark visible frontend UI complete while it still feels generic, templated, low-hierarchy, or recognizably AI-generated, or while a required UI-lock state is unimplemented.
+
+## Code Quality Validation
+
+Before marking any implementation slice complete, verify every configured quality-gate or domain-instruction path exists, then apply the relevant project quality gate:
+
+- Existing project pattern was reused or any divergence is explicitly justified.
+- SOLID risks were checked, especially single responsibility and dependency inversion.
+- DRY risks were checked for duplicated business rules, contract mappings, enums, permissions, validation, and UI/data transformations.
+- KISS/YAGNI risks were checked so the slice does not introduce speculative abstractions or unnecessary design patterns.
+- Hardcoding risks were checked for strings, colors, secrets, roles, tenant IDs, permissions, statuses, thresholds, URLs, and API shapes.
+- Acceptance criteria are mapped to testable evidence.
+- Visible frontend UI passed the premium visual bar from `.agents/project/frontend.md`, including hierarchy, rhythm, states, and Design System alignment.
+
+Validation output must include a quality gate result in the delegate handoff or final response.
+
+## Production-Ready Closure Gate
+
+Before marking any PRD implementation done, record and satisfy all of these gates:
+
+- Acceptance criteria gate: every criterion is complete with code/test/validation/smoke evidence, or explicitly blocked with named residual risk.
+- Regression gate: the changed behavior and the most plausible adjacent regressions were checked with the narrowest reliable validation.
+- Standards gate: project patterns, code quality, and domain instructions pass without unresolved exceptions.
+- Test gate: required tests exist for the slice; any missing tests are justified concretely or block closure.
+- Coverage gate: every new or changed branch has an executed assertion in its owning layer (`branch → test → layer`); a method that only delegates is covered by the test of the layer above or below it. Tests follow [test-design-rules.md](test-design-rules.md) (owning layer, no cross-layer duplicates, behavior not implementation). A gap needs an explicit `waived_by_user` record with reason.
+- Edge-case gate: relevant empty, error, boundary, permission, rollout, migration, and failure states are verified or block closure.
+- QA gate: final QA ends with `ready_to_close: yes`.
+- Findings gate: `findings_ledger` has no `critical`/`high` row with `status: open`; every such row is `repaired` or validly `waived_by_user` (see Waiver Floor below).
+
+If any gate is `FAIL`, `PARTIAL`, `INCOMPLETE`, `MISSING`, or unsupported by evidence, closure is blocked and the workflow must return to the owning slice.
+
+### Waiver Floor
+
+`waived_by_user` can close any gate above — the user retains final authority — but for a `critical`/`high` severity finding, or a gap touching authorization, tenancy, or a destructive migration, the waiver is valid only when it quotes the concrete risk the user is accepting. A generic acknowledgement ("ok", "proceed", "waived") with no named risk does not satisfy the floor; treat it as `evidence_state: missing` and ask the user to name the specific risk before accepting it.
+
+## Repair Rounds And Failure Classes
+
+These brakes apply at every level and are never lifted by the autonomous
+modifier: autonomy removes routine pauses, not brakes.
+
+1. **Repair-round limit: 2 per slice.** A repair round is any test, QA, or
+   re-entry repair cycle on the same slice. Ad hoc diagnostic scripts and
+   "runtime N" runs made to understand a failure count as rounds. At the third
+   round, stop and present to the user: what fails, the hypothesis, and the
+   options (continue, accept the risk, reduce scope, or split). Record the
+   current round in the tracker (`round: n/2`).
+2. **Product failure or environment failure.** Environment failures are:
+   database, ports, seeding or purging, infrastructure timeouts, a model that
+   cannot be launched, and a flaky test with no code change.
+   - Environment failure: **one** recovery attempt. If it still fails, stop and
+     report. Repairing the environment is outside the slice unless the user
+     asks for it.
+   - Flaky: rerun **once**. If it passes, record it as flaky and do not
+     investigate it inside the slice.
+   - An environment failure never consumes product repair rounds and never
+     becomes an open-ended `BLOCKED`.
+3. **Expensive suites (full E2E).** Per slice, run only the slice's specs. The
+   full suite runs **once**, at closure or in CI. A current result (same
+   command, scope, and content) is reused instead of rerun.
+4. **Proportional tests.** Write the tests for the acceptance criteria and the
+   edge cases in the PRD test strategy. Do not add tests outside that strategy
+   without a concrete finding that justifies them.
+
+## References
+
+Load a reference only when its condition holds:
+
+- [evidence-reuse.md](evidence-reuse.md) — read it before running an expensive deterministic check (package typecheck, unit suite, build)
+- [validation-anti-patterns.md](validation-anti-patterns.md) — read it when reviewing a validation or closure decision that feels like a shortcut
+
+## Phase And Global Rules
+
+- A slice is complete only in state `VERIFIED`, after `IMPLEMENTED`, `TESTED`, and `VALIDATED` evidence is recorded.
+- Run the narrowest falsifying checks at each slice; broad phase/global suites complement rather than replace slice validation.
+- Reserve broad or full validation suites for phase close and PRD closure; do not re-run them after every micro-edit inside a slice when the narrow command already falsifies the change.
+- In `resume` mode, skip re-running validation or tests for a slice already `VERIFIED` with `evidence_state: fresh`; revalidate only slices that are `stale`, incomplete, or not yet `VERIFIED`.
+- A dependent slice cannot start while its predecessor is implemented but untested, tested but unvalidated, or missing acceptance/quality evidence.
+- Never move to the next dependent phase with failing relevant tests.
+- Never silence failures without justification.
+- Fix root causes; do not retry blindly.
+- Validate each phase Definition of Done line by line.
+- Ask before moving to the next PRD phase in interactive workflows only when the next phase changes scope, there is more than one valid technical option, validation exposes ambiguity, a stop condition applies, or the user explicitly asked to review each phase.
+- With the autonomous modifier, continue through phases unless a stop condition, the repair-round limit, or an environment failure applies.
+- At the end, validate the global Definition of Done from the PRD.
+- Acceptance criteria require evidence: code path, test, validation output, smoke verification, or an explicit residual risk.
+- Code quality criteria require evidence: existing pattern reused, hardcoding check, SOLID/DRY/KISS notes, and new abstraction rationale if any.
+- Never treat "all current commands passed" as sufficient proof of production readiness when regressions, standards compliance, tests, or edge cases remain unverified.
+
+## Stop Conditions
+
+Stop and ask the user before continuing when:
+
+- Visible UI work would require inventing density, hierarchy, primary action, or UI states because the Contrato Visual is missing or unlocked.
+- A prototype clashes with the design system on something the PRD `Lock visual` table does not decide (`../../../01-product/create-prd/reference/visual-lock.md`).
+- The PRD has unresolved blocking questions.
+- There are multiple valid technical options not constrained by the PRD.
+- A migration is destructive.
+- Multi-tenancy or authorization behavior is ambiguous.
+- A public API contract change goes beyond the PRD.
+- API contract changes impact existing consumers.
+- Validation reveals a requirement ambiguity.
+- A fix requires editing outside the current ownership boundary.
+- The implementation would introduce a new abstraction not requested by the PRD.
+- A simpler existing pattern exists but the slice appears to require a divergent design.
+- The agent cannot map an acceptance criterion to testable evidence.
+- Any production-ready closure gate is unresolved: acceptance criteria, regressions, standards, tests, edge cases, or QA readiness.
+- The fix requires changing behavior outside the PRD's stated scope.
+- A slice reaches its third repair round, or an environment failure survives its single recovery attempt (see Repair Rounds And Failure Classes).
+- The agent would need to overwrite or revert unrelated user or agent changes.
+- The slice requires hardcoding a value that should belong in i18n, design tokens, config, constants, enums, permissions, serializers, environment variables, factories, or fixtures.
+- The slice requires duplicating authoritative business knowledge instead of reusing or extending the owning module.
+- The slice cannot satisfy the `CODE_QUALITY.md` gate without broad unrelated refactoring.
+- A required validation command cannot be shown to cover the declared slice scope.
+- The handoff lacks a validated content reference for evidence required to reach `VERIFIED`.
+- A new delegate lacks a required role read, or a claimed pre-injected context lacks complete observable content, provenance, or current freshness.
+- A resumed delegate has not revalidated a relevant delta or affected dependency before reusing prior context.
+- A delegate restarts parent intake, readiness, discovery, slicing, matching, or router selection instead of executing its assigned slice.
+- The correlated immutable slice execution lock is absent, `none`, mismatched, incomplete, stale, or `unknown` when `VERIFIED` is requested.
+- A configured quality-gate or required domain-instruction path is missing; report the exact path and stop until it is created or corrected.
+- Coverage evidence for a new or changed branch is missing, ambiguous, or not mapped to an executed assertion in its owning layer ([test-design-rules.md](test-design-rules.md)).
+- A failure is classified as pre-existing/unrelated to the current slice or PRD scope: present exactly three options — (A) repair it now inside this PRD's scope, (B) log it as an explicit residual risk in `## 10. Evidencia de Implementacion` and continue, (C) block closure until it is resolved elsewhere. Do not decide on the user's behalf.
+- A `critical`/`high` severity finding, or an authorization/tenancy/destructive-migration gap, is offered a `waived_by_user` resolution without a concretely named risk (see Waiver Floor).
+
+Use this format:
+
+```text
+Pregunta antes de continuar:
+
+[situacion concreta]
+
+Opcion A: [...]
+Opcion B: [...]
+
+Cual prefieres?
+```
+
+## Resume Mode
+
+When the tracker holds a `checkpoint` block, resume as
+`../../implement-change/reference/session-checkpoint.md` says instead: it does
+not rerun readiness or discovery while their evidence is fresh. Otherwise,
+when resuming a partial PRD implementation:
+
+1. Read the physical task tracker file `.ai-work/<prd-slug>/task_tracker.toon` to restore the orchestration state and see progress. If it was cleaned after a completed run, reconstruct progress from the PRD, final response, diff, and tests.
+2. Run `prd-readiness-review` against the PRD and current user request.
+3. Apply the Phase 1 discovery-reuse check in `orchestration-flow.md`: read `.ai-work/<prd-slug>/discovery.md` if present and verify freshness (MCP change-detection when available, otherwise treat as stale if new commits/slices landed). Only run `codebase-discovery` with resume context when no fresh, reusable brief is available.
+4. Detect implemented files.
+5. Run existing relevant tests to determine completion.
+6. Rebuild the slicing plan from the first incomplete acceptance criterion.
+7. Do not re-implement validated work.
+8. Preserve unrelated user or agent changes.

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Turbo Backend"
+  short_description: "Implement owned Rails backend PRD slices"

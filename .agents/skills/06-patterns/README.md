@@ -1,0 +1,183 @@
+# Pattern Skills Contract
+
+This directory holds the kit's neutral pattern skills and the contract every
+implementation pattern skill follows. It belongs to the kit: a kit update
+replaces it.
+
+A project's own pattern skills live in the project overlay, never here:
+
+```text
+.agents/project/skills/<skill>/SKILL.md   registered in .agents/project/index.md
+```
+
+Kit pattern skills shipped here:
+
+- `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md`
+- `.agents/skills/06-patterns/authoring/init-legacy-attachments/SKILL.md`
+- `.agents/skills/06-patterns/authoring/pattern-skill-template.md` and
+  `.agents/skills/06-patterns/authoring/runbook-template.md` (templates)
+
+Runbooks are project skills of class `Runbook` under
+`.agents/project/skills/runbooks/<name>/SKILL.md`: project procedures such as a
+release or a rollback (contract: `.agents/kit-boundary.md`, section "Runbooks").
+
+The kit ships only neutral authoring helpers and no domain-specific default
+patterns or runbooks. Ownership and extension rules: `.agents/kit-boundary.md`.
+
+## Purpose
+
+Pattern skills are AI-executable reusable procedures for recurring technical
+implementation work. They are **not** workflow orchestrators and they are
+**not** external capability install/attach manifests.
+
+Pattern skills exist so implementation slices can declare:
+
+- which reusable skill must be read before work starts;
+- why that skill applies;
+- whether it is required before reading, writing, testing, or review;
+- which fallback docs remain valid if the skill does not exist yet;
+- which validation hooks and handoff evidence prove the slice used the pattern.
+
+## Slice Contract
+
+Use this minimum contract shape when a PRD, slicer, matcher, or implementer
+needs to declare required pattern skills for a slice:
+
+```yaml
+slice_skill_contract:
+  slice_id:
+  owner_skill:
+  required_pattern_skills:
+    - name:
+      path:
+      reason:
+      required_before: read | write | test | review
+  optional_capabilities:
+    - name:
+      attach_point:
+      reason:
+      active_state_required:
+  fallback_docs:
+    - path:
+      reason:
+  validation_hooks:
+    - type:
+      command_or_check:
+      reason:
+  handoff_required_fields:
+    - slice_id
+    - owner_skill
+    - skills_read
+    - capabilities_used
+    - fallback_docs_used
+    - validation_run
+    - quality_gate_result
+    - open_risks
+```
+
+## Boundary Rules
+
+### Required pattern skills
+
+- Must point to an exact `SKILL.md` path.
+- Are repo-owned or otherwise explicitly governed as reusable implementation
+  procedures.
+- Must say **why** the skill applies to the slice.
+- Must say **when** the skill must be read: `read`, `write`, `test`, or
+  `review`.
+
+### Optional capabilities
+
+- Are not pattern skills.
+- Remain governed by `.agents/integrations/README.md` and
+  `.agents/capabilities/**`.
+- Must never be treated as silently mandatory just because they are available.
+- May be referenced only by attach-point intent and active-state requirement.
+
+### Fallback docs
+
+- Are allowed when the pattern skill does not exist yet or is intentionally not
+  loaded.
+- Should normally point to `docs/patterns/**`, architecture docs, standards,
+  or another approved neutral contract.
+- Must include a reason, not just a path.
+
+## Authoring Rules
+
+Every new pattern skill should define:
+
+1. **Stable logical name** — short, searchable, trigger-specific.
+2. **Exact physical path** — `.agents/project/skills/<skill>/SKILL.md` for a project pattern; `.agents/skills/06-patterns/<domain>/<skill>/SKILL.md` only for a kit pattern.
+3. **Narrow trigger** — concrete implementation surface, not a vague category.
+4. **Required-before stage** — whether it must be loaded before read, write,
+   test, or review.
+5. **Fallback docs** — valid non-skill sources if the skill is absent.
+6. **Validation hooks** — tests, contract checks, lint, smoke verification, or
+   review checks that prove correct use.
+7. **Stop conditions** — ambiguities or risk boundaries that prohibit guessing.
+8. **Out-of-scope notes** — adjacent work that the pattern skill must not
+   absorb.
+
+### Rollout-governing pattern lifecycle
+
+If a pattern skill governs controlled production rollout (for example, feature
+flags, toggles, staged activation, or a dual-path cutover), it must also define
+a `Rollout Lifecycle` block containing:
+
+1. **Owner** — team or role accountable for activation and retirement.
+2. **Default state** — disabled by default until explicitly activated.
+3. **Activation mechanism** — the concrete configuration, migration, or command
+  that enables the new path.
+4. **Both-state tests** — focused checks for both disabled/legacy and enabled/new
+  behavior.
+5. **Rollback path** — how to disable the new behavior safely after release.
+6. **Retirement plan** — the signal and cleanup required to remove the old path
+  and the rollout mechanism.
+
+Treat a rollout-governing pattern without this block as incomplete. This rule
+does not apply to patterns that do not control production activation.
+
+## Recommended Bootstrap Flow
+
+When a repository starts from this overlay:
+
+1. Use `.agents/skills/06-patterns/authoring/add-project-pattern/SKILL.md`.
+2. Copy
+  `.agents/skills/06-patterns/authoring/pattern-skill-template.md` and fill it.
+3. Create 1-3 local project patterns under
+  `.agents/project/skills/<skill>/SKILL.md`.
+4. Register each new skill in the `Skills` table of `.agents/project/index.md`.
+   The kit registries and indexes are kit files: do not edit them.
+5. Keep fallback docs in `docs/patterns/**` until enough local pattern skills
+  exist.
+
+## Handoff Evidence Contract
+
+When a delegate or orchestrator claims a slice used pattern skills, the handoff
+should report at minimum:
+
+- `slice_id`
+- `owner_skill`
+- `skills_read`
+- `capabilities_used`
+- `fallback_docs_used`
+- `validation_run`
+- `quality_gate_result`
+- `open_risks`
+
+This README defines the contract only. Future PRDs may add:
+
+- a matcher that selects pattern skills automatically;
+- delegate enforcement of the handoff fields;
+- the initial library of repo-owned pattern skills;
+- YAML/JSON automation or cache/refresh workflows.
+
+## Out of Scope Here
+
+This contract does **not**:
+
+- create the `implementation-skill-matcher`;
+- install external capabilities;
+- rewrite delegates to consume the contract automatically;
+- define the full pattern-skill library;
+- replace `docs/patterns/**` as human-readable references.

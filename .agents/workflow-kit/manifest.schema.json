@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fhh-ia-ecosystem.local/agents/workflow-kit/manifest.schema.json",
+  "title": "Workflow kit manifest",
+  "description": "Closed list of kit-owned paths with their ownership class. Contract: .agents/kit-boundary.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "name",
+    "kit_version",
+    "contract",
+    "project_root",
+    "classes",
+    "paths",
+    "project_layout",
+    "legacy_paths",
+    "extension_points",
+    "not_shadowable"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema_version": { "const": "2.0.0" },
+    "name": { "type": "string" },
+    "kit_version": { "type": "string" },
+    "description": { "type": "string" },
+    "contract": { "type": "string" },
+    "project_root": { "const": ".agents/project/" },
+    "classes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kit", "derived", "adapter", "seed", "state"],
+      "properties": {
+        "kit": { "type": "string" },
+        "derived": { "type": "string" },
+        "adapter": { "type": "string" },
+        "seed": { "type": "string" },
+        "state": { "type": "string" }
+      }
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "class"],
+        "properties": {
+          "path": { "type": "string", "description": "Repository-relative path; a trailing / makes it a prefix." },
+          "class": { "enum": ["kit", "derived", "adapter", "seed", "state"] },
+          "block": { "type": "string", "description": "Marker name of an adapter's kit-owned block; defaults to workflow-kit:managed." },
+          "generated": { "type": "boolean", "description": "Written at install time, so no template file backs it." }
+        }
+      }
+    },
+    "project_layout": { "type": "array", "items": { "type": "string", "pattern": "^\\.agents/project/" } },
+    "legacy_paths": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^\\.agents/project/" } },
+    "extension_points": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^\\.agents/project/" } },
+    "not_shadowable": { "type": "array", "items": { "type": "string" } },
+    "ignore_entries": { "type": "array", "items": { "type": "string" }, "description": "Lines the CLI keeps in the target .gitignore; it appends a missing one and never edits the rest of the file." },
+    "superseded_seeds": { "type": "object", "description": "sha256 of seed contents shipped by earlier kit versions. A seed byte-identical to one of them holds no project content, so the migration may replace it with the current seed.", "additionalProperties": { "type": "array", "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" } } },
+    "excluded_from_distribution": { "type": "array", "items": { "type": "string" } },
+    "validation_commands": { "type": "array", "items": { "type": "string" } }
+  }
+}

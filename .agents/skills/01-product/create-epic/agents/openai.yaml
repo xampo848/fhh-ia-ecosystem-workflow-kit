@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Epic"
+  short_description: "Research epics and phase PRD delivery"
+  default_prompt: "Use $create-epic to research an appetite-shaped project epic and split it into phases that flow through create-prd, implement-prd, and document-development."

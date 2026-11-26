@@ -1,0 +1,183 @@
+---
+name: implementation-skill-matcher
+description: "Delegate-only skill for implement-change. Matches each approved implementation slice to required pattern skills, optional capabilities, fallback docs, validation hooks, and handoff metadata before coding starts."
+context: fork
+---
+
+# Implementation Skill Matcher
+
+Use after `implementation-slicing` and before any coding delegate starts.
+
+This skill does **not** edit product code. It classifies reusable knowledge and
+capability needs per slice.
+
+## Mission
+
+Receive already-defined slices and decide, for each slice:
+
+- which repo-owned pattern skills are required;
+- which optional capabilities may help if active/attached;
+- which fallback docs apply if a skill is missing;
+- which validation hooks and handoff fields must accompany the slice;
+- whether matching is confident, partial, or blocked.
+
+## Responsibility Boundary
+
+### This skill owns
+
+- `required_pattern_skills`
+- `optional_capabilities`
+- `fallback_docs`
+- `validation_hooks`
+- `handoff_required_fields`
+- `match_confidence`
+- `blocked_reason`
+
+### This skill must not own
+
+- re-slicing work;
+- reassigning slice ownership;
+- changing file ownership;
+- editing production code;
+- install/attach semantics for external capabilities.
+
+If a slice is too ambiguous to match safely, return `blocked` or `partial`.
+Do not silently rewrite the slice plan.
+
+## Required Inputs
+
+- Slice table from `implementation-slicing`.
+- Relevant PRD excerpts for the slice.
+- Focused discovery notes or explicit reason discovery was skipped.
+- `.agents/skills/06-patterns/index.md` as the first candidate catalog, then the
+  `Skills` table of `.agents/project/index.md` (its `Pattern` rows only; a
+  `Runbook` row is never matched) when it exists.
+- `.agents/skills/06-patterns/README.md` only when a candidate exists or
+  eligibility/handoff rules are ambiguous.
+- `.agents/skills/registry.md` only after the compact index yields at least one
+  candidate or eligibility cannot be decided from the index row.
+- Known capability availability/attach state when available.
+
+Use an index-first and path-first strategy. Do **not** bulk-load every
+`SKILL.md`. Scan the compact pattern index first, then open registry rows only
+for matching or ambiguous candidates, then read exact `SKILL.md` paths only for
+selected skills.
+
+Do not invent candidates. If `.agents/skills/06-patterns/index.md` is missing,
+regenerate it with `node scripts/sync-skill-registry.mjs --write` or fall back
+to `.agents/skills/registry.md` and record that fallback.
+
+The derived cache is a preflight/index aid only. It is not a source of truth and
+must never replace the compact pattern index, a needed registry row, or the
+exact selected `SKILL.md` files.
+
+## Matching Procedure
+
+1. Read the slice outcome, scope, owner skill, files owned, acceptance criteria,
+   tests, validation, and stop conditions.
+2. Determine the technical surface touched by the slice: backend, frontend,
+   contract, domain, validation, docs-only, or mixed.
+3. Scan `.agents/skills/06-patterns/index.md` and the `Pattern` rows of
+   `.agents/project/index.md` for candidate names, triggers, and paths. Open `.agents/skills/registry.md` and `.agents/skills/06-patterns/README.md`
+   only when at least one candidate matches or eligibility is ambiguous.
+4. Select `required_pattern_skills` only when the slice clearly needs reusable
+   procedural knowledge.
+5. For each required skill, return:
+   - logical name;
+   - exact `SKILL.md` path;
+   - concise reason;
+   - `required_before` stage: `read`, `write`, `test`, or `review`.
+   - `matcher_eligibility`: `eligible` or `not-eligible` according to registry metadata/rules.
+6. Evaluate `optional_capabilities` only if they are relevant and known to be
+   available/attached or worth checking. Keep them optional.
+7. If no relevant pattern skill exists, return `fallback_docs` with exact paths
+   and reasons.
+8. Refine or confirm `validation_hooks` for the slice. Do not replace the slice
+   owner's validation with vague “run everything” advice.
+9. Return `handoff_required_fields` using the neutral contract from
+   `.agents/skills/06-patterns/README.md`.
+10. Set `match_confidence`:
+    - `high` when the slice maps cleanly to known patterns;
+    - `medium` when one safe fallback is needed;
+    - `low` when ambiguity remains.
+11. Set `blocked_reason` when:
+    - the slice is too vague to match;
+    - a required registry path is missing;
+   - a hazard-triggered pattern is marked or interpreted as not matcher-eligible;
+   - matcher eligibility cannot be inferred safely from registry metadata/rules;
+    - capability state is being treated as mandatory but is unknown;
+    - the request would require re-slicing or ownership changes.
+
+## Matcher Eligibility Rule
+
+Treat `Explicit-only` as user invocation posture, not as a prohibition for orchestrator matching.
+
+Required behavior:
+
+1. If a slice hazard requires a pattern and the registry allows matcher use, return it as `required_pattern_skills`.
+2. If a pattern entry is ambiguous about matcher use, return `partial` and request clarification.
+3. If a pattern is explicitly not matcher-eligible and no safe fallback exists, return `blocked`.
+4. Always include `eligibility_reason` for each selected or rejected candidate.
+
+## Fallback And Missing-Skill Rules
+
+- If a relevant pattern skill does not exist yet, prefer explicit `fallback_docs`
+  over invention.
+- If a registry entry exists but the path is missing, return `blocked`.
+- If a capability is available but not attached/active, do not count it as
+  active.
+- If both a pattern skill and a fallback doc exist, prefer the pattern skill
+  unless the slice is safer with the doc or the skill is not mature enough.
+
+## Proportional Entry
+
+Do not launch the matcher as a delegate when there is nothing to match. Before
+delegating, the orchestrator runs a deterministic lookup in
+`.agents/skills/06-patterns/index.md` and the `Pattern` rows of `.agents/project/index.md` by the slice's surface and hazards:
+
+- **0 candidates:** record `matching: sin candidatos para <surface>` in the
+  slice lock and continue; no delegate is launched.
+- **1 or more candidates, or any ambiguity:** run the full matching procedure,
+  inline or delegated according to the level.
+
+No mandatory pattern is ever skipped: when a hazard requires a pattern, the
+Matcher Eligibility Rule below applies unchanged, and a missing index is still
+a stop, not "0 candidates".
+
+## Controlled-lite Behavior
+
+For N2:
+
+- keep output compact;
+- support 1–3 slices cleanly;
+- do not force delegation if the orchestrator can safely run matching inline.
+
+## Stop And Ask When
+
+- The slice outcome is too broad or unclear to classify safely.
+- Matching would require changing ownership or dependencies.
+- A required pattern skill path is missing from the filesystem.
+- Capability availability materially changes implementation risk and is unknown.
+
+## Handoff Output
+
+Return exactly:
+
+```text
+Status: success | partial | blocked
+Slice match table:
+- Slice:
+- Owner skill:
+- Required pattern skills:
+- Optional capabilities:
+- Fallback docs:
+- Validation hooks:
+- Handoff required fields:
+- Match confidence:
+- Eligibility reason:
+- Blocked reason:
+Global notes:
+Next: implementer-alias | orchestrator-inline | user-clarification
+```
+
+The output must be structured and compact. Do not return vague prose only.

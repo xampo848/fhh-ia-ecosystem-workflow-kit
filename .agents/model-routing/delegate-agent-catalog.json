@@ -1,0 +1,385 @@
+{
+  "runtimeCapabilities": {
+    "codex": {
+      "discoverCatalog": false,
+      "pinSubagentModel": false,
+      "pinSubagentTier": true,
+      "autoFallback": false
+    },
+    "copilot": {
+      "discoverCatalog": false,
+      "pinSubagentModel": true,
+      "pinSubagentTier": false,
+      "autoFallback": false
+    },
+    "claude": {
+      "discoverCatalog": false,
+      "pinSubagentModel": true,
+      "pinSubagentTier": true,
+      "autoFallback": false
+    },
+    "antigravity": {
+      "discoverCatalog": false,
+      "pinSubagentModel": false,
+      "pinSubagentTier": false,
+      "autoFallback": false
+    }
+  },
+  "modelProfiles": {
+    "description": "Per-project model profile by billing model (roadmap D-05a, D-07). calidad = subscription runtimes, never Liviano; equilibrado = subscription runtimes that hit usage limits often: planning and final QA stay Grande, writers and test/contract roles drop to Mediano, never Liviano; costo = Copilot premium requests or per-token API, close to the original catalog. criticalConcerns escalate any role to Grande in every profile; in costo it is the only path to Grande.",
+    "defaultByRuntime": { "claude": "calidad", "codex": "calidad", "copilot": "costo", "antigravity": "costo" },
+    "profiles": {
+      "calidad": {
+        "billing": "subscription",
+        "allowedTiers": ["Mediano", "Grande"],
+        "agentTiers": {
+          "capitana-alcance": "Mediano",
+          "sherlock-estructura": "Mediano",
+          "arquitecta-fases": "Grande",
+          "turbo-backend": "Grande",
+          "pixel-ninja": "Grande",
+          "guardia-contrato": "Grande",
+          "testinator-5000": "Grande",
+          "lint-ranger": "Mediano",
+          "qa-relampago": "Grande",
+          "escriba-doc": "Mediano",
+          "cavecrew-investigator": "Mediano",
+          "cavecrew-builder": "Mediano",
+          "cavecrew-reviewer": "Mediano"
+        }
+      },
+      "equilibrado": {
+        "billing": "subscription",
+        "allowedTiers": ["Mediano", "Grande"],
+        "agentTiers": {
+          "capitana-alcance": "Mediano",
+          "sherlock-estructura": "Mediano",
+          "arquitecta-fases": "Grande",
+          "turbo-backend": "Mediano",
+          "pixel-ninja": "Mediano",
+          "guardia-contrato": "Mediano",
+          "testinator-5000": "Mediano",
+          "lint-ranger": "Mediano",
+          "qa-relampago": "Grande",
+          "escriba-doc": "Mediano",
+          "cavecrew-investigator": "Mediano",
+          "cavecrew-builder": "Mediano",
+          "cavecrew-reviewer": "Mediano"
+        }
+      },
+      "costo": {
+        "billing": "premium-requests-or-per-token",
+        "allowedTiers": ["Liviano", "Mediano", "Grande"],
+        "agentTiers": {
+          "capitana-alcance": "Mediano",
+          "sherlock-estructura": "Liviano",
+          "arquitecta-fases": "Mediano",
+          "turbo-backend": "Mediano",
+          "pixel-ninja": "Mediano",
+          "guardia-contrato": "Mediano",
+          "testinator-5000": "Mediano",
+          "lint-ranger": "Liviano",
+          "qa-relampago": "Mediano",
+          "escriba-doc": "Liviano",
+          "cavecrew-investigator": "Liviano",
+          "cavecrew-builder": "Mediano",
+          "cavecrew-reviewer": "Mediano"
+        }
+      }
+    },
+    "runtimeTierSettings": {
+      "claude": { "Liviano": "haiku", "Mediano": "sonnet", "Grande": "opus" },
+      "codex": {
+        "Liviano": { "model_reasoning_effort": "low" },
+        "Mediano": { "model_reasoning_effort": "medium" },
+        "Grande": { "model_reasoning_effort": "xhigh" }
+      }
+    },
+    "codexNote": "Codex agent TOML accepts model and model_reasoning_effort (official Codex subagents docs, verified 2026-11-10). The kit pins only the reasoning effort and inherits the session model because exact Codex model IDs vary by release; Liviano in Codex therefore means the session model at low effort unless a project sets an explicit model."
+  },
+  "copilotModelRouting": {
+    "mode": "auto-with-fallback",
+    "catalogSource": "user-supplied-local-availability",
+    "tiers": {
+      "Liviano": [
+        "GPT-6 Luna (copilot)",
+        "MAI-Code-1.1-Flash (copilot)",
+        "Gemini 3.8 Flash (copilot)",
+        "Gemini 3.7 Flash (copilot)",
+        "GPT-5.6 Luna (copilot)",
+        "GPT-5 mini (copilot)",
+        "GPT-5.4 mini (copilot)",
+        "Claude Haiku 4.5 (copilot)",
+        "Grok 4.5 (copilot)"
+      ],
+      "Mediano": [
+        "Claude Sonnet 5.5 (copilot)",
+        "GPT-6.1 Sol (copilot)",
+        "Claude Sonnet 5 (copilot)",
+        "GPT-6 Sol (copilot)",
+        "Grok 4.7 (copilot)",
+        "Grok 4.6 (copilot)",
+        "GPT-5.4 (copilot)",
+        "GPT-5.3-Codex (copilot)",
+        "Kimi K3 (copilot)"
+      ],
+      "Grande": [
+        "GPT-6.1 Sol (copilot)",
+        "GPT-6 Sol (copilot)",
+        "GPT-5.6 Sol (copilot)",
+        "GPT-5.6 Terra (copilot)",
+        "GPT-5.5 (copilot)",
+        "Claude Opus 5.5 (copilot)",
+        "Claude Opus 5 (copilot)",
+        "Claude Fable 5.1 (copilot)",
+        "Claude Fable 5 (copilot)",
+        "Grok 4.6 xhigh (copilot)"
+      ]
+    },
+    "agentTiers": {
+      "capitana-alcance": "Mediano",
+      "sherlock-estructura": "Liviano",
+      "arquitecta-fases": "Mediano",
+      "turbo-backend": "Mediano",
+      "pixel-ninja": "Mediano",
+      "guardia-contrato": "Mediano",
+      "testinator-5000": "Mediano",
+      "lint-ranger": "Liviano",
+      "qa-relampago": "Mediano",
+      "escriba-doc": "Liviano",
+      "cavecrew-investigator": "Liviano",
+      "cavecrew-builder": "Mediano",
+      "cavecrew-reviewer": "Mediano"
+    },
+    "modelQualifier": "copilot",
+    "contextPolicy": {
+      "tierRank": {
+        "Liviano": 1,
+        "Mediano": 2,
+        "Grande": 3
+      },
+      "workKinds": {
+        "lookup": "mechanical",
+        "mechanical-validation": "mechanical",
+        "evidence-synthesis": "mechanical",
+        "readiness": "substantive",
+        "planning": "substantive",
+        "implementation": "substantive",
+        "test-design": "substantive",
+        "contract-review": "substantive",
+        "review": "substantive",
+        "causal-investigation": "substantive"
+      },
+      "levels": ["low", "medium", "high"],
+      "contextCompleteness": ["complete", "partial", "unknown"],
+      "criticalConcerns": [
+        "security",
+        "authorization",
+        "tenancy",
+        "data-loss",
+        "migration",
+        "public-contract",
+        "legal",
+        "release-integrity",
+        "irreversible-action"
+      ],
+      "mechanicalTier": "Liviano",
+      "substantiveFloorTier": "Mediano",
+      "criticalTier": "Grande",
+      "costPostures": {
+        "Liviano": "lean",
+        "Mediano": "balanced",
+        "Grande": "premium"
+      }
+    },
+    "pricing": {
+      "currency": "USD",
+      "unit": "per-1M-tokens",
+      "basis": "list-rate-estimate-not-actual-spend-or-model-ability",
+      "billingModes": ["token", "legacy-annual-request"],
+      "source": "https://docs.github.com/es/copilot/reference/copilot-billing/models-and-pricing",
+      "verifiedOn": "2026-10-06",
+      "note": "Models absent from this table have unknown pricing and can never pass a budget check. A null threshold means no long-context rate is documented. 272K is read as 272000 tokens of total context input.",
+      "models": {
+        "GPT-6 Luna (copilot)": {
+          "standardMaxContextInputTokens": 272000,
+          "standard": { "input": 0.1, "output": 0.5, "cacheRead": 0.01, "cacheWrite": 0.125 },
+          "long": { "input": 0.2, "output": 0.75, "cacheRead": 0.02, "cacheWrite": 0.25 }
+        },
+        "MAI-Code-1.1-Flash (copilot)": {
+          "standardMaxContextInputTokens": null,
+          "standard": { "input": 0.2, "output": 1.2, "cacheRead": 0.02, "cacheWrite": null },
+          "long": null
+        },
+        "Claude Sonnet 5.5 (copilot)": {
+          "standardMaxContextInputTokens": null,
+          "standard": { "input": 2, "output": 10, "cacheRead": 0.2, "cacheWrite": 2.5 },
+          "long": null
+        },
+        "Claude Sonnet 5 (copilot)": {
+          "standardMaxContextInputTokens": null,
+          "standard": { "input": 2, "output": 10, "cacheRead": 0.2, "cacheWrite": 2.5 },
+          "long": null
+        },
+        "GPT-6.1 Sol (copilot)": {
+          "standardMaxContextInputTokens": 272000,
+          "standard": { "input": 2, "output": 10, "cacheRead": 0.1, "cacheWrite": 2.5 },
+          "long": { "input": 4, "output": 15, "cacheRead": 0.2, "cacheWrite": 5 }
+        },
+        "GPT-6 Sol (copilot)": {
+          "standardMaxContextInputTokens": 272000,
+          "standard": { "input": 2, "output": 10, "cacheRead": 0.2, "cacheWrite": 2.5 },
+          "long": { "input": 4, "output": 15, "cacheRead": 0.4, "cacheWrite": 5 }
+        }
+      }
+    }
+  },
+  "agents": [
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "PRD readiness",
+      "skill": "prd-readiness-review",
+      "alias": "Capitana Alcance",
+      "slug": "capitana-alcance",
+      "shared_skill_path": ".agents/skills/02-implement/prd-readiness-review/SKILL.md",
+      "description": "Reviews PRD readiness before implementation planning or code changes.",
+      "writes": "No",
+      "writable": false
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Codebase discovery",
+      "skill": "codebase-discovery",
+      "alias": "Sherlock Estructura",
+      "slug": "sherlock-estructura",
+      "shared_skill_path": ".agents/skills/02-implement/codebase-discovery/SKILL.md",
+      "description": "Maps the smallest relevant code paths, patterns, tests, and validation commands.",
+      "writes": "No",
+      "writable": false
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Execution slicing",
+      "skill": "implementation-slicing",
+      "alias": "Arquitecta Fases",
+      "slug": "arquitecta-fases",
+      "shared_skill_path": ".agents/skills/02-implement/implementation-slicing/SKILL.md",
+      "description": "Creates bounded implementation slices with explicit ownership and validation.",
+      "writes": "No",
+      "writable": false
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Backend implementation",
+      "skill": "backend-phase-implementer",
+      "alias": "Turbo Backend",
+      "slug": "turbo-backend",
+      "shared_skill_path": ".agents/skills/02-implement/backend-phase-implementer/SKILL.md",
+      "description": "Implements an owned backend slice after its contract and ownership are fixed.",
+      "writes": "Yes, owned backend files",
+      "writable": true
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Frontend implementation",
+      "skill": "frontend-phase-implementer",
+      "alias": "Pixel Ninja",
+      "slug": "pixel-ninja",
+      "shared_skill_path": ".agents/skills/02-implement/frontend-phase-implementer/SKILL.md",
+      "description": "Implements an owned frontend slice after dependencies and UI behavior are fixed.",
+      "writes": "Yes, owned frontend files",
+      "writable": true
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Contract verification",
+      "skill": "contract-verifier",
+      "alias": "Guardia Contrato",
+      "slug": "guardia-contrato",
+      "shared_skill_path": ".agents/skills/02-implement/contract-verifier/SKILL.md",
+      "description": "Verifies API and data contracts with narrowly assigned contract fixes.",
+      "writes": "Tests and small owned contract fixes",
+      "writable": true
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Acceptance tests",
+      "skill": "acceptance-test-engineer",
+      "alias": "Testinator 5000",
+      "slug": "testinator-5000",
+      "shared_skill_path": ".agents/skills/02-implement/acceptance-test-engineer/SKILL.md",
+      "description": "Proves acceptance criteria with assigned tests, fixtures, and focused fixes.",
+      "writes": "Tests, fixtures, assigned fixes",
+      "writable": true
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Validation",
+      "skill": "validation-runner",
+      "alias": "Lint Ranger",
+      "slug": "lint-ranger",
+      "shared_skill_path": ".agents/skills/02-implement/validation-runner/SKILL.md",
+      "description": "Runs focused validation and applies only explicitly assigned validation fixes.",
+      "writes": "Assigned validation fixes only",
+      "writable": true
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Final QA",
+      "skill": "qa-handoff-review",
+      "alias": "QA Relampago",
+      "slug": "qa-relampago",
+      "shared_skill_path": ".agents/skills/02-implement/qa-handoff-review/SKILL.md",
+      "description": "Performs an independent final QA review of evidence and residual risks.",
+      "writes": "No, unless explicitly assigned",
+      "writable": false
+    },
+    {
+      "section": "Delegate Skill Matrix",
+      "step": "Documentation",
+      "skill": "document-development",
+      "alias": "Escriba Doc",
+      "slug": "escriba-doc",
+      "shared_skill_path": ".agents/skills/03-quality/document-development/SKILL.md",
+      "description": "Synthesizes validated implementation evidence into development documentation with bounded reads.",
+      "writes": "Yes, the documentation file and epic ledger",
+      "writable": true
+    },
+    {
+      "section": "Cavecrew Helper Delegates",
+      "step": "Focused lookup",
+      "skill": "cavecrew-investigator",
+      "alias": "Cavecrew Investigator",
+      "slug": "cavecrew-investigator",
+      "shared_skill_path": ".agents/skills/05-caveman/cavecrew-investigator/SKILL.md",
+      "description": "Finds a bounded symbol, path, or test with minimal context.",
+      "writes": "No",
+      "writable": false,
+      "typical_use": "Focused symbol/path/test lookup"
+    },
+    {
+      "section": "Cavecrew Helper Delegates",
+      "step": "Surgical edit",
+      "skill": "cavecrew-builder",
+      "alias": "Cavecrew Builder",
+      "slug": "cavecrew-builder",
+      "shared_skill_path": ".agents/skills/05-caveman/cavecrew-builder/SKILL.md",
+      "description": "Applies a known surgical edit inside a bounded owned scope.",
+      "writes": "Yes, explicitly assigned files",
+      "writable": true,
+      "typical_use": "Known 1-2 file surgical edit inside owned scope"
+    },
+    {
+      "section": "Cavecrew Helper Delegates",
+      "step": "Terse review",
+      "skill": "cavecrew-reviewer",
+      "alias": "Cavecrew Reviewer",
+      "slug": "cavecrew-reviewer",
+      "shared_skill_path": ".agents/skills/05-caveman/cavecrew-reviewer/SKILL.md",
+      "description": "Performs a terse bounded diff or file review.",
+      "writes": "No",
+      "writable": false,
+      "typical_use": "Terse diff or file bug sweep"
+    }
+  ]
+}

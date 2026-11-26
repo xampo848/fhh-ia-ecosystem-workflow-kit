@@ -1,0 +1,95 @@
+---
+name: codebase-discovery
+description: "Delegate-only skill for implement-change. Alias: Sherlock Estructura. Explores the FHH IA Ecosystem codebase for an approved PRD, finds existing patterns, touched files, tests, APIs, risks, and docs to load. Use before implementation slicing or when resuming unknown work. Optimized for targeted discovery and low-context handoffs."
+context: fork
+---
+
+# Codebase Discovery
+
+Alias: Sherlock Estructura.
+
+Use after PRD readiness passes when the orchestrator cannot name the likely touched files, analogous patterns, tests, and validation commands with high confidence. Invoke it through the generated runtime adapter for this role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`); run it inline when delegation is unavailable.
+
+## Mission
+
+Build the smallest useful map of the existing implementation. Do not write code. Do not bulk-load unrelated docs.
+
+Discovery exists to reduce implementation risk. It is not a codebase tour.
+
+The orchestrator decides, before invoking this skill, whether a persisted brief at `.ai-work/<prd-slug>/discovery.md` can be reused or the PRD already states its touched files/patterns/validation commands explicitly (see `orchestration-flow.md` Phase 1). Only run this skill when neither shortcut applies.
+
+## Inputs From Orchestrator
+
+- PRD path and readiness brief.
+- Suspected touched surfaces.
+- Candidate operating mode.
+- Resume context, if any.
+- Prior persisted discovery brief, if the orchestrator determined it needs refreshing rather than full reuse.
+
+## Must Read
+
+Use exists-or-skip. A missing optional path is not a failed search.
+
+- `.agents/delegation/delegate-contract.md` (not `.agents/instructions.md` or the router).
+- `.agents/project/context.md` (legacy: `.agents/project-context.md`) **first**: structure map, validation commands and their cost, test conventions, known environment quirks, and pointers to architecture docs. Explore only what is specific to the change; the brief is a **delta** over this file, not a full map. If the area is not covered or the file contradicts the code, record it under `project_context_gaps` so closure can propose the correction; never edit the file yourself.
+- The PRD's `Que queda obsoleto` table when it exists: verify each row against the current code, which may have changed since the PRD was written. A new obsolete item in the slice's own files that is trivial is added; anything else is reported in `obsolete_items_found` for the orchestrator to ask about or record. Never widen scope silently.
+- At N3 with a PRD, the PRD index (`.ai-work/<prd-slug>/prd-index.toon`) and only the PRD sections it points to for the areas under discovery.
+- The PRD sections and readiness brief relevant to discovery.
+- `.ai-work/<prd-slug>/orchestration.md` `## Calibration` and `## Pattern Lock` when they exist.
+- `docs/foundations/ARCHITECTURE.md` only when it exists and the work is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths.
+- Backend instructions when they exist and confirmed backend files will be read or touched: `.agents/project/backend.md`.
+- Frontend instructions when they exist and confirmed frontend files will be read or touched: `.agents/project/frontend.md`.
+- `docs/patterns/README.md` only as an index when it exists; load only pattern docs that match the discovered implementation surface.
+
+Do not load `CODE_QUALITY.md` or the quality gate (`.agents/delegation/quality-gate.md`, `.agents/project/quality-gate.md`) during discovery. Code-writing and code-review delegates load the quality gate on demand.
+
+## Context Budget
+
+Use an index-first strategy:
+
+1. Start with `rg`, `rg --files`, route files, model/service names, test names, and schema lookups.
+2. Open at most 5 exploratory source files before producing the first discovery map.
+3. If more files are needed, explain the risk and either narrow the search or recommend escalation to N3.
+4. Prefer exact paths, symbols, and tests over prose descriptions.
+5. Reuse already-loaded context when the orchestrator provides it.
+
+## Docs Routing
+
+Load project docs only when directly relevant to the touched surface, and only
+the ones the project declares: the architecture and pattern docs listed in
+`.agents/project/context.md` (legacy: `.agents/project-context.md`), the paths mapped in `.agents/project/paths.json` (an older seed can still map `project-context` to the legacy `.agents/project-context.md`: when that file is missing, use `.agents/project/context.md`),
+and `docs/patterns/**` when present. Never assume a doc exists; a listed path
+that is missing is recorded under `project_context_gaps`.
+
+## Procedure
+
+1. If `codebase-memory-mcp` is active (tools exposed and project index status is `ready`), use it first for multi-hop discovery (cross-file impact, callers/callees, architecture traversal). For exact single-file or single-symbol lookups, use `rg` and `rg --files` directly. If MCP is unavailable, unready, or fails, fall back immediately to `rg` plus targeted reads. When subagents are available and the task is narrow path/symbol/test lookup, prefer `cavecrew-investigator` via `.agents/skills/05-caveman/cavecrew-investigator/SKILL.md`.
+2. Find analogous features, models, services, controllers, serializers, adapters, hooks, components, routes, tests, and i18n keys.
+3. Identify current conventions for naming, class naming, service orchestration, error handling, authorization, tenancy, API response shape, form handling, and validation.
+4. For data model changes, inspect `backend/db/schema.rb` and the most relevant adjacent migrations only.
+5. For frontend changes, identify design system primitives, token usage, hooks, query keys, i18n namespaces, and test style.
+6. For resume mode, inspect implemented files and current test state without re-implementing.
+7. Use Context7 (MCP tools resolve-library-id and query-docs) only when validating third-party framework or library patterns where project-local code is insufficient.
+8. Surface risks and unknowns that must shape the implementation plan.
+
+## Boundaries
+
+- Do not edit files.
+- Do not propose new architecture until existing local patterns are described.
+- Do not treat an empty UI state as correct without identifying the backing data path.
+- Do not expand to broad directory reads because a PRD is important. Importance changes validation rigor, not the right to bulk-load context.
+
+## Handoff Output
+
+Return exactly the TOON schema defined in `.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md` for `sherlock-estructura`.
+
+Ensure you populate the `required_instructions[N]` field with `.agents/project/backend.md` and/or `.agents/project/frontend.md` if those surfaces are touched.
+
+For N2, keep findings compact and prioritize:
+
+- analogous files;
+- target files;
+- tests;
+- validation commands;
+- risks requiring escalation;
+- docs intentionally skipped and why.

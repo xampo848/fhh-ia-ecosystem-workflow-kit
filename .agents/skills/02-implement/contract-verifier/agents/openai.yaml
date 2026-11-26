@@ -1,0 +1,3 @@
+interface:
+  display_name: "Guardia Contrato"
+  short_description: "Verify backend frontend API contracts"
