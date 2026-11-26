@@ -96,7 +96,7 @@ Generated tests MUST follow these practices:
 
 ### Port Configuration
 
-**Important**: the application can run on different ports depending on the environment. Read the real values from the project (`.agents/project/context.md`, `.agents/project/stack.md`, the project's env file, and `playwright.config.*`) and never invent them. This skill uses placeholders:
+**Important**: the application can run on different ports depending on the environment. Read the real values from the project (`.agents/project/context.md`, `.agents/project/stack.md` when present, the project's env file, and `playwright.config.*`) and never invent them. This skill uses placeholders:
 
 - **Development (local)**: `http://localhost:<dev-port>` (configured in `<env-file>`)
 - **Playwright tests (local)**: `http://localhost:<test-port>` (configured in `playwright.config.*`)
@@ -107,7 +107,7 @@ When generating tests, tests use the `PW_BASE_URL` environment variable or fall 
 
 1. Execute the test file after generation with `npx playwright test playwright/tests/your-test.spec.ts` (Playwright starts the application's test server through the `webServer` configuration, in test mode on `<test-port>` by default)
 2. Do not start the application server manually for Playwright tests unless you are explicitly debugging with `reuseExistingServer: true` in the Playwright config
-3. When debugging with `reuseExistingServer: true`, start the application server in test mode on `<test-port>` with the project's own command (`<start-test-server-command>`, from `.agents/project/stack.md`)
+3. When debugging with `reuseExistingServer: true`, start the application server in test mode on `<test-port>` with the project's own command (`<start-test-server-command>`, from `.agents/project/stack.md` when present)
 4. If tests fail, analyze the failure
 5. Update the test based on actual application behavior
 6. Repeat until all tests pass
@@ -143,7 +143,7 @@ test.describe('Feature Name', () => {
 
 ## 🖥️ Local Environment Setup
 
-To run Playwright tests locally with the correct port configuration, use the project's own commands (`.agents/project/stack.md` lists them; the names below are placeholders):
+To run Playwright tests locally with the correct port configuration, use the project's own commands (`.agents/project/stack.md` lists them when a stack pack was installed; the names below are placeholders):
 
 ```bash
 # 1. Start the application in development mode (runs on <dev-port>)

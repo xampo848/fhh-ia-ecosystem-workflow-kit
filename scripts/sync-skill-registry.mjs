@@ -143,7 +143,7 @@ function buildPatternsIndex(patternSkills) {
     '1. Scan this index for candidate names, triggers, and paths.',
     '2. Open `.agents/skills/registry.md` only when at least one candidate matches or eligibility is ambiguous.',
     '3. Read only the selected `SKILL.md` paths before returning required pattern skills.',
-    '4. If this file is missing, regenerate with `node scripts/sync-skill-registry.mjs --write`. Do not invent candidates.',
+    '4. If this file is missing, fall back to `.agents/skills/registry.md` and record that fallback (`workflow-kit update` restores the file). Do not invent candidates.',
     ''
   ].join('\n');
 }

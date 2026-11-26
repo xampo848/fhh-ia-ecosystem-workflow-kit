@@ -8,11 +8,12 @@ Before drafting, lock the implementation approach to one comparable local patter
 
 ## Procedure
 
-Find the nearest local pattern that shares the relevant boundary, failure mode, artifact shape, or validation style. Examples in this repository include:
+Find the nearest local pattern that shares the relevant boundary, failure mode, artifact shape, or validation style. Generic illustrations of the kinds of local pattern to look for in the project's own codebase (not a list of files to find):
 
-- hard gates and phase sequencing in workflow `SKILL.md` files
-- PRD-local TOON execution locks in `implement-change`
-- explicit `route-options` in `workflow-router`
+- how an existing endpoint or handler validates input and shapes its response
+- how a neighbouring service or job owns a similar business rule
+- how a sibling test file is structured (fixtures, layers, naming)
+- how an existing screen or component handles the same states
 
 Record:
 

@@ -23,11 +23,7 @@ After the user answers any round of questions:
 4. **Check** if the answer revealed new ambiguities — if so, ask a second round.
 5. **Confirm** when the document reaches zero open questions.
 
----
-
-### Phase 5: Self-Audit and Hardening
-
-Load and execute [self-audit.md](self-audit.md). This is a hard gate; persist its required artifact and final readiness declaration before delivering the PRD.
+The self-audit is Phase 5 in [SKILL.md](../SKILL.md); run it after this bar passes.
 
 ## Future Scope
 
@@ -69,4 +65,3 @@ Product future scope remains out of the current PRD. Workflow reuse of `.ai-work
 - Deferring tests, lint, contract checks, or quality review until the end of the PRD.
 - Writing vague tasks such as “implement backend”, “add UI”, or “test everything”.
 - Omitting the Mermaid class diagram or replacing it with a flowchart.
-```

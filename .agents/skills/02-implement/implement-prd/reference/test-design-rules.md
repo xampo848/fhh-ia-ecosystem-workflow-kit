@@ -5,7 +5,7 @@ Read it before writing, extending, or reviewing a test, and when a PRD or a
 slice assigns tests or edge-case rows to layers. This file is the single source
 of the test-design rules; the owning skills keep a one-line pointer here.
 Stack-specific examples (test directories, fixture options, framework helpers)
-live in `.agents/project/stack.md`.
+live in `.agents/project/stack.md` when a stack pack was installed, otherwise in the project's own test conventions.
 
 Goal: prove each behavior once, at the cheapest layer that contains it. A
 redundant test costs suite time and maintenance on every run and catches

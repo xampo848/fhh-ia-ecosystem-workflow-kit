@@ -4,9 +4,9 @@ This file is the contract between the workflow kit and the project that
 installs it. Read it when you add, adjust, or replace a skill, a routing rule,
 or a project instruction, and before editing any file under `.agents/`.
 
-The machine-readable side is `.agents/workflow-kit/manifest.json`. The kit
-source repository checks both with `node scripts/validate-kit-boundary.mjs`
-(part of `check:workflow`).
+The machine-readable side is `.agents/workflow-kit/manifest.json`. The kit's
+source repository validates both before it publishes a version; an installed
+project does not carry that validator.
 
 ## Who owns what
 
@@ -72,6 +72,10 @@ Use the first level that works:
    `workflow-router` and `.agents/instructions.md` cannot be shadowed (manifest
    `not_shadowable`): they accept only extend, through
    `.agents/project/routing.md`.
+
+`quality-gate` here is the name of an extension point declared in the
+manifest, not a skill folder: the kit gate itself is the file
+`.agents/delegation/quality-gate.md`, and the project file extends it.
 
 A declared extension-point file is read whenever it exists; listing it in the
 `Extensions` table is optional, and a row for a point the manifest does not

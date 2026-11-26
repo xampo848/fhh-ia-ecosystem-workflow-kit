@@ -47,7 +47,7 @@ Reglas:
 5. Puedes ejecutar comandos de terminal para buscar, testear, lintiar y validar.
 6. Debes leer y aplicar las skills y docs relevantes antes de implementar.
 7. Antes de editar, nombra el patron existente que vas a seguir.
-8. Si ves una alternativa mejor, desafiala en una frase y recomienda una opcion.
+8. Si ves una alternativa mejor, desafíala en una frase y recomienda una opcion.
 9. No optimices fuera del alcance del slice.
 10. No dejes trabajo a medias: implementa, valida y reporta usando el formato de la skill.
 11. Output constraint: Return findings strictly in TOON format matching your schema in `.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md`. Avoid conversational filler.

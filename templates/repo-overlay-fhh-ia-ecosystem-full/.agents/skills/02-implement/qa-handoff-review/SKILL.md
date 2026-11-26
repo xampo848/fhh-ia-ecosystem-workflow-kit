@@ -119,7 +119,7 @@ Use this checklist as coverage for the mandatory procedure; it does not replace 
 - PRD scope: no missing acceptance criteria and no unrequested expansion.
 - Use cases: every PRD use case links to an implemented/verified slice and at least one executed test; report orphans by ID.
 - Edge cases: every mandatory category (datos vacíos, límites, errores, permisos/tenancy, concurrencia/orden, rollout/rollback) is reported `PASS` or `gap` by name; empty/error/boundary/permission/rollout states are verified or explicitly blocked.
-- Backend: service boundaries, authorization, tenancy, i18n, and tests, against the project's rules in `.agents/project/backend.md` and `.agents/project/stack.md`.
+- Backend: service boundaries, authorization, tenancy, i18n, and tests, against the project's rules in `.agents/project/backend.md` and `.agents/project/stack.md` when present.
 - Frontend: hooks/API modules, design system, i18n, tokens, tests.
 - Visual contract: when the PRD changes visible UI, the Contrato Visual is `locked` and the shipped screen matches its density, primary action, required states, and thesis; a mockup cited in the PRD is evidence, not a substitute. Missing lock on a new visible surface blocks `ready_to_close: yes`. When the PRD has a `Lock visual` table, validate against the table, not the raw prototype: every element and state is present, and no color, typography, spacing, radius, shadow, or one-off variant falls outside the system; each miss is a `gap`. Compare with a screenshot of the prototype when `playwright-testing` is available (`../../01-product/create-prd/reference/visual-lock.md`, section 7).
 - Contract: backend response shape matches frontend consumer.

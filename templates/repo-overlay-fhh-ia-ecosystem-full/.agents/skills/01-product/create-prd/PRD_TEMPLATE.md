@@ -204,9 +204,6 @@ Repeat the complete phase structure above. Do not replace executable slices with
 
 ## 6. Preguntas Abiertas
 
-- [ ] Si hay UI visible, el Contrato Visual esta `locked` y `implement-change` no tiene que inventar la pantalla
-- [ ] Si no hay UI visible, `UI lock: not-applicable` tiene una razon de una linea
-- [ ] Si hay prototipo, cada choque con los patterns tiene decision en el `Lock visual` y cada elemento tiene componente
 | #   | Pregunta           | Bloquea | Area   |
 | --- | ------------------ | ------- | ------ |
 | 1   | [Pending question] | Si/No   | fase X |
@@ -235,6 +232,9 @@ _(Vacio = PRD listo para implementar)_
 - [ ] Todo AC tiene al menos un caso de uso vinculado y todo caso de uso tiene al menos un AC vinculado
 - [ ] Todo caso de uso tiene al menos un test en la Estrategia de Tests
 - [ ] La Matriz de Edge Cases cubre las seis categorias obligatorias (o declara `No aplica` con justificacion)
+- [ ] Si hay UI visible, el Contrato Visual esta `locked` y `implement-change` no tiene que inventar la pantalla
+- [ ] Si no hay UI visible, `UI lock: not-applicable` tiene una razon de una linea
+- [ ] Si hay prototipo, cada choque con los patterns tiene decision en el `Lock visual` y cada elemento tiene componente
 
 ---
 

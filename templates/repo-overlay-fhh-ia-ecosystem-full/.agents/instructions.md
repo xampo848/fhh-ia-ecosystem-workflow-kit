@@ -164,7 +164,7 @@ workflow-maintenance routes. Never raise the posture silently: raising it
 requires naming the concrete risk in the trace.
 
 Level pre-filter (single source; generated copies live in the runtime
-adapters between the same markers and `check:workflow` fails when they drift):
+adapters between the same markers; `workflow-kit doctor` warns when an adapter's block was edited and `workflow-kit update` restores it):
 
 <!-- workflow-kit:level-prefilter:start -->
 Level pre-filter (apply to every new user prompt before loading any workflow file):
@@ -448,7 +448,7 @@ Compressed delegation preference:
 - when narrow helper delegation is needed (locate, surgical edit, focused review), prefer attached compressed helpers such as cavecrew;
 - fall back to verbose delegates or inline execution when compressed output could hide important nuance;
 - in N2/N3 implementation the orchestrator does not read raw: see "Orchestrator reads (N2/N3)" in `.agents/skills/02-implement/implement-change/SKILL.md`;
-- in N2/N3, when delegating, pick a catalog delegate by role (`scripts/delegate-agent-catalog.json`): discovery `sherlock-estructura`, backend writer `turbo-backend`, frontend writer `pixel-ninja`, acceptance tests `testinator-5000`, focused validation or CI fixes `lint-ranger`, independent QA `qa-relampago`; for a narrow locate, edit, or review task use `cavecrew-investigator`, `cavecrew-builder`, or `cavecrew-reviewer`. Use `general-purpose` only when no catalog delegate fits the role, and state why before launching it.
+- in N2/N3, when delegating, pick one of the delegates installed for your runtime by role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`): discovery `sherlock-estructura`, backend writer `turbo-backend`, frontend writer `pixel-ninja`, acceptance tests `testinator-5000`, focused validation or CI fixes `lint-ranger`, independent QA `qa-relampago`; for a narrow locate, edit, or review task use `cavecrew-investigator`, `cavecrew-builder`, or `cavecrew-reviewer`. Use `general-purpose` only when no catalog delegate fits the role, and state why before launching it.
 
 ## Prompt-driven integration policy
 
@@ -524,7 +524,8 @@ Runtime adapters may define:
 - sandbox/tool constraints;
 - how to point to the shared skill path and neutral routing policy;
 - the generated level pre-filter, copied verbatim from this file between the
-  `workflow-kit:level-prefilter` markers by `scripts/sync-level-prefilter.mjs`.
+  `workflow-kit:level-prefilter` markers by the kit; `workflow-kit update`
+  refreshes it.
 
 Every runtime entrypoint carries the same hand-written "Shared bootstrap"
 block, apart from runtime-specific notes: a pointer to this file as the source
