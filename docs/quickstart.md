@@ -17,6 +17,8 @@ workflow-kit init --target /path/to/repo
 ```
 
 Default behavior is dry-run. It prints planned files and writes nothing.
+`--target` must be an existing folder (`init` does not create it; create it
+first, for example with `git init`). `export` creates its output folder.
 
 `init` always installs the complete FHH IA Ecosystem workflow overlay (the full
 `.agents` tree, skills, manifests, and workflow metadata); there is no partial
@@ -76,11 +78,17 @@ by how each runtime is billed:
 
 `init` asks once per Claude Code or Codex runtime (an `ANTHROPIC_API_KEY` or
 `OPENAI_API_KEY` only preselects `costo`). Non-interactive runs use the
-default. Set or change it any time:
+default. Set or change it any time, naming only runtimes the install has (the
+examples above install `codex` and `copilot`):
 
 ```bash
-workflow-kit update --target /path/to/repo --profile claude=costo,codex=calidad --apply --yes
+workflow-kit update --target /path/to/repo --profile codex=costo --apply --yes
 ```
+
+A profile for a runtime that the install does not record (for example
+`claude=costo` on a `codex,copilot` install) is an error: the command stops
+before writing and names the runtime. Add the runtime with `--runtime`, or drop
+it from `--profile`.
 
 `update` keeps the stored profile; `doctor` prints it and fails if an agent's
 model does not match. Details: `.agents/model-routing/README.md`.
@@ -134,12 +142,17 @@ Apply the latest `main` version to your machine:
 workflow-kit upgrade --apply --yes
 ```
 
-`upgrade` checks that the ref exists and is reachable before it replaces the
-installed version, so a mistyped ref or a network failure changes nothing. To
-pin a release, pass its tag (see [Versioning](versioning.md)):
+`upgrade` needs `git` and `bun` on your `PATH`. It checks the ref before it
+removes the installed version (a branch or tag by name; a full 40-character
+commit hash by fetching it; a short hash only when it is the tip of a branch or
+tag), so a mistyped ref, a network failure or a missing `git` changes nothing.
+To pin a version, pass a tag or, for versions without a tag, a full commit hash
+(the remote has tags only up to `v0.17.3-contract-gaps`; see
+[Versioning](versioning.md)):
 
 ```bash
-workflow-kit upgrade --ref v0.23.3-strict-cli --apply --yes
+workflow-kit upgrade --ref v0.17.3-contract-gaps --apply --yes
+workflow-kit upgrade --ref 96ec070136314053080535e3c40ce73c874268d7 --apply --yes   # 0.23.3-strict-cli
 ```
 
 After that, run `update` in each project you manage to bring its workflow to
@@ -150,6 +163,11 @@ the new version.
 ```bash
 workflow-kit tui
 ```
+
+The menu is in Spanish and has no `rollback` option (run that command). It needs an interactive terminal: without one (a pipe,
+a script, CI) it exits with code 2 and writes nothing, so use the commands
+there. Yes/no questions accept `sí`, `si`, `s` or `no`, `n` (also `yes`, `y`),
+and ask again on any other answer.
 
 The first screen, `¿Qué quieres hacer?`, offers these options:
 
@@ -162,13 +180,24 @@ The first screen, `¿Qué quieres hacer?`, offers these options:
 | `Actualizar workflow-kit (esta herramienta)` | `workflow-kit` on this machine, no project | `upgrade` |
 | `Instalar solo herramientas opcionales (MCP)` | optional MCP tools, no workflow files | — |
 
+After the first screen the flow asks, in order and only when it applies:
+the project path (`Elegir el proyecto`); the runtimes (`Adaptadores de
+runtime`); the install mode (repo or plugin; asked on `Instalar`, only when
+every chosen runtime has a plugin); the model profile (on install and export,
+once per Claude Code or Codex runtime; `Actualizar` keeps the stored one); the
+stack pack (on install, or on an update whose install predates stack packs; the
+detected stack is preselected); the backup mode (`Backups al escribir`) and
+which files to change (`Elige los archivos a modificar`); and finally the apply
+confirmation (`Confirmar`). Choosing `Exportar`, `Revisar` or `Actualizar
+workflow-kit` skips the questions that do not apply to it.
+
 Updating the tool and updating a project are separate: after
 `Actualizar workflow-kit (esta herramienta)`, launch the TUI again and choose
 `Actualizar el workflow de un proyecto` in each project.
 
 Every flow that writes shows a preview before asking whether to write. The default confirmation writes nothing.
 It can also open an optional capability guide (Context7, Engram, codebase-memory-mcp) with source/scope/mode confirmation and official install commands.
-The install package is fixed to `Full FHH IA Ecosystem`.
+The install package is fixed to `FHH IA Ecosystem completo`.
 
 ## 7. Export templates without treating the output as a repo install
 
@@ -294,6 +323,13 @@ Practical notes:
 
 ## 11. Plugin mode (pilot)
 
+> **Not installable yet.** The plugin marketplace in `main` points at the
+> public branch `plugin`, which is not published. Until the maintainer
+> publishes it and approves its push, `claude plugin install` and
+> `copilot plugin install` fail. `init --mode plugin` itself works (it writes
+> the adapters and the declaration), but the plugin cannot be installed from
+> that declaration yet. See [Versions and publishing](#versions-and-publishing).
+
 The kit installs in one of two modes. The kit itself is the same in both.
 
 | | Repo mode (default) | Plugin mode (pilot) |
@@ -390,6 +426,13 @@ These stop without writing and name the command to run next:
 
 ### Settings files
 
+A settings file that repeats a key (two `enabledPlugins` objects, for example)
+is left as it is: rewriting it would keep only the last one. The plan lists it
+as `skip_unmanaged` with the reason `duplicate_settings_key`, and `doctor`
+names the repeated key in `mode/plugin-not-declared`. Remove the repeated key,
+then run `init` or `update` again. An empty or blank settings file is not an
+error: the plan fills it (`merge_with_backup`).
+
 For plugin mode the kit adds two entries to `.claude/settings.json` and
 `.github/copilot/settings.json`: `extraKnownMarketplaces["fhh-ia-ecosystem"]`
 and `enabledPlugins["fhh@fhh-ia-ecosystem"]`. Switching to repo mode removes
@@ -426,7 +469,8 @@ mode with Claude Code chosen, and prints `Install mode: plugin`.
 | Code | Severity | Meaning |
 | --- | --- | --- |
 | `mode/repo-and-plugin` | error | the kit would load twice: kit files in a plugin-mode repository, or the plugin enabled in a repo-mode one |
-| `mode/plugin-not-declared` | warning | a settings file lacks the declaration, or is not valid JSON |
+| `mode/plugin-not-declared` | warning | a settings file lacks the declaration, is not valid JSON, or repeats a key (see below) |
+| `mode/kit-location-missing` | error | an adapter of a plugin-mode install lost its `kit-location` block, so the agent is never told where the kit is; `update` restores it with a backup |
 | `mode/plugin-not-installed` | warning | Claude Code does not list `fhh@fhh-ia-ecosystem` |
 | `mode/plugin-version-mismatch` | warning | the installed plugin version differs from this CLI's |
 | `mode/plugin-install-unverified` | warning | the check could not run (no `claude`, timeout, bad output) |

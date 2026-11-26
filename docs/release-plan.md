@@ -23,6 +23,8 @@ Do not run GitHub repository creation, package publication, release uploads, tag
 ## Versioning
 
 Versions follow [Versioning](versioning.md). The current version is the one in
-`package.json` (`0.23.3-strict-cli` at the time of writing); its notes are
-in `CHANGELOG.md`. Each released version has a `v<version>` tag; the list is
-in [Versioning](versioning.md).
+`package.json` (`0.23.4-docs-sync` at the time of writing); its notes are
+in `CHANGELOG.md`. A version is released when it is merged on `main`; a
+`v<version>` tag is created only with the maintainer's approval, and the remote
+has none after `0.17.3`. Which versions have a tag, and how to pin the others
+by commit, is in [Versioning](versioning.md).

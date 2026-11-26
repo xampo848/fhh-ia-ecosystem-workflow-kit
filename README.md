@@ -21,9 +21,10 @@ What the installed workflow does:
 One neutral source of truth lives in `.agents/`; runtime files such as
 `CLAUDE.md` or `AGENTS.md` are thin adapters that point back to it.
 
-> Status: public GitHub install, version `0.23.3-strict-cli`. The CLI and
-> TUI install, update, export, check, and roll back the workflow, with dry-run
-> by default and backups before every overwrite. The package is intentionally
+> Status: public GitHub install, version `0.23.4-docs-sync`. The CLI
+> installs, updates, exports, checks and rolls back the workflow (the TUI does
+> all of that except rollback), with dry-run by default and backups before
+> every overwrite. The package is intentionally
 > **not published to npm**.
 
 ## GitHub install
@@ -42,10 +43,10 @@ workflow-kit --version
 workflow-kit --help
 ```
 
-`main` installs the latest merged version. To pin a release instead, append
-`#<tag>`, for example `#v0.23.3-strict-cli`; every released version has a
-`v<version>` tag, listed on the repository's
-[Releases page](https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/releases).
+`main` installs the latest merged version. To pin one instead, append
+`#<ref>`: a tag (the latest is `#v0.17.3-contract-gaps`) or, for later versions,
+which have no tag yet, the full commit hash listed in
+[Versioning](docs/versioning.md).
 SSH install and access details:
 [docs/github-install.md](docs/github-install.md).
 
@@ -110,27 +111,33 @@ apply in both. Example prompts for each phase are in
 | --- | --- |
 | `init` | Plans or applies a first install of the workflow into `--target`. |
 | `update` | Updates the workflow installed in a project (`--target`) to this workflow-kit version. Refreshes only the files workflow-kit manages; protects your local edits. |
-| `upgrade` | Updates `workflow-kit` itself (this tool) on your machine; it does not change any project (it checks that the ref exists and is reachable before replacing the installed version). |
+| `upgrade` | Updates `workflow-kit` itself (this tool) on your machine; it does not change any project (it needs `git`, and checks the ref before removing the installed version: a full commit hash is fetched, a short one is accepted only as a branch or tag tip). |
 | `export` | Writes the templates to `--output` without treating it as an install. |
 | `doctor` | Checks installed files and workflow semantics; prints stable diagnostic codes. |
 | `rollback` | Undoes the last applied `init`/`update`: restores changed files from their backups, removes files that run created, and restores the previous install state. |
-| `tui` | Guided menu for every command above plus optional capabilities; see [Guided TUI](docs/quickstart.md#6-guided-tui). |
+| `tui` | Guided menu (in Spanish) for `init`, `update`, `export`, `doctor`, `upgrade` and the optional capabilities; `rollback` is a command only; see [Guided TUI](docs/quickstart.md#6-guided-tui). |
 
-`workflow-kit --help` prints the full usage. Main flags:
+`workflow-kit --help` prints the full usage, and `workflow-kit <command> --help`
+the flags and notes of one command. A flag a command does not read is an
+error that names the flags it accepts, so nothing is dropped silently. An empty
+value (`--target ''`) or a value flag given twice is an error too; these stop
+with exit code 2 and write nothing. `tui` is in Spanish and needs an
+interactive terminal (without one it exits with code 2); in scripts use the
+other commands. Main flags:
 
 | Flag | Meaning |
 | --- | --- |
 | `--dry-run` | Preview only (the default). |
 | `--apply --yes` | Write. Both are required; combining `--apply` with `--dry-run` is an error. |
-| `--target <path>` / `--output <path>` | Repository to install into / export folder. |
+| `--target <path>` / `--output <path>` | Repository to install into / export folder. `--target` must be an existing folder (`init` does not create it); `export` creates its output folder. |
 | `--runtime <list>` | Comma-separated runtimes, see [Supported runtimes](#supported-runtimes). |
-| `--mode repo\|plugin` | `init`/`update` only: install mode. `repo` (the default for `init`) commits the kit in the project; `plugin` (pilot, runtimes `claude` and `copilot`) runs the kit as the plugin `fhh`. `update` keeps the recorded mode unless you pass it. See [Plugin mode](docs/quickstart.md#11-plugin-mode-pilot). |
-| `--profile <runtime>=<calidad\|equilibrado\|costo>` | Model profile per runtime, for example `claude=costo,codex=calidad`. |
+| `--mode repo\|plugin` | `init`/`update` only: install mode. `repo` (the default for `init`) commits the kit in the project; `plugin` (pilot, runtimes `claude` and `copilot`) runs the kit as the plugin `fhh`. `update` keeps the recorded mode unless you pass it. The plugin cannot be installed yet: its public `plugin` branch is not published. See [Plugin mode](docs/quickstart.md#11-plugin-mode-pilot). |
+| `--profile <runtime>=<calidad\|equilibrado\|costo>` | Model profile per runtime, for example `claude=costo,codex=calidad`; a runtime the install does not record is an error. |
 | `--stack none\|rails-react` | Install the Rails + React stack rules as `.agents/project/stack.md`. |
 | `--diff` | Show the line diff of every file that would change. |
 | `--adopt-existing` | `update` only: record an install made before state tracking. |
 | `--backup-mode required\|none` | `required` (default) backs up every file before overwrite or merge; `none` skips backups, and `rollback` cannot restore those files. |
-| `--ref <git-ref>` / `--package-manager bun` | `upgrade` only: version to install (default `main`) and the package manager to use. |
+| `--ref <git-ref>` / `--package-manager bun` | `upgrade` only: the branch, tag or full commit hash to install (use the full hash for a commit) (default `main`; tags exist only up to `v0.17.3-contract-gaps`, see [Versioning](docs/versioning.md)) and the package manager to use. |
 
 ## Updating
 
@@ -281,6 +288,10 @@ This project references and/or integrates ideas, components, or optional capabil
 - [unjs/fontaine](https://github.com/unjs/fontaine) (font metric overrides tooling referenced in design guidance)
 
 Legal provenance details for distributed contents are tracked in [docs/legal/third-party/provenance.json](docs/legal/third-party/provenance.json), [docs/legal/PROVENANCE-AUDIT.md](docs/legal/PROVENANCE-AUDIT.md), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## License
+
+MIT: see [LICENSE](LICENSE). Third-party notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Release/publishing note
 

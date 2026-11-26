@@ -7,6 +7,32 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.23.4-docs-sync
+
+The guides match what the kit does, and three pieces of kit text are fixed. In
+your projects, `workflow-kit update` changes `kit_version` and these kit files:
+`project-overlay.md` and `router-evals.md` of `workflow-router`, the
+`codebase-discovery` and `playwright-testing` skills, and
+`.agents/skills/registry.cache.json`.
+
+- Versions after `0.17.3` have no tag on the remote: the guides say so and pin
+  them by full commit hash. They also say that a plugin install fails until the
+  `plugin` branch is published, and the README links the license.
+- The CLI behaviour of `0.23.2` and `0.23.3` is documented: strict flags,
+  `upgrade` needing `git`, the Spanish menu, the apply lock, an unfinished
+  rollback and the new `doctor` codes. A test now requires every `mode/*` and
+  `target/*` code in the guides.
+- `.agents/project/paths.json` of a new install maps `project-context` to
+  `.agents/project/context.md`. `update` never rewrites this seed, so
+  `codebase-discovery` also uses that file when the old path is mapped and
+  missing.
+- A runbook line asking not to confirm is ignored: the agent says which line,
+  proposes the fix as a diff and writes it only after an explicit yes.
+- `playwright-testing` uses placeholders instead of one project's ports,
+  commands and file names.
+- The kit repository ignores `.claude/worktrees/`, and the plugin-mode epic and
+  its PRDs record what was delivered and what is still pending.
+
 ## 0.23.3-strict-cli
 
 The command line says no instead of ignoring what it was given, `doctor` prints

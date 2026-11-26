@@ -3,7 +3,7 @@
 **Ticket**: Épica `kit-project-overlay`, fase F4, fila 4 de la cola de PRDs
 **Autor**: Agente (sesión F4)
 **Fecha**: 2026-11-22
-**Estado**: Aprobado (usuario, 2026-11-22, en la sesión F4: "Apruebo el PRD")
+**Estado**: Implementada (aprobado por el usuario el 2026-11-22 en la sesión F4: "Apruebo el PRD"; integrada en `main` por el PR #83, `0.23.0-plugin-mode`, squash `9d3b917`, 2026-11-25). Riesgos abiertos en la sección 10.
 
 ---
 
@@ -298,19 +298,19 @@ Cada test nuevo falla antes del cambio que lo satisface (se registra la corrida 
 
 | Categoria | Descripcion | Caso de uso vinculado | Capa duena | Validacion | Estado |
 | --- | --- | --- | --- | --- | --- |
-| Datos vacios | Repo sin `.claude/settings.json`, sin overlay y sin `.gitignore` | UC-2 | `src/plugin-mode.mjs`, planner | AC-5, AC-7 | Pending |
-| Datos vacios | `--mode plugin` sin `--runtime` (queda `neutral`) | UC-2 | planner | AC-8 | Pending |
-| Limites | Dos runtimes a la vez (8 archivos); settings con `enabledPlugins` en `false` o con otro marketplace | UC-2 | `src/plugin-mode.mjs` | AC-5, AC-7 | Pending |
-| Limites | Perfil distinto del default: 3 + 13 archivos; volver al default los retira | UC-3 | planner | AC-10 | Pending |
-| Errores | Settings con JSON inválido o que no es un objeto | UC-2 | `src/plugin-mode.mjs` | AC-7, AC-16 | Pending |
-| Errores | `claude` no está en el PATH, se cuelga, sale con código distinto de 0 o su salida no es JSON | UC-5 | `src/plugin-mode.mjs` (`inspectInstalledPlugins`) | AC-16 | Pending |
-| Permisos/tenancy | No aplica tenancy: es un CLI local sin usuarios. La regla equivalente, "nunca instalar sin confirmación", se prueba en la entrada de `doctor` | UC-5 | `src/doctor.mjs` | AC-16 | Pending |
-| Concurrencia/orden | Cambio de modo con el último apply incompleto | UC-4 | planner (`assertLastApplyFinished`) | AC-14 | Pending |
-| Concurrencia/orden | Un archivo del kit se edita entre el plan y el apply del cambio a plugin: el apply lo conserva y `doctor` lo reporta | UC-4, UC-5 | `src/apply.mjs` (existente), `src/doctor.mjs` | AC-15 | Pending |
-| Concurrencia/orden | `--mode plugin` antes de migrar un state 1.0.0 | UC-4 | planner | AC-14 (T5, T10) | Pending |
-| Rollout/rollback | Rollback de un cambio de modo en los dos sentidos | UC-4 | planner y journal existente | AC-11, AC-13 | Pending |
-| Rollout/rollback | El orquestador sube la versión y no regenera el plugin | UC-1 | `scripts/build-plugin.mjs` | AC-1 (el check falla) | Pending |
-| Rollout/rollback | Plugin instalado en una versión distinta de la del CLI | UC-5 | `src/doctor.mjs` | AC-16 | Pending |
+| Datos vacios | Repo sin `.claude/settings.json`, sin overlay y sin `.gitignore` | UC-2 | `src/plugin-mode.mjs`, planner | AC-5, AC-7 | Verified (test del AC citado) |
+| Datos vacios | `--mode plugin` sin `--runtime` (queda `neutral`) | UC-2 | planner | AC-8 | Verified (test del AC citado) |
+| Limites | Dos runtimes a la vez (8 archivos); settings con `enabledPlugins` en `false` o con otro marketplace | UC-2 | `src/plugin-mode.mjs` | AC-5, AC-7 | Verified (test del AC citado) |
+| Limites | Perfil distinto del default: 3 + 13 archivos; volver al default los retira | UC-3 | planner | AC-10 | Verified (test del AC citado) |
+| Errores | Settings con JSON inválido o que no es un objeto | UC-2 | `src/plugin-mode.mjs` | AC-7, AC-16 | Verified (test del AC citado) |
+| Errores | `claude` no está en el PATH, se cuelga, sale con código distinto de 0 o su salida no es JSON | UC-5 | `src/plugin-mode.mjs` (`inspectInstalledPlugins`) | AC-16 | Verified (test del AC citado) |
+| Permisos/tenancy | No aplica tenancy: es un CLI local sin usuarios. La regla equivalente, "nunca instalar sin confirmación", se prueba en la entrada de `doctor` | UC-5 | `src/doctor.mjs` | AC-16 | Verified (test del AC citado) |
+| Concurrencia/orden | Cambio de modo con el último apply incompleto | UC-4 | planner (`assertLastApplyFinished`) | AC-14 | Verified (test del AC citado) |
+| Concurrencia/orden | Un archivo del kit se edita entre el plan y el apply del cambio a plugin: el apply lo conserva y `doctor` lo reporta | UC-4, UC-5 | `src/apply.mjs` (existente), `src/doctor.mjs` | AC-15 | Verified (test del AC citado) |
+| Concurrencia/orden | `--mode plugin` antes de migrar un state 1.0.0 | UC-4 | planner | AC-14 (T5, T10) | Verified (test del AC citado) |
+| Rollout/rollback | Rollback de un cambio de modo en los dos sentidos | UC-4 | planner y journal existente | AC-11, AC-13 | Verified (test del AC citado) |
+| Rollout/rollback | El orquestador sube la versión y no regenera el plugin | UC-1 | `scripts/build-plugin.mjs` | AC-1 (el check falla) | Verified (test del AC citado) |
+| Rollout/rollback | Plugin instalado en una versión distinta de la del CLI | UC-5 | `src/doctor.mjs` | AC-16 | Verified (test del AC citado) |
 
 ### 2.11 Contrato Visual (UI lock)
 
@@ -638,16 +638,18 @@ _(Vacio = PRD listo para implementar)_
 
 ## 8. Definition of Done Global
 
-- [ ] Todas las fases completadas
-- [ ] `npm test` en verde, con los 420 tests anteriores sin modificar
-- [ ] `npm run check:workflow`, `npm run check:docs` y `npm run check:legal` en verde
-- [ ] Retrocompatibilidad: `init`, `update`, `export`, `rollback` y `doctor` en modo repo no cambian; la migración desde 0.18 sigue funcionando
-- [ ] Identificadores de código en inglés
-- [ ] Ningún archivo del repo público nombra proyectos privados, rutas locales ni correos
-- [ ] Todo AC tiene al menos un caso de uso vinculado y todo caso de uso tiene al menos un AC vinculado
-- [ ] Todo caso de uso tiene al menos un test en la Estrategia de Tests
-- [ ] La Matriz de Edge Cases cubre las seis categorias obligatorias (o declara `No aplica` con justificacion)
-- [ ] Smoke en Claude Code y Copilot registrado en la sección 10, o marcado como no verificado con sus pasos
+Marcado el 2026-11-25 contra `main` (`9d3b917`). Una casilla queda marcada solo si un test o un check del repositorio, o el CI del PR #83, lo prueba; la que no, dice por qué.
+
+- [x] Todas las fases completadas (sección 10)
+- [x] `npm test` en verde, con los 420 tests anteriores sin modificar (`git diff --name-only 558e9fb -- test/` lista solo archivos nuevos o del fixture de F4; CI del PR #83 en Node 20.17.0, 22.x y 24.x)
+- [x] `npm run check:workflow`, `npm run check:docs` y `npm run check:legal` en verde (CI del PR #83; `check:workflow` corre el build del plugin en modo check)
+- [x] Retrocompatibilidad: `init`, `update`, `export`, `rollback` y `doctor` en modo repo no cambian (`test/plugin-mode.test.mjs` compara los planes y una corrida real del CLI con el fixture de `558e9fb`; `test/upgrade-e2e.test.mjs` sin cambios)
+- [ ] Identificadores de código en inglés: ningún test ni check del repo lo verifica; sin marcar
+- [x] Ningún archivo del repo público nombra proyectos privados, rutas locales ni correos. No era cierto en `9d3b917`; se hizo cierto con el PR de limpieza de privacidad (#85, `91ed047`) y el cambio que neutraliza el id de PRD de `router-evals.md`. Comprobado con `git grep` sobre el árbol: sin nombres de proyectos privados, rutas locales de usuario ni correos.
+- [x] Todo AC tiene al menos un caso de uso vinculado y todo caso de uso tiene al menos un AC vinculado (secciones 2.7, 2.8 y 9)
+- [x] Todo caso de uso tiene al menos un test en la Estrategia de Tests (sección 2.9)
+- [x] La Matriz de Edge Cases cubre las seis categorias obligatorias (sección 2.10; "Permisos/tenancy" declara `No aplica` con justificación)
+- [x] Smoke en Claude Code y Copilot registrado en la sección 10, con lo no verificado y sus pasos (VS Code sin ejecutar; Terra, Sol y Astra no disponibles)
 
 ---
 
@@ -656,7 +658,7 @@ _(Vacio = PRD listo para implementar)_
 | Acceptance criterion | Caso de uso | Phase / slice | Test evidence | Edge case(s) | Validation evidence | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | AC-1 | UC-1 | P1-S1, P1-S3 | `test/plugin-build.test.mjs` | Versión sin regenerar | `npm run check:workflow` | Verified |
-| AC-2 | UC-1 | P1-S1, P1-S2 | `test/plugin-build.test.mjs` | — | `claude plugin validate .` | Verified |
+| AC-2 | UC-1 | P1-S1, P1-S2 | `test/plugin-build.test.mjs` | — | `claude plugin validate .` | Verified por test (`test/plugin-build.test.mjs`: campos del esquema, `$schema`, `name`, marketplace y versiones). `claude plugin validate .` y `claude plugin validate dist/plugin` se corrieron a mano con Claude Code 2.1.142 (sin advertencias, sección 10); ningún test del repo los reproduce |
 | AC-3 | UC-1 | P1-S1, P1-S3 | `test/plugin-build.test.mjs` | — | `node --test test/plugin-build.test.mjs` | Verified |
 | AC-4 | UC-1 | P1-S1, P1-S3 | Checks existentes | — | `npm run check:workflow` | Verified |
 | AC-5 | UC-2 | P2-S1 | `test/plugin-mode.test.mjs` | Datos vacíos; dos runtimes | `node --test test/plugin-mode.test.mjs` | Verified |
@@ -674,7 +676,7 @@ _(Vacio = PRD listo para implementar)_
 | AC-17 | UC-5 | P2-S5 | `test/plugin-mode-doctor.test.mjs` | — | Igual | Verified |
 | AC-18 | UC-6 | P2-S6 | `test/plugin-mode-tui.test.mjs` | Selección parcial | `node --test test/plugin-mode-tui.test.mjs` | Verified |
 | AC-19 | UC-7 | P2-S1 a P2-S6 | Suite existente | — | `npm test` | Verified |
-| AC-20 | UC-8 | P1-S2, P3-S1, P3-S2 | Smoke manual | S5, S7, S9, S10 | `npm run check:docs`; sección 10 | Verified (Copilot solo CLI con `auto`; VS Code no ejecutado) |
+| AC-20 | UC-8 | P1-S2, P3-S1, P3-S2 | Smoke manual | S5, S7, S9, S10 | `npm run check:docs`; sección 10 | Smoke manual, sin test del repo que lo reproduzca. `check:docs` es automático. Corrido a mano: Claude Code 2.1.142 con `--plugin-dir` sobre `dist/plugin` (12 skills `fhh:*`, `kit-root` cargado, overlay y runbook leídos, sin duplicados) y Copilot CLI 1.0.115 con la elección `auto`; en Copilot CLI 1.0.51 con gpt-4.1 el ruteo quedó no verificado. No ejecutado: VS Code; modelos Terra, Sol y Astra (no disponibles en la cuenta de prueba) |
 
 ---
 

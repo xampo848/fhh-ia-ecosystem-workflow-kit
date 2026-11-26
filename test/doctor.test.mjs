@@ -352,14 +352,18 @@ test('the model-profile fix doctor prints settles an agent whose model line was 
 
 // Final review 10: every fixed code doctor emits has a row or a bullet in the
 // troubleshooting guide (the per-reason boundary/pending-* codes are listed by
-// reason there).
-test('every fixed doctor code is documented in docs/troubleshooting.md', async () => {
+// reason there). The plugin-mode codes have their table in the quickstart, so
+// mode/* and target/* may be listed in either of the two.
+test('every fixed doctor code is documented in the user guides', async () => {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-  const guide = await fs.readFile(path.join(root, 'docs/troubleshooting.md'), 'utf8');
-  const sources = await Promise.all(['src/doctor.mjs', 'src/workspace-diagnostics.mjs'].map((file) => fs.readFile(path.join(root, file), 'utf8')));
-  const codes = [...new Set(sources.flatMap((source) => [...source.matchAll(/'((?:managed|boundary|project-context)\/[a-z-]+)'/g)].map((match) => match[1])))];
-  assert.ok(codes.length > 10, codes.join(', '));
-  assert.deepEqual(codes.filter((code) => !guide.includes(`\`${code}\``)), []);
+  const read = (file) => fs.readFile(path.join(root, file), 'utf8');
+  const guide = await read('docs/troubleshooting.md');
+  const guides = `${guide}\n${await read('docs/quickstart.md')}`;
+  const sources = await Promise.all(['src/doctor.mjs', 'src/workspace-diagnostics.mjs'].map(read));
+  const codes = [...new Set(sources.flatMap((source) => [...source.matchAll(/'((?:managed|boundary|project-context|mode|target)\/[a-z-]+)'/g)].map((match) => match[1])))];
+  assert.ok(codes.length > 20, codes.join(', '));
+  assert.ok(codes.some((code) => code.startsWith('mode/')) && codes.includes('target/not-found'), codes.join(', '));
+  assert.deepEqual(codes.filter((code) => !(/^(mode|target)\//.test(code) ? guides : guide).includes(`\`${code}\``)), []);
 });
 
 // Every workflow-kit command doctor prints carries the absolute target, quoted

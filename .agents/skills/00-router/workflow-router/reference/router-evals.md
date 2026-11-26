@@ -26,7 +26,7 @@ change to the pre-filter or the router, and recording the result in the PR.
 | L10 | "Cambia los permisos para que cada vendedor vea solo sus clientes" | N3 | create-prd |
 | L11 | "Resuelve los comentarios del PR" | N2 | pr-comments-resolution |
 | L12 | "Haz push de la rama y despliega a staging" | N3 | direct-action |
-| L13 | "En el listado de pedidos que ya implementamos (PRD ds-14), agrega ordenar por fecha de entrega" | N1 | implement-change |
+| L13 | "En el listado de pedidos que ya implementamos (PRD-A), agrega ordenar por fecha de entrega" | N1 | implement-change |
 | L14 | "Al guardar un pedido sin ítems, la API responde 500; debería responder 422" | N2 | implement-change |
 | L15 | "Continúa desde .ai-work/pedidos-filtros/task_tracker.toon" (new session, tracker with a `checkpoint` block) | N2 | implement-change |
 | L16 | "Implementa este PRD: docs/prd/pedidos/pedidos.md" (the PRD adds pagination to the orders list; `.agents/project/index.md` lists project pattern `api-pagination`) | N3 | implement-change + project pattern `api-pagination` (matcher, from `.agents/project/index.md` and `routing.md`) |

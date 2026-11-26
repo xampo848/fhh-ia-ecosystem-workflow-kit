@@ -129,7 +129,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/codebase-discovery/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "7b34105881dd63c9cca289f0d38af8513bc3713b3eaebed85087fd4f3465a1b2"
+      "skill_sha256": "67d74aed613e53550abc327870947e6e78908882226db3532468e8be0069a61d"
     },
     {
       "key": "contract-verifier",
@@ -273,7 +273,7 @@
       "class": "Quality/validation",
       "path": ".agents/skills/03-quality/playwright-testing/SKILL.md",
       "loading_posture": "Just-in-time",
-      "skill_sha256": "e46ad252681cec75fb0f8105eba5cdbaf21ee4925ed06955dc7c14aa250a95ab"
+      "skill_sha256": "bd2840056d8533f789d961ca04ac2289459b2d6f7a39a12cab8338f706ecc81d"
     },
     {
       "key": "pr-comments-resolution",

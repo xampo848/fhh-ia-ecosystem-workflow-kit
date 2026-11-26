@@ -35,14 +35,20 @@ workflow-kit export --output /tmp/workflow-kit-export --runtime codex
 ## Choosing a version
 
 The commands above install the latest merged version from `main`. To pin a
-release, append its tag (`v<version>`); tags are listed on the repository's
-[Releases page](https://github.com/xampo848/fhh-ia-ecosystem-workflow-kit/releases):
+version, append a ref: a tag, or the full commit hash of a version that has no
+tag. The remote has tags only up to `v0.17.3-contract-gaps`; later versions
+(`0.18.0` to `0.23.4`) are on `main` without a tag until the maintainer
+creates them. Examples:
 
 ```bash
-bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.23.3-strict-cli
+# a version that has a tag
+bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.17.3-contract-gaps
+# a version without a tag: use its commit (here 0.23.3-strict-cli)
+bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#96ec070136314053080535e3c40ce73c874268d7
 ```
 
-See [Versioning](versioning.md) for the list of tags and how they are named.
+See [Versioning](versioning.md) for the tags and the commit of each later
+version.
 
 ## Upgrading
 
@@ -53,8 +59,10 @@ workflow-kit upgrade --apply --yes
 workflow-kit update --target /path/to/repo --apply --yes
 ```
 
-`upgrade` checks that the ref exists and is reachable before it replaces the
-installed version.
+`upgrade` needs `git` and `bun` on your `PATH`. It checks the ref before it
+removes the installed version: a branch or tag by name, and a full
+40-character commit hash by fetching that commit. A short commit hash is
+accepted only when it is the tip of a branch or tag, so use the full hash.
 
 ## Plugin mode (pilot)
 

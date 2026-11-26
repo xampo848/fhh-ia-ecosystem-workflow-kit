@@ -96,18 +96,18 @@ Generated tests MUST follow these practices:
 
 ### Port Configuration
 
-**Important**: The application runs on different ports depending on the environment:
+**Important**: the application can run on different ports depending on the environment. Read the real values from the project (`.agents/project/context.md`, `.agents/project/stack.md`, the project's env file, and `playwright.config.*`) and never invent them. This skill uses placeholders:
 
-- **Development (local)**: `http://localhost:3002` (configured in `.env.development.local`)
-- **Playwright tests (local)**: `http://localhost:3004` (configured in `playwright.config.js`)
+- **Development (local)**: `http://localhost:<dev-port>` (configured in `<env-file>`)
+- **Playwright tests (local)**: `http://localhost:<test-port>` (configured in `playwright.config.*`)
 
-When generating tests, tests automatically use the `PW_BASE_URL` environment variable or default to `http://localhost:3004/` as defined in the Playwright config.
+When generating tests, tests use the `PW_BASE_URL` environment variable or fall back to `http://localhost:<test-port>/` as defined in the Playwright config.
 
 ### Execution & Iteration
 
-1. Execute the test file after generation with `npx playwright test playwright/tests/your-test.spec.ts` (Playwright will start a Rails test server via the `webServer` configuration, using `RAILS_ENV=test` on port 3004 by default)
-2. Do not start `rails s` manually for Playwright tests unless you are explicitly debugging with `reuseExistingServer: true` in `playwright.config.js`
-3. When debugging with `reuseExistingServer: true`, start the Rails server in test mode on port 3004, for example: `RAILS_ENV=test bin/rails s -p 3004`
+1. Execute the test file after generation with `npx playwright test playwright/tests/your-test.spec.ts` (Playwright starts the application's test server through the `webServer` configuration, in test mode on `<test-port>` by default)
+2. Do not start the application server manually for Playwright tests unless you are explicitly debugging with `reuseExistingServer: true` in the Playwright config
+3. When debugging with `reuseExistingServer: true`, start the application server in test mode on `<test-port>` with the project's own command (`<start-test-server-command>`, from `.agents/project/stack.md`)
 4. If tests fail, analyze the failure
 5. Update the test based on actual application behavior
 6. Repeat until all tests pass
@@ -119,8 +119,8 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Feature Name', () => {
   test('should perform specific action', async ({ page }) => {
-    // Navigate to relative path (baseURL from playwright.config.js will be prepended)
-    // In local development, this will become: http://localhost:3004/path/to/page
+    // Navigate to relative path (baseURL from the Playwright config will be prepended)
+    // In local development, this will become: http://localhost:<test-port>/path/to/page
     await page.goto('/path/to/page');
 
     // Interact using role-based locators
@@ -139,34 +139,30 @@ test.describe('Feature Name', () => {
 - ❌ Adding arbitrary `page.waitForTimeout()` calls
 - ❌ Not running tests to verify they work
 - ❌ Generating tests with no assertions
-- ❌ Using hardcoded localhost:3002 URLs in tests (use relative paths instead)
+- ❌ Using hardcoded `localhost:<dev-port>` URLs in tests (use relative paths instead)
 
 ## 🖥️ Local Environment Setup
 
-To run Playwright tests locally with the correct port configuration:
+To run Playwright tests locally with the correct port configuration, use the project's own commands (`.agents/project/stack.md` lists them; the names below are placeholders):
 
 ```bash
-# 1. Start the Rails development server (runs on port 3002)
-rails s
+# 1. Start the application in development mode (runs on <dev-port>)
+<start-dev-server-command>
 
-# 2. In a separate terminal, start the test server on port 3004
-# Option A: Using PORT environment variable
-PORT=3004 rails s
+# 2. In a separate terminal, start the test server on <test-port>
+<start-test-server-command>   # for example, set the port through the project's port variable or flag
 
-# Option B: Using foreman/Procfile (if configured for test server)
-# Add a new entry in Procfile.dev for test server if needed
-
-# 3. Run Playwright tests (will connect to http://localhost:3004)
+# 3. Run Playwright tests (will connect to http://localhost:<test-port>)
 npx playwright test playwright/tests/your-test.spec.ts
 
 # Or run all tests with UI mode for development
 npx playwright test playwright/tests/ --ui
 ```
 
-**Alternative**: You can also set the `PW_BASE_URL` environment variable to override the default port:
+**Alternative**: You can also set the `PW_BASE_URL` environment variable to override the default URL:
 
 ```bash
-PW_BASE_URL=http://localhost:3000/ npx playwright test  # Uses port 3000 instead
+PW_BASE_URL=http://localhost:<other-port>/ npx playwright test  # Uses <other-port> instead
 ```
 
 ## ✅ Success Criteria

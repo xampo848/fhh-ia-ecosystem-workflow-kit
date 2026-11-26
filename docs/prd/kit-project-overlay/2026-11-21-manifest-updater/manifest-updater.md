@@ -3,7 +3,7 @@
 **Ticket**: Épica `kit-project-overlay`, fase F2, fila 2 de la cola de PRDs
 **Autor**: Agente (sesión F2)
 **Fecha**: 2026-11-21
-**Estado**: Aprobado
+**Estado**: Cerrada (PR #82, `0.22.0-manifest-updater`, squash `558e9fb`, integrada en `main` el 2026-11-22). Follow-ups abiertos en la sección 10.
 
 ---
 
@@ -466,14 +466,16 @@ _(Vacio = PRD listo para implementar)_
 
 ## 8. Definition of Done Global
 
-- [ ] Todas las fases completadas
-- [ ] `npm test`, `check:workflow`, `check:release`, `check:legal` y `check:docs` en verde
-- [ ] E2E desde 0.18.1 para Claude, Codex, Copilot y Antigravity (contenido propio conservado, segundo update sin escrituras, rollback restaura)
-- [ ] Ningún conjunto de rutas escrito a mano en `src/` (AC-14)
-- [ ] Espejo `.agents/` = plantilla
-- [ ] Todo AC tiene al menos un caso de uso vinculado y todo caso de uso tiene al menos un AC vinculado
-- [ ] Todo caso de uso tiene al menos un test en la Estrategia de Tests
-- [ ] La Matriz de Edge Cases cubre las seis categorias obligatorias
+Marcado el 2026-11-25 contra `main` (`9d3b917`) y la evidencia de la sección 10.
+
+- [x] Todas las fases completadas (sección 10)
+- [x] `npm test`, `check:workflow`, `check:release`, `check:legal` y `check:docs` en verde (CI del PR #82; `check:release` con la versión `0.22.0-manifest-updater`)
+- [x] E2E desde 0.18.1 para Claude, Codex, Copilot y Antigravity (contenido propio conservado, segundo update sin escrituras, rollback restaura): `test/upgrade-e2e.test.mjs` y `test/migration.test.mjs` sobre `test/fixtures/legacy-0.18.1/`
+- [x] Ningún conjunto de rutas escrito a mano en `src/` (AC-14), acotado a los módulos de ownership: `test/workflow-contract.test.mjs`; desviación aceptada en la sección 10 (`legacyPreservedCatalogs`)
+- [x] Espejo `.agents/` = plantilla (`check:workflow`, `check:templates`)
+- [x] Todo AC tiene al menos un caso de uso vinculado y todo caso de uso tiene al menos un AC vinculado
+- [x] Todo caso de uso tiene al menos un test en la Estrategia de Tests
+- [x] La Matriz de Edge Cases cubre las seis categorias obligatorias
 
 ---
 
@@ -497,7 +499,7 @@ _(Vacio = PRD listo para implementar)_
 | AC-14 | UC-9 | P1-S3, P3-S1 | `workflow-contract.test.mjs` | — | `npm test` | Verified |
 | AC-15 | UC-8 | P3-S2 | `tui.test.mjs` | Concurrencia | `npm test` | Verified |
 | AC-16 | UC-9 | P1-S1 | `validate-kit-boundary` (sin editar) | — | `check:workflow` | Verified |
-| AC-17 | UC-11 | P3-S2 | Suite completa | — | Comandos de cierre | Pending (version) |
+| AC-17 | UC-11 | P3-S2 | Suite completa | — | Comandos de cierre | Verified (versión `0.22.0-manifest-updater` asignada; CI del PR #82 en verde) |
 
 ---
 
