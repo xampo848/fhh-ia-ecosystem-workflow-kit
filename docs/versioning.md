@@ -46,17 +46,42 @@ full commit hash instead (see "Versions without a tag yet").
 | `v0.23.1-script-guards` | commit `f0bfc61123e866d9b258212f3224f4a8a6bff229` |
 | `v0.23.0-plugin-mode` | commit `9d3b917dfda54b7494d3d2a18dd1eb479e4bdb6d` |
 | `v0.22.0-manifest-updater` | commit `558e9fb96792ae962bac1e3886c83dc0f3923cb8` |
-| `v0.21.0-project-### Versions without a tag yet
+| `v0.21.0-project-runbooks` | commit `45e37975a133e1cfc76b93a0e0047e4536ccf2dc` |
+| `v0.20.0-kit-overlay-contract` | commit `7a1f91c5fc65b7406b0161c284bf7c01b4f722ab` |
+| `v0.19.2-visual-lock` | commit `3e233f4ea641f5101d820ad02abc43a1f6bfd5be` |
+| `v0.19.1-tui-option-clarity` | commit `737bd36000dd71d008636481acbd3e75dfb22c46` |
+| `v0.19.0-test-design` | commit `9901069873bb910141139b7c4504ca6b4de2f78a` |
+| `v0.18.1-orchestrator-reads` | commit `f5ddeb070c846d0c599b2443dcbe4c1e0da45460` |
+| `v0.18.0-equilibrado-profile` | commit `ad1d9b882826f88347a6d03d31c17b754e56719e` |
+| `v0.17.3-contract-gaps` | |
+| `v0.17.2-catalog-rows` | |
+| `v0.17.1-stack-detection` | |
+| `v0.17.0-audit-hardening` | |
+| `v0.16.2-remove-slidev` | |
+| `v0.16.1-roadmap-closure` | |
+| `v0.16.0-safe-update` | |
+| `v0.10.0-implement-change` | |
+| `v0.7.40-contextual-model-selection` | last `0.7.x` |
+| `v0.7.33-create-prd-cost-efficiency` | |
+| `v0.7.26-runtime-native-agents` | |
+| `v0.7.19-tui-selective-apply` | |
+| `v0.7.4-public-install-export` | |
+
+Versions `0.8.0`, `0.9.0` and `0.11.0`–`0.15.0` were merged inside larger pull
+requests and have no commit of their own on `main`, so they have no tag; pin
+the next tagged version instead.
+
+### Versions without a tag yet
 
 Every released version from `0.18.0` to `0.23.6` has a tag. Three earlier
 versions merged on `main` still have none: `0.17.4`, `0.17.5` and `0.17.6`.
 A version released before its tag exists is pinned by its full commit hash,
 for example `workflow-kit upgrade --ref <40-character-hash> --apply --yes`
 or `bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#<hash>`.
-`upgrade` checks the ref before it removes the installed version: a branch or tag by name, and a full
-40-character commit hash by fetching that commit. A short commit hash is
-accepted only when it is the tip of a branch or tag, so use the full hash.
-Each commit is the squash merge that released the version.
+`upgrade` checks the ref before it removes the installed version: a branch or
+tag by name, and a full 40-character commit hash by fetching that commit. A
+short commit hash is accepted only when it is the tip of a branch or tag, so
+use the full hash. Each commit is the squash merge that released the version.
 
 | Version | Commit on `main` |
 | --- | --- |
@@ -67,25 +92,6 @@ Each commit is the squash merge that released the version.
 When the maintainer creates a tag for one of these, or for a future version,
 it takes the name in the first column with a `v` prefix, and the release steps
 in [RELEASE.md](../RELEASE.md) move the row to the tag table.
-
--recovery` | `0699ed2ec7e45ad0937a2f315b31aabc2938951d` |
-| `0.23.1-script-guards` | `f0bfc61123e866d9b258212f3224f4a8a6bff229` |
-| `0.23.0-plugin-mode` | `9d3b917dfda54b7494d3d2a18dd1eb479e4bdb6d` |
-| `0.22.0-manifest-updater` | `558e9fb96792ae962bac1e3886c83dc0f3923cb8` |
-| `0.21.0-project-runbooks` | `45e37975a133e1cfc76b93a0e0047e4536ccf2dc` |
-| `0.20.0-kit-overlay-contract` | `7a1f91c5fc65b7406b0161c284bf7c01b4f722ab` |
-| `0.19.2-visual-lock` | `3e233f4ea641f5101d820ad02abc43a1f6bfd5be` |
-| `0.19.1-tui-option-clarity` | `737bd36000dd71d008636481acbd3e75dfb22c46` |
-| `0.19.0-test-design` | `9901069873bb910141139b7c4504ca6b4de2f78a` |
-| `0.18.1-orchestrator-reads` | `f5ddeb070c846d0c599b2443dcbe4c1e0da45460` |
-| `0.18.0-equilibrado-profile` | `ad1d9b882826f88347a6d03d31c17b754e56719e` |
-| `0.17.6-bounded-output` | `e4a660db57a85b939483caa31604f9cc5df2ed56` |
-| `0.17.5-slice-checkpoint` | `1c766cd4b6a7693ad133ff5611146118b216717f` |
-| `0.17.4-usage-measurement` | `fd1d055c7c58991d29b20bc1b156c0b2c9dbc2ef` |
-
-When the maintainer creates tags for these versions, they take the names in the
-first column with a `v` prefix, and the release steps in
-[RELEASE.md](../RELEASE.md) update this page.
 
 ## What requires a version bump
 
