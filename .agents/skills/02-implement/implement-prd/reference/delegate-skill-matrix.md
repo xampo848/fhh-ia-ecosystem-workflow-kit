@@ -78,7 +78,7 @@ If none apply, do the work inline in the orchestrator and record why delegation 
 
 ## Runtime Model Routing Capabilities
 
-These values are `configured` in the kit's delegate catalog, not `observed` runtime evidence (see `docs/workflow/cross-runtime-capability-matrix.md` in the workflow-kit repository). They do not imply that a model was selected or switched for a specific run.
+These values are `configured` in the kit's delegate catalog, not `observed` runtime evidence (documented in the workflow-kit repository, not installed in this project). They do not imply that a model was selected or switched for a specific run.
 
 | Runtime | Discover catalog | Pin subagent model | Pin subagent tier | Auto fallback |
 | --- | --- | --- | --- | --- |

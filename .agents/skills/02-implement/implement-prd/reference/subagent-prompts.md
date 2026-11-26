@@ -16,7 +16,7 @@ Load this section immediately before any GitHub Copilot `runSubagent` delegation
 6. One correction only: when the tool rejects the agent name or model before any work started and the message lists a valid observed option in the same required tier, re-resolve with that option and invoke once. Never replay after a timeout, tool failure, task failure, partial output, or whenever execution may have begun; mark `PENDING_SUBAGENT` and ask the user.
 7. A pinned model that is unavailable needs explicit user consent before any fallback (`--allow-pinned-fallback`); no silent tier downgrade or upgrade.
 8. If the tier has no observed candidate or the runtime blocks it for cost or policy, stop with an actionable choice (another observed model of the same tier, an explicitly authorized tier, or inline execution). Do not silently inherit the parent model. A budget never moves a task to a cheaper tier, and a budget without complete token counts and `billingMode: token` is blocked, not guessed.
-9. Selecting or configuring a model is not proof of execution. Verify with `node .agents/model-routing/verify-copilot-model-evidence.mjs` using request IDs from this invocation's run interval; the operational recipe (including the workflow-kit checkout paths under `scripts/`) is `docs/workflow/copilot-subagent-model-routing.md` in the workflow-kit repository.
+9. Selecting or configuring a model is not proof of execution. Verify with `node .agents/model-routing/verify-copilot-model-evidence.mjs` using request IDs from this invocation's run interval; the operational recipe is a maintainer document of the workflow-kit repository and is not installed in this project.
 
 ## Standard Writable Delegate
 

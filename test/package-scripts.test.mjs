@@ -15,6 +15,7 @@ const checkWorkflowCommands = [
   'node scripts/validate-stack-neutrality.mjs',
   'node scripts/validate-skill-size.mjs',
   'node scripts/validate-kit-boundary.mjs',
+  'node scripts/validate-installed-paths.mjs',
   'node scripts/validate-template-packs.mjs'
 ];
 
