@@ -197,7 +197,7 @@ test('doctor reports an unusable or unfinished apply journal as an error with th
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
   const journalPath = '.agents/workflow-kit/last-apply.json';
   const cases = [
-    ['{ not json', 'managed/apply-journal-unusable', /cannot be read \(not valid JSON\), so rollback cannot use it\. Fix it by hand \(Git does not track it\); only if you will not roll back the last apply, move it out of \.agents\/workflow-kit\/\. init and update stop until then\.$/],
+    ['{ not json', 'managed/apply-journal-unusable', /cannot be read \(not valid JSON\), so rollback cannot use it, and Git does not track it\. To keep the way back, make it a readable file again\. To give up rolling back the last apply, move \.agents\/workflow-kit\/last-apply\.json out of the repository \(a move, not a delete: keep it if you may need it\) and run `workflow-kit doctor --target \S+` to check the repository\. init and update stop until then\.$/],
     ['{"schemaVersion":"2.0.0"}', 'managed/apply-journal-unusable', /cannot be read \(unsupported format\)/],
     [JSON.stringify({ schemaVersion: '2.0.0', appliedAt: '2026-01-01T00:00:00.000Z', completed: false, files: [] }), 'managed/apply-incomplete', /did not finish \(2026-01-01T00:00:00\.000Z\)\. Run `workflow-kit rollback --target \S+ --apply --yes`/]
   ];
@@ -210,7 +210,7 @@ test('doctor reports an unusable or unfinished apply journal as an error with th
   // Final review 7: a journal that cannot even be opened is a finding too.
   await fs.rm(path.join(target, journalPath));
   await fs.mkdir(path.join(target, journalPath));
-  assertFindings(await runDoctor({ targetPath: target }), [['managed/apply-journal-unusable', journalPath, /cannot be read \(EISDIR\)/, 'error']]);
+  assertFindings(await runDoctor({ targetPath: target }), [['managed/apply-journal-unusable', journalPath, /cannot be read \(it is a folder, not a file\)/, 'error']]);
 });
 
 // Final review 7 and round 4 (N3): a path doctor cannot read is reported,
@@ -478,7 +478,7 @@ test('doctor reports the apply lock: held by a running process is an error, one 
 
   await write(target, lockPath, '');
   const stale = await runDoctor({ targetPath: target });
-  assertFindings(stale, [['managed/apply-lock-stale', lockPath, new RegExp(`^${escape(lockPath)} was left by a workflow-kit run that no longer runs; the next apply or rollback takes it over\\.$`), 'warning']]);
+  assertFindings(stale, [['managed/apply-lock-stale', lockPath, new RegExp(`^${escape(lockPath)} cannot be read or is not valid \\(no usable process id or start time\\); the next apply or rollback takes it over\\.$`), 'warning']]);
   assert.equal(stale.ok, true, 'a stale lock does not fail doctor');
 });
 

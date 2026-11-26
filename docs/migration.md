@@ -65,12 +65,26 @@ every file the run is about to touch with the checksum it had before, and it
 is marked finished only at the end. A run stopped at any point (an error,
 Ctrl-C, `SIGTERM`, or a process killed outright) therefore leaves a journal
 that says it did not finish: `init` and `update` stop until you run
-`workflow-kit rollback --apply --yes`, and rollback undoes exactly that run
+`workflow-kit rollback --target <repo> --apply --yes` (the stop prints it with
+your absolute `--target`), and rollback undoes exactly that run
 (files it never reached stay as they are). Ctrl-C or `SIGTERM` during an apply
 lets the file being written finish, then stops (exit code 130 for Ctrl-C, 143
 for `SIGTERM`); a second signal stops at once. Rolling back an unfinished run
 always clears its journal, even when every file it wrote was already removed
 by hand.
+
+A run killed outright between taking its lock and writing its journal leaves no
+journal, only the lock (`.agents/workflow-kit/apply.lock`), a temporary file and
+the empty folders it created. A rollback killed at its very end, after it
+deleted the journal, leaves the lock and the folders. For both, run
+`workflow-kit rollback --target <repo> --apply --yes`: the dry run says the run
+"was stopped before it finished" and lists each `remove` line (the lock, each
+temporary file, each empty folder the run created; a folder that was already
+there or holds anything stays). It cleans only that and does not undo any
+apply: if an earlier finished apply left its journal, that journal is not
+touched, and you run rollback once more to undo that apply on purpose. A
+lock held by a live process still stops it, and so does a symbolic link on the
+lock path.
 
 Rollback is just as careful: it restores each file through a temporary copy
 renamed into place, so a file is never left half-restored; Ctrl-C or
@@ -121,7 +135,12 @@ Behavior on update (since `0.22.0`, by the class each path has in
 5. A kit file that no runtime of the new version ships is deleted when you did
    not edit it, always with a backup next to it; an edited one stays and
    `doctor` lists it.
-6. Unmanaged files at colliding paths are preserved as `skip_unmanaged`.
+6. Project files the kit only seeds (everything under `.agents/project/`) are
+   listed as `skip_unmanaged` and left as they are. Your own file at a path
+   the kit ships but the install never recorded is `skip_modified`
+   (`unrecorded_kit_file`), and waits for `--edited`. An edited
+   `.agents/skills/registry.json` is such a pending kit file: it is never
+   merged, so `discard` replaces it with the kit version (backup kept).
 
 No write replaces content without a backup unless that content matches the
 hash the kit recorded for it, whatever `--backup-mode` says.
@@ -221,12 +240,15 @@ Things the migration does not do:
   `1.0.0` or `2.0.0` install, or an export written before `0.22.0`, which
   recorded `mode: "repo"`) it stops before writing anything: export to an
   empty folder, or delete the old export's `install-state.json` first.
+  `update` on an exported folder refreshes it and keeps `mode: "export"` (it
+  does not turn the export into a `repo` install); `update --mode plugin`
+  on it stops and points to `init --mode plugin --target <repo>`.
   Exporting into a subfolder of an install does not touch the install.
 - **An unfinished apply blocks the next one.** If an apply stops halfway (a
   permission error, a full disk, Ctrl-C, a killed process), `init` and
   `update` stop with "The last workflow-kit apply did not finish" until you
-  run `workflow-kit rollback --apply --yes`, so the journal of that apply is
-  never overwritten.
+  run `workflow-kit rollback --target <repo> --apply --yes`, so the journal of
+  that apply is never overwritten.
 - **Empty folders are not recreated.** An empty folder inside an own skill
   stays in the old place (Git does not track empty folders); the plan names it.
 - **Some items stay pending** and `doctor` lists each with what to do: an own
@@ -235,13 +257,22 @@ Things the migration does not do:
   with kit files or with a file that is not UTF-8 text; a legacy context that
   is not UTF-8 or is a folder; a kit file the old state never recorded.
 - **An index the migration cannot extend stops it.** When
-  `.agents/project/index.md` already exists and the first visible table under
-  its `## Skills` or `## Shadows` heading does not have the header from
-  `.agents/kit-boundary.md` (or the heading appears twice, the heading itself
-  sits inside a code block or an HTML comment, or the file mixes line
-  endings), and the migration has own catalog rows to move or a shadow
-  candidate, `update` stops before writing anything. Fix that and run
-  `update` again. A visible heading whose only table is commented out or in a
+  `.agents/project/index.md` already exists and the migration has own catalog
+  rows to move or a shadow candidate, `update` stops before writing anything
+  if the index has one of these problems. The stop names only the one that
+  applies, with its line and the fix, and prints the `update` command to run
+  again:
+  - the first visible table under `## Skills` or `## Shadows` has a header that is not the one in
+    `.agents/kit-boundary.md`;
+  - that table has no separator row (`| --- | --- |...`) after the header;
+  - the heading appears twice;
+  - the only heading sits inside a code block or an HTML comment;
+  - the file mixes line endings (a line without a carriage return in a CRLF
+    file);
+  - the file has no `## Skills` section and ends inside a code block or an
+    HTML comment that is never closed, where a new section would be hidden.
+
+  Fix that one cause and run `update` again. A visible heading whose only table is commented out or in a
   code block is not a stop: the migration writes a new visible table under the
   heading and leaves the hidden one as it is; the kit catalogs are only replaced
   together with the index that takes their own rows. A row counts as already
@@ -253,9 +284,9 @@ Things the migration does not do:
 Each pending file lists its valid decisions in the dry run:
 
 ```text
-- pending .agents/instructions.md (edited_kit_file): keep | discard
-- pending .agents/skills/<group>/<skill>/SKILL.md (edited_kit_file): keep | discard | shadow
-- pending CLAUDE.md (unmarked_adapter): keep | discard | split
+- skip_modified: .agents/instructions.md (edited_kit_file): keep | discard
+- skip_modified: .agents/skills/<group>/<skill>/SKILL.md (edited_kit_file): keep | discard | shadow
+- skip_modified: CLAUDE.md (unmarked_adapter): keep | discard | split
 ```
 
 | Decision | Effect |
@@ -269,6 +300,19 @@ Each pending file lists its valid decisions in the dry run:
 workflow-kit update --target /path/to/repo --edited .agents/instructions.md=discard --edited CLAUDE.md=split --apply --yes
 workflow-kit update --target /path/to/repo --edited all=discard --apply --yes
 ```
+
+A pending kit file reached through a symbolic link offers only `keep`: the kit
+does not write through links. The plan says so:
+
+```text
+- skip_modified: .agents/instructions.md (edited_kit_file): symbolic link (.agents/instructions.md), so only keep applies: the kit does not write through links; it stays as it is, also under --edited all=discard. Replace the link with a regular file to get the other decisions
+```
+
+`--edited all=discard` leaves that file as it is and discards the rest
+(when the link is the only pending file, `all=discard` has nothing to apply to
+and stops);
+`--edited <path>=discard` on the link itself is rejected and writes nothing.
+Replace the link with a regular file to get the other decisions.
 
 A decision that does not apply to a file exits with code 2 before anything is
 written. `--edited all=<decision>` applies where it is valid and is a no-op
@@ -380,7 +424,10 @@ have no stored profile, so the first `update` applies the runtime default.
 For Claude Code that changes the delegate agents from `model: inherit` to
 `sonnet`/`opus` (`calidad`). If that project runs Claude Code or Codex through a
 per-token API key, pass `--profile claude=costo` (or `codex=costo`) on that
-update. The profile is then stored and kept by later updates.
+update. The profile is then stored and kept by later updates. Copilot also
+takes a profile (`--profile copilot=<calidad|equilibrado|costo>`, `costo` by
+default): it changes the tier and the `model:` list in the generated
+`.github/agents/*.agent.md` files.
 
 The `equilibrado` profile (since `0.18.0`) is unknown to older versions of
 workflow-kit. Before going back to a version before `0.18.0` (for example the

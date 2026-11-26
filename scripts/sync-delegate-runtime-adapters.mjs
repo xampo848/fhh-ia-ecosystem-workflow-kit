@@ -157,6 +157,8 @@ Use the shared skill path as the execution contract. Native adapters are generat
 
 Antigravity 2.0 documents project-scoped agents, worktrees, reusable skills, MCPs, and hooks, but does not declare a project custom-agent file format. Run the shared skill inline there until Google publishes one; do not create an undocumented adapter directory.
 
+In plugin mode the adapter files below are not in the repository: the plugin delivers the same agents, named \`fhh:<slug>\` (for example \`fhh:turbo-backend\`). Launch a delegate by that name there; the shared skill path stays the execution contract.
+
 ## Delegate Skill Matrix
 
 | Step | Skill | Alias | Shared skill path | Codex adapter | Copilot adapter | Claude adapter | Antigravity 2.0 | Writes |

@@ -523,8 +523,8 @@ test('update stops: a runtime without plugin (T14, also on a switch to plugin) w
 });
 
 // T6 guard: a repo-mode install whose state has no mode updates as the
-// fixture release did, and an export still updates to repo mode.
-test('T6 guard: update on a repo-mode state without mode plans what the fixture release planned; an export updates to repo', async () => {
+// fixture release did, and an export updates as repo mode but stays an export.
+test('T6 guard: update on a repo-mode state without mode plans what the fixture release planned; an export stays an export', async () => {
   const fixture = await repoModeFixture();
   const version = await packageVersionOf(root);
   for (const runtime of Object.keys(fixture.plans.update)) {
@@ -544,7 +544,7 @@ test('T6 guard: update on a repo-mode state without mode plans what the fixture 
 
   const exported = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: exported, export: true, ensureWorkspaceIgnore: false, recordJournal: false }));
-  assert.equal((await buildUpdatePlan({ targetPath: exported })).nextInstallState.mode, 'repo');
+  assert.equal((await buildUpdatePlan({ targetPath: exported })).nextInstallState.mode, 'export');
 });
 
 // The tree a rollback has to give back: everything but the apply journal and
@@ -948,7 +948,7 @@ test('AC-14: T4, T5, T10, T11, T13, T17 and an incomplete apply stop without wri
       },
       args: ['update', '--mode', 'plugin'],
       names: ['did not finish', 'then run this command again'],
-      commands: ['workflow-kit rollback --apply --yes'],
+      commands: ['workflow-kit rollback --target <T> --apply --yes'],
       again: true
     }
   ];

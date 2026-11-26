@@ -255,7 +255,7 @@ test('rollback without a journal on a migrated 2.0.0 repository keeps a copy of 
   // Round 4 (N4): the dry run says a copy is kept first and what comes next.
   assert.match(formatRollbackPlan(plan), /^restore CLAUDE\.md <- CLAUDE\.md\.workflow-kit-backup-\d{8}T\d{6}Z \(its current content is kept first as a -before-rollback copy\)$/m);
   // Round 5 (R2): the advice keeps own text: decide file by file, and say what all=discard drops.
-  assert.match(formatRollbackPlan(plan), /run `workflow-kit update` \(dry run first\) and decide each pending file with --edited; `--edited all=discard` would also drop every kept edit and the own text of adapters \(left in backups\)\./);
+  assert.match(formatRollbackPlan(plan), /run `workflow-kit update --target \S+` \(dry run first\) and decide each pending file with --edited; `--edited all=discard` would also drop every kept edit and the own text of adapters \(left in backups\)\./);
   const before = new Map(await Promise.all(restores.map(async (item) => [item.relativePath, await fs.readFile(item.targetFile)])));
   const restoredFrom = new Map(await Promise.all(restores.map(async (item) => [item.relativePath, await fs.readFile(item.backupPath)])));
   await applyRollbackPlan(plan);
@@ -278,7 +278,7 @@ test('rollback refuses a journal with malformed entries and says to fix it by ha
   const entries = [[null], [{ relativePath: '../../outside.txt', action: 'created', backup: null, writtenChecksum: null }]];
   for (const files of entries) {
     await write(target, applyJournalRelativePath, JSON.stringify({ schemaVersion: '2.0.0', completed: true, files }));
-    await assert.rejects(buildRollbackPlan({ targetPath: target }), /last-apply\.json has entries rollback cannot act on\. Fix it by hand \(Git does not track it\)\. Nothing was changed\./);
+    await assert.rejects(buildRollbackPlan({ targetPath: target }), /last-apply\.json has entries rollback cannot act on, and Git does not track it\. If you have a copy of the file, put it back\. To give up rolling back the last apply, move \.agents\/workflow-kit\/last-apply\.json out of the repository .*run `workflow-kit doctor --target \S+` to check the repository\. Nothing was changed\./);
   }
   await write(target, applyJournalRelativePath, JSON.stringify({ schemaVersion: '9.0.0', files: [] }));
   await assert.rejects(buildRollbackPlan({ targetPath: target }), /Run rollback with the workflow-kit version that wrote it/);

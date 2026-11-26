@@ -347,7 +347,7 @@ test('an index whose tables the migration cannot extend stops the whole migratio
 
       await assert.rejects(buildUpdatePlan({ targetPath: target }), (error) => {
         assert.equal(error.code, 'PROJECT_INDEX_UNEXPECTED', `${repo.name}, ${item.name}`);
-        assert.match(error.message, /\.agents\/project\/index\.md .*\.agents\/kit-boundary\.md.*run workflow-kit update again.*Nothing was written\.$/s);
+        assert.match(error.message, /^\.agents\/project\/index\.md .* and run `workflow-kit update --target .*` again\. Nothing was written\.$/s);
         return true;
       }, `${repo.name}, ${item.name}`);
     }
@@ -435,7 +435,7 @@ test('init over a 0.18.1 install stops before planning and points to update', as
   const { target } = await legacyRepo();
   const before = await hashTree(target);
 
-  await assert.rejects(buildInstallPlan({ targetPath: target, runtime: 'claude' }), new Error(`${installStateRelativePath} uses install-state 1.0.0. Run \`workflow-kit update\` to migrate this repository; init would replace project content. Nothing was written.`));
+  await assert.rejects(buildInstallPlan({ targetPath: target, runtime: 'claude' }), new Error(`${installStateRelativePath} uses install-state 1.0.0. Run \`workflow-kit update --target ${target}\` to migrate this repository; init would replace project content. Nothing was written.`));
 
   assert.deepEqual(await hashTree(target), before);
 });
@@ -464,7 +464,7 @@ test('an apply that stops halfway blocks update and init and keeps its journal',
   assert.equal(journal.completed, false);
   assert.ok(journal.files.length > 0);
 
-  const unfinished = new Error(`The last workflow-kit apply did not finish (${journal.appliedAt}). Run \`workflow-kit rollback --apply --yes\` first, then run this command again. Nothing was written.`);
+  const unfinished = new Error(`The last workflow-kit apply did not finish (${journal.appliedAt}). Run \`workflow-kit rollback --target ${target} --apply --yes\` first, then run this command again. Nothing was written.`);
   await assert.rejects(buildUpdatePlan({ targetPath: target }), unfinished);
   await assert.rejects(buildInstallPlan({ targetPath: target, runtime: 'claude' }), unfinished);
   assert.equal(await read(target, journalPath), journalRaw);

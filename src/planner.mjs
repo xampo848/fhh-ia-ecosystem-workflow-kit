@@ -6,11 +6,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isSupportedRuntime, pluginRuntimes, pluginSettingsPaths, runtimeEntrypoints, runtimeTemplatePaths, supportedRuntimes } from './runtime-matrix.mjs';
 import { defaultProfileFor, loadDelegateCatalog, modelProfileNames, parseProfileOption, renderClaudeAgent, renderCopilotAgent, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
-import { assertPluginRuntimes, carriesKitLocationMarker, compareVersionCores, kitLocationBlockName, planPluginSettings, planPluginSettingsRemoval, pluginAdapterContent, pluginName, runtimesDeclaringPlugin, withTarget } from './plugin-mode.mjs';
+import { assertPluginRuntimes, carriesKitLocationMarker, code, compareVersionCores, kitCommand, kitLocationBlockName, planPluginSettings, planPluginSettingsRemoval, pluginAdapterContent, pluginName, rollbackCommand, runtimesDeclaringPlugin, shellWord, withTarget } from './plugin-mode.mjs';
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
-import { assertNameLengths, assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
-import { applyJournalProblem, applyJournalRelativePath, observeTarget, targetLockHolder, unfinishedJournalMessage } from './apply.mjs';
+import { assertNameLengths, assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, describeEnvironmentError, findSymlinkInPath, readFileNamed, resolveInsideTarget } from './fs-safety.mjs';
+import { applyJournalProblem, applyJournalRelativePath, assertLockIsNotFolder, observeTarget, targetLockHolder, unfinishedJournalMessage } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, projectIndexPath, requireMigrationBackups } from './migration.mjs';
 
@@ -65,6 +65,10 @@ export function normalizeOverlay(value = 'fhh-ia-ecosystem-full') {
   return value;
 }
 
+// Files the operating system drops on its own in any folder (a Finder window
+// makes .DS_Store); never part of a template. Nothing else is skipped.
+const osJunkNames = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini']);
+
 async function collectTemplateFiles(templateRelativePath) {
   const root = path.join(templatesRoot, templateRelativePath);
   const files = [];
@@ -76,6 +80,7 @@ async function collectTemplateFiles(templateRelativePath) {
       if (entry.isDirectory()) {
         await walk(absolutePath);
       } else if (entry.isFile()) {
+        if (osJunkNames.has(entry.name)) continue;
         // Plan paths always use "/": manifest entries and install-state keys
         // are written that way on every platform.
         const relativePath = path.relative(root, absolutePath).split(path.sep).join('/');
@@ -166,12 +171,15 @@ async function resolveProfilesAndAgents({ targetPath, runtimes, files, pluginMod
 // next apply would replace the only way back); `incomplete` when the run
 // stopped halfway. Shared by the init/update gate and doctor.
 
+// Said in words: the journal sits in a repository, not in a program.
+export const unreadableReason = (error) => (error.code === 'EISDIR' ? 'it is a folder, not a file' : ['EACCES', 'EPERM'].includes(error.code) ? 'permission denied' : error.code ?? error.message);
+
 export async function lastApplyProblem(targetPath) {
   let raw;
   try {
     raw = await readOptional(path.join(targetPath, applyJournalRelativePath));
   } catch (readError) {
-    return { kind: 'unusable', reason: readError.code ?? readError.message };
+    return { kind: 'unusable', reason: unreadableReason(readError) };
   }
   if (raw === null) return null;
   let journal;
@@ -184,13 +192,18 @@ export async function lastApplyProblem(targetPath) {
   // A rollback that started and did not finish leaves the repository partly
   // rolled back: it stops the next run like an unfinished apply (`message`
   // says which; doctor reports both as managed/apply-incomplete).
-  const message = unfinishedJournalMessage(journal);
+  const message = unfinishedJournalMessage(journal, targetPath);
   if (message === null) return null;
   return { kind: 'incomplete', appliedAt: journal.appliedAt ?? 'unknown date', ...(typeof journal.rollbackStartedAt === 'string' ? { rollback: true, message } : {}) };
 }
 
-export const unusableJournalMessage = (reason) => `${applyJournalRelativePath} cannot be read (${reason}), so rollback cannot use it. Fix it by hand (Git does not track it); only if you will not roll back the last apply, move it out of .agents/workflow-kit/`;
-export const incompleteApplyMessage = (appliedAt) => `The last workflow-kit apply did not finish (${appliedAt}). Run \`workflow-kit rollback --apply --yes\` first`;
+// Git does not track the journal, so nothing restores it: either the file is
+// made readable, or the user gives up rolling back the last apply by moving
+// it out of the repository. With a target the next step is a command that
+// runs as printed; without one (a generic text) it is named.
+export const giveUpRollbackAdvice = (targetPath) => `To give up rolling back the last apply, move ${applyJournalRelativePath} out of the repository (a move, not a delete: keep it if you may need it) and run ${targetPath == null ? 'workflow-kit doctor' : code(kitCommand(targetPath, 'doctor'))} to check the repository`;
+export const unusableJournalMessage = (reason, targetPath) => `${applyJournalRelativePath} cannot be read (${reason}), so rollback cannot use it, and Git does not track it. To keep the way back, make it a readable file again. ${giveUpRollbackAdvice(targetPath)}`;
+export const incompleteApplyMessage = (appliedAt, targetPath) => `The last workflow-kit apply did not finish (${appliedAt}). Run ${rollbackCommand(targetPath)} first`;
 
 // A journal that did not finish while another run holds the lock is that
 // run's own, still being written: say so instead of sending the user to roll
@@ -198,13 +211,14 @@ export const incompleteApplyMessage = (appliedAt) => `The last workflow-kit appl
 // only); the apply takes the lock.
 export const runInProgressMessage = (holder) => `Another workflow-kit run is changing this repository (process ${holder.pid}, started ${holder.startedAt ?? 'at an unknown time'}). Wait for it to finish, then run this command again. Nothing was written.`;
 async function assertLastApplyFinished(targetPath) {
+  await assertLockIsNotFolder(targetPath);
   const problem = await lastApplyProblem(targetPath);
   if (problem?.kind === 'incomplete') {
     const holder = await targetLockHolder(targetPath);
     if (holder) throw new Error(runInProgressMessage(holder));
   }
-  if (problem?.kind === 'unusable') throw new Error(`${unusableJournalMessage(problem.reason)}. Then run this command again. Nothing was written.`);
-  if (problem?.kind === 'incomplete') throw new Error(`${problem.message ?? incompleteApplyMessage(problem.appliedAt)}, then run this command again. Nothing was written.`);
+  if (problem?.kind === 'unusable') throw new Error(`${unusableJournalMessage(problem.reason, targetPath)}. Then run this command again. Nothing was written.`);
+  if (problem?.kind === 'incomplete') throw new Error(`${problem.message ?? incompleteApplyMessage(problem.appliedAt, targetPath)}, then run this command again. Nothing was written.`);
 }
 
 // Newer by the numeric release ("0.23.0-plugin-mode" reads as 0.23.0): the
@@ -241,7 +255,11 @@ async function assertTargetFolder(targetPath, { mayCreate = false } = {}) {
   try {
     stat = await fs.stat(targetPath);
   } catch (error) {
+    if (error.code === 'ENOTDIR') throw new Error(`The target ${targetPath} is not usable: a file stands where a folder of that path should be. Check ${mayCreate ? '--output' : '--target'}. Nothing was written.`);
     if (error.code !== 'ENOENT') throw error;
+    // A link to nothing: the folder it names would be created behind it.
+    const link = await fs.lstat(targetPath).then((entry) => entry.isSymbolicLink(), () => false);
+    if (link) throw new Error(`The ${mayCreate ? 'output' : 'target'} ${targetPath} is a symbolic link to a path that does not exist, and workflow-kit does not create folders through symbolic links. Check ${mayCreate ? '--output' : '--target'}: point it at a real folder, or remove the link. Nothing was written.`);
     if (mayCreate) return;
     throw new Error(`The target ${targetPath} does not exist. Check --target; to install into a new repository, create the folder first (for example with \`git init\`). Nothing was written.`);
   }
@@ -271,12 +289,12 @@ async function assertNoInstallState(targetPath, manifest, { exporting = false, p
   // Plugin-mode stops name commands with --target, so they run from any
   // folder as printed; the repo-mode text stays as 558e9fb wrote it.
   if (state?.schemaVersion === legacyInstallStateSchemaVersion) {
-    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run \`${pluginMode ? applyCommand(withTarget('workflow-kit update', targetPath)) : 'workflow-kit update'}\` to migrate this repository${pluginMode ? `, then \`${pluginUpdateCommand(runtimeList, targetPath)}\`` : ''}; init would replace project content.${pluginMode ? `${noPluginNote(runtime)}${leftOutNote(runtimeList, state.runtimes, runtime)}` : ''} Nothing was written.`);
+    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}. Run ${code(pluginMode ? applyCommand(withTarget('workflow-kit update', targetPath)) : withTarget('workflow-kit update', targetPath))} to migrate this repository${pluginMode ? `, then ${code(pluginUpdateCommand(runtimeList, targetPath))}` : ''}; init would replace project content.${pluginMode ? `${noPluginNote(runtime)}${leftOutNote(runtimeList, state.runtimes, runtime)}` : ''} Nothing was written.`);
   }
   if (state) {
     let pluginWay = '';
-    if (pluginMode) pluginWay = state.mode === 'export' ? ` ${exportIsACopy(runtimeList)}` : ` To use plugin mode, run \`${pluginUpdateCommand(runtimeList, targetPath)}\`.${noPluginNote(runtime)}${leftOutNote(runtimeList, state.runtimes, runtime)}`;
-    throw new Error(`${installStateRelativePath} already records an install (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}). Run \`workflow-kit update\` instead (with \`--runtime <list>\`, \`--stack\` or \`--profile\` to change those choices); init would reset the recorded runtimes, stack and profiles and replace pending edited files.${pluginWay} Nothing was written.`);
+    if (pluginMode) pluginWay = state.mode === 'export' ? ` ${exportIsACopy(runtimeList)}` : ` To use plugin mode, run ${code(pluginUpdateCommand(runtimeList, targetPath))}.${noPluginNote(runtime)}${leftOutNote(runtimeList, state.runtimes, runtime)}`;
+    throw new Error(`${installStateRelativePath} already records an install (runtimes: ${(state.runtimes ?? []).join(', ') || 'none'}). Run ${code(withTarget('workflow-kit update', targetPath))} instead (with \`--runtime <list>\`, \`--stack\` or \`--profile\` to change those choices); init would reset the recorded runtimes, stack and profiles and replace pending edited files.${pluginWay} Nothing was written.`);
   }
 }
 
@@ -295,7 +313,9 @@ export const packageKitQualityGate = () => fs.readFile(path.join(templatesRoot, 
 function resolveUpdateMode(requestedMode, existingState, runtime, targetPath) {
   const recordedMode = existingState?.mode === 'plugin' ? 'plugin' : 'repo';
   const mode = requestedMode ?? recordedMode;
-  if (mode === recordedMode) return { mode, switchTo: null };
+  // An export updates as a repo-mode install but stays an export: the stops
+  // that tell an export from an install read the mode the state records.
+  if (mode === recordedMode) return { mode: existingState?.mode === 'export' ? 'export' : mode, switchTo: null };
   // Only a plugin-mode state records another mode than repo.
   if (mode === 'repo') return { mode, switchTo: 'repo' };
   const runtimeList = pluginRuntimeList(runtime, existingState?.runtimes);
@@ -303,10 +323,10 @@ function resolveUpdateMode(requestedMode, existingState, runtime, targetPath) {
     // M5: the bootstrap keeps every runtime asked for; the switch after it
     // names only those with a plugin, and the stop says which ones it leaves.
     const adoptList = runtime === undefined ? runtimeList : parseRuntimeList(runtime).join(',');
-    throw new Error(`update --adopt-existing --mode plugin: there is no install state to switch from. Run \`${applyCommand(withTarget(`workflow-kit update --adopt-existing --runtime ${adoptList}`, targetPath))}\` first to bootstrap a safe baseline, then \`${pluginUpdateCommand(runtimeList, targetPath)}\`.${noPluginNote(runtime)}${adoptList === runtimeList ? '' : leftOutNote(runtimeList, adoptList.split(','), runtime)} Nothing was written.`);
+    throw new Error(`update --adopt-existing --mode plugin: there is no install state to switch from. Run ${code(applyCommand(withTarget(`workflow-kit update --adopt-existing --runtime ${adoptList}`, targetPath)))} first to bootstrap a safe baseline, then ${code(pluginUpdateCommand(runtimeList, targetPath))}.${noPluginNote(runtime)}${adoptList === runtimeList ? '' : leftOutNote(runtimeList, adoptList.split(','), runtime)} Nothing was written.`);
   }
   if (existingState.schemaVersion === legacyInstallStateSchemaVersion) {
-    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}, and its layout migration has to run before a mode switch. Run \`${applyCommand(withTarget('workflow-kit update', targetPath))}\` first, then \`${pluginUpdateCommand(runtimeList, targetPath)}\`.${noPluginNote(runtime)}${leftOutNote(runtimeList, existingState.runtimes, runtime)} Nothing was written.`);
+    throw new Error(`${installStateRelativePath} uses install-state ${legacyInstallStateSchemaVersion}, and its layout migration has to run before a mode switch. Run ${code(applyCommand(withTarget('workflow-kit update', targetPath)))} first, then ${code(pluginUpdateCommand(runtimeList, targetPath))}.${noPluginNote(runtime)}${leftOutNote(runtimeList, existingState.runtimes, runtime)} Nothing was written.`);
   }
   if (existingState.mode === 'export') {
     throw new Error(`update --mode plugin: ${installStateRelativePath} records an export. ${exportIsACopy(runtimeList)} Nothing was written.`);
@@ -348,7 +368,27 @@ function leftOutNote(runtimeList, recordedRuntimes = [], runtime = undefined) {
 }
 const exportIsACopy = (runtimeList) => `An exported folder is a copy of the kit, not an install, so it has no install mode: to use plugin mode, install the kit in a repository with \`workflow-kit init --mode plugin --runtime ${runtimeList} --target <repo>\`.`;
 
-export async function buildInstallPlan(options = {}) {
+// Planning only reads: a file-system problem in the repository (a folder where
+// a file goes, a file nobody may read) stops it with a message that names the
+// path and what to do, and nothing was written.
+export async function explainedPlanning(targetPath, planning) {
+  try {
+    return await planning();
+  } catch (error) {
+    const description = describeEnvironmentError(error, targetPath);
+    if (description === null) throw error;
+    // The journal is not in Git: its own text says how to go on without it.
+    const advice = path.resolve(error.path ?? error.dest ?? '') === path.join(targetPath, applyJournalRelativePath)
+      ? `${unusableJournalMessage(unreadableReason(error), targetPath)}. Then run this command again.`
+      : `${description}, then run this command again.`;
+    throw Object.assign(new Error(`${advice} Nothing was written.`), { code: error.code, cause: error });
+  }
+}
+
+export const buildInstallPlan = (options = {}) => explainedPlanning(path.resolve(options.targetPath ?? process.cwd()), () => planInstall(options));
+export const buildUpdatePlan = (options = {}) => explainedPlanning(path.resolve(options.targetPath ?? process.cwd()), () => planUpdate(options));
+
+async function planInstall(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   await assertTargetFolder(targetPath, { mayCreate: Boolean(options.export) });
   // Read first: the apply checks under its lock that nothing changed since.
@@ -422,7 +462,7 @@ export async function buildInstallPlan(options = {}) {
   };
 }
 
-export async function buildUpdatePlan(options = {}) {
+async function planUpdate(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   const stateFilePath = path.join(targetPath, installStateRelativePath);
   await assertTargetFolder(targetPath);
@@ -432,7 +472,7 @@ export async function buildUpdatePlan(options = {}) {
   await assertRawStateNotNewer(stateFilePath, options.toolkitVersion);
   const existingState = await readInstallState(stateFilePath, manifest);
   if (!existingState && !options.adoptExisting) {
-    throw new Error('No install state found. Run `workflow-kit update --adopt-existing --runtime <list>` first to bootstrap a safe baseline.');
+    throw new Error(`No install state found. Run ${code(withTarget('workflow-kit update --adopt-existing --runtime <list>', targetPath))} first to bootstrap a safe baseline.`);
   }
   assertStateNotNewer(existingState, options.toolkitVersion);
   const { mode: installMode, switchTo } = resolveUpdateMode(options.mode, existingState, options.runtime, targetPath);
@@ -493,7 +533,7 @@ export async function buildUpdatePlan(options = {}) {
     pluginMode
   });
   // A switch to plugin mode decides its pending files once the retired ones are known.
-  const shadows = switching ? [] : await planEditedDecisions({ operations, edited: options.edited ?? {}, manifest, migration });
+  const shadows = switching ? [] : await planEditedDecisions({ targetPath, operations, edited: options.edited ?? {}, manifest, migration });
   if (migration) await migration.completeOperations(operations, shadows);
   operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
   const kitQualityGate = pluginMode ? await packageKitQualityGate() : undefined;
@@ -509,7 +549,7 @@ export async function buildUpdatePlan(options = {}) {
   const retired = existingState ? await planRetiredFiles({ targetPath, manifest, previousFiles, operations, pluginMode, switching: retireGenerated }) : { operations: [], missing: [] };
   operations.push(...retired.operations);
   if (switching) {
-    await planEditedDecisions({ operations, edited: options.edited ?? {}, manifest, switching });
+    await planEditedDecisions({ targetPath, operations, edited: options.edited ?? {}, manifest, switching });
     assertModeSwitchSettled(operations, options.runtime === undefined ? '' : ` --runtime ${runtimes.join(',')}`, targetPath);
   }
   await finalizeOperations({ targetPath, manifest, operations, previousFiles });
@@ -603,13 +643,14 @@ function invalidEditedDecision(relativePath, decision, validDecisions, problem) 
 // Path -> decision for the pending files. A named path wins over `all`, which
 // takes every pending file where its decision is valid and leaves the rest
 // pending. Anything that cannot be honored throws before a write is planned.
-function chooseEditedDecisions(validByPath, edited) {
+function chooseEditedDecisions(validByPath, edited, linkedPaths = new Map()) {
   const chosen = new Map();
   for (const [relativePath, decision] of Object.entries(edited)) {
     if (!editedDecisions.includes(decision)) throw invalidEditedDecision(relativePath, decision, editedDecisions, 'unknown decision');
     if (relativePath === editedAllKey) continue;
     const valid = validByPath.get(relativePath);
     if (!valid) throw invalidEditedDecision(relativePath, decision, [], 'the file is not a pending edited file');
+    if (!valid.includes(decision) && linkedPaths.has(relativePath)) throw invalidEditedDecision(relativePath, decision, valid, `the file is reached through the symbolic link ${linkedPaths.get(relativePath)} and the kit does not write through links; replace the link with a regular file to get the other decisions`);
     if (!valid.includes(decision)) throw invalidEditedDecision(relativePath, decision, valid, `${decision} does not apply to this file`);
     chosen.set(relativePath, decision);
   }
@@ -633,28 +674,38 @@ function chooseEditedDecisions(validByPath, edited) {
 // retired file is pending too, and only discard settles it (deleted with a
 // backup that keeps the edit); keep settles nothing there, since the switch
 // is applied whole.
-async function planEditedDecisions({ operations, edited, manifest, migration, switching = false }) {
+async function planEditedDecisions({ targetPath, operations, edited, manifest, migration, switching = false }) {
   const pending = operations.filter((item) => item.operation === 'skip_modified' && (pendingEditReasons.has(item.reason) || (switching && item.retired)));
   const validByPath = new Map();
   const shadowTargets = new Map();
   const splitContents = new Map();
+  // A pending file behind a symbolic link only offers keep: the kit never
+  // writes or deletes through a link (a switch to plugin mode stops on it).
+  const linkedPaths = new Map();
+  const linkCache = new Map();
   for (const item of pending) {
+    const link = switching ? null : await findSymlinkInPath(targetPath, item.relativePath, linkCache);
+    if (link) linkedPaths.set(item.relativePath, link);
     const shadow = migration ? await migration.shadowFor(item) : null;
     if (shadow) shadowTargets.set(item.relativePath, shadow);
     if (item.reason === 'unmarked_adapter') {
       const blockName = classifyPath(manifest, item.relativePath)?.block ?? defaultBlockName;
-      const split = splitUnmarkedAdapter(await fs.readFile(item.targetFile, 'utf8'), item.content, blockName);
+      const split = splitUnmarkedAdapter(await readFileNamed(item.targetFile, 'utf8'), item.content, blockName);
       if (split !== null) splitContents.set(item.relativePath, split);
     }
     const applies = { keep: !switching, discard: true, shadow: Boolean(shadow), split: splitContents.has(item.relativePath) };
-    validByPath.set(item.relativePath, editedDecisions.filter((decision) => applies[decision]));
+    validByPath.set(item.relativePath, editedDecisions.filter((decision) => applies[decision] && (decision === 'keep' || !linkedPaths.has(item.relativePath))));
   }
-  const chosen = chooseEditedDecisions(validByPath, edited);
+  const chosen = chooseEditedDecisions(validByPath, edited, linkedPaths);
   const shadows = [];
   for (const item of pending) {
     const decision = chosen.get(item.relativePath) ?? 'keep';
     if (decision === 'keep') {
       item.decisions = validByPath.get(item.relativePath);
+      if (linkedPaths.has(item.relativePath)) {
+        item.symlink = linkedPaths.get(item.relativePath);
+        item.note = `symbolic link (${item.symlink}), so only keep applies: the kit does not write through links; it stays as it is, also under --edited all=discard. Replace the link with a regular file to get the other decisions`;
+      }
       continue;
     }
     delete item.reason;
@@ -817,7 +868,7 @@ function assertModeSwitchSettled(operations, runtimeFlag = '', targetPath = unde
   const discardable = pending.filter((item) => item.decisions?.includes('discard'));
   const fixByHand = discardable.length < pending.length ? 'Fix the markers of each file no --edited decision applies to, then run' : 'Run';
   const perFile = discardable.length > 0
-    ? `${fixByHand} \`${command} ${discardable.map((item) => `--edited ${item.relativePath}=discard`).join(' ')}\` (one \`--edited <path>=<decision>\` per file, all in the same command${discardable.some((item) => item.decisions.some((decision) => decision !== 'discard')) ? '; another decision listed for a file can replace discard' : ''}), or \`${command} --edited all=discard\` for all of them; a discarded file keeps a backup next to it.`
+    ? `${fixByHand} ${code(`${command} ${discardable.map((item) => `--edited ${item.relativePath}=discard`).join(' ')}`)} (one \`--edited <path>=<decision>\` per file, all in the same command${discardable.some((item) => item.decisions.some((decision) => decision !== 'discard')) ? '; another decision listed for a file can replace discard' : ''}), or \`${command} --edited all=discard\` for all of them; a discarded file keeps a backup next to it.`
     : 'Fix the markers of each file by hand, then switch.';
   throw new Error([
     `update --mode plugin switches this install from repo mode to plugin mode, and a switch is applied whole, so each file below needs a decision first.`,
@@ -859,7 +910,7 @@ async function planKitLocationCleanup({ targetPath, manifest, operations }) {
 
 async function readOptional(file) {
   try {
-    return await fs.readFile(file, 'utf8');
+    return await readFileNamed(file, 'utf8');
   } catch (error) {
     if (error.code === 'ENOENT') return null;
     throw error;
@@ -1019,7 +1070,15 @@ export function selectPlanOperations(plan, selectedRelativePaths = []) {
 }
 
 export async function readManagedInstallState(targetPath = process.cwd(), { manifest } = {}) {
-  return readInstallState(path.join(path.resolve(targetPath), installStateRelativePath), manifest ?? await loadKitManifest());
+  const root = path.resolve(targetPath);
+  try {
+    return await readInstallState(path.join(root, installStateRelativePath), manifest ?? await loadKitManifest());
+  } catch (error) {
+    // Doctor, rollback and the guided menu report this one: no "run again".
+    const description = describeEnvironmentError(error, root);
+    if (description === null) throw error;
+    throw Object.assign(new Error(`${description}.`), { code: error.code, cause: error });
+  }
 }
 
 export function summarizeOperations(operations) {
@@ -1049,7 +1108,7 @@ export function formatPlan(plan) {
     `Mode: ${plan.mode ?? 'init'}`,
     // Only in plugin mode, so the repo-mode output does not change.
     ...(plan.nextInstallState?.mode === 'plugin' ? ['Install mode: plugin'] : []),
-    `Toolkit version: ${plan.toolkitVersion ?? 'unknown'}`,
+    `workflow-kit version: ${plan.toolkitVersion ?? 'unknown'}`,
     `Target managed version: ${plan.previousToolkitVersion ?? 'none recorded'}`,
     `Runtimes: ${plan.runtimes.join(',')}`,
     `Overlay: ${plan.overlay}`,
@@ -1098,7 +1157,11 @@ async function readInstallState(stateFilePath, manifest) {
 
   // A state file that exists but cannot be used is not "no install": treating
   // it as missing would send the user to --adopt-existing over a real install.
-  const unusable = (reason) => new Error(`${installStateRelativePath} ${reason}. Restore it from Git, or upgrade the CLI with \`workflow-kit upgrade --apply --yes\` if a newer version wrote it.`);
+  // The state sits at <target>/.agents/workflow-kit/install-state.json: Git
+  // restores it from there, and a newer workflow-kit that wrote it is met by
+  // upgrading the CLI (global: no --target).
+  const root = path.resolve(stateFilePath, ...installStateRelativePath.split('/').map(() => '..'));
+  const unusable = (reason) => new Error(`${installStateRelativePath} ${reason}. Restore it from Git with ${code(`git -C ${shellWord(root)} restore -- ${installStateRelativePath}`)}, or, if a newer workflow-kit wrote it, upgrade the CLI with ${code('workflow-kit upgrade --apply --yes')} (a global command: no --target). Then run this command again.`);
   let parsed;
   try {
     parsed = JSON.parse(raw);

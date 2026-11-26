@@ -9,6 +9,38 @@ export function checksumOf(content) {
   return crypto.createHash('sha256').update(content, 'utf8').digest('hex');
 }
 
+// A file-system error that says the repository is not in the shape the kit
+// needs (not a bug of the kit): a folder where a file goes, a path under a
+// file, no permission, a read-only disk.
+export const environmentErrorCodes = new Set(['EISDIR', 'ENOTDIR', 'EACCES', 'EPERM', 'EROFS']);
+// fs.readFile on a folder fails with EISDIR and no path: name the file.
+export async function readFileNamed(file, encoding) {
+  try {
+    return await fs.readFile(file, encoding);
+  } catch (error) {
+    if (error && typeof error === 'object' && error.path === undefined) error.path = file;
+    throw error;
+  }
+}
+const temporaryNamePattern = /^\.workflow-kit-tmp-\d+$/;
+
+// What failed, in words, for a path as the user knows it: relative to the
+// target when inside it. The temporary file of an atomic write is named by
+// the folder it lives in. Returns null for an error that is not one of the
+// above (the caller rethrows it as it is).
+export function describeEnvironmentError(error, targetPath) {
+  if (!environmentErrorCodes.has(error?.code)) return null;
+  const raw = error.path ?? error.dest;
+  if (typeof raw !== 'string') return null;
+  const named = temporaryNamePattern.test(path.basename(raw)) ? path.dirname(raw) : raw;
+  const relative = path.relative(path.resolve(targetPath), named).split(path.sep).join('/');
+  const shown = relative === '' ? '.' : relative.startsWith('..') || path.isAbsolute(relative) ? named : relative;
+  if (error.code === 'EISDIR') return `${shown} is a folder, but workflow-kit needs a file there. Move the folder away (or rename it), and restore the file from Git when Git tracks it`;
+  if (error.code === 'ENOTDIR') return `${shown} cannot be used: a file stands where a folder of that path should be. Move that file away`;
+  if (error.code === 'EROFS') return `${shown} cannot be written: the file system is read-only. Make that location writable`;
+  return `${shown} cannot be read or written (permission denied). Check the permissions of that path and of its folder: you need to read and write them`;
+}
+
 // Resolves a path recorded in a plan, a journal or install-state. Those files
 // live in the target repository, so their keys are untrusted input.
 export function resolveInsideTarget(targetPath, relativePath) {

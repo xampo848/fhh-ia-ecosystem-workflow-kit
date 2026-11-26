@@ -1,5 +1,5 @@
 import { editedDecisions } from '../planner.mjs';
-import { installModes } from '../plugin-mode.mjs';
+import { code, installModes, shellWord } from '../plugin-mode.mjs';
 import { pluginRuntimes, supportedRuntimes } from '../runtime-matrix.mjs';
 
 const usageLines = {
@@ -19,7 +19,7 @@ const commandSummaries = {
   export: 'Write the workflow files into a folder without touching any project',
   doctor: 'Check the workflow installed in a project (read-only)',
   rollback: 'Undo the last init or update applied to a project',
-  tui: 'Guided menu for init, update, export, doctor, rollback and upgrade'
+  tui: 'Guided menu for install, update, export, doctor, upgrade and optional tools'
 };
 
 const runtimeNote = `--runtime takes a comma-separated list of: ${[...supportedRuntimes, 'neutral'].join(', ')} (neutral: no runtime adapter).`;
@@ -112,9 +112,10 @@ function assertProfileRuntimes(profile, runtime, command, mode) {
 // init and update install anything.
 const modeCommands = ['init', 'update'];
 
-// A shell-ready command line, so a stop can name the command that works.
+// A shell-ready command line between backticks, so a stop can name the command
+// that works.
 function commandLine(args) {
-  return ['workflow-kit', ...args].map((arg) => (/^[\w@%+=:,./-]+$/.test(arg) ? arg : `'${arg.replaceAll("'", "'\\''")}'`)).join(' ');
+  return code(['workflow-kit', ...args].map(shellWord).join(' '));
 }
 
 function withoutMode(args) {
@@ -136,7 +137,7 @@ function assertModeOption(command, rest, mode) {
     throw new Error(`export has no install mode: it writes a copy of the kit into a folder. Run \`workflow-kit export --output <path>\` without --mode. Nothing was written.`);
   }
   if (!modeCommands.includes(command)) {
-    throw new Error(`--mode does not apply to ${command}. ${valid} Run \`${commandLine([command, ...withoutMode(rest)])}\` without it. Nothing was written.`);
+    throw new Error(`--mode does not apply to ${command}. ${valid} Run ${commandLine([command, ...withoutMode(rest)])} without it. Nothing was written.`);
   }
   // A wrong value never picks a mode for the user: update keeps the mode the
   // install records, and init names each mode the requested runtimes allow.
@@ -150,8 +151,8 @@ function assertModeOption(command, rest, mode) {
     const base = asDryRun(withoutMode(rest));
     const updateArgs = runtimeAt >= 0 && !allHavePlugin ? withoutRuntime(base) : base;
     const next = command === 'update'
-      ? `Without --mode, update keeps the mode${updateArgs === base ? '' : ' and the runtimes'} this install records; see its plan with \`${commandLine([command, ...updateArgs])}\`.`
-      : `See the plan ${allHavePlugin ? 'of each mode ' : ''}with ${installModes.filter((value) => value !== 'plugin' || allHavePlugin).map((value) => `\`${commandLine([command, ...base, '--mode', value])}\``).join(' or ')}.`;
+      ? `Without --mode, update keeps the mode${updateArgs === base ? '' : ' and the runtimes'} this install records; see its plan with ${commandLine([command, ...updateArgs])}.`
+      : `See the plan ${allHavePlugin ? 'of each mode ' : ''}with ${installModes.filter((value) => value !== 'plugin' || allHavePlugin).map((value) => commandLine([command, ...base, '--mode', value])).join(' or ')}.`;
     throw new Error(`Unsupported --mode value "${mode}". ${valid} ${next} Nothing was written.`);
   }
 }

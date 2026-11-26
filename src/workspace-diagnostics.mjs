@@ -4,7 +4,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { gitignoreHasWorkspaceEntry, workspaceDirectory } from './planner.mjs';
-import { legacyPathFor, loadKitManifest } from './kit-manifest.mjs';
+import { updateAdvice } from './plugin-mode.mjs';
+import { classifyPath, legacyPathFor, loadKitManifest } from './kit-manifest.mjs';
 
 export const staleWorkspaceDays = 14;
 export const section10LineGuide = 60;
@@ -94,8 +95,9 @@ async function readOptional(file) {
   }
 }
 
-export async function projectContextDiagnostics({ targetPath }) {
-  const legacyPath = legacyPathFor(await loadKitManifest(), projectContextPath);
+export async function projectContextDiagnostics({ targetPath, pluginMode = false }) {
+  const manifest = await loadKitManifest();
+  const legacyPath = legacyPathFor(manifest, projectContextPath);
   const current = await readOptional(path.join(targetPath, projectContextPath));
   const legacy = legacyPath ? await readOptional(path.join(targetPath, legacyPath)) : null;
   const both = current !== null && legacy !== null
@@ -123,6 +125,8 @@ export async function projectContextDiagnostics({ targetPath }) {
     try {
       await fs.access(path.join(targetPath, candidate));
     } catch {
+      // Plugin mode: the plugin delivers the kit paths, the repo does not hold them.
+      if (pluginMode && ['kit', 'derived'].includes(classifyPath(manifest, candidate)?.class)) continue;
       missing.add(candidate);
     }
   }
@@ -147,7 +151,7 @@ export async function workspaceDiagnostics({ targetPath, now = Date.now() }) {
       if (error.code !== 'ENOENT') throw error;
     }
     if (!gitignoreHasWorkspaceEntry(gitignore)) {
-      diagnostics.push(warning('workspace/not-ignored', '.gitignore', `${workspaceDirectory}/ holds temporary AI state but is not ignored by Git. Run workflow-kit update, or add "${workspaceDirectory}/" to .gitignore.`));
+      diagnostics.push(warning('workspace/not-ignored', '.gitignore', `${workspaceDirectory}/ holds temporary AI state but is not ignored by Git. Run ${updateAdvice(targetPath)}, or add "${workspaceDirectory}/" to .gitignore.`));
     }
   }
 

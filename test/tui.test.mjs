@@ -133,7 +133,7 @@ test('tui can auto-install install+attach optional capabilities in one confirmat
   const executed = [];
 
   const result = await runTui({
-    ask: scriptedAsk(['', target, '1', '', 'yes', '3', '1', '2', 'yes', 'yes']),
+    ask: scriptedAsk(['', target, '1', '', 'yes', '3', '2', 'yes', 'yes']),
     color: false,
     write: () => {},
     commandExists: async (command) => command === 'bun',
@@ -160,7 +160,7 @@ test('tui auto-installs context7 package and reports manual configuration steps'
   let output = '';
 
   const result = await runTui({
-    ask: scriptedAsk(['', target, '1', '', 'yes', '1', '1', '2', 'yes', 'yes']),
+    ask: scriptedAsk(['', target, '1', '', 'yes', '1', '2', 'yes', 'yes']),
     color: false,
     write: (message) => { output += message; },
     commandExists: async (command) => command === 'bun',
@@ -184,7 +184,7 @@ test('tui capabilities-only mode runs optional capabilities without applying wor
   const executed = [];
 
   const result = await runTui({
-    ask: scriptedAsk(['6', target, '1', '3', '1', '2', 'yes']),
+    ask: scriptedAsk(['6', target, '1', '3', '2', 'yes']),
     color: false,
     write: () => {},
     commandExists: async (command) => command === 'bun',

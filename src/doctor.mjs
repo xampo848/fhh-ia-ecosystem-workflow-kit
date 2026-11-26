@@ -12,7 +12,7 @@ import { applyJournalRelativePath, describeTargetLock } from './apply.mjs';
 import { blockMarkers, classifyPath, currentPathFor, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, projectIndexPath, projectIndexTableRows, shadowManifestName, skillsRoot, unquote, walkTree } from './migration.mjs';
 import {
-  carriesKitLocationMarker, claudePluginEnableCommand, claudePluginListHint, claudePluginUpdateCommand, cliUpgradeCommand, compareVersionCores, copilotPluginListCommand, inspectInstalledPlugins, inspectPluginSettings,
+  carriesKitLocationMarker, claudePluginEnableCommand, claudePluginListHint, claudePluginUpdateCommand, cliUpgradeCommand, code, kitCommand, compareVersionCores, copilotPluginListCommand, inspectInstalledPlugins, inspectPluginSettings,
   kitLocationBlockName, kitMarketplaceEntry, marketplaceEntryKey, pluginAdapterContent, pluginBranch, pluginDeclarationFragment, pluginEntryKey, pluginId, pluginInstallCommand, shellWord
 } from './plugin-mode.mjs';
 import { pluginRuntimes, pluginSettingsPaths, runtimeEntrypoints, supportedRuntimes } from './runtime-matrix.mjs';
@@ -30,16 +30,9 @@ function checksum(content) {
 const warning = (code, relativePath, message) => ({ code, path: relativePath, message, severity: 'warning' });
 const error = (code, relativePath, message) => ({ code, path: relativePath, message, severity: 'error' });
 
-// Every workflow-kit command doctor names carries the absolute target, quoted
-// for a shell, so it runs as printed from any folder (and never acts on the
-// folder it is pasted in).
-export function kitCommand(targetPath, subcommand, ...args) {
-  return ['workflow-kit', subcommand, '--target', targetPath, ...args].map(shellWord).join(' ');
-}
-// A command in a message, between backticks; one that holds a backtick (a
-// target path can) goes between double backticks, so the delimiter stays
-// unambiguous.
-const code = (command) => (command.includes('`') ? `\`\` ${command} \`\`` : `\`${command}\``);
+// Every workflow-kit command doctor names carries the absolute target
+// (kitCommand lives in plugin-mode.mjs, shared with planner, apply, rollback).
+export { kitCommand };
 // A project-scoped runtime command runs in the target.
 const inTarget = (targetPath, command) => `cd ${shellWord(targetPath)} && ${command}`;
 
@@ -115,15 +108,11 @@ function targetRepoContractDiagnostic(item) {
   return warning(item.code, item.path, `SKILL.md under .agents/skills/ that the kit registry does not list, so it is not kit content and the router does not load it. If a boundary/* finding names it or its folder, follow that; otherwise move the skill to ${projectSkillsHint} with a row in ${projectIndexPath}.`);
 }
 
-// The messages of the journal name `workflow-kit rollback --apply --yes`
-// without a target; pasted from another folder that would roll back that
-// folder, so doctor names the target.
-const bareRollback = '`workflow-kit rollback --apply --yes`';
 function journalDiagnostics(problem, targetPath) {
-  if (problem?.kind === 'unusable') return [error('managed/apply-journal-unusable', applyJournalRelativePath, `${unusableJournalMessage(problem.reason)}. init and update stop until then.`)];
+  if (problem?.kind === 'unusable') return [error('managed/apply-journal-unusable', applyJournalRelativePath, `${unusableJournalMessage(problem.reason, targetPath)}. init and update stop until then.`)];
   if (problem?.kind === 'incomplete') {
     // An interrupted rollback has its own wording.
-    const message = (problem.message ?? incompleteApplyMessage(problem.appliedAt)).replaceAll(bareRollback, code(kitCommand(targetPath, 'rollback', '--apply', '--yes')));
+    const message = problem.message ?? incompleteApplyMessage(problem.appliedAt, targetPath);
     return [error('managed/apply-incomplete', applyJournalRelativePath, `${message}, then run init or update again.`)];
   }
   return [];
@@ -134,6 +123,7 @@ function journalDiagnostics(problem, targetPath) {
 async function lockDiagnostics({ targetPath }) {
   const lock = await describeTargetLock(targetPath);
   if (!lock) return [];
+  if (lock.folder) return [error('managed/apply-lock-held', lock.relativePath, lock.message)];
   return [lock.stale ? warning('managed/apply-lock-stale', lock.relativePath, lock.message) : error('managed/apply-lock-held', lock.relativePath, lock.message)];
 }
 
@@ -150,7 +140,8 @@ function pendingMessage(manifest, item, targetPath) {
     split: 'keeps your own lines next to a new block'
   };
   const options = decisions.map((decision) => `${code(kitCommand(targetPath, 'update', '--edited', `${item.relativePath}=${decision}`))} (${meaning[decision] ?? decision})`);
-  const decide = `Decide with ${options.length > 1 ? `${options.slice(0, -1).join(', ')} or ${options.at(-1)}` : options[0]}, then add --apply --yes.`;
+  const linkNote = item.symlink ? ` It is reached through the symbolic link ${item.symlink}, and the kit does not write through links, so only keep applies; replace the link with a regular file to get the other decisions.` : '';
+  const decide = `Decide with ${options.length > 1 ? `${options.slice(0, -1).join(', ')} or ${options.at(-1)}` : options[0]}, then add --apply --yes.${linkNote}`;
   const skillHome = `${manifest.project_root}skills/<name>/`;
   const moveByHand = (problem, step) => `${problem}, so the migration does not move it: ${step}move the folder by hand to ${skillHome} and add its row to ${projectIndexPath}.`;
   switch (item.reason) {
@@ -183,7 +174,7 @@ async function pendingDiagnostics({ targetPath, manifest, updatePlan }) {
   const pending = new Map();
   const add = (item) => pending.set(`${item.relativePath}\0${item.reason}`, pending.get(`${item.relativePath}\0${item.reason}`) ?? item);
   for (const item of plan.operations) {
-    if (item.operation === 'skip_modified' && pendingReasons.has(item.reason)) add({ relativePath: item.relativePath, reason: item.reason, decisions: item.decisions });
+    if (item.operation === 'skip_modified' && pendingReasons.has(item.reason)) add({ relativePath: item.relativePath, reason: item.reason, decisions: item.decisions, symlink: item.symlink });
   }
   for (const item of migration?.pending ?? []) add(item);
   const diagnostics = [...pending.values()].map((item) => warning(`boundary/pending-${item.reason}`, item.relativePath, pendingMessage(manifest, item, targetPath)));
@@ -217,17 +208,27 @@ const listPaths = (paths) => (paths.length <= listedPathsLimit
 // generator marker, is such a copy; a project agent with a kit slug, or an
 // edited plugin agent kept by an update, is not (R11).
 const agentFolders = ['.claude/agents/', '.github/agents/'];
-async function modeMixDiagnostics({ targetPath, manifest, state, pluginMode, files, shipped }) {
+async function modeMixDiagnostics({ targetPath, manifest, state, pluginMode, files, shipped, overlay }) {
   if (!state) return [];
   if (!pluginMode) {
     return (await inspectPluginSettings({ targetPath, runtimes: pluginRuntimes, tolerant: true })).filter((item) => item.enabled)
       .map((item) => error('mode/repo-and-plugin', item.relativePath, `This install records ${state.mode === 'export' ? 'an export (a copy of the kit files in this folder)' : 'repo mode (the kit files are in the repository)'}, but this file enables the plugin ${pluginId}, so the kit would load twice. ${repoAndPluginWayOut(state, item.relativePath, targetPath)}`));
   }
   const planned = new Set(files.map((file) => file.relativePath));
+  // Evidence that a file is a kit copy and not the project's own: the install
+  // recorded it, an installed runtime (or the overlay) ships that path, or its
+  // content is the kit's file. An own file at a path only a runtime that is not
+  // installed would ship (.codex/README.md without codex) is none of those. A
+  // path of another runtime with the kit's exact content stays reported.
+  const installedPaths = new Set((await selectedTemplateFiles({ runtimes: state.runtimes, overlay })).map((file) => file.relativePath));
   const found = [];
   for (const relativePath of shipped.keys()) {
     if (planned.has(relativePath) || !['kit', 'derived'].includes(classifyPath(manifest, relativePath)?.class)) continue;
     if (!await pathExists(targetPath, relativePath)) continue;
+    if (!Object.hasOwn(state.files, relativePath) && !installedPaths.has(relativePath)) {
+      const content = await readOptional(resolveInsideTarget(targetPath, relativePath));
+      if (content === null || content !== await fs.readFile(shipped.get(relativePath), 'utf8')) continue;
+    }
     if (agentFolders.some((folder) => relativePath.startsWith(folder)) && !(await readOptional(resolveInsideTarget(targetPath, relativePath)))?.includes(generatedMarker)) continue;
     found.push(relativePath);
   }
@@ -517,11 +518,11 @@ export async function runDoctor(options = {}) {
   };
   const checks = await Promise.all([
     pluginMode
-      ? () => validateAdapterContracts({ root: targetPath, runtimes })
-      : async () => (await validateWorkflowContract({ root: targetPath, runtimes })).diagnostics.map(targetRepoContractDiagnostic),
+      ? () => validateAdapterContracts({ root: targetPath, runtimes, adviceTarget: targetPath })
+      : async () => (await validateWorkflowContract({ root: targetPath, runtimes, adviceTarget: targetPath })).diagnostics.map(targetRepoContractDiagnostic),
     () => modelProfileDiagnostics({ targetPath, present, catalog, modelProfiles, updatePlan, recordedRuntimes: storedState?.runtimes ?? [] }),
     () => workspaceDiagnostics({ targetPath }),
-    () => projectContextDiagnostics({ targetPath }),
+    () => projectContextDiagnostics({ targetPath, pluginMode }),
     // The Copilot quality-gate wrapper of a plugin install comes from the kit
     // quality gate this CLI ships, as the plan writes it.
     async () => projectInstructionDiagnostics({ targetPath, runtimes, kitQualityGate: pluginMode ? await packageKitQualityGate() : null }),
@@ -534,7 +535,7 @@ export async function runDoctor(options = {}) {
     () => shadowDiagnostics({ targetPath, manifest, shipped, pluginMode }),
     () => unownedPathDiagnostics({ targetPath, manifest, state: storedState, shipped }),
     () => symlinkDiagnostics(targetPath, files),
-    () => modeMixDiagnostics({ targetPath, manifest, state: storedState, pluginMode, files, shipped }),
+    () => modeMixDiagnostics({ targetPath, manifest, state: storedState, pluginMode, files, shipped, overlay }),
     () => untrackedAdapterDiagnostics({ targetPath, manifest, state: storedState, pluginMode }),
     ...(pluginMode ? [() => declarationDiagnostics({ targetPath, runtimes, recordedRuntimes: storedState?.runtimes ?? [] })] : []),
     // Never in repo mode: the only command doctor runs, and only to read.
@@ -661,7 +662,7 @@ async function modelProfileDiagnostics({ targetPath, present, catalog, modelProf
 export function formatDoctorResult(result) {
   const lines = [
     `Target: ${result.targetPath}`,
-    `Toolkit version: ${packageJson.version}`,
+    `workflow-kit version: ${packageJson.version}`,
     `Runtimes: ${result.runtimes.join(',')}`,
     `Overlay: ${result.overlay}`,
     `Model profiles: ${Object.entries(result.modelProfiles ?? {}).map(([runtime, profile]) => `${runtime}=${profile}`).join(',') || 'none'}`,

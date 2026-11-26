@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Marketplace of the fhh workflow kit plugin.",
-    "version": "0.23.4-docs-sync"
+    "version": "0.23.5-cli-fixes"
   },
   "plugins": [
     {

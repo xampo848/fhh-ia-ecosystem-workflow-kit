@@ -57,7 +57,7 @@ function assertStopped(result, signal, label) {
   if (signal === 'SIGKILL') assert.equal(result.signal, 'SIGKILL', `${label}: ${result.stderr}`);
   else {
     assert.equal(result.code, { SIGINT: 130, SIGTERM: 143 }[signal], `${label}: ${result.stdout}\n${result.stderr}`);
-    assert.match(result.stderr, /workflow-kit rollback --apply --yes/, label);
+    assert.match(result.stderr, /workflow-kit rollback --target \S+ --apply --yes/, label);
   }
 }
 
@@ -331,7 +331,7 @@ test('upgrade as a dry run without bun prints the plan and a note instead of sto
     run.on('close', (code) => resolve({ code, ...output }));
   });
   assert.equal(result.code, 0, result.stderr);
-  assert.match(result.stdout, /^Toolkit upgrade dry-run plan$/m);
+  assert.match(result.stdout, /^workflow-kit upgrade dry-run plan$/m);
   assert.match(result.stdout, /^Note: bun is required in PATH for workflow-kit upgrade\. Install it before running this command with --apply --yes\.$/m);
 });
 
@@ -520,7 +520,7 @@ test('upgrade names workflow-kit and the next step as a dry run first', async ()
   assert.equal(result.code, 0, result.stderr);
   assert.match(result.stdout, /^workflow-kit upgraded from github:/m);
   assert.match(result.stdout, /^Next step: in each repository, run `workflow-kit update --target <repo>` \(dry run\), then the same command with --apply --yes\.$/m);
-  assert.doesNotMatch(result.stdout, /^Toolkit upgrade completed|^Next step: re-run/m);
+  assert.doesNotMatch(result.stdout, /^workflow-kit upgrade completed|^Next step: re-run/m);
 });
 
 test('the plugin install steps after init --mode plugin run in the target as printed', async () => {
@@ -578,7 +578,7 @@ test('a rollback stopped by SIGINT, SIGTERM or SIGKILL is recorded: update stops
     for (const args of [['update', '--target', target], ['update', '--target', target, '--apply', '--yes'], ['init', '--target', target, '--apply', '--yes']]) {
       const blocked = await cli(args);
       assert.equal(blocked.code, 2, `${signal}: ${args.join(' ')}`);
-      assert.match(blocked.stderr, /A workflow-kit rollback of the apply of .+ started \(.+\) and did not finish, so the repository is partly rolled back\. Run `workflow-kit rollback --apply --yes` again to finish it/, `${signal}: ${args.join(' ')}`);
+      assert.match(blocked.stderr, /A workflow-kit rollback of the apply of .+ started \(.+\) and did not finish, so the repository is partly rolled back\. Run `workflow-kit rollback --target \S+ --apply --yes` again to finish it/, `${signal}: ${args.join(' ')}`);
     }
     assert.deepEqual(await hashTree(target), partly, `${signal}: nothing written while it is pending`);
     const doctor = await runDoctor({ targetPath: target });

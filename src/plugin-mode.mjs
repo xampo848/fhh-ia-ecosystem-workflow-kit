@@ -43,10 +43,28 @@ export const claudePluginUpdateCommand = `claude plugin update ${pluginId}`;
 export const claudePluginEnableCommand = `claude plugin enable ${pluginId}`;
 export const cliUpgradeCommand = 'workflow-kit upgrade --apply --yes';
 
-// A command a stop names, ready for a shell: the words as given, then
-// `--target <path>` (quoted when needed), so it runs from any folder.
+// The one way a message names a workflow-kit command: with the absolute
+// target, quoted for a shell, so it runs as printed from any folder (and never
+// acts on the folder it is pasted in).
 export const shellWord = (word) => (/^[\w@%+=:,./-]+$/.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`);
 export const withTarget = (command, targetPath) => (targetPath === undefined ? command : `${command} --target ${shellWord(targetPath)}`);
+// `workflow-kit <subcommand> --target <path> <args>`, every word quoted for a
+// shell; `--target` is left out only when there is no target. A command with a
+// placeholder (`<list>`) is written with withTarget instead, which keeps it
+// unquoted.
+export function kitCommand(targetPath, subcommand, ...args) {
+  const words = ['workflow-kit', subcommand, ...(targetPath == null ? [] : ['--target', targetPath]), ...args];
+  return words.map(shellWord).join(' ');
+}
+// A command in a message, between backticks; one that holds a backtick (a
+// target path can) goes between double backticks, so the delimiter stays
+// unambiguous.
+// `workflow-kit update` as advice: runnable with the target when the text is
+// printed for one, the bare name when it is generic (kit validation).
+export const updateAdvice = (targetPath) => (targetPath == null ? 'workflow-kit update' : code(kitCommand(targetPath, 'update')));
+export const code = (command) => (command.includes('`') ? `\`\` ${command} \`\`` : `\`${command}\``);
+// The way out of an unfinished run: roll it back, on this target.
+export const rollbackCommand = (targetPath) => code(kitCommand(targetPath, 'rollback', '--apply', '--yes'));
 
 // -1, 0 or 1 by the numeric part of two versions (`0.23.0-plugin-mode` reads
 // as 0.23.0); null when one has no such part.
@@ -67,9 +85,12 @@ export function pluginInstallCommand(runtime) {
 
 // After an apply in plugin mode: the repository only declares the plugin;
 // each person installs it once per clone.
-export function formatPluginInstallSteps(runtimes) {
+// With `targetPath`, a project-scoped step runs inside that repository (the
+// path is shell-quoted), so it works from any folder as printed.
+export function formatPluginInstallSteps(runtimes, targetPath = undefined) {
+  const stepIn = (command) => (targetPath !== undefined && command.includes('--scope project') ? `cd ${shellWord(targetPath)} && ${command}` : command);
   const lines = runtimes.filter((runtime) => pluginRuntimes.includes(runtime))
-    .map((runtime) => `- ${runtimeLabels[runtime]}: ${pluginInstallCommand(runtime)}`);
+    .map((runtime) => `- ${runtimeLabels[runtime]}: ${stepIn(pluginInstallCommand(runtime))}`);
   return `Install the plugin ${pluginName}:\n${lines.join('\n')}\nEach person runs it once per clone of this repository; the repository only declares the plugin.\nThe marketplace serves the plugin only after the kit's \`${pluginBranch}\` branch is published; until then these commands fail.\n`;
 }
 

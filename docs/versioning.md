@@ -67,7 +67,8 @@ accepted only when it is the tip of a branch or tag, so use the full hash.
 
 | Version | Commit on `main` |
 | --- | --- |
-| `0.23.4-docs-sync` | the squash merge of this release; its hash is added after the merge |
+| `0.23.5-cli-fixes` | the squash merge of this release; its hash is added after the merge |
+| `0.23.4-docs-sync` | `718aa4eb181b63b9049c064215e1553865f7a472` |
 | `0.23.3-strict-cli` | `96ec070136314053080535e3c40ce73c874268d7` |
 | `0.23.2-apply-recovery` | `0699ed2ec7e45ad0937a2f315b31aabc2938951d` |
 | `0.23.1-script-guards` | `f0bfc61123e866d9b258212f3224f4a8a6bff229` |
@@ -212,7 +213,7 @@ It stops, without committing, when:
   identity it commits with;
 - a file the build reads has uncommitted changes (staged, unstaged or
   untracked); the message names them;
-- `origin/main` is not present locally (run `git fetch origin` first), or it
+- `origin/main` is not present locally (run `git fetch origin +refs/heads/main:refs/remotes/origin/main` first), or it
   does not contain `HEAD`: only a commit already on `main` is published;
 - the legal check (`node scripts/validate-legal-readiness.mjs`) fails on the
   source commit; the message quotes its failures (after a version raise, step 2
@@ -234,7 +235,9 @@ It stops, without committing, when:
 
 A clone without a local branch `plugin` publishes on top of `origin/plugin`,
 so the commit stays a fast-forward of the remote. That remote-tracking branch
-must be present locally: whoever publishes fetches it first. The commit
+must be present locally: whoever publishes fetches it first with
+`git fetch origin +refs/heads/plugin:refs/remotes/origin/plugin` (a plain
+`git fetch origin` misses it in a single-branch clone). The commit
 message names the version and the source commit
 (`Publish plugin fhh <version> from <commit>`). Then push the branch with
 explicit approval: `git push origin plugin`.
