@@ -347,7 +347,7 @@ test('an index whose tables the migration cannot extend stops the whole migratio
 
       await assert.rejects(buildUpdatePlan({ targetPath: target }), (error) => {
         assert.equal(error.code, 'PROJECT_INDEX_UNEXPECTED', `${repo.name}, ${item.name}`);
-        assert.match(error.message, /\.agents\/project\/index\.md .*\.agents\/kit-boundary\.md.*run workflow-kit update again.*Nothing was written\.$/s);
+        assert.match(error.message, /^\.agents\/project\/index\.md .* and run `workflow-kit update --target .*` again\. Nothing was written\.$/s);
         return true;
       }, `${repo.name}, ${item.name}`);
     }

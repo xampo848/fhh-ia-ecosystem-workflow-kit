@@ -11,6 +11,7 @@ import path from 'node:path';
 import { checksumOf } from './fs-safety.mjs';
 import { classifyPath, supersededSeedHashes } from './kit-manifest.mjs';
 import { selectedTemplateFiles } from './planner.mjs';
+import { code, kitCommand } from './plugin-mode.mjs';
 import { supportedRuntimes } from './runtime-matrix.mjs';
 
 export const layoutMigrationId = '0.22.0-kit-overlay-layout';
@@ -50,8 +51,15 @@ export const pendingEditReasons = new Set(['edited_kit_file', 'unmarked_adapter'
 // their own rows, and a shadow needs its row there too: when the index cannot
 // take them, the whole migration stops before anything is written.
 export const projectIndexUnexpectedCode = 'PROJECT_INDEX_UNEXPECTED';
-export function projectIndexUnexpectedError(what) {
-  const error = new Error(`${projectIndexPath} has a ## Skills or ## Shadows table the layout migration cannot extend (its first visible table under the heading lacks the header of the project catalog format in .agents/kit-boundary.md, the heading appears twice or itself sits inside a code block or an HTML comment, or the file mixes line endings), so it cannot add ${what} to it. Fix that and run workflow-kit update again. Nothing was written.`);
+// `problem` is the one cause that applies (projectIndexProblem); without it the
+// message lists every cause there is.
+export function projectIndexUnexpectedError(what, problem = null, targetPath = null) {
+  const again = `run ${targetPath == null ? 'workflow-kit update' : code(kitCommand(targetPath, 'update'))} again`;
+  const detail = problem === null
+    ? `has a ## Skills or ## Shadows table the layout migration cannot extend (its first visible table under the heading is not the project catalog format in .agents/kit-boundary.md, the heading appears twice or itself sits inside a code block or an HTML comment, or the file mixes line endings)`
+    : problem.text;
+  const fix = problem === null ? 'Fix that' : problem.fix;
+  const error = new Error(`${projectIndexPath} ${detail}, so it cannot add ${what} to it. ${fix} and ${again}. Nothing was written.`);
   return Object.assign(error, { code: projectIndexUnexpectedCode });
 }
 const noBackupUpgrade = { overwrite_no_backup: 'overwrite_with_backup', merge_no_backup: 'merge_with_backup' };
@@ -382,7 +390,14 @@ function indexSection(lines, table) {
   const fenced = hiddenLines(lines);
   const headings = lines.map((line, index) => (headingOf(table).test(line) ? index : -1)).filter((index) => index !== -1);
   if (headings.length === 0) return null;
-  if (headings.length > 1 || fenced[headings[0]]) return { unexpected: true };
+  const name = `## ${table.heading}`;
+  if (headings.length > 1) {
+    return { unexpected: true, problem: { text: `line ${headings[1] + 1} repeats the ${name} heading of line ${headings[0] + 1}`, fix: `Keep one ${name} heading` } };
+  }
+  if (fenced[headings[0]]) {
+    const [where, article] = fencedLines(lines)[headings[0]] ? ['code block', 'a'] : ['HTML comment', 'an'];
+    return { unexpected: true, problem: { text: `has its only ${name} heading (line ${headings[0] + 1}) inside ${article} ${where}`, fix: `Move the heading out of the ${where}` } };
+  }
   const heading = headings[0];
   let end = lines.findIndex((line, index) => index > heading && !fenced[index] && /^#{1,2}\s/.test(line));
   if (end === -1) end = lines.length;
@@ -392,8 +407,13 @@ function indexSection(lines, table) {
   if (tableLines.length === 0) return { heading, lastRow: -1 };
   const [first] = tableLines;
   const header = tableCells(lines[first]);
-  const expected = header.length === table.columns.length && header.every((text, index) => text === table.columns[index]) && isSeparatorRow(tableCells(lines[first + 1] ?? ''));
-  if (!expected) return { unexpected: true };
+  const columns = `| ${table.columns.join(' | ')} |`;
+  if (header.length !== table.columns.length || !header.every((text, index) => text === table.columns[index])) {
+    return { unexpected: true, problem: { text: `has a header on line ${first + 1}, the first table under ${name}, that is not ${columns}, the project catalog format in .agents/kit-boundary.md`, fix: 'Fix that header' } };
+  }
+  if (!isSeparatorRow(tableCells(lines[first + 1] ?? ''))) {
+    return { unexpected: true, problem: { text: `has no separator row (| --- | --- |...) after the ${name} header on line ${first + 1}`, fix: 'Add the separator row' } };
+  }
   let lastRow = first + 1;
   while (lastRow + 1 < end && !fenced[lastRow + 1] && tableCells(lines[lastRow + 1])) lastRow += 1;
   return { heading, first, lastRow };
@@ -411,25 +431,39 @@ export function projectIndexTableRows(text, heading) {
   return lines.slice(section.first + 2, section.lastRow + 1).map(tableCells);
 }
 
-// The line ending of an existing index, or null when one of its tables is
-// not the one the project catalog format describes (wrong header, inside a
-// code fence or an HTML comment, or named twice) or when it mixes line
-// endings (a row would land in a second section): then the migration does
-// not write it.
-function projectIndexLineEnding(text) {
+// The one cause (text and fix) that keeps the migration from writing an
+// existing index, or null: one of its tables is not the one the project
+// catalog format describes (wrong header or separator, inside a code fence or
+// an HTML comment, or named twice) or the file mixes line endings (a row would
+// land in a second section).
+function projectIndexProblem(text) {
   const eol = text.includes('\r\n') ? '\r\n' : '\n';
-  if (eol === '\r\n' && /(^|[^\r])\n/.test(text)) return null;
+  const mixed = eol === '\r\n' ? /(^|[^\r])\n/.exec(text) : null;
+  if (mixed) {
+    const line = text.slice(0, mixed.index + mixed[0].length).split('\n').length - 1;
+    return { text: `mixes line endings (line ${line} ends without a carriage return in a CRLF file)`, fix: 'Make every line end the same way' };
+  }
   const lines = text.split(eol);
-  return [skillsTable, shadowsTable].some((table) => indexSection(lines, table)?.unexpected) ? null : eol;
+  for (const table of [skillsTable, shadowsTable]) {
+    const section = indexSection(lines, table);
+    if (section?.unexpected) return section.problem;
+  }
+  return null;
 }
 
 // Appends rows to a table of the project index, adding the section or the
 // table header when missing. Existing rows are never changed.
-function appendTableRows(content, eol, table, rows) {
+function appendTableRows(content, eol, table, rows, fail) {
   if (rows.length === 0) return content;
   const lines = content.split(eol);
   const section = indexSection(lines, table);
   if (section === null) {
+    // A section added after an unclosed code block or comment would be hidden.
+    const hidden = hiddenLines([...lines, 'x']).at(-1);
+    if (hidden && content.length > 0) {
+      const [where, article] = fencedLines([...lines, 'x']).at(-1) ? ['code block', 'a'] : ['HTML comment', 'an'];
+      fail({ text: `has no ## ${table.heading} section and ends inside ${article} ${where} that is never closed (the last line is ${lines.length - (content.endsWith(eol) ? 1 : 0)}), where a new section would be hidden`, fix: `Close the ${where}` });
+    }
     const separator = content.length === 0 || content.endsWith(eol) ? '' : eol;
     return `${content}${separator}${eol}## ${table.heading}${eol}${eol}${[...tableHeader(table), ...rows].join(eol)}${eol}`;
   }
@@ -512,8 +546,9 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
   // the project catalog format describes.
   const existingIndex = await readBufferOptional(path.join(targetPath, projectIndexPath));
   const indexText = existingIndex?.toString('utf8') ?? '';
-  const indexLineEnding = existingIndex === null ? '\n' : projectIndexLineEnding(indexText);
-  const indexWritable = indexLineEnding !== null;
+  const indexProblem = existingIndex === null ? null : projectIndexProblem(indexText);
+  const indexLineEnding = indexProblem !== null ? null : indexText.includes('\r\n') ? '\r\n' : '\n';
+  const indexWritable = indexProblem === null;
 
   // 1. Own skills.
   const kitNames = await kitSkillNames(shippedFiles);
@@ -566,7 +601,7 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
       ...projectIndexRow({ source, name: source.name ?? '', rowPath, fallbackTrigger: '' })
     });
   }
-  if (!indexWritable && indexRows.length > 0) throw projectIndexUnexpectedError(`the ${indexRows.length} own catalog row(s) it moves out of the kit catalogs`);
+  if (!indexWritable && indexRows.length > 0) throw projectIndexUnexpectedError(`the ${indexRows.length} own catalog row(s) it moves out of the kit catalogs`, indexProblem, targetPath);
   notes.push(...indexRows.map((item) => item.note).filter(Boolean));
   // A row whose path a row of the index table already lists is not added
   // again; prose that names the path does not list it.
@@ -592,7 +627,7 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
     if (await pathExists(path.join(targetPath, shadowDirectory))) return null;
     // shadow is offered only during this migration: it cannot wait for a
     // later update.
-    if (!indexWritable) throw projectIndexUnexpectedError(`the row of a shadow for ${item.relativePath}, which only this migration can create`);
+    if (!indexWritable) throw projectIndexUnexpectedError(`the row of a shadow for ${item.relativePath}, which only this migration can create`, indexProblem, targetPath);
     // The shadow is the edited file byte for byte, written as text.
     const edited = await fs.readFile(item.targetFile);
     if (!isUtf8(edited)) return null;
@@ -639,7 +674,8 @@ export async function prepareLayoutMigration({ targetPath, manifest, previousFil
     const shadowRows = newRows(shadows.map((shadow) => ({ listedPath: `${shadow.directory}/`, row: shadowRow(shadow) })), listedShadowPaths);
     indexRowsAdded = skillRows.length + shadowRows.length;
     if (indexRowsAdded > 0) {
-      const content = appendTableRows(appendTableRows(existingIndex === null ? newProjectIndexIntro : indexText, indexLineEnding, skillsTable, skillRows), indexLineEnding, shadowsTable, shadowRows);
+      const failFor = (rows) => (problem) => { throw projectIndexUnexpectedError(`${rows.length} row(s) for the project index`, problem, targetPath); };
+      const content = appendTableRows(appendTableRows(existingIndex === null ? newProjectIndexIntro : indexText, indexLineEnding, skillsTable, skillRows, failFor(skillRows)), indexLineEnding, shadowsTable, shadowRows, failFor(shadowRows));
       operations.push(migrationOperation(targetPath, projectIndexPath, existingIndex === null ? { operation: 'create', content } : { operation: 'merge_with_backup', content }));
     }
   }
