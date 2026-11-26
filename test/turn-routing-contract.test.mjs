@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { makeTempRepo } from './helpers.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const overlay = path.join(root, 'templates/repo-overlay-fhh-ia-ecosystem-full');
@@ -192,8 +193,7 @@ test('workflow router offers solution-sketch as a hard trigger without a fifth p
 
 test('adapter validation accepts the shared bootstrap and only warns on the previous wording', async () => {
   const { validateAdapterContracts } = await import('../src/workflow-contract/adapters.mjs');
-  const os = await import('node:os');
-  const target = await fs.mkdtemp(path.join(os.tmpdir(), 'adapter-contract-'));
+  const target = await makeTempRepo('adapter-contract-');
   await fs.writeFile(path.join(target, 'CLAUDE.md'), await read('CLAUDE.md'), 'utf8');
   assert.deepEqual(await validateAdapterContracts({ root: target, runtimes: ['claude'] }), []);
 

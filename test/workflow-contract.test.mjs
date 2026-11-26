@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -99,7 +98,7 @@ test('package canonical files match the installable overlay', async () => {
 });
 
 async function withOverlayDriftFixture(run) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-overlay-drift-'));
+  const root = await makeTempRepo('workflow-kit-overlay-drift-');
   try {
     await fs.cp(path.join(repoRoot, '.agents'), path.join(root, '.agents'), { recursive: true });
     await fs.cp(

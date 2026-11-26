@@ -24,6 +24,12 @@ export async function makeTempRepo(prefix = 'workflow-kit-test-') {
   return directory;
 }
 
+// Register an extra path (for example a sibling symlink) to remove at exit.
+export function trackTempPath(target) {
+  createdTempDirectories.add(target);
+  return target;
+}
+
 export function createMemoryIo() {
   const output = { stdout: '', stderr: '' };
   return {

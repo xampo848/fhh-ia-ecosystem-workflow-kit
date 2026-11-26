@@ -12,7 +12,7 @@ import { validateTemplatePacks } from '../scripts/validate-template-packs.mjs';
 import { decideContextualTier, estimateModelCost, loadCopilotModelRouting, resolveCopilotModel, runCopilotRoutingCli } from '../scripts/copilot-model-routing.mjs';
 import { parseCcreqLine, verifyCopilotModelEvidence, runEvidenceCli } from '../scripts/verify-copilot-model-evidence.mjs';
 import manifest from '../templates/template-manifest.json' with { type: 'json' };
-import { makeTempRepo } from './helpers.mjs';
+import { makeTempRepo, trackTempPath } from './helpers.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -1078,7 +1078,7 @@ test('Copilot portable CLIs run in a consumer root that has only the installed m
   assert.equal(JSON.parse(overBudgetRun.stdout).code, 'NO_BUDGET_CANDIDATE');
   await fs.writeFile(structuredPath, JSON.stringify(structured));
 
-  const link = `${consumer}-link`;
+  const link = trackTempPath(`${consumer}-link`);
   await fs.symlink(consumer, link);
   const viaSymlink = await execFileAsync(process.execPath, [path.join(link, '.agents/model-routing/copilot-model-routing.mjs'), '--agent', 'turbo-backend', '--available', 'Claude Sonnet 5.5']);
   assert.equal(JSON.parse(viaSymlink.stdout).selectedModel, 'Claude Sonnet 5.5 (copilot)');
