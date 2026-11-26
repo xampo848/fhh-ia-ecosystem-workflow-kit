@@ -44,9 +44,8 @@ workflow-kit --help
 ```
 
 `main` installs the latest merged version. To pin one instead, append
-`#<ref>`: a tag (the latest is `#v0.17.3-contract-gaps`) or, for later versions,
-which have no tag yet, the full commit hash listed in
-[Versioning](docs/versioning.md).
+`#<ref>`: a tag (the latest is `#v0.23.6-ac-guards`) or, for a version without a tag,
+the full commit hash listed in [Versioning](docs/versioning.md).
 SSH install and access details:
 [docs/github-install.md](docs/github-install.md).
 
@@ -134,13 +133,13 @@ other commands. Main flags:
 | `--apply --yes` | Write. Both are required; combining `--apply` with `--dry-run` is an error. |
 | `--target <path>` / `--output <path>` | Repository to install into / export folder. `--target` must be an existing folder (`init` does not create it); `export` creates its output folder. |
 | `--runtime <list>` | Comma-separated runtimes, see [Supported runtimes](#supported-runtimes). |
-| `--mode repo\|plugin` | `init`/`update` only: install mode. `repo` (the default for `init`) commits the kit in the project; `plugin` (pilot, runtimes `claude` and `copilot`) runs the kit as the plugin `fhh`. `update` keeps the recorded mode unless you pass it. The plugin cannot be installed yet: its public `plugin` branch is not published. See [Plugin mode](docs/quickstart.md#11-plugin-mode-pilot). |
+| `--mode repo\|plugin` | `init`/`update` only: install mode. `repo` (the default for `init`) commits the kit in the project; `plugin` (pilot, runtimes `claude` and `copilot`) runs the kit as the plugin `fhh`. `update` keeps the recorded mode unless you pass it. The public `plugin` branch is published and serves the version in its `plugin.json`; no real `claude plugin install` against it has been verified yet. See [Plugin mode](docs/quickstart.md#11-plugin-mode-pilot). |
 | `--profile <runtime>=<calidad\|equilibrado\|costo>` | Model profile per runtime, for example `claude=costo,codex=calidad`; a runtime the install does not record is an error. |
 | `--stack none\|rails-react` | Install the Rails + React stack rules as `.agents/project/stack.md`. |
 | `--diff` | Show the line diff of every file that would change. |
 | `--adopt-existing` | `update` only: record an install made before state tracking. |
 | `--backup-mode required\|none` | `required` (default) backs up every file before overwrite or merge; `none` skips backups, and `rollback` cannot restore those files. |
-| `--ref <git-ref>` / `--package-manager bun` | `upgrade` only: the branch, tag or full commit hash to install (use the full hash for a commit) (default `main`; tags exist only up to `v0.17.3-contract-gaps`, see [Versioning](docs/versioning.md)) and the package manager to use; an unsupported manager is rejected in the dry run too, and nothing runs. |
+| `--ref <git-ref>` / `--package-manager bun` | `upgrade` only: the branch, tag or full commit hash to install (use the full hash for a commit) (default `main`; tags exist for `0.18.0` to `0.23.6`, the latest is `v0.23.6-ac-guards`, see [Versioning](docs/versioning.md)) and the package manager to use; an unsupported manager is rejected in the dry run too, and nothing runs. |
 
 ## Updating
 

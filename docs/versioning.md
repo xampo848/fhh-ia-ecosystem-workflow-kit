@@ -29,15 +29,31 @@ older binary.
 
 A tag is the version with a `v` prefix and points at the commit on `main` that
 released it. **Tags are created only when the maintainer approves them**
-([RELEASE.md](../RELEASE.md)), and the remote has none after `0.17.3`. A pin
-such as `--ref v0.23.0-plugin-mode` fails today because that tag does not
-exist; use the commit in the second table instead.
+([RELEASE.md](../RELEASE.md)). The remote has a tag for every version from
+`0.18.0` to `0.23.6`, so a pin such as `--ref v0.23.6-ac-guards` works. A
+version released later has no tag until the maintainer approves it; pin its
+full commit hash instead (see "Versions without a tag yet").
 
 ### Versions that have a tag
 
 | Tag | Notes |
 | --- | --- |
-| `v0.17.3-contract-gaps` | latest tag |
+| `v0.23.6-ac-guards` | latest tag; commit `393756cc0870410304372eeedb48d1d5bc905541` |
+| `v0.23.5-cli-fixes` | commit `4fe9ac788a0057b9b15f539abf135596ca9af865` |
+| `v0.23.4-docs-sync` | commit `718aa4eb181b63b9049c064215e1553865f7a472` |
+| `v0.23.3-strict-cli` | commit `96ec070136314053080535e3c40ce73c874268d7` |
+| `v0.23.2-apply-recovery` | commit `0699ed2ec7e45ad0937a2f315b31aabc2938951d` |
+| `v0.23.1-script-guards` | commit `f0bfc61123e866d9b258212f3224f4a8a6bff229` |
+| `v0.23.0-plugin-mode` | commit `9d3b917dfda54b7494d3d2a18dd1eb479e4bdb6d` |
+| `v0.22.0-manifest-updater` | commit `558e9fb96792ae962bac1e3886c83dc0f3923cb8` |
+| `v0.21.0-project-runbooks` | commit `45e37975a133e1cfc76b93a0e0047e4536ccf2dc` |
+| `v0.20.0-kit-overlay-contract` | commit `7a1f91c5fc65b7406b0161c284bf7c01b4f722ab` |
+| `v0.19.2-visual-lock` | commit `3e233f4ea641f5101d820ad02abc43a1f6bfd5be` |
+| `v0.19.1-tui-option-clarity` | commit `737bd36000dd71d008636481acbd3e75dfb22c46` |
+| `v0.19.0-test-design` | commit `9901069873bb910141139b7c4504ca6b4de2f78a` |
+| `v0.18.1-orchestrator-reads` | commit `f5ddeb070c846d0c599b2443dcbe4c1e0da45460` |
+| `v0.18.0-equilibrado-profile` | commit `ad1d9b882826f88347a6d03d31c17b754e56719e` |
+| `v0.17.3-contract-gaps` | |
 | `v0.17.2-catalog-rows` | |
 | `v0.17.1-stack-detection` | |
 | `v0.17.0-audit-hardening` | |
@@ -57,38 +73,25 @@ the next tagged version instead.
 
 ### Versions without a tag yet
 
-These versions are merged on `main`; each commit is the squash merge that
-released it. Pin one with its full hash, for example
-`workflow-kit upgrade --ref 558e9fb96792ae962bac1e3886c83dc0f3923cb8 --apply --yes`
+Every released version from `0.18.0` to `0.23.6` has a tag. Three earlier
+versions merged on `main` still have none: `0.17.4`, `0.17.5` and `0.17.6`.
+A version released before its tag exists is pinned by its full commit hash,
+for example `workflow-kit upgrade --ref <40-character-hash> --apply --yes`
 or `bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#<hash>`.
-`upgrade` checks the ref before it removes the installed version: a branch or tag by name, and a full
-40-character commit hash by fetching that commit. A short commit hash is
-accepted only when it is the tip of a branch or tag, so use the full hash.
+`upgrade` checks the ref before it removes the installed version: a branch or
+tag by name, and a full 40-character commit hash by fetching that commit. A
+short commit hash is accepted only when it is the tip of a branch or tag, so
+use the full hash. Each commit is the squash merge that released the version.
 
 | Version | Commit on `main` |
 | --- | --- |
-| `0.23.6-ac-guards` | the squash merge of this release; its hash is added after the merge |
-| `0.23.5-cli-fixes` | `4fe9ac788a0057b9b15f539abf135596ca9af865` |
-| `0.23.4-docs-sync` | `718aa4eb181b63b9049c064215e1553865f7a472` |
-| `0.23.3-strict-cli` | `96ec070136314053080535e3c40ce73c874268d7` |
-| `0.23.2-apply-recovery` | `0699ed2ec7e45ad0937a2f315b31aabc2938951d` |
-| `0.23.1-script-guards` | `f0bfc61123e866d9b258212f3224f4a8a6bff229` |
-| `0.23.0-plugin-mode` | `9d3b917dfda54b7494d3d2a18dd1eb479e4bdb6d` |
-| `0.22.0-manifest-updater` | `558e9fb96792ae962bac1e3886c83dc0f3923cb8` |
-| `0.21.0-project-runbooks` | `45e37975a133e1cfc76b93a0e0047e4536ccf2dc` |
-| `0.20.0-kit-overlay-contract` | `7a1f91c5fc65b7406b0161c284bf7c01b4f722ab` |
-| `0.19.2-visual-lock` | `3e233f4ea641f5101d820ad02abc43a1f6bfd5be` |
-| `0.19.1-tui-option-clarity` | `737bd36000dd71d008636481acbd3e75dfb22c46` |
-| `0.19.0-test-design` | `9901069873bb910141139b7c4504ca6b4de2f78a` |
-| `0.18.1-orchestrator-reads` | `f5ddeb070c846d0c599b2443dcbe4c1e0da45460` |
-| `0.18.0-equilibrado-profile` | `ad1d9b882826f88347a6d03d31c17b754e56719e` |
 | `0.17.6-bounded-output` | `e4a660db57a85b939483caa31604f9cc5df2ed56` |
 | `0.17.5-slice-checkpoint` | `1c766cd4b6a7693ad133ff5611146118b216717f` |
 | `0.17.4-usage-measurement` | `fd1d055c7c58991d29b20bc1b156c0b2c9dbc2ef` |
 
-When the maintainer creates tags for these versions, they take the names in the
-first column with a `v` prefix, and the release steps in
-[RELEASE.md](../RELEASE.md) update this page.
+When the maintainer creates a tag for one of these, or for a future version,
+it takes the name in the first column with a `v` prefix, and the release steps
+in [RELEASE.md](../RELEASE.md) move the row to the tag table.
 
 ## What requires a version bump
 
@@ -176,8 +179,11 @@ header, update the release it names, and review the fixture's diff before
 committing it.
 
 The marketplace committed in `main` points at the branch `plugin`. That branch
-does not exist on the remote until the first publish and its approved push, so
-the marketplace cannot install the plugin before then.
+is published on the remote and serves the version in its `plugin.json`
+(`0.23.6-ac-guards` at the time of writing). A new kit version reaches plugin
+users only after the maintainer publishes it again, as described below. No
+real `claude plugin install` against the published branch has been verified
+yet.
 
 To publish the plugin `fhh`, merge the release into `main`, fetch, check out a
 commit that `origin/main` contains and run

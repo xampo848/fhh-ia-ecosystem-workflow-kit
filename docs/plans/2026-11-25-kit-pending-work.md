@@ -1,6 +1,7 @@
 # Trabajo pendiente del kit (registro de traspaso)
 
-Fecha del registro: 2026-11-25. Base: `main` en `718aa4e` (`0.23.4-docs-sync`).
+Fecha del registro: 2026-11-25; actualizado el 2026-11-26. Base: `main` en
+`393756c` (`0.23.6-ac-guards`).
 
 Este documento permite continuar el trabajo desde otra sesión o equipo. Es una
 foto: antes de actuar, compruébalo con `git log`, los PR abiertos y el
@@ -25,82 +26,154 @@ PR abiertos, y dime qué sigue antes de editar nada.
 | Auditoría: recuperación de `apply` y `rollback` | #86 | 0.23.2-apply-recovery |
 | Auditoría: CLI estricto, `doctor`, `upgrade`, TUI en español | #87 | 0.23.3-strict-cli |
 | Auditoría: documentación fiel a tags y CLI, cierre de épica y PRD | #88 | 0.23.4-docs-sync |
+| Cierre: la suite ya no deja carpetas temporales | #90 | sin versión (solo tests) |
+| Cierre: hallazgos del CLI de la verificación independiente y follow-ups de los PRD F2 y F4 | #91 | 0.23.5-cli-fixes |
+| Cierre: guardas de tests y validadores que faltaban | #92 | 0.23.6-ac-guards |
 
-La auditoría completa del 2026-11-25 no encontró pérdida de datos sin copia de
-respaldo.
+Publicado el 2026-11-26, con aprobación del mantenedor:
+
+- Tags `v0.18.0-equilibrado-profile` a `v0.23.6-ac-guards` (15), uno por
+  versión, sobre el commit de la tabla de `docs/versioning.md`.
+- Rama `plugin`, con el plugin `fhh` en la versión `0.23.6-ac-guards`.
+
+Ninguna de las dos verificaciones independientes (2026-11-25 sobre 0.23.3 y
+2026-11-26 sobre 0.23.6) encontró pérdida de contenido sin copia de respaldo.
 
 ## 2. Trabajo en curso
 
-Ninguno al momento del registro: los cinco frentes de la auditoría están en
-`main` y no hay PR abiertos del lote.
+Ninguno. Al cierre hay dos PR abiertos de Dependabot (#93, una acción de CI;
+#94, `@inquirer/prompts`): tocan CI y dependencias, los decide el mantenedor.
 
-## 3. Decisiones pendientes del mantenedor
+## 3. Decisiones del mantenedor
 
-Ninguna se ejecuta sin su aprobación explícita.
+Resueltas:
 
-1. **Publicar la rama `plugin`.** No existe en el remoto, así que instalar el
-   plugin falla. Desde `main` limpio: `node scripts/build-plugin.mjs --publish`
-   y luego el push de la rama `plugin`.
-2. **Tags desde 0.18.0.** El remoto solo tiene tags hasta
-   `v0.17.3-contract-gaps`. `RELEASE.md` pide aprobación para cada tag.
-3. **Ramas remotas ya fusionadas** y worktrees locales: no se han borrado.
-4. **Datos privados en la historia.** Commits antiguos de `main` y un PR
-   antiguo conservan un nombre de proyecto privado, y varios squash commits
-   llevan un trailer `Co-authored-by` con un correo personal de dominio
-   corporativo (GitHub lo agrega cuando los commits de la rama tienen otro
-   autor). Corregir la historia exige reescribirla: decisión del mantenedor.
-   Para PR nuevos, fijar el cuerpo del squash (`gh pr merge --body`) evita el
-   trailer.
-5. **Documentos de traspaso sin publicar.** Existen solo en una rama local del
-   equipo original (`claude/t06-general-purpose-origin-9cb6bc`, tres archivos
-   en `docs/workflow/handoffs/`). Falta decidir si se publican.
+1. **Rama `plugin`:** publicada (ver sección 1). Cada versión nueva del kit
+   llega a quienes usan el plugin solo cuando se vuelve a publicar.
+2. **Tags desde 0.18.0:** creados y subidos. `RELEASE.md` sigue pidiendo
+   aprobación para cada tag nuevo. Las versiones 0.17.4 a 0.17.6 siguen sin
+   tag (no estaban en la decisión); `docs/versioning.md` da su commit.
+3. **Ramas ya fusionadas:** el remoto solo tiene `main`, `plugin` y las de
+   Dependabot; las ramas locales fusionadas se borraron.
+4. **Documentos de traspaso:** no se publican. Dos quedaron respaldados fuera
+   del repositorio y el tercero se dio por perdido. De ellos solo queda este
+   backlog sin comprometer: un tope de llamadas por tarea y un estado de
+   traspaso parcial para los delegados; y seis ideas de eficiencia de tokens
+   sin PRD. La regla de lecturas del orquestador ya salió en 0.18.1.
 
-## 4. Fallas menores conocidas
+Diferida:
 
-Ninguna bloquea. Cada arreglo necesita su test y los pasos de release si toca
-superficie distribuida (`docs/versioning.md`).
+5. **Datos privados en la historia.** Commits antiguos de `main` y un PR
+   antiguo conservan un nombre de proyecto privado, y la historia lleva
+   correos personales en autores, committers y trailers `Co-authored-by`.
+   Corregirlo exige reescribir `main`: cambia todos los hashes, invalida los
+   tags y la tabla de versiones, rompe clones y forks, y los PR viejos siguen
+   mostrando sus commits originales. El mantenedor decidió no hacerlo por
+   ahora. Hacia adelante quedó resuelto: la cuenta usa el correo privado de
+   GitHub (los squash de #91 y #92 lo confirman) y cada merge fija su cuerpo
+   con `gh pr merge --body`.
 
-Comprobadas en `96ec070` por búsqueda en el código:
+## 4. Fallas menores
 
-- Los mensajes de parada de `src/apply.mjs`, `src/planner.mjs` y
-  `src/rollback.mjs` imprimen `workflow-kit rollback --apply --yes` sin
-  `--target`.
-- El TUI imprime los pasos de instalación del plugin sin `cd <destino> &&`
-  (`formatPluginInstallSteps` no recibe el destino).
-- Mensajes del CLI de `upgrade` y encabezados de planes usan "toolkit" donde el
-  resto dice "workflow-kit".
-- `tui --help` y el mensaje de `tui` sin terminal nombran `rollback`, pero el
-  menú del TUI no tiene esa opción (la documentación ya se corrigió en
-  0.23.4; falta `src/`).
+### Cerradas
 
-Reportadas por las revisiones; reproducir antes de corregir:
+| Falla | Cierre |
+| --- | --- |
+| Mensajes de parada sin `--target` | #91: todo comando impreso lleva el destino absoluto |
+| Pasos del plugin del TUI sin `cd <destino> &&` | #91 |
+| "toolkit" en mensajes y encabezados | #91: dicen `workflow-kit` |
+| `tui --help` prometía `rollback` | #91: la ayuda lista lo que el menú ofrece. El mensaje de `tui` sin terminal era correcto |
+| Lock: pid sin validar; carpeta en la ruta del lock | #91: el contenido inválido no se imprime; la carpeta detiene con un mensaje y no se borra |
+| Lock con pid vivo y sin hora de inicio hace fallar `doctor` | No es falla: sin hora de inicio no se puede descartar otra ejecución. Queda como error, con un test que lo fija |
+| `git fetch origin` en un clon de una sola rama | #91: el mensaje imprime el refspec de la rama |
+| Instalar desde un checkout local copia archivos ignorados | No se reprodujo así. La falla real era que un `.DS_Store` en `templates/` detenía `init` y `export`; #91 salta `.DS_Store`, `Thumbs.db` y `desktop.ini` |
+| Perfiles de modelo para Copilot | No es falla: se aceptan y funcionan (`--profile copilot=<nombre>`). Faltaba en las guías; #91 |
+| Ctrl-C en el TUI sale con 0 | #91: sale con 130 |
+| La suite deja carpetas temporales | #90, con un test que lo vigila |
+| Follow-ups del PRD F2 (errores crudos `EISDIR`/`EACCES`, mensajes "Fix it by hand", índice con comentario sin cerrar, "lacks the header", export que pasaba a `repo`, guías sobre `registry.json` y `skip_unmanaged`) | #91 |
+| Follow-ups del PRD F4 (R8 texto de `delegate-skill-matrix.md`, R10 rutas del kit en `context.md`) | #91 |
+| Reglas de AC que se podían romper sin que fallara nada (16 mutaciones de la auditoría) | #92 |
 
-- Lock: el mensaje repite un pid sin validar; un directorio en la ruta del lock
-  se reporta como lock viejo; un lock con pid vivo y sin hora de inicio hace
-  fallar `doctor`.
-- La sugerencia `git fetch origin` no sirve en un clon de una sola rama.
-- Instalar desde un checkout local copia archivos de plantilla ignorados por
-  git.
-- Se aceptan perfiles de modelo para Copilot aunque los docs los describen solo
-  para Claude y Codex.
-- Ctrl-C dentro del TUI sale con código 0.
-- Las pruebas de template pack tardan unos 10 s más y la suite deja carpetas
-  temporales.
+### Abiertas
 
-Follow-ups anteriores, en la sección 10 de los PRD de
-`docs/prd/kit-project-overlay/` (F2: manifest-updater; F4: plugin-mode-pilot).
-Algunos pueden haber quedado resueltos en 0.23.x.
+Ninguna bloquea ni pierde contenido. Encontradas por las verificaciones y
+revisiones del cierre; reproducir antes de corregir.
+
+CLI y `doctor`:
+
+- `rollback` guarda un solo nivel: al deshacer un apply borra su registro y no
+  restaura el del apply anterior, así que un segundo `rollback` seguido entra
+  al modo sin registro (restaura backups y deja copias `-before-rollback`). La
+  simulación lo dice. Guardar más niveles sería una función nueva.
+- `doctor` dice que un lock que es enlace simbólico "será tomado", pero
+  `update` y `rollback` lo rechazan; el mensaje de rechazo dice "folder".
+- `doctor` muestra `EISDIR` o `EACCES` en `managed/path-unreadable` cuando no
+  puede leer el manifest.
+- `export --output` con un enlace roto en medio de la ruta nombra otra causa,
+  y con un archivo como salida dice "Check --target".
+- `--runtime` con un valor repetido y `--yes` sin `--apply` se aceptan en
+  silencio. `--version --bogus` y `help <comando>` tampoco son estrictos.
+- `ENAMETOOLONG` crudo con un destino muy largo.
+- `update --runtime <otro>` reemplaza la lista de runtimes registrada; el
+  README dice que `update` reutiliza la registrada.
+- Tras la cadena 0.19.2 → 0.22.0 → actual con `keep` en ambos pasos, `doctor`
+  falla por un skill propio que 0.22.0 movió y que los catálogos conservados
+  siguen nombrando en la ruta vieja; el mensaje no da comando.
+- En modo plugin, la simulación de `update` no muestra las líneas "instala el
+  plugin" que la aplicación sí imprime.
+- Una señal durante el último archivo imprime "Stopping…" y termina con 0.
+- Con un registro sin terminar y un lock vivo, también las simulaciones se
+  detienen; las guías dicen que un lock no detiene una simulación.
+- El CLI sigue imprimiendo que el plugin falla hasta que se publique la rama
+  `plugin`, que ya está publicada.
+
+Recuperación tras una ejecución muerta (0.23.5):
+
+- Una carpeta vacía que el kit podría crear, creada a mano, se borra si un
+  lock viejo la nombra. Una muerte entre quitar el lock y quitar las carpetas
+  deja carpetas vacías.
+- En modo plugin, `mode/repo-and-plugin` sigue reportando un archivo idéntico
+  al del kit en la ruta de un runtime no instalado, y
+  `project-context/missing-path` calla cualquier ruta bajo una carpeta del kit.
+
+Menú guiado:
+
+- Esc no hace nada; la ruta del flujo "doctor" no se valida al escribirla.
+- Una herramienta opcional que falla después de aplicar la instalación
+  termina igual en "SISTEMA LISTO"; si todas se saltan, dice "completado".
+- Responder "no" a `adopt-existing` imprime "Armando el plan falló" y un
+  mensaje en inglés.
+- Textos en inglés: la intro, el bloque de instalación del plugin, el plan de
+  `upgrade`, las migraciones y la salida de `doctor`.
+
+`scripts/build-plugin.mjs --publish`:
+
+- En un clon de una sola rama, si se ignora el aviso y se publica antes de
+  traer `origin/plugin`, queda una rama `plugin` local con otra historia y el
+  rechazo siguiente no nombra `git branch -D plugin`.
+- Interrumpido antes del commit no dice que no se commiteó nada.
+
+Tests:
+
+- Siete mutantes sobreviven en lo liberado en 0.23.5: lock sin `kind` o sin
+  hora de inicio, filtro de nombres de archivos temporales, lista de carpetas
+  de la simulación de `rollback` con un enlace, validación de carpeta en el
+  prompter real del menú y el quoting del consejo de `doctor` del menú.
+
+Follow-ups de los PRD que siguen abiertos por decisión: dividir
+`src/migration.mjs` y QA-07 (F2); R7, R9, R11 y N5 (F4, límites aceptados).
 
 Ideas sin decidir: Copilot solo descubre skills a un nivel bajo
 `.agents/skills`.
 
 ## 5. Nunca verificado
 
-- Instalación real del plugin desde el marketplace (requiere publicar `plugin`).
+- Instalación real del plugin: la rama `plugin` está publicada y coincide con
+  el marketplace, pero nadie corrió `claude plugin install` contra ella.
 - Ejecución con los binarios reales `claude` y `copilot` (CLI y VS Code).
-- TUI en una terminal interactiva real.
+- TUI en una terminal interactiva real (se probó por pseudo-terminal).
 - `upgrade --apply` real contra la red.
-- Windows y un corte de energía real.
+- Windows, Linux y un corte de energía real.
 
 ## 6. Reglas de trabajo para continuar
 
@@ -109,17 +182,20 @@ Ideas sin decidir: Copilot solo descubre skills a un nivel bajo
 - Squash merge con CI verde; sin `--admin` ni auto-merge. La protección exige la
   rama al día con `main` (`gh pr update-branch <n>`).
 - Sin reescribir historia y sin crear tags salvo decisión del mantenedor.
-- `build-plugin.mjs --publish` solo dentro de un clon de prueba, salvo la
-  publicación aprobada del punto 1 de la sección 3.
+- `build-plugin.mjs --publish` solo dentro de un clon de prueba, salvo una
+  publicación aprobada por el mantenedor.
 - El fixture `test/fixtures/plugin-mode/repo-mode-plans.json` se regenera en
   cada release con el comando de la cabecera de `repo-mode-plans.mjs`; el PR
   explica su diff.
 - No correr la suite en un checkout con worktrees anidados; no detener procesos
   por nombre (`pkill -f`), solo por pid.
 - Siguiente id de eval del router: L27.
-- En cada release, completar el hash de la versión anterior en la tabla de
-  `docs/versioning.md` (la fila de `0.23.4-docs-sync` queda sin hash hasta la
-  siguiente versión).
+- En cada release, registrar en `docs/versioning.md` el commit de la versión
+  anterior, y regenerar el fixture aunque el comportamiento no cambie: el
+  hash de `last-apply.json` depende de la versión.
+- Antes de commitear, `git config user.email` debe ser el noreply de GitHub.
+  Cada merge: `gh pr merge --squash --match-head-commit <sha> --subject ...
+  --body ...`.
 
 ## 7. Prompt de verificación independiente
 
@@ -205,6 +281,6 @@ ENTREGA
 
 Lo que un agente no puede probar y conviene hacer a mano: el TUI en una terminal
 real (responder "sí", cancelar con Ctrl-C, revisar que las cajas no se
-descuadren); la instalación del plugin una vez publicada la rama
+descuadren); la instalación del plugin, con la rama ya publicada
 (`claude plugin install fhh@fhh-ia-ecosystem --scope project` y después
 `doctor`); Copilot real; Windows, si alguien del equipo lo usa.
