@@ -55,9 +55,10 @@ const forEachCopy = async (relativeToKit, check) => {
   for (const kitRoot of kitRoots) check(await read(`${kitRoot}/${relativeToKit}`), `${kitRoot}/${relativeToKit}`);
 };
 
-// Files that name the kit repository's own tooling on purpose.
+// Files that name the kit repository's own tooling on purpose. The router evals
+// are not here: they are "maintainers only" but still installed, so they may not
+// send a project to a command that does not exist there.
 const maintainerOnly = [
-  /\/skills\/00-router\/workflow-router\/reference\/router-evals\.md$/, // "maintainers only": never loaded during execution
   /\/skills\/04-crosscutting\/impeccable\//, // vendored third-party skill with its own CLI
   /\/skills\/05-caveman\/caveman-compress\//
 ];

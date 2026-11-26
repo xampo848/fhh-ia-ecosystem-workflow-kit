@@ -147,7 +147,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-epic/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "7fe66e729583a9d09e030e420126c0f1f0188d9d5747980030327dd694ac5f37"
+      "skill_sha256": "1c9137d58b3365149227e03d48a332d0790425040ed04d963ad76c7216745d22"
     },
     {
       "key": "create-prd",

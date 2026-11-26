@@ -11,7 +11,7 @@ import { runTui } from '../tui.mjs';
 import { buildUpgradePlan, commandExists, formatUpgradePlan, normalizePackageManager, resolveUpgradePackageManager, runUpgradePlan } from '../upgrade.mjs';
 import packageJson from '../../package.json' with { type: 'json' };
 import { yesGuardMessage } from './guards.mjs';
-import { formatExportApplySummary, formatInitApplySummary, formatUpdateApplySummary } from './summaries.mjs';
+import { formatExportApplySummary, formatInitApplySummary, formatPlanNotices, formatUpdateApplySummary } from './summaries.mjs';
 
 // Ctrl-C or SIGTERM during an apply or a rollback stops it between two files
 // instead of in the middle of one; the journal already lists the run, so
@@ -89,7 +89,7 @@ export async function runInitCommand(options, { stdout, stderr }) {
 
   const { result: applied, code } = await applyWithInterrupts((signal) => applyInstallPlan(plan, { signal }), stderr, { targetPath: plan.targetPath });
   if (code !== undefined) return code;
-  stdout.write(formatInitApplySummary(applied));
+  stdout.write(formatInitApplySummary(applied) + formatPlanNotices(plan));
   if (plan.nextInstallState.mode === 'plugin') stdout.write(pluginInstallStepsIn(plan));
   return 0;
 }
@@ -111,7 +111,7 @@ export async function runUpdateCommand(options, { stdout, stderr }) {
 
   const { result: applied, code } = await applyWithInterrupts((signal) => applyInstallPlan(plan, { signal }), stderr, { targetPath: plan.targetPath });
   if (code !== undefined) return code;
-  stdout.write(formatUpdateApplySummary(applied));
+  stdout.write(formatUpdateApplySummary(applied) + formatPlanNotices(plan));
   if (plan.nextInstallState.mode === 'plugin') stdout.write(pluginInstallStepsIn(plan));
   return 0;
 }

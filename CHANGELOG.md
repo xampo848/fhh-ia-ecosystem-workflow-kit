@@ -18,7 +18,8 @@ below. Adapters (`CLAUDE.md`, `AGENTS.md` and the others) do not change.
   versions the copies the kit leaves next to a replaced file. `doctor` warns
   with `workspace/backups-not-ignored` when an install lacks the line. A
   backup that is already committed stays tracked until you run
-  `git rm --cached` on it.
+  `git rm --cached` on it. When `.gitignore` is a symbolic link the kit does
+  not write it: the plan says which line to add by hand and goes on.
 - The plugin install steps and the `mode/plugin-not-installed` finding no
   longer say the commands fail until the `plugin` branch is published. They
   say the marketplace serves the version published on that branch and point
@@ -35,7 +36,8 @@ below. Adapters (`CLAUDE.md`, `AGENTS.md` and the others) do not change.
   of a particular runtime; `pattern-locking` gives examples from a product
   codebase. Spanish text is neutral.
 - `check:workflow` runs a new validator, `validate-installed-paths.mjs`: it
-  fails when installed kit text cites a path that no install provides.
+  fails when installed kit text cites a path that no install provides, or
+  names a document of the project without saying it is optional.
 
 ## 0.23.6-ac-guards
 

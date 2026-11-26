@@ -1,7 +1,7 @@
 # Trabajo pendiente del kit (registro de traspaso)
 
 Fecha del registro: 2026-11-25; actualizado el 2026-11-26. Base: `main` en
-`393756c` (`0.23.6-ac-guards`).
+`de31b96` (`0.23.6-ac-guards`); este PR lleva `0.23.7-pilot-fixes`.
 
 Este documento permite continuar el trabajo desde otra sesión o equipo. Es una
 foto: antes de actuar, compruébalo con `git log`, los PR abiertos y el
@@ -29,6 +29,7 @@ PR abiertos, y dime qué sigue antes de editar nada.
 | Cierre: la suite ya no deja carpetas temporales | #90 | sin versión (solo tests) |
 | Cierre: hallazgos del CLI de la verificación independiente y follow-ups de los PRD F2 y F4 | #91 | 0.23.5-cli-fixes |
 | Cierre: guardas de tests y validadores que faltaban | #92 | 0.23.6-ac-guards |
+| Piloto: textos del kit que confundían a un agente en un proyecto instalado, respaldos fuera de `.gitignore`, guarda de rutas instaladas | este PR | 0.23.7-pilot-fixes |
 
 Publicado el 2026-11-26, con aprobación del mantenedor:
 
@@ -124,8 +125,19 @@ CLI y `doctor`:
 - Una señal durante el último archivo imprime "Stopping…" y termina con 0.
 - Con un registro sin terminar y un lock vivo, también las simulaciones se
   detienen; las guías dicen que un lock no detiene una simulación.
-- El CLI sigue imprimiendo que el plugin falla hasta que se publique la rama
-  `plugin`, que ya está publicada.
+- Un `update` muerto antes de escribir nada sobre un proyecto instalado con
+  una versión antigua (sin registro) no deja lock ni registro; un `rollback`
+  posterior entra al modo sin registro y restaura desde los backups del
+  `init` original. La simulación lo avisa. Decidido en el piloto: se corrige
+  en `0.24.0` con un flag explícito.
+- Una negación del usuario `!*.workflow-kit-backup-*` en `.gitignore` queda
+  anulada: `update` agrega la entrada del kit después.
+- Con un `.gitignore` que es enlace simbólico, el menú guiado no muestra la
+  nota que sí imprime el CLI.
+- Los textos corregidos en `.agents/project/*.md` llegan solo a instalaciones
+  nuevas: `update` no reescribe archivos del proyecto.
+- La guarda de rutas no juzga rutas de otro runtime en texto compartido ni
+  nombres de comandos; estos últimos los cubre un test.
 
 Recuperación tras una ejecución muerta (0.23.5):
 
@@ -159,6 +171,12 @@ Tests:
   hora de inicio, filtro de nombres de archivos temporales, lista de carpetas
   de la simulación de `rollback` con un enlace, validación de carpeta en el
   prompter real del menú y el quoting del consejo de `doctor` del menú.
+
+Decisiones de diseño del flujo tomadas tras el piloto, por implementar en
+`0.24.0`: doble confirmación del router, el test como archivo implícito en
+N1, definición de "Explicit PRD" y de contrato público, identificadores en
+inglés frente a código en español, plantillas del PRD menos sesgadas a un
+stack, ceremonia del PRD para cambios chicos y `rollback --from-backups`.
 
 Follow-ups de los PRD que siguen abiertos por decisión: dividir
 `src/migration.mjs` y QA-07 (F2); R7, R9, R11 y N5 (F4, límites aceptados).

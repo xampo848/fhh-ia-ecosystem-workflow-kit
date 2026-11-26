@@ -10,7 +10,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { runDoctor } from '../src/doctor.mjs';
 import { backupFileMarker } from '../src/migration.mjs';
-import { backupIgnoreEntry } from '../src/planner.mjs';
+import { backupIgnoreEntry, gitignoreHasBackupEntry } from '../src/planner.mjs';
 import { formatPluginInstallSteps } from '../src/plugin-mode.mjs';
 import { beforeRollbackSuffix } from '../src/rollback.mjs';
 import { makeTempRepo } from './helpers.mjs';
@@ -152,4 +152,89 @@ test('fix 1: init --mode plugin prints a doctor command that runs as printed fro
   const doctor = spawnSync(process.execPath, [bin, 'doctor', ...printed[1].split(' ')], { cwd: os.tmpdir(), encoding: 'utf8' });
   assert.ok(doctor.status === 0 || doctor.status === 1, doctor.stderr);
   assert.doesNotMatch(doctor.stderr, /unknown|required|usage/i);
+});
+
+const kitHeader = '# workflow-kit local state (stays on this machine)';
+const withoutBackupEntry = (text) => text.split('\n').filter((line) => line !== backupIgnoreEntry).join('\n');
+
+test('repair 1: a symbolic-link .gitignore does not stop update; the note names the lines; link and target are never written; doctor still warns', async () => {
+  const target = await installedRepo();
+  const ignore = path.join(target, '.gitignore');
+  await fs.writeFile(path.join(target, 'real-ignore'), withoutBackupEntry(await read(target, '.gitignore')));
+  await fs.rm(ignore);
+  await fs.symlink('real-ignore', ignore);
+  const before = await read(target, 'real-ignore');
+
+  const dry = wk(['update', '--target', target]);
+  assert.equal(dry.status, 0, dry.stdout + dry.stderr);
+  assert.match(dry.stdout, /^Note: \.gitignore is a symbolic link.*\*\.workflow-kit-backup-\*.*add them/im);
+  assert.doesNotMatch(dry.stdout + dry.stderr, /Refusing to write or delete through symbolic links/);
+
+  const apply = wk(['update', '--target', target, '--apply', '--yes']);
+  assert.equal(apply.status, 0, apply.stdout + apply.stderr);
+  assert.equal(apply.stdout.split('\n').filter((line) => line.startsWith('Note: .gitignore is a symbolic link')).length, 2, 'the plan and the apply summary both carry the note');
+  assert.ok((await fs.lstat(ignore)).isSymbolicLink(), 'the link stays a link');
+  assert.equal(await fs.readlink(ignore), 'real-ignore');
+  assert.equal(await read(target, 'real-ignore'), before, 'its target is not written');
+
+  const finding = (await runDoctor({ targetPath: target })).diagnostics.find((item) => item.code === 'workspace/backups-not-ignored');
+  assert.ok(finding, 'doctor keeps reporting the missing entry');
+});
+
+test('repair 1: init meets the same linked .gitignore the same way (it was the same raw refusal before)', async () => {
+  const target = await makeTempRepo();
+  await fs.writeFile(path.join(target, 'real-ignore'), 'node_modules/\n');
+  await fs.symlink('real-ignore', path.join(target, '.gitignore'));
+  const init = wk(['init', '--target', target, '--runtime', 'claude', '--apply', '--yes']);
+  assert.equal(init.status, 0, init.stdout + init.stderr);
+  assert.match(init.stdout, /Note: \.gitignore is a symbolic link.*\.ai-work\//);
+  assert.equal(await read(target, 'real-ignore'), 'node_modules/\n');
+  assert.ok((await fs.lstat(path.join(target, '.gitignore'))).isSymbolicLink());
+});
+
+test('repair 2: an install that has the kit block gets the new entry inside it, with no second header', async () => {
+  const target = await installedRepo();
+  const installed = await read(target, '.gitignore');
+  const old = `${withoutBackupEntry(installed).trimEnd()}\n\n# my own\nfoo/\n`;
+  await fs.writeFile(path.join(target, '.gitignore'), old);
+  assert.equal(wk(['update', '--target', target, '--apply', '--yes']).status, 0);
+  const after = await read(target, '.gitignore');
+  assert.equal(after.split('\n').filter((line) => line === kitHeader).length, 1);
+  const lines = after.split('\n');
+  assert.equal(lines[lines.indexOf('.workflow-kit-tmp-*') + 1], backupIgnoreEntry, 'right after the last line of the block');
+  assert.equal(after.replace(`${backupIgnoreEntry}\n`, ''), old, 'nothing else moved');
+  assert.equal(wk(['update', '--target', target, '--apply', '--yes']).status, 0);
+  assert.equal(await read(target, '.gitignore'), after, 'idempotent');
+});
+
+test('repair 2: a CRLF .gitignore gets CRLF lines; a block at the end of a file without a final newline is extended', async () => {
+  const target = await installedRepo();
+  const crlf = withoutBackupEntry(await read(target, '.gitignore')).replace(/\n/g, '\r\n');
+  await fs.writeFile(path.join(target, '.gitignore'), crlf);
+  assert.equal(wk(['update', '--target', target, '--apply', '--yes']).status, 0);
+  const after = await read(target, '.gitignore');
+  assert.ok(after.includes(`${backupIgnoreEntry}\r\n`));
+  assert.equal(after.replace(/\r\n/g, '').includes('\n'), false, 'no bare LF in a CRLF file');
+
+  await fs.writeFile(path.join(target, '.gitignore'), withoutBackupEntry(await read(target, '.gitignore')).trimEnd().replace(/\r/g, ''));
+  assert.equal(wk(['update', '--target', target, '--apply', '--yes']).status, 0);
+  const noFinalNewline = await read(target, '.gitignore');
+  assert.ok(noFinalNewline.trimEnd().endsWith(backupIgnoreEntry));
+  assert.equal(noFinalNewline.split('\n').filter((line) => line === kitHeader).length, 1);
+});
+
+test('repair 2: without the kit header the block is appended as before', async () => {
+  const target = await installedRepo();
+  await fs.writeFile(path.join(target, '.gitignore'), '*.log\n.ai-work/\n');
+  assert.equal(wk(['update', '--target', target, '--apply', '--yes']).status, 0);
+  const after = await read(target, '.gitignore');
+  assert.ok(after.startsWith(`*.log\n.ai-work/\n\n${kitHeader}\n`));
+});
+
+test('repair 5: the backup entry check reads the file as git does', () => {
+  assert.equal(gitignoreHasBackupEntry('**/*.workflow-kit-backup-*\n'), true, '**/ form is accepted');
+  assert.equal(gitignoreHasBackupEntry('*.workflow-kit-backup-*\n'), true);
+  assert.equal(gitignoreHasBackupEntry('/*.workflow-kit-backup-*\n'), false, 'anchored to the root: nested backups are not ignored');
+  assert.equal(gitignoreHasBackupEntry('*.workflow-kit-backup-*\n!*.workflow-kit-backup-*\n'), false, 'a later negation takes it back');
+  assert.equal(gitignoreHasBackupEntry('!*.workflow-kit-backup-*\n*.workflow-kit-backup-*\n'), true, 'the entry after a negation wins');
 });

@@ -46,3 +46,8 @@ export function formatUpdateApplySummary(applied) {
     ''
   ].join('\n');
 }
+
+// The notes of the plan (what it could not do for the user), repeated after the apply.
+export function formatPlanNotices(plan) {
+  return (plan.notices ?? []).map((notice) => `Note: ${notice}\n`).join('');
+}

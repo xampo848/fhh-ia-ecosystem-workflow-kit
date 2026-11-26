@@ -6,10 +6,11 @@ maintain `../SKILL.md` and the level pre-filter in `.agents/instructions.md`.
 
 ## Level test prompts
 
-Each prompt has the level and route a correct run must produce. `check:workflow`
-validates the table shape and coverage; the behavior is verified by running
-the prompts in each runtime (Claude Code, Codex, GitHub Copilot) after any
-change to the pre-filter or the router, and recording the result in the PR.
+Each prompt has the level and route a correct run must produce. The kit's own
+repository validates the table shape and coverage (nothing to run in a
+project); the behavior is verified by running the prompts in each runtime
+(Claude Code, Codex, GitHub Copilot) after any change to the pre-filter or the
+router, and recording the result in the PR.
 
 <!-- router-evals:level-prompts:start -->
 | ID | Prompt | Expected level | Expected route |

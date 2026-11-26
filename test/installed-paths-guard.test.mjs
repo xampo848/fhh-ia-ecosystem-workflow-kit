@@ -10,7 +10,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { makeTempRepo } from './helpers.mjs';
-import { allowlist, extractReferences, runtimeSets, validateInstalledPaths } from '../scripts/validate-installed-paths.mjs';
+import { allowlist, extractReferences, kitWrittenFolders, projectInputFolders, runtimeSets, validateInstalledPaths } from '../scripts/validate-installed-paths.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const overlay = 'templates/repo-overlay-fhh-ia-ecosystem-full';
@@ -58,8 +58,36 @@ test('rule b: project-owned, seeded, and generated paths named by the manifest a
 });
 
 test('rule b: product document folders the project owns are valid, an invented one is not', async () => {
-  assert.deepEqual(await failuresOf('See `docs/prd/area/x.md`, `docs/epics/e/e.md`, `docs/foundations/ARCHITECTURE.md`, `docs/design/s-sketch.md`, `docs/patterns/`.'), []);
+  assert.deepEqual(await failuresOf('See `docs/prd/area/x.md`, `docs/epics/e/e.md`, `docs/design/s-sketch.md`, `docs/patterns/`, `docs/foundations/*.md`.'), []);
   assert.equal((await failuresOf('See `docs/invented/x.md`.')).length, 1);
+});
+
+test('rule b: a concrete file in a folder the project owns is read, so it needs an ownership marker (the pilot defect)', async () => {
+  const planted = await failuresOf('Read `docs/foundations/ARCHITECTURE.md` before anything else.');
+  assert.equal(planted.length, 1);
+  assert.match(planted[0], /docs\/foundations\/ARCHITECTURE\.md is a file the project owns/);
+  for (const folder of projectInputFolders) {
+    assert.equal((await failuresOf(`Read \`${folder}something.md\` first.`)).length, 1, folder);
+  }
+});
+
+test('rule b: each ownership marker, on the same or an adjacent line, or a fenced block, makes the file valid', async () => {
+  const file = '`docs/foundations/ARCHITECTURE.md`';
+  for (const text of [
+    `Read ${file} when it exists.`, `Read ${file} if present.`, `Read ${file} if the project has one.`, `Read ${file} when the project keeps it.`,
+    `Read ${file} only when the work is cross-layer.`, `Read ${file} (optional).`, `For example ${file}.`, `Docs (e.g. ${file}).`,
+    `Docs such as ${file}.`, `Read your project's ${file}.`, `Read it only when it exists.\n${file}`, `${file}\nOptional reading.`,
+    `Template:\n\n\`\`\`md\nSee ${file}\n\`\`\``
+  ]) {
+    assert.deepEqual(await failuresOf(text), [], text);
+  }
+  // Two lines away is not adjacent.
+  assert.equal((await failuresOf(`Optional.\n\n\n${file}`)).length, 1);
+});
+
+test('rule b: files the workflow writes are outputs and valid without a marker', async () => {
+  assert.deepEqual(await failuresOf('Write `docs/prd/area/x.md`, `docs/epics/e/e.md`, `docs/internal-documentation/a/guide.md`, `docs/design/s-sketch.md`, and `docs/workflow/handoffs/note.md`.'), []);
+  assert.ok(kitWrittenFolders.length <= 2);
 });
 
 test('rule c: a placeholder or glob is valid when its fixed folder is, and fails with an uninstalled prefix', async () => {
