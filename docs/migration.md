@@ -308,7 +308,9 @@ does not write through links. The plan says so:
 - skip_modified: .agents/instructions.md (edited_kit_file): symbolic link (.agents/instructions.md), so only keep applies: the kit does not write through links; it stays as it is, also under --edited all=discard. Replace the link with a regular file to get the other decisions
 ```
 
-`--edited all=discard` leaves that file as it is and discards the rest;
+`--edited all=discard` leaves that file as it is and discards the rest
+(when the link is the only pending file, `all=discard` has nothing to apply to
+and stops);
 `--edited <path>=discard` on the link itself is rejected and writes nothing.
 Replace the link with a regular file to get the other decisions.
 

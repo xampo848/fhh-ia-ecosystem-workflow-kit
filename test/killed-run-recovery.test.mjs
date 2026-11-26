@@ -11,7 +11,7 @@ import test from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { applyJournalRelativePath, applyLockRelativePath } from '../src/apply.mjs';
 import { runCli } from '../src/cli.mjs';
-import { createMemoryIo, hashTree, makeTempRepo } from './helpers.mjs';
+import { createMemoryIo, hashTree, makeTempRepo, trackTempPath } from './helpers.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const bin = path.join(root, 'bin', 'workflow-kit.mjs');
@@ -234,9 +234,9 @@ test('a symlinked .agents holding a stale lock and temporary files: rollback ref
 test('a hand-written stale lock never removes an empty folder that was already there, a link, or one outside the target', async () => {
   const dead = await deadPid();
   const target = await installedRepo();
-  const sibling = `${target}-sibling-empty`;
+  const sibling = trackTempPath(`${target}-sibling-empty`);
   await fs.mkdir(sibling);
-  const emptyLinkTarget = `${target}-empty-link-target`;
+  const emptyLinkTarget = trackTempPath(`${target}-empty-link-target`);
   await fs.mkdir(emptyLinkTarget);
   for (const folder of ['pre/empty', '.agents/emptydir', '.git/refs/tags', '.claude/agents/mine']) await fs.mkdir(path.join(target, folder), { recursive: true });
   await fs.symlink(emptyLinkTarget, path.join(target, 'linkdir'));
