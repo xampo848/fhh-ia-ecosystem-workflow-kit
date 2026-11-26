@@ -208,17 +208,27 @@ const listPaths = (paths) => (paths.length <= listedPathsLimit
 // generator marker, is such a copy; a project agent with a kit slug, or an
 // edited plugin agent kept by an update, is not (R11).
 const agentFolders = ['.claude/agents/', '.github/agents/'];
-async function modeMixDiagnostics({ targetPath, manifest, state, pluginMode, files, shipped }) {
+async function modeMixDiagnostics({ targetPath, manifest, state, pluginMode, files, shipped, overlay }) {
   if (!state) return [];
   if (!pluginMode) {
     return (await inspectPluginSettings({ targetPath, runtimes: pluginRuntimes, tolerant: true })).filter((item) => item.enabled)
       .map((item) => error('mode/repo-and-plugin', item.relativePath, `This install records ${state.mode === 'export' ? 'an export (a copy of the kit files in this folder)' : 'repo mode (the kit files are in the repository)'}, but this file enables the plugin ${pluginId}, so the kit would load twice. ${repoAndPluginWayOut(state, item.relativePath, targetPath)}`));
   }
   const planned = new Set(files.map((file) => file.relativePath));
+  // Evidence that a file is a kit copy and not the project's own: the install
+  // recorded it, an installed runtime (or the overlay) ships that path, or its
+  // content is the kit's file. An own file at a path only a runtime that is not
+  // installed would ship (.codex/README.md without codex) is none of those. A
+  // path of another runtime with the kit's exact content stays reported.
+  const installedPaths = new Set((await selectedTemplateFiles({ runtimes: state.runtimes, overlay })).map((file) => file.relativePath));
   const found = [];
   for (const relativePath of shipped.keys()) {
     if (planned.has(relativePath) || !['kit', 'derived'].includes(classifyPath(manifest, relativePath)?.class)) continue;
     if (!await pathExists(targetPath, relativePath)) continue;
+    if (!Object.hasOwn(state.files, relativePath) && !installedPaths.has(relativePath)) {
+      const content = await readOptional(resolveInsideTarget(targetPath, relativePath));
+      if (content === null || content !== await fs.readFile(shipped.get(relativePath), 'utf8')) continue;
+    }
     if (agentFolders.some((folder) => relativePath.startsWith(folder)) && !(await readOptional(resolveInsideTarget(targetPath, relativePath)))?.includes(generatedMarker)) continue;
     found.push(relativePath);
   }
@@ -512,7 +522,7 @@ export async function runDoctor(options = {}) {
       : async () => (await validateWorkflowContract({ root: targetPath, runtimes, adviceTarget: targetPath })).diagnostics.map(targetRepoContractDiagnostic),
     () => modelProfileDiagnostics({ targetPath, present, catalog, modelProfiles, updatePlan, recordedRuntimes: storedState?.runtimes ?? [] }),
     () => workspaceDiagnostics({ targetPath }),
-    () => projectContextDiagnostics({ targetPath }),
+    () => projectContextDiagnostics({ targetPath, pluginMode }),
     // The Copilot quality-gate wrapper of a plugin install comes from the kit
     // quality gate this CLI ships, as the plan writes it.
     async () => projectInstructionDiagnostics({ targetPath, runtimes, kitQualityGate: pluginMode ? await packageKitQualityGate() : null }),
@@ -525,7 +535,7 @@ export async function runDoctor(options = {}) {
     () => shadowDiagnostics({ targetPath, manifest, shipped, pluginMode }),
     () => unownedPathDiagnostics({ targetPath, manifest, state: storedState, shipped }),
     () => symlinkDiagnostics(targetPath, files),
-    () => modeMixDiagnostics({ targetPath, manifest, state: storedState, pluginMode, files, shipped }),
+    () => modeMixDiagnostics({ targetPath, manifest, state: storedState, pluginMode, files, shipped, overlay }),
     () => untrackedAdapterDiagnostics({ targetPath, manifest, state: storedState, pluginMode }),
     ...(pluginMode ? [() => declarationDiagnostics({ targetPath, runtimes, recordedRuntimes: storedState?.runtimes ?? [] })] : []),
     // Never in repo mode: the only command doctor runs, and only to read.
