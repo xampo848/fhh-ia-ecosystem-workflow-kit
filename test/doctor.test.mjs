@@ -478,7 +478,7 @@ test('doctor reports the apply lock: held by a running process is an error, one 
 
   await write(target, lockPath, '');
   const stale = await runDoctor({ targetPath: target });
-  assertFindings(stale, [['managed/apply-lock-stale', lockPath, new RegExp(`^${escape(lockPath)} was left by a workflow-kit run that no longer runs; the next apply or rollback takes it over\\.$`), 'warning']]);
+  assertFindings(stale, [['managed/apply-lock-stale', lockPath, new RegExp(`^${escape(lockPath)} cannot be read or is not valid \\(no usable process id or start time\\); the next apply or rollback takes it over\\.$`), 'warning']]);
   assert.equal(stale.ok, true, 'a stale lock does not fail doctor');
 });
 

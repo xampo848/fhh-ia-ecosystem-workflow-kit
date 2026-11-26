@@ -141,13 +141,44 @@ function startOfRunningProcess(pid) {
   return Number.isNaN(started) ? null : started;
 }
 
+// The lock as a trusted holder, or null when it cannot be read or is not
+// valid: the process id must be a positive integer and the start time, when
+// present, a date. Nothing else of the file is ever repeated in a message (a
+// stale or hand-written lock may hold anything), so the start time is
+// returned normalized.
 async function readLock(lockPath) {
+  let parsed;
   try {
-    const parsed = JSON.parse(await fs.readFile(lockPath, 'utf8'));
-    return parsed !== null && typeof parsed === 'object' ? parsed : null;
+    parsed = JSON.parse(await fs.readFile(lockPath, 'utf8'));
   } catch {
     return null;
   }
+  if (parsed === null || typeof parsed !== 'object' || !Number.isSafeInteger(parsed.pid) || parsed.pid <= 0) return null;
+  const holder = { pid: parsed.pid };
+  if (Number.isFinite(parsed.processStartedAt)) holder.processStartedAt = parsed.processStartedAt;
+  if (parsed.startedAt !== undefined) {
+    const startedAt = typeof parsed.startedAt === 'string' ? new Date(parsed.startedAt) : null;
+    if (startedAt === null || Number.isNaN(startedAt.getTime())) return null;
+    holder.startedAt = startedAt.toISOString();
+  }
+  return holder;
+}
+
+// A folder where the lock file goes. The kit never deletes it, even when it
+// is empty: it is not something the kit made.
+async function lockPathIsFolder(targetPath) {
+  try {
+    return (await fs.lstat(path.join(targetPath, applyLockRelativePath))).isDirectory();
+  } catch {
+    return false;
+  }
+}
+export const lockFolderMessage = (targetPath) => `There is a folder where the lock file goes (${path.join(targetPath, applyLockRelativePath)}). workflow-kit does not delete it: remove that folder by hand, then run this command again. Nothing was written.`;
+const lockFolderError = (targetPath) => Object.assign(new Error(lockFolderMessage(targetPath)), { code: 'WORKFLOW_KIT_LOCK_IS_FOLDER' });
+
+// Stops when the lock path is a folder.
+export async function assertLockIsNotFolder(targetPath) {
+  if (await lockPathIsFolder(targetPath)) throw lockFolderError(targetPath);
 }
 
 // A lock is stale when what it names cannot be a running workflow-kit: it
@@ -175,18 +206,21 @@ const lockedError = (holder) => Object.assign(new Error(`Another workflow-kit ru
 export async function describeTargetLock(targetPath, now = Date.now()) {
   const lockPath = path.join(targetPath, applyLockRelativePath);
   if (!(await exists(lockPath))) return null;
+  if (await lockPathIsFolder(targetPath)) {
+    return { relativePath: applyLockRelativePath, pid: null, startedAt: null, ageSeconds: null, stale: false, folder: true, message: lockFolderMessage(targetPath) };
+  }
   const holder = await readLock(lockPath);
   const takenAt = Date.parse(holder?.startedAt ?? '');
   const ageSeconds = Number.isNaN(takenAt) ? null : Math.max(0, Math.round((now - takenAt) / 1000));
   const stale = lockIsStale(holder);
   return {
     relativePath: applyLockRelativePath,
-    pid: Number.isInteger(holder?.pid) ? holder.pid : null,
+    pid: holder?.pid ?? null,
     startedAt: holder?.startedAt ?? null,
     ageSeconds,
     stale,
     message: stale
-      ? `${applyLockRelativePath} was left by a workflow-kit run that no longer runs${holder?.pid ? ` (process ${holder.pid})` : ''}; the next apply or rollback takes it over.`
+      ? `${applyLockRelativePath} ${holder ? `was left by a workflow-kit run that no longer runs (process ${holder.pid})` : 'cannot be read or is not valid (no usable process id or start time)'}; the next apply or rollback takes it over.`
       : `${applyLockRelativePath} is held by process ${holder.pid}${ageSeconds === null ? '' : `, taken ${ageSeconds} s ago`}: a workflow-kit run is changing this repository. ${clearLockAdvice}`
   };
 }
@@ -201,6 +235,7 @@ export async function targetLockHolder(targetPath) {
 
 // Stops when a run that is still going holds the target.
 export async function assertTargetNotLocked(targetPath) {
+  await assertLockIsNotFolder(targetPath);
   const holder = await targetLockHolder(targetPath);
   if (holder) throw lockedError(holder);
 }
@@ -215,6 +250,7 @@ export async function acquireTargetLock(targetPath) {
   const lockPath = path.join(targetPath, applyLockRelativePath);
   const createdDirectories = await missingDirectories(targetPath, path.dirname(lockPath));
   const temporary = temporaryPathFor(lockPath);
+  await assertLockIsNotFolder(targetPath);
   try {
     await fs.mkdir(path.dirname(lockPath), { recursive: true });
     await fs.writeFile(temporary, `${JSON.stringify({ pid: process.pid, processStartedAt: processStartedAt(), startedAt: new Date().toISOString() })}\n`);
@@ -237,6 +273,7 @@ export async function acquireTargetLock(targetPath) {
           if (error.code === 'EACCES' || error.code === 'EPERM' || error.code === 'EROFS') throw lockWriteError(error);
           throw error;
         }
+        await assertLockIsNotFolder(targetPath);
         const holder = await readLock(lockPath);
         if (!lockIsStale(holder)) throw lockedError(holder);
         await fs.rm(lockPath, { force: true });

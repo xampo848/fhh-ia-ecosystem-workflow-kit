@@ -123,6 +123,7 @@ function journalDiagnostics(problem, targetPath) {
 async function lockDiagnostics({ targetPath }) {
   const lock = await describeTargetLock(targetPath);
   if (!lock) return [];
+  if (lock.folder) return [error('managed/apply-lock-held', lock.relativePath, lock.message)];
   return [lock.stale ? warning('managed/apply-lock-stale', lock.relativePath, lock.message) : error('managed/apply-lock-held', lock.relativePath, lock.message)];
 }
 

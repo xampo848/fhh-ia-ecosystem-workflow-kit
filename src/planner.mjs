@@ -10,7 +10,7 @@ import { assertPluginRuntimes, carriesKitLocationMarker, code, compareVersionCor
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
 import { assertNameLengths, assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
-import { applyJournalProblem, applyJournalRelativePath, observeTarget, targetLockHolder, unfinishedJournalMessage } from './apply.mjs';
+import { applyJournalProblem, applyJournalRelativePath, assertLockIsNotFolder, observeTarget, targetLockHolder, unfinishedJournalMessage } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, projectIndexPath, requireMigrationBackups } from './migration.mjs';
 
@@ -198,6 +198,7 @@ export const incompleteApplyMessage = (appliedAt, targetPath) => `The last workf
 // only); the apply takes the lock.
 export const runInProgressMessage = (holder) => `Another workflow-kit run is changing this repository (process ${holder.pid}, started ${holder.startedAt ?? 'at an unknown time'}). Wait for it to finish, then run this command again. Nothing was written.`;
 async function assertLastApplyFinished(targetPath) {
+  await assertLockIsNotFolder(targetPath);
   const problem = await lastApplyProblem(targetPath);
   if (problem?.kind === 'incomplete') {
     const holder = await targetLockHolder(targetPath);
