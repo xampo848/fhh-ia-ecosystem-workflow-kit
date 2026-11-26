@@ -9,7 +9,7 @@ import { defaultProfileFor, loadDelegateCatalog, modelProfileNames, parseProfile
 import { assertPluginRuntimes, carriesKitLocationMarker, code, compareVersionCores, kitLocationBlockName, planPluginSettings, planPluginSettingsRemoval, pluginAdapterContent, pluginName, rollbackCommand, runtimesDeclaringPlugin, withTarget } from './plugin-mode.mjs';
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
-import { assertNameLengths, assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, resolveInsideTarget } from './fs-safety.mjs';
+import { assertNameLengths, assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, findSymlinkInPath, resolveInsideTarget } from './fs-safety.mjs';
 import { applyJournalProblem, applyJournalRelativePath, assertLockIsNotFolder, observeTarget, targetLockHolder, unfinishedJournalMessage } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, projectIndexPath, requireMigrationBackups } from './migration.mjs';
@@ -65,6 +65,10 @@ export function normalizeOverlay(value = 'fhh-ia-ecosystem-full') {
   return value;
 }
 
+// Files the operating system drops on its own in any folder (a Finder window
+// makes .DS_Store); never part of a template. Nothing else is skipped.
+const osJunkNames = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini']);
+
 async function collectTemplateFiles(templateRelativePath) {
   const root = path.join(templatesRoot, templateRelativePath);
   const files = [];
@@ -76,6 +80,7 @@ async function collectTemplateFiles(templateRelativePath) {
       if (entry.isDirectory()) {
         await walk(absolutePath);
       } else if (entry.isFile()) {
+        if (osJunkNames.has(entry.name)) continue;
         // Plan paths always use "/": manifest entries and install-state keys
         // are written that way on every platform.
         const relativePath = path.relative(root, absolutePath).split(path.sep).join('/');
@@ -296,7 +301,9 @@ export const packageKitQualityGate = () => fs.readFile(path.join(templatesRoot, 
 function resolveUpdateMode(requestedMode, existingState, runtime, targetPath) {
   const recordedMode = existingState?.mode === 'plugin' ? 'plugin' : 'repo';
   const mode = requestedMode ?? recordedMode;
-  if (mode === recordedMode) return { mode, switchTo: null };
+  // An export updates as a repo-mode install but stays an export: the stops
+  // that tell an export from an install read the mode the state records.
+  if (mode === recordedMode) return { mode: existingState?.mode === 'export' ? 'export' : mode, switchTo: null };
   // Only a plugin-mode state records another mode than repo.
   if (mode === 'repo') return { mode, switchTo: 'repo' };
   const runtimeList = pluginRuntimeList(runtime, existingState?.runtimes);
@@ -494,7 +501,7 @@ export async function buildUpdatePlan(options = {}) {
     pluginMode
   });
   // A switch to plugin mode decides its pending files once the retired ones are known.
-  const shadows = switching ? [] : await planEditedDecisions({ operations, edited: options.edited ?? {}, manifest, migration });
+  const shadows = switching ? [] : await planEditedDecisions({ targetPath, operations, edited: options.edited ?? {}, manifest, migration });
   if (migration) await migration.completeOperations(operations, shadows);
   operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
   const kitQualityGate = pluginMode ? await packageKitQualityGate() : undefined;
@@ -510,7 +517,7 @@ export async function buildUpdatePlan(options = {}) {
   const retired = existingState ? await planRetiredFiles({ targetPath, manifest, previousFiles, operations, pluginMode, switching: retireGenerated }) : { operations: [], missing: [] };
   operations.push(...retired.operations);
   if (switching) {
-    await planEditedDecisions({ operations, edited: options.edited ?? {}, manifest, switching });
+    await planEditedDecisions({ targetPath, operations, edited: options.edited ?? {}, manifest, switching });
     assertModeSwitchSettled(operations, options.runtime === undefined ? '' : ` --runtime ${runtimes.join(',')}`, targetPath);
   }
   await finalizeOperations({ targetPath, manifest, operations, previousFiles });
@@ -604,13 +611,14 @@ function invalidEditedDecision(relativePath, decision, validDecisions, problem) 
 // Path -> decision for the pending files. A named path wins over `all`, which
 // takes every pending file where its decision is valid and leaves the rest
 // pending. Anything that cannot be honored throws before a write is planned.
-function chooseEditedDecisions(validByPath, edited) {
+function chooseEditedDecisions(validByPath, edited, linkedPaths = new Map()) {
   const chosen = new Map();
   for (const [relativePath, decision] of Object.entries(edited)) {
     if (!editedDecisions.includes(decision)) throw invalidEditedDecision(relativePath, decision, editedDecisions, 'unknown decision');
     if (relativePath === editedAllKey) continue;
     const valid = validByPath.get(relativePath);
     if (!valid) throw invalidEditedDecision(relativePath, decision, [], 'the file is not a pending edited file');
+    if (!valid.includes(decision) && linkedPaths.has(relativePath)) throw invalidEditedDecision(relativePath, decision, valid, `the file is reached through the symbolic link ${linkedPaths.get(relativePath)} and the kit does not write through links; replace the link with a regular file to get the other decisions`);
     if (!valid.includes(decision)) throw invalidEditedDecision(relativePath, decision, valid, `${decision} does not apply to this file`);
     chosen.set(relativePath, decision);
   }
@@ -634,12 +642,18 @@ function chooseEditedDecisions(validByPath, edited) {
 // retired file is pending too, and only discard settles it (deleted with a
 // backup that keeps the edit); keep settles nothing there, since the switch
 // is applied whole.
-async function planEditedDecisions({ operations, edited, manifest, migration, switching = false }) {
+async function planEditedDecisions({ targetPath, operations, edited, manifest, migration, switching = false }) {
   const pending = operations.filter((item) => item.operation === 'skip_modified' && (pendingEditReasons.has(item.reason) || (switching && item.retired)));
   const validByPath = new Map();
   const shadowTargets = new Map();
   const splitContents = new Map();
+  // A pending file behind a symbolic link only offers keep: the kit never
+  // writes or deletes through a link (a switch to plugin mode stops on it).
+  const linkedPaths = new Map();
+  const linkCache = new Map();
   for (const item of pending) {
+    const link = switching ? null : await findSymlinkInPath(targetPath, item.relativePath, linkCache);
+    if (link) linkedPaths.set(item.relativePath, link);
     const shadow = migration ? await migration.shadowFor(item) : null;
     if (shadow) shadowTargets.set(item.relativePath, shadow);
     if (item.reason === 'unmarked_adapter') {
@@ -648,14 +662,18 @@ async function planEditedDecisions({ operations, edited, manifest, migration, sw
       if (split !== null) splitContents.set(item.relativePath, split);
     }
     const applies = { keep: !switching, discard: true, shadow: Boolean(shadow), split: splitContents.has(item.relativePath) };
-    validByPath.set(item.relativePath, editedDecisions.filter((decision) => applies[decision]));
+    validByPath.set(item.relativePath, editedDecisions.filter((decision) => applies[decision] && (decision === 'keep' || !linkedPaths.has(item.relativePath))));
   }
-  const chosen = chooseEditedDecisions(validByPath, edited);
+  const chosen = chooseEditedDecisions(validByPath, edited, linkedPaths);
   const shadows = [];
   for (const item of pending) {
     const decision = chosen.get(item.relativePath) ?? 'keep';
     if (decision === 'keep') {
       item.decisions = validByPath.get(item.relativePath);
+      if (linkedPaths.has(item.relativePath)) {
+        item.symlink = linkedPaths.get(item.relativePath);
+        item.note = `symbolic link (${item.symlink}), so only keep applies: the kit does not write through links; it stays as it is, also under --edited all=discard. Replace the link with a regular file to get the other decisions`;
+      }
       continue;
     }
     delete item.reason;

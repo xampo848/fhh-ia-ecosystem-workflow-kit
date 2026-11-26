@@ -140,7 +140,8 @@ function pendingMessage(manifest, item, targetPath) {
     split: 'keeps your own lines next to a new block'
   };
   const options = decisions.map((decision) => `${code(kitCommand(targetPath, 'update', '--edited', `${item.relativePath}=${decision}`))} (${meaning[decision] ?? decision})`);
-  const decide = `Decide with ${options.length > 1 ? `${options.slice(0, -1).join(', ')} or ${options.at(-1)}` : options[0]}, then add --apply --yes.`;
+  const linkNote = item.symlink ? ` It is reached through the symbolic link ${item.symlink}, and the kit does not write through links, so only keep applies; replace the link with a regular file to get the other decisions.` : '';
+  const decide = `Decide with ${options.length > 1 ? `${options.slice(0, -1).join(', ')} or ${options.at(-1)}` : options[0]}, then add --apply --yes.${linkNote}`;
   const skillHome = `${manifest.project_root}skills/<name>/`;
   const moveByHand = (problem, step) => `${problem}, so the migration does not move it: ${step}move the folder by hand to ${skillHome} and add its row to ${projectIndexPath}.`;
   switch (item.reason) {
@@ -173,7 +174,7 @@ async function pendingDiagnostics({ targetPath, manifest, updatePlan }) {
   const pending = new Map();
   const add = (item) => pending.set(`${item.relativePath}\0${item.reason}`, pending.get(`${item.relativePath}\0${item.reason}`) ?? item);
   for (const item of plan.operations) {
-    if (item.operation === 'skip_modified' && pendingReasons.has(item.reason)) add({ relativePath: item.relativePath, reason: item.reason, decisions: item.decisions });
+    if (item.operation === 'skip_modified' && pendingReasons.has(item.reason)) add({ relativePath: item.relativePath, reason: item.reason, decisions: item.decisions, symlink: item.symlink });
   }
   for (const item of migration?.pending ?? []) add(item);
   const diagnostics = [...pending.values()].map((item) => warning(`boundary/pending-${item.reason}`, item.relativePath, pendingMessage(manifest, item, targetPath)));

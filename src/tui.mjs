@@ -170,7 +170,8 @@ async function askEditedFileDecisions({ plan, prompter, write, paint }) {
   if (policy === 'replace-all') {
     const decisions = {};
     for (const item of decidable) {
-      if (item.decisions.includes('split')) decisions[item.relativePath] = 'split';
+      if (!item.decisions.includes('discard')) write(`${paint.copperInk(`${item.relativePath} queda como está: es un enlace simbólico y el kit no escribe a través de enlaces. Reemplaza el enlace por un archivo normal para poder decidirlo.`)}\n`);
+      else if (item.decisions.includes('split')) decisions[item.relativePath] = 'split';
       else if (item.reason === 'unmarked_adapter') write(`${paint.copperInk(`${item.relativePath} queda pendiente: «Reemplazar todos» no puede conservar su texto propio (split no aplica). Decídelo archivo por archivo o con --edited.`)}\n`);
       else decisions[item.relativePath] = 'discard';
     }
