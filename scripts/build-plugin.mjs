@@ -663,6 +663,9 @@ function foreignCommits(run, localTip, remoteTip) {
 // nothing) and before the handlers go (a Ctrl-C that also stopped a git or
 // node child still ends with 130). After the commit the handler says which
 // commit the branch holds.
+// Explicit refspec: a plain `git fetch origin` brings only the branches the
+// clone tracks, and a single-branch clone tracks one.
+const fetchCommand = (branch) => `git fetch ${pluginRemote} +refs/heads/${branch}:refs/remotes/${pluginRemote}/${branch}`;
 const signalStatuses = { SIGINT: 130, SIGTERM: 143 };
 function signalGuard(folder) {
   const state = { committed: null };
@@ -757,7 +760,7 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
   const mainBranch = `${pluginRemote}/${sourceBranch}`;
   const mainTip = commitOf(run, `refs/remotes/${mainBranch}`);
   if (!mainTip) {
-    throw new Error(`Refusing to publish: ${mainBranch} is not present locally: fetch it first (git fetch ${pluginRemote}, which also brings ${pluginRemote}/${pluginBranch} when the remote has it) and rerun. Publishing never fetches, and it only publishes a commit that ${mainBranch} contains.`);
+    throw new Error(`Refusing to publish: ${mainBranch} is not present locally: fetch it first (${fetchCommand(sourceBranch)}; add ${fetchCommand(pluginBranch)} when the remote has ${pluginBranch}) and rerun. Publishing never fetches, and it only publishes a commit that ${mainBranch} contains.`);
   }
   if (run(['merge-base', '--is-ancestor', 'HEAD', mainTip]).status !== 0) {
     throw new Error(`Refusing to publish: HEAD (${source.stdout}) is not contained in ${mainBranch}. Publish only a released commit: merge it into ${sourceBranch}, fetch, check out a commit that ${mainBranch} contains and rerun. Publishing never fetches: ${mainBranch} is the copy last fetched.`);
@@ -778,7 +781,7 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
   if (!parent) {
     // Right for the first publish; otherwise origin/plugin was never fetched
     // here, and the push of an unrelated history would be rejected.
-    log(`No local branch ${pluginBranch} and no ${remoteBranch}: this commit starts a new history of ${pluginBranch}. If the remote already has ${pluginBranch}, fetch it first (git fetch ${pluginRemote}) and rerun, so the commit builds on it.`);
+    log(`No local branch ${pluginBranch} and no ${remoteBranch}: this commit starts a new history of ${pluginBranch}. If the remote already has ${pluginBranch}, fetch it first (${fetchCommand(pluginBranch)}) and rerun, so the commit builds on it.`);
   }
 
   // A real path: the child node runs the exported script by it.
@@ -831,9 +834,11 @@ export async function publishPluginBuild({ root = packageRoot, env = process.env
     }
     return { ...result, warnings };
   } finally {
+    // The handlers stay until the folder is gone: a signal in between still
+    // removes it and names the commit.
     await guard.drain();
-    guard.remove();
     await fs.rm(temporary, { recursive: true, force: true });
+    guard.remove();
   }
 }
 

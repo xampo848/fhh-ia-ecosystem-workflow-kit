@@ -826,7 +826,7 @@ test('--publish commits dist/plugin to the local branch plugin as the configured
   assert.match(first.stdout, /git push origin plugin/);
   // Neither a local branch nor origin/plugin: the commit starts a new history,
   // and the output says how to build on the remote branch if it exists.
-  assert.match(first.stdout, /starts a new history of plugin.*git fetch origin/s);
+  assert.match(first.stdout, /starts a new history of plugin.*git fetch origin \+refs\/heads\/plugin:refs\/remotes\/origin\/plugin/s);
   assert.deepEqual(await checkout(), before);
   // The temporary index is removed.
   assert.deepEqual(await fs.readdir(tmp), []);
@@ -1059,7 +1059,7 @@ test('--publish publishes only a commit contained in origin/main, as last fetche
     {
       name: 'a missing origin/main is refused with the way to get it',
       arrange: async (root, git) => git('update-ref', '-d', 'refs/remotes/origin/main'),
-      refused: /origin\/main is not present locally: fetch it first \(git fetch origin[,)]/
+      refused: /origin\/main is not present locally: fetch it first \(git fetch origin \+refs\/heads\/main:refs\/remotes\/origin\/main[;)]/
     },
     {
       name: 'HEAD equal to origin/main publishes',
@@ -1326,6 +1326,86 @@ for (const [signal, status] of [['SIGTERM', 143], ['SIGINT', 130]]) {
     assert.equal(git.refs(), before);
   });
 }
+
+// The command a stop message prints must work as printed, also in a clone made
+// with --single-branch, where a plain `git fetch origin` does not bring plugin.
+for (const [kind, cloneArgs] of [['a normal clone', []], ['a single-branch clone', ['--single-branch', '--branch', 'main']]]) {
+  test(`--publish: the fetch command a stop prints works as printed in ${kind}`, async () => {
+    const { git, env, remote, publish } = await gitFixture();
+    assert.equal(publish().status, 0);
+    // Pushes go only to the throwaway bare repository of this test.
+    git('push', '-q', 'origin', 'main', 'plugin');
+    const clone = path.join(await makeTempRepo('workflow-kit-plugin-clone-'), 'kit');
+    gitIn(path.dirname(clone), env)('clone', '-q', ...cloneArgs, remote, clone);
+    const cloneGit = gitIn(clone, env);
+    cloneGit.setIdentity();
+    const printed = (text, pattern) => {
+      const command = text.match(pattern)?.[1];
+      assert.ok(command, text);
+      return command.split(' ').slice(1);
+    };
+    const hasRef = (ref) => spawnSync('git', ['rev-parse', '--verify', '-q', ref], { cwd: clone, env, encoding: 'utf8' }).status === 0;
+    const publishClone = () => runCli(['--publish', '--root', clone], { env });
+
+    // No local plugin and no origin/plugin: the first run starts a new history.
+    cloneGit('update-ref', '-d', 'refs/remotes/origin/plugin');
+    const first = publishClone();
+    assert.equal(first.status, 0, first.stderr);
+    assert.match(first.stdout, /starts a new history of plugin/);
+    cloneGit('branch', '-q', '-D', 'plugin');
+    assert.equal(hasRef('refs/remotes/origin/plugin'), false);
+    const fetchPlugin = spawnSync('git', printed(first.stdout, /\((git fetch [^)]+)\)/), { cwd: clone, env, encoding: 'utf8' });
+    assert.equal(fetchPlugin.status, 0, fetchPlugin.stderr);
+    assert.equal(hasRef('refs/remotes/origin/plugin'), true);
+    const builtOn = publishClone();
+    assert.equal(builtOn.status, 0, builtOn.stderr);
+    assert.doesNotMatch(builtOn.stdout, /starts a new history/);
+
+    // No origin/main: the stop names the command that brings it back.
+    cloneGit('update-ref', '-d', 'refs/remotes/origin/main');
+    const refused = publishClone();
+    assert.equal(refused.status, 1, refused.stdout);
+    const fetchMain = spawnSync('git', printed(refused.stderr, /\((git fetch [^;)]+)/), { cwd: clone, env, encoding: 'utf8' });
+    assert.equal(fetchMain.status, 0, fetchMain.stderr);
+    assert.equal(hasRef('refs/remotes/origin/main'), true);
+    assert.equal(publishClone().status, 0);
+  });
+}
+
+test('P10: a signal after the commit, while the temporary folder is removed, still removes it, names the commit and ends with 130', { timeout: 60000 }, async () => {
+  const { root, env, git } = await gitFixture();
+  const tmp = await makeTempRepo('workflow-kit-plugin-tmpdir-');
+  const hookDir = await makeTempRepo('workflow-kit-plugin-signal-hook-');
+  const hook = path.join(hookDir, 'hook.mjs');
+  // Preloaded into the publishing script only (the node it starts on the source
+  // commit drops NODE_OPTIONS): when the script removes its publish folder, the
+  // signal arrives first and the removal is held back, so the signal lands in
+  // exactly the window after the commit and before the script returns.
+  await fs.writeFile(hook, [
+    "import fs from 'node:fs/promises';",
+    'const remove = fs.rm;',
+    'fs.rm = async function (target, ...rest) {',
+    "  if (String(target).includes('workflow-kit-plugin-publish-')) {",
+    "    process.kill(process.pid, 'SIGINT');",
+    '    await new Promise((resolve) => setTimeout(resolve, 3000));',
+    '  }',
+    '  return remove.call(this, target, ...rest);',
+    '};',
+    ''
+  ].join('\n'), 'utf8');
+  const child = spawn(process.execPath, [path.join(root, 'scripts/build-plugin.mjs'), '--publish', '--root', root], {
+    cwd: root,
+    env: { ...env, TMPDIR: tmp, NODE_OPTIONS: `--import=${pathToFileURL(hook).href}` },
+    stdio: ['ignore', 'ignore', 'pipe']
+  });
+  let stderr = '';
+  child.stderr.on('data', (chunk) => { stderr += chunk; });
+  const exited = await new Promise((resolve) => child.on('exit', (code, killedBy) => resolve({ code, killedBy })));
+
+  assert.deepEqual(exited, { code: 130, killedBy: null }, stderr);
+  assert.deepEqual(await fs.readdir(tmp), []);
+  assert.ok(stderr.includes(`Interrupted after the commit: the local branch plugin holds ${git('rev-parse', 'plugin')}`), stderr);
+});
 
 // Independent review of the P10 round: replace refs, an unreadable history,
 // Ctrl-C that reaches the whole process group, path names git may store
