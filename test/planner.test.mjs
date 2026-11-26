@@ -438,10 +438,11 @@ test('init and update stop on an unusable install-state or apply journal, and wr
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
   const journalPath = '.agents/workflow-kit/last-apply.json';
   // Final review 2: never advise deleting the journal or restoring it from Git (it is ignored).
-  const journalAction = 'so rollback cannot use it. Fix it by hand (Git does not track it); only if you will not roll back the last apply, move it out of .agents/workflow-kit/. Then run this command again. Nothing was written.';
+  // Round 6 (R7): the way out is concrete: put the file back, or move it away and run doctor on this target.
+  const journalAction = `so rollback cannot use it, and Git does not track it. To keep the way back, make it a readable file again. To give up rolling back the last apply, move ${journalPath} out of the repository (a move, not a delete: keep it if you may need it) and run \`workflow-kit doctor --target ${target}\` to check the repository. Then run this command again. Nothing was written.`;
   const cases = [
-    { file: installStateRelativePath, content: '{ not json', message: /install-state\.json is not valid JSON\. Restore it from Git/ },
-    { file: installStateRelativePath, content: '[]', message: /install-state\.json does not have the expected structure\. Restore it from Git/ },
+    { file: installStateRelativePath, content: '{ not json', message: /install-state\.json is not valid JSON\. Restore it from Git with `git -C \S+ restore -- \.agents\/workflow-kit\/install-state\.json`, or, if a newer workflow-kit wrote it, upgrade the CLI with `workflow-kit upgrade --apply --yes` \(a global command: no --target\)\. Then run this command again\./ },
+    { file: installStateRelativePath, content: '[]', message: /install-state\.json does not have the expected structure\. Restore it from Git with `git -C \S+ restore --/ },
     { file: journalPath, content: '{ not json', message: `${journalPath} cannot be read (not valid JSON), ${journalAction}` },
     { file: journalPath, content: '{"schemaVersion":"2.0.0","completed":true}', message: `${journalPath} cannot be read (unsupported format), ${journalAction}` },
     // Final review 7: every files entry is checked, not only the array.

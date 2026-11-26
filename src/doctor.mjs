@@ -109,7 +109,7 @@ function targetRepoContractDiagnostic(item) {
 }
 
 function journalDiagnostics(problem, targetPath) {
-  if (problem?.kind === 'unusable') return [error('managed/apply-journal-unusable', applyJournalRelativePath, `${unusableJournalMessage(problem.reason)}. init and update stop until then.`)];
+  if (problem?.kind === 'unusable') return [error('managed/apply-journal-unusable', applyJournalRelativePath, `${unusableJournalMessage(problem.reason, targetPath)}. init and update stop until then.`)];
   if (problem?.kind === 'incomplete') {
     // An interrupted rollback has its own wording.
     const message = problem.message ?? incompleteApplyMessage(problem.appliedAt, targetPath);

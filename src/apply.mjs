@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { rollbackCommand } from './plugin-mode.mjs';
-import { assertNoSymlinkWrites, checksumOf, findSymlinkInPath, temporaryFileMarker, temporaryPathFor, writeFileAtomic } from './fs-safety.mjs';
+import { assertNoSymlinkWrites, checksumOf, findSymlinkInPath, readFileNamed, temporaryFileMarker, temporaryPathFor, writeFileAtomic } from './fs-safety.mjs';
 
 // Record of the last apply that wrote something. `workflow-kit rollback` reads
 // it to undo exactly that run: restore backups (deleted files included),
@@ -50,6 +50,7 @@ const nonWriteOperations = new Set(['unchanged', 'skip_modified', 'skip_unmanage
 // repository stops instead of interleaving its writes and backups. A lock
 // left by a process that no longer runs (killed) is taken over.
 export const applyLockRelativePath = '.agents/workflow-kit/apply.lock';
+const lockRunKinds = new Set(['apply', 'rollback']);
 
 function timestamp(date = new Date()) {
   return date.toISOString().replace(/[-:]/g, '').replace(/\..+$/, 'Z');
@@ -81,7 +82,7 @@ export async function freeBackupStamp(targets, suffix = '') {
 // that folder fails when it gets there, after the journal lists the run.
 async function readIfPresent(file) {
   try {
-    return await fs.readFile(file, 'utf8');
+    return await readFileNamed(file, 'utf8');
   } catch (error) {
     if (error.code === 'ENOENT' || error.code === 'ENOTDIR') return null;
     throw error;
@@ -249,7 +250,9 @@ export async function describeTargetLock(targetPath, now = Date.now()) {
     ageSeconds,
     stale,
     message: stale
-      ? `${applyLockRelativePath} ${holder ? `was left by a workflow-kit run that no longer runs (process ${holder.pid})` : 'cannot be read or is not valid (no usable process id or start time)'}; the next apply or rollback takes it over.`
+      ? (holder && lockRunKinds.has(holder.kind)
+        ? `${applyLockRelativePath} was left by a workflow-kit ${holder.kind} run that was stopped before it finished (process ${holder.pid}). To clean it up, run ${rollbackCommand(path.resolve(targetPath))}: it removes what that run left behind and does not undo an apply that finished. The next apply takes the lock over by itself.`
+        : `${applyLockRelativePath} ${holder ? `was left by a workflow-kit run that no longer runs (process ${holder.pid})` : 'cannot be read or is not valid (no usable process id or start time)'}; the next apply or rollback takes it over.`)
       : `${applyLockRelativePath} is held by process ${holder.pid}${ageSeconds === null ? '' : `, taken ${ageSeconds} s ago`}: a workflow-kit run is changing this repository. ${clearLockAdvice}`
   };
 }

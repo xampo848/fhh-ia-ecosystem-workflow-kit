@@ -1,9 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { rollbackCommand } from './plugin-mode.mjs';
+import { code, kitCommand, rollbackCommand } from './plugin-mode.mjs';
 import { acquireTargetLock, applyJournalProblem, assertLockPathNotSymlinked, findTemporaryLeftovers, assertObservedUnchanged, assertTargetNotLocked, applyJournalRelativePath, applyLockRelativePath, freeBackupStamp, interruptedCode, journalBelongsToLock, observeTarget, removeCreatedDirectories, removeTemporaryLeftovers, staleLockRecord } from './apply.mjs';
-import { checksumOf, copyFileAtomic, findSymlinkInPath, resolveInsideTarget, writeFileAtomic } from './fs-safety.mjs';
-import { installStateRelativePath, readManagedInstallState, selectedTemplateFiles, stackRulesPath, workspaceDirectory } from './planner.mjs';
+import { checksumOf, copyFileAtomic, findSymlinkInPath, readFileNamed, resolveInsideTarget, writeFileAtomic } from './fs-safety.mjs';
+import { explainedPlanning, giveUpRollbackAdvice, installStateRelativePath, readManagedInstallState, selectedTemplateFiles, stackRulesPath, unreadableReason, workspaceDirectory } from './planner.mjs';
 import { pluginSettingsPaths, runtimeEntrypoints, supportedRuntimes } from './runtime-matrix.mjs';
 
 const backupSuffixPattern = /\.workflow-kit-backup-(\d{8}T\d{6}Z)$/;
@@ -15,7 +15,7 @@ const beforeRollbackSuffix = '-before-rollback';
 // A path under a folder that became a file (ENOTDIR) is not there either.
 async function readIfPresent(file) {
   try {
-    return await fs.readFile(file, 'utf8');
+    return await readFileNamed(file, 'utf8');
   } catch (error) {
     if (error.code === 'ENOENT' || error.code === 'ENOTDIR') return null;
     throw error;
@@ -27,21 +27,21 @@ async function readJournal(targetPath) {
   try {
     raw = await readIfPresent(path.join(targetPath, applyJournalRelativePath));
   } catch (readError) {
-    throw new Error(`${applyJournalRelativePath} cannot be read (${readError.code ?? readError.message}). Fix it by hand; Git does not track it. Nothing was changed.`);
+    throw new Error(`${applyJournalRelativePath} cannot be read (${unreadableReason(readError)}), so rollback cannot tell what the last apply wrote, and Git does not track it. To keep the way back, make it a readable file again. ${giveUpRollbackAdvice(targetPath)}. Nothing was changed.`);
   }
   if (raw === null) return null;
   let parsed;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error(`${applyJournalRelativePath} is not valid JSON, so rollback cannot tell what the last apply wrote. Fix the file by hand; Git does not track it. Nothing was changed.`);
+    throw new Error(`${applyJournalRelativePath} is not valid JSON, so rollback cannot tell what the last apply wrote, and Git does not track it. If you have a copy of the file, put it back. ${giveUpRollbackAdvice(targetPath)}. Nothing was changed.`);
   }
   const problem = applyJournalProblem(parsed);
   if (problem === 'version') {
-    throw new Error(`${applyJournalRelativePath} has an unsupported format. Run rollback with the workflow-kit version that wrote it.`);
+    throw new Error(`${applyJournalRelativePath} has an unsupported format (schema ${JSON.stringify(parsed?.schemaVersion ?? null)}). Run rollback with the workflow-kit version that wrote it (a newer one: upgrade the CLI with ${code('workflow-kit upgrade --apply --yes')}, a global command with no --target). ${giveUpRollbackAdvice(targetPath)}. Nothing was changed.`);
   }
   if (problem === 'entries') {
-    throw new Error(`${applyJournalRelativePath} has entries rollback cannot act on. Fix it by hand (Git does not track it). Nothing was changed.`);
+    throw new Error(`${applyJournalRelativePath} has entries rollback cannot act on, and Git does not track it. If you have a copy of the file, put it back. ${giveUpRollbackAdvice(targetPath)}. Nothing was changed.`);
   }
   return parsed;
 }
@@ -55,7 +55,9 @@ async function safeTargetFile(targetPath, relativePath) {
   return absolute;
 }
 
-export async function buildRollbackPlan(options = {}) {
+export const buildRollbackPlan = (options = {}) => explainedPlanning(path.resolve(options.targetPath ?? process.cwd()), () => planRollback(options));
+
+async function planRollback(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   await assertTargetFolder(targetPath);
   await assertTargetNotLocked(targetPath);
@@ -211,12 +213,12 @@ async function buildLegacyRollbackPlan(targetPath) {
     const latestBackup = await findLatestBackup(targetFile);
     if (!latestBackup) continue;
     const current = await readBufferIfPresent(targetFile);
-    const backup = await fs.readFile(latestBackup.backupPath);
+    const backup = await readFileNamed(latestBackup.backupPath);
     // Already the backup's content: nothing to restore (a second run is a no-op).
     if (current !== null && current.equals(backup)) continue;
     operations.push({ relativePath, targetFile, action: 'restore', backupPath: latestBackup.backupPath, ...(current !== null ? { keepsCopy: true } : {}) });
   }
-  return { targetPath, source: 'backups', operations };
+  return { targetPath, source: 'backups', operations, checkedFiles: Object.keys(state?.files ?? {}).length };
 }
 
 // Journals written before 0.23.2 do not record the folders their run created:
@@ -338,7 +340,7 @@ async function markRollbackStarted(journalPath) {
 
 async function readBufferIfPresent(file) {
   try {
-    return await fs.readFile(file);
+    return await readFileNamed(file);
   } catch (error) {
     if (error.code === 'ENOENT') return null;
     throw error;
@@ -364,7 +366,8 @@ export function formatRollbackPlan(plan) {
     return [`${header}`, `A workflow-kit ${plan.stoppedRun} that started ${plan.stoppedAt} was stopped before it finished${plan.stoppedRun === 'apply' ? ' and before it wrote its record' : ''}. This rollback removes only what it left behind (nothing else changes; folders that hold anything stay) and does not undo any apply.${plan.previousJournal ? ' The record of the last finished apply is not touched: run rollback again after this one to undo that apply.' : ' Nothing else is left to roll back.'}`, ...removals].join('\n');
   }
   if (plan.source !== 'journal' && listed.length === 0) {
-    return `${header}\nNo applied run or workflow-kit backup files found for managed paths. Nothing to roll back.`;
+    const checked = plan.checkedFiles === undefined ? 'the managed paths' : `the ${plan.checkedFiles} managed file(s) install-state lists`;
+    return `${header}\nNo applied run or workflow-kit backup files found for managed paths. Nothing to roll back. Checked: ${applyJournalRelativePath} (the record of the last apply) is not there, and no *.workflow-kit-backup-* file sits next to ${checked}. To see the state of the kit, run ${code(kitCommand(plan.targetPath, 'doctor'))}; to bring the kit files to this version, run ${code(kitCommand(plan.targetPath, 'update'))} (dry run first).`;
   }
 
   const lines = listed.map((item) => {
@@ -386,7 +389,7 @@ export function formatRollbackPlan(plan) {
     const initNote = plan.mode === 'init' ? ' That run is the install itself: rolling it back removes the files it installed.' : '';
     scope = `${plan.rollbackStartedAt ? `Finishes the rollback started ${plan.rollbackStartedAt}, which did not finish. ` : ''}Undoes ${run}; ${state}${listed.length === 0 ? '; no file needs restoring or removing' : ''}. The record of that apply is removed.${initNote}`;
   } else {
-    scope = `No apply journal found: restoring the newest backup of each managed file; the current content of each file it replaces is kept first as a ${beforeRollbackSuffix} copy. Created and moved files and install-state stay as they are, so run workflow-kit doctor next. To return to this kit version, run \`workflow-kit update\` (dry run first) and decide each pending file with --edited; \`--edited all=discard\` would also drop every kept edit and the own text of adapters (left in backups).`;
+    scope = `No apply journal found: restoring the newest backup of each managed file; the current content of each file it replaces is kept first as a ${beforeRollbackSuffix} copy. Created and moved files and install-state stay as they are, so run ${code(kitCommand(plan.targetPath, 'doctor'))} next. To return to this kit version, run ${code(kitCommand(plan.targetPath, 'update'))} (dry run first) and decide each pending file with --edited; \`--edited all=discard\` would also drop every kept edit and the own text of adapters (left in backups).`;
   }
   return [header, scope, ...lines].join('\n');
 }

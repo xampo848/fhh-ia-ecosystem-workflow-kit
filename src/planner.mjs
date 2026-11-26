@@ -6,10 +6,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isSupportedRuntime, pluginRuntimes, pluginSettingsPaths, runtimeEntrypoints, runtimeTemplatePaths, supportedRuntimes } from './runtime-matrix.mjs';
 import { defaultProfileFor, loadDelegateCatalog, modelProfileNames, parseProfileOption, renderClaudeAgent, renderCopilotAgent, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
-import { assertPluginRuntimes, carriesKitLocationMarker, code, compareVersionCores, kitLocationBlockName, planPluginSettings, planPluginSettingsRemoval, pluginAdapterContent, pluginName, rollbackCommand, runtimesDeclaringPlugin, withTarget } from './plugin-mode.mjs';
+import { assertPluginRuntimes, carriesKitLocationMarker, code, compareVersionCores, kitCommand, kitLocationBlockName, planPluginSettings, planPluginSettingsRemoval, pluginAdapterContent, pluginName, rollbackCommand, runtimesDeclaringPlugin, shellWord, withTarget } from './plugin-mode.mjs';
 import { inspectProjectInstructions, kitQualityGatePath, neutralInstructionPath, planCopilotWrappers, projectInstructionNames } from './project-instructions.mjs';
 import { describeMigrations } from './plan-insight.mjs';
-import { assertNameLengths, assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, findSymlinkInPath, resolveInsideTarget } from './fs-safety.mjs';
+import { assertNameLengths, assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, describeEnvironmentError, findSymlinkInPath, readFileNamed, resolveInsideTarget } from './fs-safety.mjs';
 import { applyJournalProblem, applyJournalRelativePath, assertLockIsNotFolder, observeTarget, targetLockHolder, unfinishedJournalMessage } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, projectIndexPath, requireMigrationBackups } from './migration.mjs';
@@ -171,12 +171,15 @@ async function resolveProfilesAndAgents({ targetPath, runtimes, files, pluginMod
 // next apply would replace the only way back); `incomplete` when the run
 // stopped halfway. Shared by the init/update gate and doctor.
 
+// Said in words: the journal sits in a repository, not in a program.
+export const unreadableReason = (error) => (error.code === 'EISDIR' ? 'it is a folder, not a file' : ['EACCES', 'EPERM'].includes(error.code) ? 'permission denied' : error.code ?? error.message);
+
 export async function lastApplyProblem(targetPath) {
   let raw;
   try {
     raw = await readOptional(path.join(targetPath, applyJournalRelativePath));
   } catch (readError) {
-    return { kind: 'unusable', reason: readError.code ?? readError.message };
+    return { kind: 'unusable', reason: unreadableReason(readError) };
   }
   if (raw === null) return null;
   let journal;
@@ -194,7 +197,12 @@ export async function lastApplyProblem(targetPath) {
   return { kind: 'incomplete', appliedAt: journal.appliedAt ?? 'unknown date', ...(typeof journal.rollbackStartedAt === 'string' ? { rollback: true, message } : {}) };
 }
 
-export const unusableJournalMessage = (reason) => `${applyJournalRelativePath} cannot be read (${reason}), so rollback cannot use it. Fix it by hand (Git does not track it); only if you will not roll back the last apply, move it out of .agents/workflow-kit/`;
+// Git does not track the journal, so nothing restores it: either the file is
+// made readable, or the user gives up rolling back the last apply by moving
+// it out of the repository. With a target the next step is a command that
+// runs as printed; without one (a generic text) it is named.
+export const giveUpRollbackAdvice = (targetPath) => `To give up rolling back the last apply, move ${applyJournalRelativePath} out of the repository (a move, not a delete: keep it if you may need it) and run ${targetPath == null ? 'workflow-kit doctor' : code(kitCommand(targetPath, 'doctor'))} to check the repository`;
+export const unusableJournalMessage = (reason, targetPath) => `${applyJournalRelativePath} cannot be read (${reason}), so rollback cannot use it, and Git does not track it. To keep the way back, make it a readable file again. ${giveUpRollbackAdvice(targetPath)}`;
 export const incompleteApplyMessage = (appliedAt, targetPath) => `The last workflow-kit apply did not finish (${appliedAt}). Run ${rollbackCommand(targetPath)} first`;
 
 // A journal that did not finish while another run holds the lock is that
@@ -209,7 +217,7 @@ async function assertLastApplyFinished(targetPath) {
     const holder = await targetLockHolder(targetPath);
     if (holder) throw new Error(runInProgressMessage(holder));
   }
-  if (problem?.kind === 'unusable') throw new Error(`${unusableJournalMessage(problem.reason)}. Then run this command again. Nothing was written.`);
+  if (problem?.kind === 'unusable') throw new Error(`${unusableJournalMessage(problem.reason, targetPath)}. Then run this command again. Nothing was written.`);
   if (problem?.kind === 'incomplete') throw new Error(`${problem.message ?? incompleteApplyMessage(problem.appliedAt, targetPath)}, then run this command again. Nothing was written.`);
 }
 
@@ -247,7 +255,11 @@ async function assertTargetFolder(targetPath, { mayCreate = false } = {}) {
   try {
     stat = await fs.stat(targetPath);
   } catch (error) {
+    if (error.code === 'ENOTDIR') throw new Error(`The target ${targetPath} is not usable: a file stands where a folder of that path should be. Check ${mayCreate ? '--output' : '--target'}. Nothing was written.`);
     if (error.code !== 'ENOENT') throw error;
+    // A link to nothing: the folder it names would be created behind it.
+    const link = await fs.lstat(targetPath).then((entry) => entry.isSymbolicLink(), () => false);
+    if (link) throw new Error(`The ${mayCreate ? 'output' : 'target'} ${targetPath} is a symbolic link to a path that does not exist, and workflow-kit does not create folders through symbolic links. Check ${mayCreate ? '--output' : '--target'}: point it at a real folder, or remove the link. Nothing was written.`);
     if (mayCreate) return;
     throw new Error(`The target ${targetPath} does not exist. Check --target; to install into a new repository, create the folder first (for example with \`git init\`). Nothing was written.`);
   }
@@ -356,7 +368,27 @@ function leftOutNote(runtimeList, recordedRuntimes = [], runtime = undefined) {
 }
 const exportIsACopy = (runtimeList) => `An exported folder is a copy of the kit, not an install, so it has no install mode: to use plugin mode, install the kit in a repository with \`workflow-kit init --mode plugin --runtime ${runtimeList} --target <repo>\`.`;
 
-export async function buildInstallPlan(options = {}) {
+// Planning only reads: a file-system problem in the repository (a folder where
+// a file goes, a file nobody may read) stops it with a message that names the
+// path and what to do, and nothing was written.
+export async function explainedPlanning(targetPath, planning) {
+  try {
+    return await planning();
+  } catch (error) {
+    const description = describeEnvironmentError(error, targetPath);
+    if (description === null) throw error;
+    // The journal is not in Git: its own text says how to go on without it.
+    const advice = path.resolve(error.path ?? error.dest ?? '') === path.join(targetPath, applyJournalRelativePath)
+      ? `${unusableJournalMessage(unreadableReason(error), targetPath)}. Then run this command again.`
+      : `${description}, then run this command again.`;
+    throw Object.assign(new Error(`${advice} Nothing was written.`), { code: error.code, cause: error });
+  }
+}
+
+export const buildInstallPlan = (options = {}) => explainedPlanning(path.resolve(options.targetPath ?? process.cwd()), () => planInstall(options));
+export const buildUpdatePlan = (options = {}) => explainedPlanning(path.resolve(options.targetPath ?? process.cwd()), () => planUpdate(options));
+
+async function planInstall(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   await assertTargetFolder(targetPath, { mayCreate: Boolean(options.export) });
   // Read first: the apply checks under its lock that nothing changed since.
@@ -430,7 +462,7 @@ export async function buildInstallPlan(options = {}) {
   };
 }
 
-export async function buildUpdatePlan(options = {}) {
+async function planUpdate(options = {}) {
   const targetPath = path.resolve(options.targetPath ?? process.cwd());
   const stateFilePath = path.join(targetPath, installStateRelativePath);
   await assertTargetFolder(targetPath);
@@ -658,7 +690,7 @@ async function planEditedDecisions({ targetPath, operations, edited, manifest, m
     if (shadow) shadowTargets.set(item.relativePath, shadow);
     if (item.reason === 'unmarked_adapter') {
       const blockName = classifyPath(manifest, item.relativePath)?.block ?? defaultBlockName;
-      const split = splitUnmarkedAdapter(await fs.readFile(item.targetFile, 'utf8'), item.content, blockName);
+      const split = splitUnmarkedAdapter(await readFileNamed(item.targetFile, 'utf8'), item.content, blockName);
       if (split !== null) splitContents.set(item.relativePath, split);
     }
     const applies = { keep: !switching, discard: true, shadow: Boolean(shadow), split: splitContents.has(item.relativePath) };
@@ -878,7 +910,7 @@ async function planKitLocationCleanup({ targetPath, manifest, operations }) {
 
 async function readOptional(file) {
   try {
-    return await fs.readFile(file, 'utf8');
+    return await readFileNamed(file, 'utf8');
   } catch (error) {
     if (error.code === 'ENOENT') return null;
     throw error;
@@ -1038,7 +1070,15 @@ export function selectPlanOperations(plan, selectedRelativePaths = []) {
 }
 
 export async function readManagedInstallState(targetPath = process.cwd(), { manifest } = {}) {
-  return readInstallState(path.join(path.resolve(targetPath), installStateRelativePath), manifest ?? await loadKitManifest());
+  const root = path.resolve(targetPath);
+  try {
+    return await readInstallState(path.join(root, installStateRelativePath), manifest ?? await loadKitManifest());
+  } catch (error) {
+    // Doctor, rollback and the guided menu report this one: no "run again".
+    const description = describeEnvironmentError(error, root);
+    if (description === null) throw error;
+    throw Object.assign(new Error(`${description}.`), { code: error.code, cause: error });
+  }
 }
 
 export function summarizeOperations(operations) {
@@ -1117,7 +1157,11 @@ async function readInstallState(stateFilePath, manifest) {
 
   // A state file that exists but cannot be used is not "no install": treating
   // it as missing would send the user to --adopt-existing over a real install.
-  const unusable = (reason) => new Error(`${installStateRelativePath} ${reason}. Restore it from Git, or upgrade the CLI with \`workflow-kit upgrade --apply --yes\` if a newer version wrote it.`);
+  // The state sits at <target>/.agents/workflow-kit/install-state.json: Git
+  // restores it from there, and a newer workflow-kit that wrote it is met by
+  // upgrading the CLI (global: no --target).
+  const root = path.resolve(stateFilePath, ...installStateRelativePath.split('/').map(() => '..'));
+  const unusable = (reason) => new Error(`${installStateRelativePath} ${reason}. Restore it from Git with ${code(`git -C ${shellWord(root)} restore -- ${installStateRelativePath}`)}, or, if a newer workflow-kit wrote it, upgrade the CLI with ${code('workflow-kit upgrade --apply --yes')} (a global command: no --target). Then run this command again.`);
   let parsed;
   try {
     parsed = JSON.parse(raw);

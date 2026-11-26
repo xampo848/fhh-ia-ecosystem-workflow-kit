@@ -1,8 +1,10 @@
+import fs from 'node:fs/promises';
 import path from 'node:path';
-import { applyInstallPlan, interruptedCode } from '../apply.mjs';
+import { applyInstallPlan, applyJournalRelativePath, interruptedCode } from '../apply.mjs';
 import { formatDoctorResult, runDoctor } from '../doctor.mjs';
 import { buildInstallPlan, buildUpdatePlan, formatPlan } from '../planner.mjs';
-import { formatPluginInstallSteps } from '../plugin-mode.mjs';
+import { describeEnvironmentError } from '../fs-safety.mjs';
+import { code, formatPluginInstallSteps, kitCommand, rollbackCommand } from '../plugin-mode.mjs';
 import { renderPlanDiffs } from '../plan-insight.mjs';
 import { applyRollbackPlan, buildRollbackPlan, formatRollbackPlan, summarizeRollback } from '../rollback.mjs';
 import { runTui } from '../tui.mjs';
@@ -18,7 +20,34 @@ import { formatExportApplySummary, formatInitApplySummary, formatUpdateApplySumm
 // the signal: 130 for SIGINT, 143 for SIGTERM. Returns that code, or the
 // result.
 const signalExitCodes = { SIGINT: 130, SIGTERM: 143 };
-async function applyWithInterrupts(apply, stderr) {
+
+// A file-system problem during an apply or a rollback (a read-only folder, a
+// file nobody may write) names the path and what to do, and says what state
+// the run left: the journal tells whether it wrote anything.
+async function explainApplyFailure(error, targetPath, { rollback }) {
+  const description = describeEnvironmentError(error, targetPath);
+  if (description === null) return error;
+  let journal = null;
+  try {
+    journal = JSON.parse(await fs.readFile(path.join(path.resolve(targetPath), applyJournalRelativePath), 'utf8'));
+  } catch {
+    // No journal, or none that can be read: the run did not get to write one.
+  }
+  const unfinished = journal !== null && typeof journal === 'object' && (journal.completed === false || typeof journal.rollbackStartedAt === 'string');
+  let next;
+  if (rollback) {
+    next = unfinished
+      ? `The rollback stopped partway and its record stays: fix that, then run ${rollbackCommand(targetPath)} again to finish it.`
+      : `Fix that, then run ${code(kitCommand(targetPath, 'rollback'))} (a dry run) to see what is left to roll back, and ${rollbackCommand(targetPath)} to do it.`;
+  } else if (unfinished) {
+    next = `The run stopped partway and its record says it did not finish: run ${rollbackCommand(targetPath)} to undo what it wrote, fix that, then run this command again.`;
+  } else {
+    next = 'The run stopped before it changed any file of the kit, so there is nothing to roll back. Fix that, then run this command again.';
+  }
+  return Object.assign(new Error(`${description}. ${next}`), { code: error.code, cause: error });
+}
+
+async function applyWithInterrupts(apply, stderr, { targetPath, rollback = false } = {}) {
   const controller = new AbortController();
   let received = null;
   const onSignal = (signal) => {
@@ -32,7 +61,7 @@ async function applyWithInterrupts(apply, stderr) {
   try {
     return { result: await apply(controller.signal) };
   } catch (error) {
-    if (error.code !== interruptedCode) throw error;
+    if (error.code !== interruptedCode) throw targetPath === undefined ? error : await explainApplyFailure(error, targetPath, { rollback });
     stderr.write(`${error.message}\n`);
     return { code: signalExitCodes[received] ?? signalExitCodes.SIGINT };
   } finally {
@@ -42,9 +71,7 @@ async function applyWithInterrupts(apply, stderr) {
 
 // A project-scoped plugin install runs inside the repository: the printed
 // step goes there first, so it works from any folder as printed.
-const shellWord = (word) => (/^[\w@%+=:,./-]+$/.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`);
-const pluginInstallStepsIn = (plan) => formatPluginInstallSteps(plan.runtimes)
-  .replace(/^(- [^:\n]+: )(.*--scope project.*)$/gm, (_, label, command) => `${label}cd ${shellWord(plan.targetPath)} && ${command}`);
+const pluginInstallStepsIn = (plan) => formatPluginInstallSteps(plan.runtimes, plan.targetPath);
 
 export async function runInitCommand(options, { stdout, stderr }) {
   const guardMessage = yesGuardMessage(options, 'apply');
@@ -60,7 +87,7 @@ export async function runInitCommand(options, { stdout, stderr }) {
 
   if (!options.apply) return 0;
 
-  const { result: applied, code } = await applyWithInterrupts((signal) => applyInstallPlan(plan, { signal }), stderr);
+  const { result: applied, code } = await applyWithInterrupts((signal) => applyInstallPlan(plan, { signal }), stderr, { targetPath: plan.targetPath });
   if (code !== undefined) return code;
   stdout.write(formatInitApplySummary(applied));
   if (plan.nextInstallState.mode === 'plugin') stdout.write(pluginInstallStepsIn(plan));
@@ -82,7 +109,7 @@ export async function runUpdateCommand(options, { stdout, stderr }) {
 
   if (!options.apply) return 0;
 
-  const { result: applied, code } = await applyWithInterrupts((signal) => applyInstallPlan(plan, { signal }), stderr);
+  const { result: applied, code } = await applyWithInterrupts((signal) => applyInstallPlan(plan, { signal }), stderr, { targetPath: plan.targetPath });
   if (code !== undefined) return code;
   stdout.write(formatUpdateApplySummary(applied));
   if (plan.nextInstallState.mode === 'plugin') stdout.write(pluginInstallStepsIn(plan));
@@ -144,7 +171,7 @@ export async function runExportCommand(options, { stdout, stderr }) {
 
   if (!options.apply) return 0;
 
-  const { result: applied, code } = await applyWithInterrupts((signal) => applyInstallPlan(plan, { signal }), stderr);
+  const { result: applied, code } = await applyWithInterrupts((signal) => applyInstallPlan(plan, { signal }), stderr, { targetPath: plan.targetPath });
   if (code !== undefined) return code;
   stdout.write(formatExportApplySummary(applied));
   return 0;
@@ -171,7 +198,7 @@ export async function runRollbackCommand(options, { stdout, stderr }) {
   // the next update is not stopped by it again.
   if (!options.apply || (plan.operations.length === 0 && plan.source === 'backups')) return 0;
 
-  const { result: results, code } = await applyWithInterrupts((signal) => applyRollbackPlan(plan, { signal }), stderr);
+  const { result: results, code } = await applyWithInterrupts((signal) => applyRollbackPlan(plan, { signal }), stderr, { targetPath: plan.targetPath, rollback: true });
   if (code !== undefined) return code;
   const summary = summarizeRollback(results);
   stdout.write(`Restored files: ${summary.restored}\nRemoved created files: ${summary.removed}\nKept (edited after the apply): ${summary.keptModified}\nNot restorable (no backup): ${summary.withoutBackup}\n`);
