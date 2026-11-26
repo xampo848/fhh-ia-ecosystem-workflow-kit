@@ -70,8 +70,8 @@ Not verified for Claude Code:
 - The install path the docs give people: the marketplace declared in the
   repository (plugin on the branch `plugin`) and
   `claude plugin install fhh@fhh-ia-ecosystem --scope project`. The branch
-  `plugin` is not published yet, so the smoke loaded the plugin with
-  `--plugin-dir` instead.
+  `plugin` is now published, but no real install against it has been run; the
+  smoke loaded the plugin with `--plugin-dir` instead.
 - The real output of `claude plugin list --json`, which `doctor` reads; the
   tests use a stub.
 

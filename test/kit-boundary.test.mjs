@@ -86,7 +86,10 @@ test('path references follow INV-PATH-01', async () => {
   await edit(dir, '.agents/kit-boundary.md', (content) => `${content}\nSee \`.agents/skills/missing/SKILL.md\`, \`.agents/project/notes.md\`, and \`.agents/project/<file>.md\`; \`.agents/project/**\` is fine.\n`);
   await edit(dir, '.agents/project/backend.md', (content) => `${content}\nFollow \`.agents/skills/02-implement/implement-change/SKILL.md\`.\n`);
   await edit(dir, '.agents/instructions.md', (content) => `${content}\nRead \`.agents/project-context.md\`.\n`);
+  // An adapter's kit-owned block is scanned too (a path inside it is the kit's own text).
+  await edit(dir, 'CLAUDE.md', (content) => content.replace('<!-- workflow-kit:managed:end -->', 'Read `.agents/skills/gone-in-adapter/SKILL.md`.\n<!-- workflow-kit:managed:end -->'));
   const failures = await failuresFor(dir);
+  assert.match(failures, /CLAUDE\.md:\d+: \.agents\/skills\/gone-in-adapter\/SKILL\.md does not resolve inside the kit tree/, 'a dangling path inside an adapter block is detected');
   assert.match(failures, /\.agents\/skills\/missing\/SKILL\.md does not resolve inside the kit tree/);
   assert.match(failures, /\.agents\/project\/notes\.md is not in the overlay layout/);
   assert.match(failures, /\.agents\/project\/<file>\.md is not in the overlay layout/);
@@ -154,5 +157,30 @@ test('a project catalog lists only Pattern and Runbook skills, and a runbook kee
     const failures = await failuresFor(dir);
     assert.match(failures, expected, rule);
     if (absent) assert.doesNotMatch(failures, absent, rule);
+  }
+});
+
+test('a runbook carries each of the five mandatory sections as an exact heading', async () => {
+  // Contract: .agents/kit-boundary.md, section "Runbooks"; PRD project-runbooks AC-1.
+  assert.deepEqual(runbookSections, ['## Trigger', '## Preconditions', '## Steps', '## Verification', '## Rollback']);
+  const dir = await fixture();
+  const runbookFile = '.agents/project/skills/runbooks/promote-build/SKILL.md';
+  const template = await fs.readFile(path.join(root, '.agents/skills/06-patterns/authoring/runbook-template.md'), 'utf8');
+  const body = /```markdown\n([\s\S]*?)```/.exec(template)[1].replaceAll('<runbook-name>', 'promote-build');
+  await write(dir, '.agents/project/index.md', skillsTable(['| `promote-build` | Runbook | promote the build | `' + runbookFile + '` | lean |']).join('\n'));
+  await write(dir, runbookFile, body);
+  assert.equal(await failuresFor(dir), '', 'the template body is a valid runbook');
+  for (const section of runbookSections) {
+    const name = section.replace('## ', '');
+    const expected = new RegExp(`promote-build/SKILL\\.md: runbook has no ## ${name} section`);
+    // Heading removed outright.
+    await write(dir, runbookFile, body.replace(`\n${section}\n`, '\n'));
+    assert.match(await failuresFor(dir), expected, `${section} removed`);
+    // The word survives only in prose: not a heading.
+    await write(dir, runbookFile, body.replace(`\n${section}\n`, `\nSee the ${name} notes.\n`));
+    assert.match(await failuresFor(dir), expected, `${name} only in prose`);
+    // A deeper heading is not the exact heading either.
+    await write(dir, runbookFile, body.replace(`\n${section}\n`, `\n#${section}\n`));
+    assert.match(await failuresFor(dir), expected, `${name} as a level-3 heading`);
   }
 });

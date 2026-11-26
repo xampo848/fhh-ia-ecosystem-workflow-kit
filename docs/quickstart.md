@@ -157,12 +157,12 @@ removes the installed version (a branch or tag by name; a full 40-character
 commit hash by fetching it; a short hash only when it is the tip of a branch or
 tag), so a mistyped ref, a network failure or a missing `git` changes nothing.
 To pin a version, pass a tag or, for versions without a tag, a full commit hash
-(the remote has tags only up to `v0.17.3-contract-gaps`; see
+(the remote has a tag for every version from `0.18.0` to `0.23.6`; see
 [Versioning](versioning.md)):
 
 ```bash
-workflow-kit upgrade --ref v0.17.3-contract-gaps --apply --yes
-workflow-kit upgrade --ref 96ec070136314053080535e3c40ce73c874268d7 --apply --yes   # 0.23.3-strict-cli
+workflow-kit upgrade --ref v0.23.6-ac-guards --apply --yes
+workflow-kit upgrade --ref 393756cc0870410304372eeedb48d1d5bc905541 --apply --yes   # same version, by commit
 ```
 
 After that, run `update` in each project you manage to bring its workflow to
@@ -337,12 +337,12 @@ Practical notes:
 
 ## 11. Plugin mode (pilot)
 
-> **Not installable yet.** The plugin marketplace in `main` points at the
-> public branch `plugin`, which is not published. Until the maintainer
-> publishes it and approves its push, `claude plugin install` and
-> `copilot plugin install` fail. `init --mode plugin` itself works (it writes
-> the adapters and the declaration), but the plugin cannot be installed from
-> that declaration yet. See [Versions and publishing](#versions-and-publishing).
+> **Published, not yet verified end to end.** The plugin marketplace in `main`
+> points at the public branch `plugin`, which is published and serves the
+> version in its `plugin.json` (`0.23.6-ac-guards` at the time of writing).
+> Nobody has yet run a real `claude plugin install` against it, so treat the
+> install path as unverified. See
+> [Versions and publishing](#versions-and-publishing).
 
 The kit installs in one of two modes. The kit itself is the same in both.
 
@@ -463,10 +463,12 @@ original is in the backup.
 
 ### Versions and publishing
 
-The marketplace in `main` points at the branch `plugin`, which exists only
-after the first publish and its approved push. Until then, plugin installs
-fail. Claude Code pins a plugin to its version, so people see a kit change
-only when a new version is published, never by following `main`. The release
+The marketplace in `main` points at the branch `plugin`, which is published
+and serves the version in its `plugin.json`. The CLI still prints "The
+marketplace serves the plugin only after the kit's `plugin` branch is
+published; until then these commands fail."; that is program text and is
+unchanged. Claude Code pins a plugin to its version, so people see a kit change
+only when the maintainer publishes a new version, never by following `main`. The release
 steps are in [Versioning](versioning.md).
 
 Everyone who runs `workflow-kit` on a plugin-mode repository needs a CLI with

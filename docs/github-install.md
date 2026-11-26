@@ -36,15 +36,16 @@ workflow-kit export --output /tmp/workflow-kit-export --runtime codex
 
 The commands above install the latest merged version from `main`. To pin a
 version, append a ref: a tag, or the full commit hash of a version that has no
-tag. The remote has tags only up to `v0.17.3-contract-gaps`; later versions
-(`0.18.0` to `0.23.5`) are on `main` without a tag until the maintainer
-creates them. Examples:
+tag. The remote has a tag for every version from `0.18.0` to `0.23.6`; the
+latest is `v0.23.6-ac-guards`. A later version has no tag until the maintainer
+creates it. Examples:
 
 ```bash
 # a version that has a tag
-bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.17.3-contract-gaps
-# a version without a tag: use its commit (here 0.23.3-strict-cli)
-bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#96ec070136314053080535e3c40ce73c874268d7
+bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.23.6-ac-guards
+# fallback for a version without a tag: use its full commit hash
+# (here the commit of 0.23.6-ac-guards)
+bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#393756cc0870410304372eeedb48d1d5bc905541
 ```
 
 See [Versioning](versioning.md) for the tags and the commit of each later
@@ -77,10 +78,11 @@ The repository then holds only the adapters, the plugin declaration and the
 project overlay; each person installs the plugin once per clone
 (`claude plugin install fhh@fhh-ia-ecosystem --scope project`, or
 `copilot plugin install fhh@fhh-ia-ecosystem`). The marketplace in `main`
-points at the branch `plugin`, which exists only after the first publish and
-its approved push, so plugin installs fail before that. Claude Code pins a
-plugin to its version: a kit change reaches people only when a new version is
-published, never by following `main`. Release steps: [Versioning](versioning.md).
+points at the branch `plugin`, which is published and serves the version in
+its `plugin.json` (`0.23.6-ac-guards` at the time of writing). No real
+`claude plugin install` against it has been verified yet. Claude Code pins a
+plugin to its version: a kit change reaches people only when the maintainer
+publishes a new version, never by following `main`. Release steps: [Versioning](versioning.md).
 Commands, stops and `doctor` codes: [Quickstart, plugin mode](quickstart.md#11-plugin-mode-pilot).
 
 ## Access requirements

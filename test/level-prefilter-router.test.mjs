@@ -81,3 +81,28 @@ test('router evals list level test prompts covering every level', async () => {
   assert.deepEqual([...levels].sort(), ['N0', 'N1', 'N2', 'N3']);
   assert.ok(rows.some((row) => row.includes('pr-comments-resolution')), 'a hard-trigger prompt is required');
 });
+
+test('router evals keep contiguous ids through L26 and the levels the PRDs pin', async () => {
+  const copies = [
+    `${routerDir}/reference/router-evals.md`,
+    `templates/repo-overlay-fhh-ia-ecosystem-full/${routerDir}/reference/router-evals.md`
+  ];
+  for (const file of copies) {
+    const evals = await read(file);
+    const block = evals.slice(evals.indexOf('<!-- router-evals:level-prompts:start -->'), evals.indexOf('<!-- router-evals:level-prompts:end -->'));
+    const levelOf = new Map();
+    for (const row of block.split('\n').filter((line) => /^\| L\d+[a-z]? \|/.test(line))) {
+      const [id, , level] = row.split('|').slice(1, -1).map((cell) => cell.trim());
+      levelOf.set(id, level);
+    }
+    const numbers = [...levelOf.keys()].map((id) => Number.parseInt(id.slice(1), 10));
+    const last = Math.max(...numbers);
+    // PRD project-runbooks AC-12 ("L21–L26 son válidas") and the section "Evals L21–L26".
+    assert.ok(last >= 26, `${file}: the last eval id must be at least L26`);
+    for (let n = 1; n <= last; n += 1) assert.ok(levelOf.has(`L${String(n).padStart(2, '0')}`), `${file}: eval L${n} is missing`);
+    // PRD project-runbooks, section "Evals L21–L26": every one of them is N3.
+    for (let n = 21; n <= 26; n += 1) assert.equal(levelOf.get(`L${n}`), 'N3', `${file}: L${n} must stay N3`);
+    // PRD kit-overlay-contract, section "Evidencia de Implementacion" (AC-5): L16 carries a PRD and is N3 by the hazards rule.
+    assert.equal(levelOf.get('L16'), 'N3', `${file}: L16 must stay N3`);
+  }
+});
