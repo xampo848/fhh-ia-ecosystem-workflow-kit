@@ -7,6 +7,22 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.23.6-ac-guards
+
+No change to what the CLI does or to the kit files; in your projects,
+`workflow-kit update` changes only `kit_version`.
+
+- `check:docs` now requires the plugin-mode content of the guides (the
+  `--mode plugin` commands, the plugin install commands, the `mode/*` doctor
+  codes) and the "Rollback" and "Deciding edited files" sections of
+  `docs/migration.md`.
+- New tests defend acceptance rules that could be broken without a failure:
+  retiring kit files on a switch to plugin mode, the exit code and the wait of
+  `claude plugin list` in `doctor`, the validators `check:workflow` runs,
+  seed drift, the manifest against its schema, the sections and the template
+  of runbooks, paths inside adapter blocks, router evals and the wording of
+  the delegate contract.
+
 ## 0.23.5-cli-fixes
 
 Fixes from the independent verification of 0.23.3. In your projects,
