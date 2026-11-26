@@ -1,9 +1,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { rollbackCommand } from './plugin-mode.mjs';
-import { acquireTargetLock, applyJournalProblem, assertObservedUnchanged, assertTargetNotLocked, applyJournalRelativePath, freeBackupStamp, interruptedCode, observeTarget, removeCreatedDirectories, removeTemporaryLeftovers } from './apply.mjs';
+import { acquireTargetLock, applyJournalProblem, assertLockPathNotSymlinked, findTemporaryLeftovers, assertObservedUnchanged, assertTargetNotLocked, applyJournalRelativePath, applyLockRelativePath, freeBackupStamp, interruptedCode, journalBelongsToLock, observeTarget, removeCreatedDirectories, removeTemporaryLeftovers, staleLockRecord } from './apply.mjs';
 import { checksumOf, copyFileAtomic, findSymlinkInPath, resolveInsideTarget, writeFileAtomic } from './fs-safety.mjs';
-import { installStateRelativePath, readManagedInstallState } from './planner.mjs';
+import { installStateRelativePath, readManagedInstallState, selectedTemplateFiles, stackRulesPath, workspaceDirectory } from './planner.mjs';
+import { pluginSettingsPaths, runtimeEntrypoints, supportedRuntimes } from './runtime-matrix.mjs';
 
 const backupSuffixPattern = /\.workflow-kit-backup-(\d{8}T\d{6}Z)$/;
 // Copies a rollback without a journal keeps; never picked as a backup to restore.
@@ -61,7 +62,19 @@ export async function buildRollbackPlan(options = {}) {
   // Read first: the apply of this plan checks under its lock that the
   // journal and install-state are still the ones it was planned from.
   const observed = await observeTarget(targetPath, path.join(targetPath, installStateRelativePath));
+  const stale = await staleLockRecord(targetPath);
   const journal = await readJournal(targetPath);
+  // A run killed before it wrote its journal (an apply) or after it removed it
+  // (a rollback) left only its lock, temporary files and the folders it made.
+  // This rollback cleans exactly that and stops: a journal that is there
+  // belongs to an earlier run and is not touched until the next rollback.
+  if (stale && (journal === null || (stale.kind === 'apply' && !journalBelongsToLock(journal, stale)))) {
+    await assertLockPathNotSymlinked(targetPath);
+    const kit = await kitFolders();
+    const recorded = stale.createdDirectories.filter((folder) => kit.has(folder));
+    const temporaryFiles = await findTemporaryLeftovers(targetPath);
+    return { targetPath, source: 'leftovers', observed, stoppedRun: stale.kind, stoppedAt: stale.startedAt, previousJournal: journal !== null, createdDirectories: recorded, temporaryFiles, removedFolders: await foldersThatGo(targetPath, recorded, [applyLockRelativePath, ...temporaryFiles], journal !== null), operations: [] };
+  }
   if (!journal) return { ...await buildLegacyRollbackPlan(targetPath), observed };
 
   const operations = [];
@@ -133,6 +146,46 @@ export async function buildRollbackPlan(options = {}) {
   };
 }
 
+// Every folder the kit can create: the folders above the files of every
+// template, the runtime entrypoints and plugin settings, the stack rules, the
+// plugin agents, the workspace folder and the kit's own state files. A lock
+// is hand-editable, so a folder it names that is not in this set is never
+// removed. (A folder only an exotic setup creates stays: it is empty, not
+// lost.)
+async function kitFolders() {
+  const files = (await selectedTemplateFiles({ runtimes: supportedRuntimes })).map((file) => file.relativePath);
+  files.push(...Object.values(runtimeEntrypoints).flat(), ...Object.values(pluginSettingsPaths).flat(), stackRulesPath, `${workspaceDirectory}/x`, '.claude/agents/x', '.github/agents/x', installStateRelativePath, applyJournalRelativePath, applyLockRelativePath);
+  const folders = new Set();
+  for (const file of files) {
+    const segments = String(file).split('/').slice(0, -1);
+    segments.forEach((_, index) => folders.add(segments.slice(0, index + 1).join('/')));
+  }
+  return folders;
+}
+
+// The recorded folders that are empty once the lock and the temporary files
+// are gone, as the apply removes them (deepest first, a folder only when what
+// is left in it is removed too). The journal, when there is one, stays.
+async function foldersThatGo(targetPath, recorded, removedFiles, journalStays) {
+  const gone = new Set(removedFiles);
+  const goes = [];
+  const deepestFirst = [...recorded].sort((a, b) => b.split('/').length - a.split('/').length || b.localeCompare(a));
+  for (const folder of deepestFirst) {
+    if (await findSymlinkInPath(targetPath, folder)) continue;
+    let names;
+    try {
+      names = await fs.readdir(path.join(targetPath, folder));
+    } catch {
+      continue;
+    }
+    if (names.every((name) => gone.has(`${folder}/${name}`) && !(journalStays && `${folder}/${name}` === applyJournalRelativePath))) {
+      goes.push(folder);
+      gone.add(folder);
+    }
+  }
+  return goes;
+}
+
 // --target must name a folder that exists: anything else would only give a
 // message about the journal or install-state inside it.
 async function assertTargetFolder(targetPath) {
@@ -186,13 +239,21 @@ export async function applyRollbackPlan(plan, { signal } = {}) {
   const restores = plan.operations.filter((item) => item.action === 'restore');
   const journalPath = path.join(plan.targetPath, applyJournalRelativePath);
   const statePath = path.join(plan.targetPath, installStateRelativePath);
-  const { release } = await acquireTargetLock(plan.targetPath);
+  // The lock records the folders this rollback is about to remove: killed
+  // after it deleted the journal, the next rollback still finishes the job.
+  if (plan.source === 'leftovers') await assertLockPathNotSymlinked(plan.targetPath);
+  const { release } = await acquireTargetLock(plan.targetPath, { kind: 'rollback', record: plan.createdDirectories ?? [] });
   const results = [];
   let stateCopy = null;
   try {
     // Planned before another run applied or rolled back: undoing from this
     // plan would undo the wrong run and orphan the other run's backups.
     await assertObservedUnchanged(plan.observed, plan.targetPath, statePath);
+    if (plan.source === 'leftovers') {
+      // Only the temporary files; the lock and the recorded folders go with the release.
+      await removeTemporaryLeftovers(plan.targetPath);
+      return results;
+    }
     // Recorded before the first change: a rollback stopped at any point
     // (even killed) stops the next init or update, which points back here,
     // and doctor reports it; running rollback again finishes it.
@@ -298,6 +359,10 @@ export function formatRollbackPlan(plan) {
   const listed = plan.operations.filter((item) => item.action !== 'untouched');
   // A journal always has something to undo: at least the journal itself and,
   // when the run wrote it, install-state.
+  if (plan.source === 'leftovers') {
+    const removals = [`remove ${applyLockRelativePath} (the lock the stopped run left)`, ...plan.temporaryFiles.map((file) => `remove ${file} (temporary file of the stopped run)`), ...plan.removedFolders.map((folder) => `remove folder ${folder} (created by the stopped run, empty)`)];
+    return [`${header}`, `A workflow-kit ${plan.stoppedRun} that started ${plan.stoppedAt} was stopped before it finished${plan.stoppedRun === 'apply' ? ' and before it wrote its record' : ''}. This rollback removes only what it left behind (nothing else changes; folders that hold anything stay) and does not undo any apply.${plan.previousJournal ? ' The record of the last finished apply is not touched: run rollback again after this one to undo that apply.' : ' Nothing else is left to roll back.'}`, ...removals].join('\n');
+  }
   if (plan.source !== 'journal' && listed.length === 0) {
     return `${header}\nNo applied run or workflow-kit backup files found for managed paths. Nothing to roll back.`;
   }

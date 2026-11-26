@@ -169,7 +169,7 @@ export async function runRollbackCommand(options, { stdout, stderr }) {
   // A journal is always applied, even with no file left to restore: the
   // previous state comes back and the record of the unfinished run goes, so
   // the next update is not stopped by it again.
-  if (!options.apply || (plan.operations.length === 0 && plan.source !== 'journal')) return 0;
+  if (!options.apply || (plan.operations.length === 0 && plan.source === 'backups')) return 0;
 
   const { result: results, code } = await applyWithInterrupts((signal) => applyRollbackPlan(plan, { signal }), stderr);
   if (code !== undefined) return code;

@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { rollbackCommand } from './plugin-mode.mjs';
-import { assertNoSymlinkWrites, checksumOf, temporaryFileMarker, temporaryPathFor, writeFileAtomic } from './fs-safety.mjs';
+import { assertNoSymlinkWrites, checksumOf, findSymlinkInPath, temporaryFileMarker, temporaryPathFor, writeFileAtomic } from './fs-safety.mjs';
 
 // Record of the last apply that wrote something. `workflow-kit rollback` reads
 // it to undo exactly that run: restore backups (deleted files included),
@@ -104,11 +104,13 @@ export async function missingDirectories(targetPath, directory) {
   return missing;
 }
 
-// Removes the folders a run created, deepest first, when they are empty.
+// Removes the folders a run created, deepest first, when they are empty
+// (never recursive, never through a symbolic link).
 export async function removeCreatedDirectories(targetPath, relativeDirectories) {
   const deepestFirst = [...new Set(relativeDirectories)].sort((a, b) => b.split('/').length - a.split('/').length || b.localeCompare(a));
   for (const relativeDirectory of deepestFirst) {
     try {
+      if (await findSymlinkInPath(targetPath, relativeDirectory)) continue;
       await fs.rmdir(path.join(targetPath, relativeDirectory));
     } catch {
       // Not empty (or already gone): it stays.
@@ -141,6 +143,25 @@ function startOfRunningProcess(pid) {
   return Number.isNaN(started) ? null : started;
 }
 
+// The folders a lock says its run created (`createdDirectories`): relative
+// "/" paths without an empty, `.` or `..` segment, and no more than a journal
+// would list. An apply lock can only have created the folders above the lock
+// file before its journal exists, so it may name no others. A rollback lock
+// also names the folders of the journal it is removing; it never names `.git`.
+// Anything else makes the whole list empty: the lock stays usable, but
+// nothing it names is ever removed.
+const lockedKinds = new Set(['apply', 'rollback']);
+const lockAncestors = (() => {
+  const segments = path.posix.dirname(applyLockRelativePath).split('/');
+  return segments.map((_, index) => segments.slice(0, index + 1).join('/'));
+})();
+function lockedDirectories(value, kind) {
+  const valid = lockedKinds.has(kind) && Array.isArray(value) && value.length <= 200 && value.every((entry) => typeof entry === 'string' && entry.length <= 500
+    && !/[\\\0]/.test(entry) && entry.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..')
+    && (kind === 'apply' ? lockAncestors.includes(entry) : entry.split('/')[0].toLowerCase() !== '.git'));
+  return valid ? [...new Set(value)] : [];
+}
+
 // The lock as a trusted holder, or null when it cannot be read or is not
 // valid: the process id must be a positive integer and the start time, when
 // present, a date. Nothing else of the file is ever repeated in a message (a
@@ -154,7 +175,8 @@ async function readLock(lockPath) {
     return null;
   }
   if (parsed === null || typeof parsed !== 'object' || !Number.isSafeInteger(parsed.pid) || parsed.pid <= 0) return null;
-  const holder = { pid: parsed.pid };
+  const holder = { pid: parsed.pid, createdDirectories: lockedDirectories(parsed.createdDirectories, parsed.kind) };
+  if (lockedKinds.has(parsed.kind)) holder.kind = parsed.kind;
   if (Number.isFinite(parsed.processStartedAt)) holder.processStartedAt = parsed.processStartedAt;
   if (parsed.startedAt !== undefined) {
     const startedAt = typeof parsed.startedAt === 'string' ? new Date(parsed.startedAt) : null;
@@ -179,6 +201,13 @@ const lockFolderError = (targetPath) => Object.assign(new Error(lockFolderMessag
 // Stops when the lock path is a folder.
 export async function assertLockIsNotFolder(targetPath) {
   if (await lockPathIsFolder(targetPath)) throw lockFolderError(targetPath);
+}
+
+// The lock, its temporary files and the folders above it are never reached
+// through a symbolic link: the kit would delete inside another folder.
+export async function assertLockPathNotSymlinked(targetPath) {
+  const link = await findSymlinkInPath(targetPath, applyLockRelativePath);
+  if (link) throw Object.assign(new Error(`${link} is a symbolic link, and workflow-kit will not write or delete through symbolic links (the lock and the files a stopped run left would be changed behind it). Replace the link with a real folder, then run this command again. Nothing was changed.`), { code: 'WORKFLOW_KIT_LOCK_SYMLINK' });
 }
 
 // A lock is stale when what it names cannot be a running workflow-kit: it
@@ -233,6 +262,27 @@ export async function targetLockHolder(targetPath) {
   return lockIsStale(holder) ? null : holder;
 }
 
+// The lock a run that no longer runs left, as far as it is a trusted record
+// of an unfinished run: { kind, pid, startedAt, createdDirectories }, or null
+// (no lock, a lock still held, or one that does not say what run made it).
+// Rollback uses it to clean up after a run that was killed.
+export async function staleLockRecord(targetPath) {
+  const lockPath = path.join(targetPath, applyLockRelativePath);
+  if (!(await exists(lockPath)) || await lockPathIsFolder(targetPath)) return null;
+  const holder = await readLock(lockPath);
+  if (!holder || !holder.kind || typeof holder.startedAt !== 'string' || !lockIsStale(holder)) return null;
+  return { kind: holder.kind, pid: holder.pid, startedAt: holder.startedAt, createdDirectories: holder.createdDirectories };
+}
+
+// Whether `journal` was written by the run that took the lock `record`: the
+// same process, after it took the lock. A journal of an earlier run (the
+// previous finished apply) is not, and a lock whose run died before its first
+// journal write left nothing to undo.
+export function journalBelongsToLock(journal, record) {
+  const appliedAt = Date.parse(journal?.appliedAt ?? '');
+  return journal?.pid === record.pid && !Number.isNaN(appliedAt) && appliedAt >= Date.parse(record.startedAt);
+}
+
 // Stops when a run that is still going holds the target.
 export async function assertTargetNotLocked(targetPath) {
   await assertLockIsNotFolder(targetPath);
@@ -244,16 +294,25 @@ const lockWriteError = (error) => new Error(`Cannot write ${applyLockRelativePat
 
 // Takes the target's lock or stops. The lock is written to a temporary file
 // and linked into place, so it is never seen half-written; a stale one is
-// taken over. Returns the folders made for it and the function that releases
-// it (and removes those folders, when they stay empty).
-export async function acquireTargetLock(targetPath) {
+// taken over. The lock records what kind of run holds it and the folders that
+// run made (and, for a rollback, the ones it is about to remove: `record`), so
+// a run killed before its journal exists, or after the journal is gone, can
+// still be cleaned up by the next rollback. A stale lock's own record is
+// adopted, so the next run cleans those folders too. Returns the folders made
+// for it and the function that releases it (and removes those folders, when
+// they stay empty).
+export async function acquireTargetLock(targetPath, { kind = 'apply', record = [] } = {}) {
   const lockPath = path.join(targetPath, applyLockRelativePath);
-  const createdDirectories = await missingDirectories(targetPath, path.dirname(lockPath));
+  await assertLockPathNotSymlinked(targetPath);
+  const own = await missingDirectories(targetPath, path.dirname(lockPath));
+  const recorded = new Set([...own, ...lockedDirectories(record, 'rollback')]);
   const temporary = temporaryPathFor(lockPath);
+  const startedAt = new Date().toISOString();
+  const lockContent = () => `${JSON.stringify({ pid: process.pid, processStartedAt: processStartedAt(), startedAt, kind, createdDirectories: [...recorded].sort() })}\n`;
   await assertLockIsNotFolder(targetPath);
   try {
     await fs.mkdir(path.dirname(lockPath), { recursive: true });
-    await fs.writeFile(temporary, `${JSON.stringify({ pid: process.pid, processStartedAt: processStartedAt(), startedAt: new Date().toISOString() })}\n`);
+    await fs.writeFile(temporary, lockContent());
   } catch (error) {
     await fs.rm(temporary, { force: true }).catch(() => {});
     if (error.code === 'EACCES' || error.code === 'EPERM' || error.code === 'EROFS') throw lockWriteError(error);
@@ -263,6 +322,7 @@ export async function acquireTargetLock(targetPath) {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         await linkExclusive(temporary, lockPath);
+        const createdDirectories = [...recorded].sort();
         const release = async () => {
           await fs.rm(lockPath, { force: true });
           await removeCreatedDirectories(targetPath, createdDirectories);
@@ -276,6 +336,13 @@ export async function acquireTargetLock(targetPath) {
         await assertLockIsNotFolder(targetPath);
         const holder = await readLock(lockPath);
         if (!lockIsStale(holder)) throw lockedError(holder);
+        // What the dead run made is this run's to clean up now.
+        // Only an apply lock's folders (the ones above the lock file) are
+        // adopted here; a rollback's own record is passed in by the rollback.
+        if (holder?.kind === 'apply') {
+          for (const folder of holder.createdDirectories) recorded.add(folder);
+          await fs.writeFile(temporary, lockContent());
+        }
         await fs.rm(lockPath, { force: true });
       }
     }
@@ -300,7 +367,8 @@ async function linkExclusive(source, target) {
 // The temporary files a killed run left in .agents/workflow-kit/ (its
 // journal, its state, its lock). Called under the lock, so no other run is
 // writing them.
-export async function removeTemporaryLeftovers(targetPath, folders = [path.dirname(applyLockRelativePath)]) {
+export async function findTemporaryLeftovers(targetPath, folders = [path.dirname(applyLockRelativePath)]) {
+  const found = [];
   for (const folder of new Set(folders)) {
     let names;
     try {
@@ -310,10 +378,14 @@ export async function removeTemporaryLeftovers(targetPath, folders = [path.dirna
     }
     for (const name of names) {
       if (!/^\d+$/.test(name.slice(temporaryFileMarker.length)) || !name.startsWith(temporaryFileMarker) || name === `${temporaryFileMarker}${process.pid}`) continue;
-      const file = path.join(targetPath, folder, name);
-      if ((await fs.lstat(file)).isFile()) await fs.rm(file, { force: true });
+      if ((await fs.lstat(path.join(targetPath, folder, name))).isFile()) found.push(path.posix.join(folder.split(path.sep).join('/'), name));
     }
   }
+  return found;
+}
+
+export async function removeTemporaryLeftovers(targetPath, folders = [path.dirname(applyLockRelativePath)]) {
+  for (const relative of await findTemporaryLeftovers(targetPath, folders)) await fs.rm(path.join(targetPath, relative), { force: true });
 }
 
 // The state as the apply writes it, or null when it would only change
