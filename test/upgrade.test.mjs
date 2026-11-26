@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import test from 'node:test';
 import packageJson from '../package.json' with { type: 'json' };
+import { makeTempRepo } from './helpers.mjs';
 import { globalUpgradeWorkingDirectory, isNonBlockingBunRemoveFailure, runUpgradePlan } from '../src/upgrade.mjs';
 
 test('globalUpgradeWorkingDirectory prefers HOME', () => {
@@ -32,7 +33,7 @@ test('isNonBlockingBunRemoveFailure detects missing-package outputs', () => {
 async function withStubs(scripts, body) {
   const fs = await import('node:fs/promises');
   const path = await import('node:path');
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-stubs-'));
+  const dir = await makeTempRepo('workflow-kit-stubs-');
   const log = path.join(dir, 'calls.log');
   for (const [name, script] of Object.entries(scripts)) {
     await fs.writeFile(path.join(dir, name), `#!/bin/sh\necho "${name} $* prompt=$GIT_TERMINAL_PROMPT" >> "${log}"\n${script}\n`, { mode: 0o755 });
@@ -156,7 +157,7 @@ test('upgrade without git on PATH stops before removing workflow-kit and says ho
   const { runCli } = await import('../src/cli.mjs');
   const fs = await import('node:fs/promises');
   const path = await import('node:path');
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'workflow-kit-nogit-'));
+  const dir = await makeTempRepo('workflow-kit-nogit-');
   const log = path.join(dir, 'calls.log');
   await fs.writeFile(path.join(dir, 'bun'), `#!/bin/sh\necho "bun $*" >> "${log}"\nexit 0\n`, { mode: 0o755 });
   const previous = process.env.PATH;

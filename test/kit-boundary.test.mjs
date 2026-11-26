@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { makeTempRepo } from './helpers.mjs';
 import { runbookSections, validateKitBoundary } from '../scripts/validate-kit-boundary.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -11,7 +11,7 @@ const copied = ['.agents', 'templates', 'package.json', 'AGENTS.md', 'CLAUDE.md'
 
 // A disposable copy of the parts of the kit source that the boundary covers.
 async function fixture() {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'kit-boundary-'));
+  const dir = await makeTempRepo('kit-boundary-');
   for (const item of copied) await fs.cp(path.join(root, item), path.join(dir, item), { recursive: true });
   return dir;
 }

@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { makeTempRepo } from './helpers.mjs';
 import {
   buildSkillRegistryArtifacts,
   checkSkillRegistry
@@ -39,7 +39,7 @@ test('checked-in registry artifacts match canonical Markdown', async () => {
 
 test('a kit registry row with the project-only class Runbook fails the check and names the row', async () => {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'skill-registry-'));
+  const dir = await makeTempRepo('skill-registry-');
   const registry = await fs.readFile(path.join(root, '.agents/skills/registry.md'), 'utf8');
   await fs.mkdir(path.join(dir, '.agents/skills'), { recursive: true });
   await fs.writeFile(path.join(dir, '.agents/skills/registry.md'), registry.replace('| `workflow-router` | Workflow |', '| `workflow-router` | Runbook |'));
