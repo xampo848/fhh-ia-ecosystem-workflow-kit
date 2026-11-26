@@ -464,10 +464,10 @@ original is in the backup.
 ### Versions and publishing
 
 The marketplace in `main` points at the branch `plugin`, which is published
-and serves the version in its `plugin.json`. The CLI still prints "The
-marketplace serves the plugin only after the kit's `plugin` branch is
-published; until then these commands fail."; that is program text and is
-unchanged. Claude Code pins a plugin to its version, so people see a kit change
+and serves the version in its `plugin.json`. After an apply, the CLI prints the
+install steps and says that the marketplace serves the version published on
+that branch, which may be older than the CLI until the maintainer publishes
+again; `workflow-kit doctor --target <path>` shows the difference. Claude Code pins a plugin to its version, so people see a kit change
 only when the maintainer publishes a new version, never by following `main`. The release
 steps are in [Versioning](versioning.md).
 

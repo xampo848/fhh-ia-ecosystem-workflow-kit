@@ -91,7 +91,7 @@ export function formatPluginInstallSteps(runtimes, targetPath = undefined) {
   const stepIn = (command) => (targetPath !== undefined && command.includes('--scope project') ? `cd ${shellWord(targetPath)} && ${command}` : command);
   const lines = runtimes.filter((runtime) => pluginRuntimes.includes(runtime))
     .map((runtime) => `- ${runtimeLabels[runtime]}: ${stepIn(pluginInstallCommand(runtime))}`);
-  return `Install the plugin ${pluginName}:\n${lines.join('\n')}\nEach person runs it once per clone of this repository; the repository only declares the plugin.\nThe marketplace serves the plugin only after the kit's \`${pluginBranch}\` branch is published; until then these commands fail.\n`;
+  return `Install the plugin ${pluginName}:\n${lines.join('\n')}\nEach person runs it once per clone of this repository; the repository only declares the plugin.\nThe marketplace serves the version published on the kit's \`${pluginBranch}\` branch, which may be older than this CLI until the maintainer publishes again; run ${code(kitCommand(targetPath, 'doctor'))} to check it.\n`;
 }
 
 // Plugin mode needs at least one runtime and only runtimes with a plugin. The

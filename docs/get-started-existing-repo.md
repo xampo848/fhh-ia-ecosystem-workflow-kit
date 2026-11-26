@@ -76,7 +76,7 @@ During init on an existing repository:
 - `docs/README.md` gets a non-destructive workflow block (idempotent marker block).
 - `docs/workflow/README.md` is created as an initial docs map when missing, and `docs/workflow/standards/` adds setup guides for backend/frontend standards.
 - Project rules are runtime-neutral and live in the project overlay `.agents/project/`, which no update edits: the installer creates `.agents/project/quality-gate.md` (project additions to the kit quality gate), templates for `.agents/project/backend.md` and `.agents/project/frontend.md`, and `.agents/project/context.md`. Existing hand-written `.github/instructions/*.instructions.md` files are migrated with a backup, and Copilot gets generated copies.
-- `.ai-work/` (temporary AI state) and `.agents/workflow-kit/last-apply.json` (the local rollback journal) are added to `.gitignore`.
+- `.ai-work/` (temporary AI state) and `.agents/workflow-kit/last-apply.json` (the local rollback journal) are added to `.gitignore`, together with `*.workflow-kit-backup-*` (the backups kept next to your files) and `.workflow-kit-tmp-*`.
 
 ## 5) Existing docs: one-time intelligent recovery
 

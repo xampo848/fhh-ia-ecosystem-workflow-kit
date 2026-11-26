@@ -1385,6 +1385,14 @@ export function gitignoreHasWorkspaceEntry(content) {
   return gitignoreHasEntry(content, workspaceDirectory);
 }
 
+// Every backup the CLI names is <file>.workflow-kit-backup-<stamp>[suffix]; one
+// pattern on the marker covers them all (the manifest lists the same line).
+export const backupIgnoreEntry = `*${backupFileMarker}*`;
+
+export function gitignoreHasBackupEntry(content) {
+  return gitignoreHasEntry(content, backupIgnoreEntry);
+}
+
 export function gitignoreHasApplyJournalEntry(content) {
   return gitignoreHasEntry(content, applyJournalRelativePath);
 }

@@ -19,7 +19,7 @@ import { pluginRuntimes, pluginSettingsPaths, runtimeEntrypoints, supportedRunti
 import { validateWorkflowContract } from './workflow-contract/index.mjs';
 import { validateAdapterContracts } from './workflow-contract/adapters.mjs';
 import { generatedMarker, loadDelegateCatalog, modelSettingLine, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
-import { projectContextDiagnostics, workspaceDiagnostics } from './workspace-diagnostics.mjs';
+import { backupIgnoreDiagnostics, projectContextDiagnostics, workspaceDiagnostics } from './workspace-diagnostics.mjs';
 import { projectInstructionDiagnostics } from './project-instructions.mjs';
 import { findSymlinkInPath, resolveInsideTarget } from './fs-safety.mjs';
 
@@ -320,7 +320,7 @@ async function installedPluginDiagnostics({ targetPath, executor, timeoutMs }) {
   const install = inTarget(targetPath, pluginInstallCommand('claude'));
   const found = await inspectInstalledPlugins({ targetPath, executor, timeoutMs });
   if (found.status === 'absent') {
-    return [warning('mode/plugin-not-installed', settingsPath, `Claude Code does not list the plugin ${pluginId} as installed, so the kit does not load in this repository. Run ${code(install)}. The marketplace serves the plugin only after the kit's \`${pluginBranch}\` branch is published.`)];
+    return [warning('mode/plugin-not-installed', settingsPath, `Claude Code does not list the plugin ${pluginId} as installed, so the kit does not load in this repository. Run ${code(install)}. The marketplace serves the version published on the kit's \`${pluginBranch}\` branch, which may be older than this CLI.`)];
   }
   if (found.status === 'unverified') {
     return [warning('mode/plugin-install-unverified', settingsPath, `Could not check whether Claude Code has the plugin ${pluginId} installed (${found.reason}). Run ${code(inTarget(targetPath, claudePluginListHint))} to check, and ${code(install)} if it is missing.`)];
@@ -522,6 +522,7 @@ export async function runDoctor(options = {}) {
       : async () => (await validateWorkflowContract({ root: targetPath, runtimes, adviceTarget: targetPath })).diagnostics.map(targetRepoContractDiagnostic),
     () => modelProfileDiagnostics({ targetPath, present, catalog, modelProfiles, updatePlan, recordedRuntimes: storedState?.runtimes ?? [] }),
     () => workspaceDiagnostics({ targetPath }),
+    ...(storedState ? [() => backupIgnoreDiagnostics({ targetPath })] : []),
     () => projectContextDiagnostics({ targetPath, pluginMode }),
     // The Copilot quality-gate wrapper of a plugin install comes from the kit
     // quality gate this CLI ships, as the plan writes it.

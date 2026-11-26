@@ -173,6 +173,7 @@ lives in `.ai-work/<prd-slug>/`, ignored by Git. These warnings never fail
 | Code | Meaning | Action |
 | --- | --- | --- |
 | `workspace/not-ignored` | `.ai-work/` exists but is not in `.gitignore` | run `workflow-kit update`, or add `.ai-work/` |
+| `workspace/backups-not-ignored` | `.gitignore` lacks `*.workflow-kit-backup-*`, so `git add -A` would version the backups | run `workflow-kit update --target <path>`, or add that line |
 | `workspace/closed-prd-leftover` | the PRD is closed but its workspace remains | delete that `.ai-work/<prd-slug>/` directory |
 | `workspace/stale` | no activity for more than 14 days | close, split, or archive the change; an open or blocked change may keep it |
 | `workspace/tracker-is-a-log` | the tracker grew past ~150 lines or repeats history blocks | keep the tracker as a snapshot; history goes to `events.log` |
