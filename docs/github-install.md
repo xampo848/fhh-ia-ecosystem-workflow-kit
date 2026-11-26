@@ -37,7 +37,7 @@ workflow-kit export --output /tmp/workflow-kit-export --runtime codex
 The commands above install the latest merged version from `main`. To pin a
 version, append a ref: a tag, or the full commit hash of a version that has no
 tag. The remote has tags only up to `v0.17.3-contract-gaps`; later versions
-(`0.18.0` to `0.23.5`) are on `main` without a tag until the maintainer
+(`0.18.0` to `0.23.6`) are on `main` without a tag until the maintainer
 creates them. Examples:
 
 ```bash
