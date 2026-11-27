@@ -164,7 +164,7 @@ Stop and ask the user before continuing when:
 - The correlated immutable slice execution lock is absent, `none`, mismatched, incomplete, stale, or `unknown` when `VERIFIED` is requested.
 - A configured quality-gate or required domain-instruction path is missing; report the exact path and stop until it is created or corrected.
 - Coverage evidence for a new or changed branch is missing, ambiguous, or not mapped to an executed assertion in its owning layer ([test-design-rules.md](test-design-rules.md)).
-- A failure is classified as pre-existing/unrelated to the current slice or PRD scope: present exactly three options — (A) repair it now inside this PRD's scope, (B) log it as an explicit residual risk in `## 10. Evidencia de Implementacion` and continue, (C) block closure until it is resolved elsewhere. Do not decide on the user's behalf.
+- A failure is classified as pre-existing/unrelated to the current slice or PRD scope: present exactly three options — (A) repair it now inside this PRD's scope, (B) log it as an explicit residual risk in `## 10. Evidencia de Implementación` and continue, (C) block closure until it is resolved elsewhere. Do not decide on the user's behalf.
 - A `critical`/`high` severity finding, or an authorization/tenancy/destructive-migration gap, is offered a `waived_by_user` resolution without a concretely named risk (see Waiver Floor).
 
 Use this format:

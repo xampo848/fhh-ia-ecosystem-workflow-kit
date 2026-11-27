@@ -57,12 +57,12 @@ test('the PRD carries a minimal Lock visual block inside the Contrato Visual', a
   assert.match(section, /#### Lock visual \(prototipo\)/);
   assert.match(section, /\*\*Lock visual\*\*: N\/A \| estructura \| pixel/);
   assert.match(section, /\*\*Fuente\*\*: \[ruta del HTML o la imagen\]/);
-  assert.ok(section.includes('| Elemento | Fuente | Componente | Decision |'), 'the table header is fixed');
+  assert.ok(section.includes('| Elemento | Fuente | Componente | Decisión |'), 'the table header is fixed');
   assert.match(section, /reference\/visual-lock\.md/);
   const template = await read(`${createPrd}/PRD_TEMPLATE.md`);
   const contract = template.slice(template.indexOf('### 2.7 Contrato Visual'), template.indexOf('### 2.8'));
   assert.match(contract, /`Lock visual: N\/A`/, 'the template says what to write without a prototype');
-  assert.match(template, /- \[ \] Si hay prototipo, cada choque con los patterns tiene decision en el `Lock visual`/);
+  assert.match(template, /- \[ \] Si hay prototipo, cada choque con los patterns tiene decisión en el `Lock visual`/);
 });
 
 test('owning skills point to the visual lock rule and adapters do not carry it', async () => {

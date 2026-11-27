@@ -72,3 +72,25 @@ test('smaller alignments: unanswered questions, the template notice, the route i
     }
   }
 });
+
+test('the PRD template and its sections are written with accents, and the readers of older PRDs are told both spellings are the same', async () => {
+  const unaccented = /\b(Diseno|Tecnico|Aceptacion|Implementacion|Descripcion|Validacion|Migracion|Ubicacion|Decision|Condicion|Activacion|Mitigacion|seccion|razon|linea|lineas|vacios|Limites|duena|dueno|Epica|codigo|segun|revision)\b/;
+  const files = ['PRD_TEMPLATE.md', 'template-sections/data-model.md', 'template-sections/epic-context.md', 'template-sections/visual-contract.md'];
+  for (const name of files) {
+    for (const file of bothCopies(`${createPrd}/${name}`)) {
+      const hit = (await read(file)).split('\n').find((line) => unaccented.test(line));
+      assert.equal(hit, undefined, `${file}: ${hit}`);
+    }
+  }
+  for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
+    const template = await read(file);
+    for (const heading of ['## 3. Diseño Técnico', '### 2.3 Criterios de Aceptación', '## 4. Plan de Implementación por Fases', '### 2.9 Qué queda obsoleto', '## 10. Evidencia de Implementación']) assert.ok(template.includes(heading), `${file}: ${heading}`);
+  }
+  for (const file of bothCopies('.agents/skills/02-implement/implement-change/reference/input-types.md')) {
+    assert.match(await read(file), /written before 0\.24\.2 has its headings without accents: the same sections/, file);
+  }
+  // The reader in the CLI accepts both spellings of section 10.
+  const { workspaceDiagnostics } = await import('../src/workspace-diagnostics.mjs');
+  assert.equal(typeof workspaceDiagnostics, 'function');
+  assert.match(await read('src/workspace-diagnostics.mjs'), /Evidencia de Implementaci\[oó\]n/);
+});

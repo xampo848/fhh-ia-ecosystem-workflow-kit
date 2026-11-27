@@ -64,7 +64,7 @@ fallback for PRDs started before this layout.
 | PRD | a PRD path or "implementa este PRD" | acceptance-criteria coverage matrix |
 | Bug | observed behavior differs from expected | reproduction, a test that fails before the fix and passes after, one-line root cause |
 | Ticket | a ticket id or short acceptance criteria | each acceptance criterion covered by a test or check |
-| Iteration | a change to something already implemented from a PRD | delta against the PRD and its `## 10. Evidencia de Implementacion` |
+| Iteration | a change to something already implemented from a PRD | delta against the PRD and its `## 10. Evidencia de Implementación` |
 
 Read only the matching section of `reference/input-types.md`.
 
@@ -177,7 +177,7 @@ No level, modifier, or user hurry removes these:
 | Level | Closure |
 | --- | --- |
 | N1 | delta tests, regression of the touched area, focused check, short evidence in the PRD or the final response |
-| N2 | N1 + coverage of the acceptance criteria touched + focused QA + `## 10. Evidencia de Implementacion` updated when a PRD exists |
+| N2 | N1 + coverage of the acceptance criteria touched + focused QA + `## 10. Evidencia de Implementación` updated when a PRD exists |
 | N3 | the 12-point Mandatory Closure Contract in `reference/level-n3.md` |
 
 An iteration closes with an "Iteración N" subsection in section 10 instead of

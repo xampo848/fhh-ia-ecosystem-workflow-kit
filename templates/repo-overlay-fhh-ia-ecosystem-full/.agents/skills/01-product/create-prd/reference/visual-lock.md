@@ -25,7 +25,7 @@ primitives, `.agents/project/frontend.md`, `DESIGN.md` when it exists,
 
 The pattern wins on visual language and the prototype wins on structure. The
 prototype wins on a visual aspect only when the user says so explicitly for
-that element; record the decision as `prototipo (explicito)` with the user's
+that element; record the decision as `prototipo (explícito)` with the user's
 words. Never infer it from how polished the prototype looks.
 
 ## 3. Conflicts are resolved in the PRD, never in implementation
@@ -80,14 +80,14 @@ The block lives inside the Contrato Visual (`template-sections/visual-contract.m
 - `Lock visual`: `N/A` (no prototype), `estructura`, or `pixel`.
 - `Fuente`: the path of the HTML file or image, versioned in the repository
   (for example `docs/design/<slug>-mockups/prototipo-v2.html`).
-- Table `Elemento | Fuente | Componente | Decision`, one row per section,
+- Table `Elemento | Fuente | Componente | Decisión`, one row per section,
   field, state, and interaction of the prototype, plus the required states the
   prototype does not draw (empty, loading, error, no permission):
   - `Fuente`: `prototipo` when the row locks structure or content, `pattern`
     when it locks a visual value;
   - `Componente`: an existing component, `componente nuevo`, or
     `componente nuevo: variante ...`;
-  - `Decision`: `default`, `pattern gana: <valor>`, `prototipo (explicito):
+  - `Decisión`: `default`, `pattern gana: <valor>`, `prototipo (explícito):
     <palabras del usuario>`, `prototipo (pixel)`, or
     `pattern update pendiente: <referencia>`.
 

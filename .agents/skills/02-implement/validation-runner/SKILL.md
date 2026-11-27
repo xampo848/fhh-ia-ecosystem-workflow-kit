@@ -62,7 +62,7 @@ instead of guessing one.
 - A failure appears unrelated but blocks completion.
 - Fixing requires changing files outside assigned ownership.
 - A command requires network or environment approval.
-- **A failure is classified as "Pre-existing unrelated failure"**: stop and present exactly these three options to the user — (A) repair it now inside this PRD's scope, (B) log it as an explicit residual risk in `## 10. Evidencia de Implementacion` and continue, (C) block closure until it is resolved elsewhere. Do not choose on the user's behalf and do not continue until a decision is recorded in `unrelated_failures[N]`.
+- **A failure is classified as "Pre-existing unrelated failure"**: stop and present exactly these three options to the user — (A) repair it now inside this PRD's scope, (B) log it as an explicit residual risk in `## 10. Evidencia de Implementación` and continue, (C) block closure until it is resolved elsewhere. Do not choose on the user's behalf and do not continue until a decision is recorded in `unrelated_failures[N]`.
 
 ## Handoff Output
 

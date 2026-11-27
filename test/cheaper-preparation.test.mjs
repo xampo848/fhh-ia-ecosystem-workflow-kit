@@ -56,7 +56,7 @@ test('generated delegate adapters embed the contract summary and stop pointing a
 test('PRD index verifier catches missing ids, missing edge-case categories and a stale PRD', () => {
   const prd = '# PRD\n| AC-1 | a |\n| AC-2 | b |\n| UC-1 | c |\n| P1-S1 | d |\n| INV-AUTH-01 | AC-1 |\n| Datos vacíos | x |\n| Permisos/tenancy | y |\n';
   assert.deepEqual(extractPrdIds(prd), ['AC-1', 'AC-2', 'INV-AUTH-01', 'P1-S1', 'UC-1']);
-  const complete = `prd_sha256: ${prdHash(prd)}\nAC-1,texto\nAC-2,texto\nUC-1\nP1-S1\nINV-AUTH-01\nDatos vacios\nPermisos/tenancy\n`;
+  const complete = `prd_sha256: ${prdHash(prd)}\nAC-1,texto\nAC-2,texto\nUC-1\nP1-S1\nINV-AUTH-01\nDatos vacíos\nPermisos/tenancy\n`;
   assert.equal(verifyPrdIndex({ prd, index: complete }).ok, true);
 
   const missing = verifyPrdIndex({ prd, index: complete.replace('AC-2,texto\n', '').replace('Permisos/tenancy\n', '') });

@@ -117,7 +117,7 @@ test('the PRD template is in one language and carries no stack-shaped example', 
     const hit = (await read(file)).split('\n').find((line) => english.test(line));
     assert.equal(hit, undefined, `${file}: ${hit}`);
     const template = await read(file);
-    assert.ok(template.includes('| ID | Resultado | Depende de | Alcance / archivos probables | Criterios de aceptacion | Casos de uso | Tests | Edge cases | Validacion | Evidencia |'), file);
+    assert.ok(template.includes('| ID | Resultado | Depende de | Alcance / archivos probables | Criterios de aceptación | Casos de uso | Tests | Edge cases | Validación | Evidencia |'), file);
     assert.ok(template.includes('| ID | Dado | Cuando | Entonces | Evidencia esperada |'), file);
     assert.ok(template.includes('**Condiciones de parada**'), file);
   }
@@ -138,7 +138,7 @@ test('a compact PRD drops the traceability matrix and keeps only the Definition 
   }
   for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
     const template = await read(file);
-    assert.match(template.split('## 9. Matriz de Trazabilidad')[1].split('\n## ')[0], /PRD compacto: omitir esta seccion/, file);
+    assert.match(template.split('## 9. Matriz de Trazabilidad')[1].split('\n## ')[0], /PRD compacto: omitir esta sección/, file);
     assert.match(template.split('## 8. Definition of Done Global')[1].split('\n## ')[0], /PRD compacto: dejar solo los items que aplican/, file);
   }
   for (const file of bothCopies('.agents/skills/02-implement/prd-readiness-review/SKILL.md')) {

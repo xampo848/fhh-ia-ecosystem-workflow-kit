@@ -102,7 +102,7 @@ test('router evals keep contiguous ids through L26 and the levels the PRDs pin',
     for (let n = 1; n <= last; n += 1) assert.ok(levelOf.has(`L${String(n).padStart(2, '0')}`), `${file}: eval L${n} is missing`);
     // PRD project-runbooks, section "Evals L21–L26": every one of them is N3.
     for (let n = 21; n <= 26; n += 1) assert.equal(levelOf.get(`L${n}`), 'N3', `${file}: L${n} must stay N3`);
-    // PRD kit-overlay-contract, section "Evidencia de Implementacion" (AC-5): L16 carries a PRD and is N3 by the hazards rule.
+    // PRD kit-overlay-contract, section "Evidencia de Implementación" (AC-5): L16 carries a PRD and is N3 by the hazards rule.
     assert.equal(levelOf.get('L16'), 'N3', `${file}: L16 must stay N3`);
   }
 });

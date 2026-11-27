@@ -217,7 +217,7 @@ test('implement-prd keeps PRD-local coordination artifacts ignored and cleans th
   assert.match(skill, /\.ai-work\/<prd-slug>\/task_tracker\.toon/);
   assert.match(skill, /Nothing temporary goes under `docs\/` or into a PR/);
   assert.match(skill, /`\.ai-work\/<prd-slug>\/` is removed/);
-  assert.match(skill, /Complete `## 10\. Evidencia de Implementacion` in the PRD/);
+  assert.match(skill, /Complete `## 10\. Evidencia de Implementación` in the PRD/);
 });
 
 test('neutral delegation envelope records requested and resolved models independently', async () => {
@@ -315,11 +315,11 @@ test('create-prd requires use cases, test strategy, and edge-case matrix before 
   assert.match(template, /### 2\.4 Casos de Uso/);
   assert.match(template, /### 2\.5 Estrategia de Tests/);
   assert.match(template, /### 2\.6 Matriz de Edge Cases/);
-  assert.match(template, /\| Casos de uso \| Tests \| Edge cases \| Validacion \| Evidencia \|/);
+  assert.match(template, /\| Casos de uso \| Tests \| Edge cases \| Validación \| Evidencia \|/);
   assert.match(skill, /Hard Gate: Class Diagram Is Non-Optional/);
   assert.match(template, /### 3\.2 Diagrama de Clases/);
   assert.match(template, /classDiagram/);
-  assert.match(template, /## 10\. Evidencia de Implementacion/);
+  assert.match(template, /## 10\. Evidencia de Implementación/);
   assert.match(template, /\| Referencia de cambio \|/);
 });
 

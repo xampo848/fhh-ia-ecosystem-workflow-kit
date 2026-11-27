@@ -35,7 +35,7 @@ Map acceptance criteria to tests and make the smallest test additions that would
 
 1. Read every matcher-selected required pattern skill path before designing tests. If a required path is missing, return `blocked`.
 2. If no required pattern skill exists, read the matcher-selected fallback docs and record which were used.
-3. Build an acceptance matrix: criterion, owning layer (the edge-case row's `Capa duena` when the PRD has one), test file, scenario, expected assertion.
+3. Build an acceptance matrix: criterion, owning layer (the edge-case row's `Capa dueña` when the PRD has one), test file, scenario, expected assertion.
 4. Before writing a test, search the existing tests of the same behavior in every layer, by subject name and by rule. If one exists, extend it with a new case instead of writing a parallel test. Same-branch variants go into one table-driven test.
 5. Record whether any matcher-suggested optional capability was actually used and whether it was active.
 6. Backend: use the project's test framework and the factories or fixtures already present, at the owning layer of the rule: the lowest layer that contains it. Entry-point tests prove only authentication, authorization, tenancy, parameter validation, status, and response shape plus one wiring case per rule; job tests prove only their selection, batching, retries, and error handling. **CRITICAL:** follow the test rules in `.agents/project/backend.md` and in `.agents/project/stack.md` when present, including any mandatory guard (for example, an N+1 query detector).
