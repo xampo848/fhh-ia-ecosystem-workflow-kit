@@ -107,6 +107,12 @@ async function planRollback(options = {}) {
       : backupExists ? { ...base, action: 'restore', backupPath } : { ...base, action: 'no_backup', reason: 'backup file is missing' });
 
     if (knowsPrevious) {
+      // A finished apply created it and it is gone: removed by hand after
+      // the run, not a file the run never reached.
+      if (entry.action === 'created' && current === null && journal.completed !== false) {
+        operations.push({ ...base, action: 'keep_modified', gone: true, createdGone: true });
+        continue;
+      }
       const wroteIt = deleted ? current === null : currentChecksum === entry.writtenChecksum;
       if (wroteIt) {
         operations.push(entry.action === 'created' ? { ...base, action: 'remove' } : restoreOrExplain());
@@ -218,17 +224,24 @@ async function assertTargetFolder(targetPath) {
 async function buildLegacyRollbackPlan(targetPath) {
   const state = await readManagedInstallState(targetPath);
   const operations = [];
-  for (const relativePath of Object.keys(state?.files ?? {})) {
+  // The files the kit only merges into (.gitignore, plugin settings) are not
+  // in install-state, and an install backs them up too.
+  const managed = state ? [...new Set([...Object.keys(state.files ?? {}), '.gitignore', ...Object.values(pluginSettingsPaths).flat()])] : [];
+  let matchingBackups = 0;
+  for (const relativePath of managed) {
     const targetFile = await safeTargetFile(targetPath, relativePath);
     const latestBackup = await findLatestBackup(targetFile);
     if (!latestBackup) continue;
     const current = await readBufferIfPresent(targetFile);
     const backup = await readFileNamed(latestBackup.backupPath);
     // Already the backup's content: nothing to restore (a second run is a no-op).
-    if (current !== null && current.equals(backup)) continue;
+    if (current !== null && current.equals(backup)) {
+      matchingBackups += 1;
+      continue;
+    }
     operations.push({ relativePath, targetFile, action: 'restore', backupPath: latestBackup.backupPath, backupStamp: latestBackup.backupStamp, ...(current !== null ? { keepsCopy: true } : {}) });
   }
-  return { targetPath, source: 'backups', operations, checkedFiles: Object.keys(state?.files ?? {}).length };
+  return { targetPath, source: 'backups', operations, checkedFiles: managed.length, matchingBackups };
 }
 
 // How many backups of earlier runs a rollback with --from-backups would
@@ -381,7 +394,8 @@ export function summarizeRollback(results) {
 
 export function formatRollbackPlan(plan) {
   const header = `Target: ${plan.targetPath}`;
-  const listed = plan.operations.filter((item) => item.action !== 'untouched');
+  const removedByHand = plan.operations.filter((item) => item.createdGone).length;
+  const listed = plan.operations.filter((item) => item.action !== 'untouched' && !item.createdGone);
   // A journal always has something to undo: at least the journal itself and,
   // when the run wrote it, install-state.
   if (plan.source === 'leftovers') {
@@ -391,6 +405,9 @@ export function formatRollbackPlan(plan) {
   if (plan.source === 'backups' && (plan.availableBackups?.length ?? 0) > 0) {
     const backups = plan.availableBackups.map((item) => `- ${item.relativePath} <- ${path.basename(item.backupPath)} (backup taken ${stampAsDate(item.backupStamp)})`);
     return [header, `No apply journal found, so there is no applied run to undo. Nothing is restored. ${backups.length} backup file(s) of earlier runs sit next to managed files:`, ...backups, `They may come from a run older than the one you mean to undo (for example the original init). To restore the newest backup of each file anyway, run ${code(kitCommand(plan.targetPath, 'rollback', '--from-backups'))} (a dry run; then add --apply --yes).`].join('\n');
+  }
+  if (plan.source === 'backups' && listed.length === 0 && (plan.matchingBackups ?? 0) > 0) {
+    return `${header}\nNothing to restore: ${plan.matchingBackups} backup file(s) of earlier runs sit next to managed files, and each managed file already has the content of its newest backup. No apply journal is there either, so there is no applied run to undo. To see the state of the kit, run ${code(kitCommand(plan.targetPath, 'doctor'))}.`;
   }
   if (plan.source !== 'journal' && listed.length === 0) {
     const checked = plan.checkedFiles === undefined ? 'the managed paths' : `the ${plan.checkedFiles} managed file(s) install-state lists`;
@@ -403,6 +420,7 @@ export function formatRollbackPlan(plan) {
     if (item.action === 'keep_modified') return `keep ${item.relativePath} (${item.deleted ? 'recreated' : item.gone ? 'removed' : 'edited'} after the last apply; not touched${item.gone && item.keptBackup ? `; its backup ${path.basename(item.keptBackup)} stays` : ''})`;
     return `cannot restore ${item.relativePath} (${item.reason})`;
   });
+  if (removedByHand > 0) lines.push(`${removedByHand} file(s) the last apply created were removed after it; nothing to remove for them.`);
   const untouched = plan.operations.filter((item) => item.action === 'untouched').length;
   if (untouched > 0) lines.push(`${untouched} file(s) the last apply did not change stay as they are${plan.operations.some((item) => item.action === 'untouched' && item.backupPath) ? '; the backups it took of them are removed' : ''}.`);
   let scope;

@@ -116,7 +116,7 @@ apply in both. Example prompts for each phase are in
 | `upgrade` | Updates `workflow-kit` itself (this tool) on your machine; it does not change any project (it needs `git`, and checks the ref before removing the installed version: a full commit hash is fetched, a short one is accepted only as a branch or tag tip). |
 | `export` | Writes the templates to `--output` without treating it as an install. |
 | `doctor` | Checks installed files and workflow semantics; prints stable diagnostic codes. |
-| `rollback` | Undoes the last applied `init`/`update`: restores changed files from their backups, removes files that run created, and restores the previous install state. Without a record of an apply it restores nothing and lists the backups it found; `--from-backups` restores them. |
+| `rollback` | Undoes the last applied `init`/`update`: restores changed files from their backups, removes files that run created, and restores the previous install state. Without a record of an apply it restores nothing and lists the backups it found; `--from-backups` restores them. With `--apply --yes` that case exits with code 3 (backups exist and none was restored); a dry run and "nothing to roll back" exit with 0. |
 | `tui` | Guided menu (in Spanish) for `init`, `update`, `export`, `doctor`, `upgrade` and the optional capabilities; `rollback` is a command only; see [Guided TUI](docs/quickstart.md#6-guided-tui). |
 
 `workflow-kit --help` prints the full usage, and `workflow-kit <command> --help`

@@ -998,7 +998,14 @@ function planAdapter({ base, entry, templateContent, existingContent, recorded, 
   if (existingContent === null) return plan('create', templateContent);
 
   const replaced = replaceManagedBlock(existingContent, templateContent, blockName);
-  if (replaced !== null) return plan(replaced === existingContent ? 'unchanged' : overwriteOperation(backupMode), replaced);
+  if (replaced !== null) {
+    if (replaced === existingContent) return plan('unchanged', replaced);
+    // The kit block is the same as the one recorded, so the only difference
+    // is an edit made inside the block: say so, the plan line alone hides it.
+    const blockEdited = Boolean(recorded?.sha256) && managedBlockChecksum(replaced, blockName) === recorded.sha256
+      && managedBlockChecksum(existingContent, blockName) !== recorded.sha256;
+    return plan(overwriteOperation(backupMode), replaced, blockEdited ? { blockEdited: true } : {});
+  }
 
   // No single valid block. A file the kit wrote before it had markers is
   // recognized by its recorded whole-file hash; anything else recorded is a
@@ -1142,6 +1149,7 @@ export function formatPlan(plan) {
     // A seed exists: the project owns it, the kit leaves it as it is.
     if (item.operation === 'skip_unmanaged' && item.reason === 'project_owned') note = ' (project-owned; left as it is)';
     if (item.untracked) note = ' (kit-location removed; leaves the install as a project file)';
+    if (item.blockEdited) note = ` (its kit block was edited; the kit version replaces it${item.operation === 'overwrite_with_backup' ? ' and the backup keeps the edit' : ''})`;
     if (item.decisions && !migrationListsPending) note = ` (${item.reason}): ${item.decisions.join(' | ')}`;
     if (item.note) note = ` (${item.reason}): ${item.note}`;
     if (item.manualFragment) note = ` (${item.reason}); ${item.manualAction} by hand:\n${item.manualFragment.replace(/^/gm, '    ')}`;

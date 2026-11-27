@@ -121,7 +121,9 @@ export async function projectContextDiagnostics({ targetPath, pluginMode = false
   for (const match of content.matchAll(/`([^`\n]+)`/g)) {
     const candidate = match[1].trim().replace(/\/\*\*$/, '').replace(/\/$/, '');
     const looksLikePath = pathLike.test(candidate) && (candidate.includes('/') || /\.[a-z0-9]{1,5}$/i.test(candidate));
-    if (!looksLikePath || candidate.startsWith('-')) continue;
+    // `../x` is relative to some other file (an import, a test): it cannot
+    // be checked from the repository root, where it points outside.
+    if (!looksLikePath || candidate.startsWith('-') || candidate.startsWith('../')) continue;
     try {
       await fs.access(path.join(targetPath, candidate));
     } catch {

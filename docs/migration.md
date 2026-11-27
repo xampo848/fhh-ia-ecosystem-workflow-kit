@@ -108,7 +108,9 @@ project installed before `0.17.0`, of a removed journal, and of a second
 from a run older than the one you mean to undo, for example the original
 `init`, so restoring them is asked for by name (since `0.24.0`):
 `workflow-kit rollback --target <repo> --from-backups` (a dry run; then add
-`--apply --yes`) restores the newest backup of each managed file. It cannot
+`--apply --yes`) restores the newest backup of each managed file. Since
+`0.24.1`, `rollback --apply --yes` without the flag exits with code 3 when
+backups exist and none was restored. It cannot
 tell which files changed after that backup, so it first keeps the current
 content of
 each file it replaces as a `.workflow-kit-backup-<timestamp>-before-rollback`
