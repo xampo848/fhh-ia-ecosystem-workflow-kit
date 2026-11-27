@@ -558,8 +558,9 @@ export async function runDoctor(options = {}) {
   return {
     ok: missing.length === 0 && !diagnostics.some((item) => item.severity === 'error'),
     missingHint: missing.length > 0 ? missingFilesHint(storedState, targetPath) : null,
-    // No state and not one kit file: the list of every file adds nothing.
-    nothingInstalled: !storedState && present.length === 0,
+    // No state and not one kit file (an own CLAUDE.md or AGENTS.md is not
+    // one): the list of every file adds nothing.
+    nothingInstalled: !storedState && !present.some((relativePath) => ['kit', 'derived'].includes(classifyPath(manifest, relativePath)?.class)),
     // Project files (seeds) an install created and someone deleted: update
     // recreates them from their templates.
     missingProjectFiles: storedState ? missing.filter((relativePath) => storedState.files?.[relativePath]?.class === 'seed') : [],

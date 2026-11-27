@@ -47,7 +47,7 @@ test('the compact PRD target is what the mandatory tables allow, and its numberi
 test('implement-change maps an explicit PRD to a level and does not ask twice', async () => {
   for (const file of bothCopies(implementChange)) {
     const text = await read(file);
-    assert.match(text, /N3 when the PRD names a hazard[^\n]*N1 when it is compact with one slice[^\n]*N2 otherwise/, file);
+    assert.match(text, /escalation rules below[^\n]*N1 when it is compact with one slice[^\n]*N2 otherwise/, file);
     assert.match(text, /"implementa este PRD" is that authorization; offering the execution mode is not a second confirmation/, file);
   }
 });
@@ -110,4 +110,37 @@ test('review: no unaccented template literal is left behind a line wrap, and the
     assert.match(await read(file), /When the user approves the delivered PRD in the conversation, set `Estado: Aprobado`/, file);
   }
   for (const file of bothCopies('.agents/kit-boundary.md')) assert.match(await read(file), /`\.agents\/project\/stack\.md`[^\n]*exception/, file);
+});
+
+test('repair: an explicit PRD takes its level from the one hazard rule, and the state rule is where authorization is read first', async () => {
+  for (const file of bothCopies(implementChange)) {
+    const text = await read(file);
+    assert.doesNotMatch(text, /N3 when the PRD names a hazard \(a contract, data or a migration/, file);
+    assert.match(text, /this skill sets the level itself with the escalation rules below[^\n]*N1 when it is compact with one slice[^\n]*N2 otherwise/, file);
+    assert.equal((text.match(/two or more listed hazards/g) ?? []).length, 1, file);
+  }
+  for (const file of bothCopies(router)) {
+    const row = (await read(file)).split('\n').find((line) => line.startsWith('| PRD implementation |'));
+    assert.match(row, /`Estado` is not `Aprobado`/, file);
+  }
+  for (const file of bothCopies('.agents/instructions.md')) {
+    const text = await read(file);
+    assert.match(text, /"implementa este PRD"\): that imperative is the authorization\. For a PRD, `implement-change` still asks once when its `Estado` is not `Aprobado`\./, file);
+  }
+});
+
+test('repair: no unaccented Spanish word of the reviewed list is left in the PRD template, its sections, or the texts that cite them', async () => {
+  const words = /\b(Modulo|modulo|Integracion|integracion|Area|duena|dueno|extiendelos|Implementacion|Aceptacion|Diseno|Tecnico|Descripcion|Validacion|Migracion|Ubicacion|Decision|Condicion|Activacion|Mitigacion|seccion|razon|linea|vacios|Limites|Epica|codigo|segun|revision|Postcondicion|proximo)\b|\besta (`|implementado|locked)/;
+  const flat = async (file) => (await read(file)).replace(/\s+/g, ' ');
+  const templates = ['PRD_TEMPLATE.md', 'template-sections/data-model.md', 'template-sections/epic-context.md', 'template-sections/visual-contract.md'].map((name) => `${createPrd}/${name}`);
+  for (const name of templates) {
+    for (const file of bothCopies(name)) {
+      const hit = (await read(file)).split('\n').find((line) => words.test(line.replace(/`[^`]*`/g, (span) => (/identifier_language|operacion|\.md|command/.test(span) ? '' : span))));
+      assert.equal(hit, undefined, `${file}: ${hit}`);
+    }
+  }
+  const citing = /Evidencia de Implementacion|Diseno Tecnico|Criterios de Aceptacion|[Cc]apa duena|Que queda obsoleto|extiendelos/;
+  for (const file of [...bothCopies('docs/workflow/README.md'), ...bothCopies('.agents/skills/02-implement/implement-prd/agents/testinator-5000.md'), ...bothCopies('.agents/skills/02-implement/implement-change/reference/level-n2.md'), ...bothCopies('.agents/skills/02-implement/implement-change/reference/input-types.md')]) {
+    assert.doesNotMatch(await flat(file), citing, file);
+  }
 });

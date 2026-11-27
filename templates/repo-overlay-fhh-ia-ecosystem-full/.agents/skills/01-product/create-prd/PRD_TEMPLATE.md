@@ -25,7 +25,7 @@ _Si el PRD pertenece a una épica, insertar aquí las secciones "Contexto de Ép
 
 | Capa                  | Componente    | Archivo           |
 | --------------------- | ------------- | ----------------- |
-| [Modulo/Servicio/...] | [Nombre real] | [ruta/al/archivo] |
+| [Módulo/Servicio/...] | [Nombre real] | [ruta/al/archivo] |
 
 ---
 
@@ -65,7 +65,7 @@ _Si el PRD pertenece a una épica, insertar aquí las secciones "Contexto de Ép
 
 | Nivel | Objetivo | Caso de uso vinculado | Cobertura esperada | Comando o mecanismo de validación |
 | --- | --- | --- | --- | --- |
-| Unidad/Integracion/Contrato/Smoke/E2E | [Qué prueba] | UC-1 | [Cobertura esperada] | `[comando exacto]` |
+| Unidad/Integración/Contrato/Smoke/E2E | [Qué prueba] | UC-1 | [Cobertura esperada] | `[comando exacto]` |
 
 ### 2.6 Matriz de Edge Cases
 
@@ -175,7 +175,7 @@ Los cuatro campos siguientes valen para toda la fase; anotarlos en un slice solo
 
 **Definition of Done**:
 
-- Cada slice esta `VERIFIED`, no solo implementado
+- Cada slice está `VERIFIED`, no solo implementado
 - Los criterios de aceptación de esta fase tienen evidencia
 - Los tests enfocados y las validaciones pasan
 - Los chequeos de calidad que aplican (contrato, tenancy/auth, i18n, rendimiento, rollback) se cumplen o se declaran `No aplica`
@@ -203,7 +203,7 @@ Repetir la estructura completa de la fase anterior. No reemplazar los slices eje
 
 ## 6. Preguntas Abiertas
 
-| #   | Pregunta           | Bloquea | Area   |
+| #   | Pregunta           | Bloquea | Área   |
 | --- | ------------------ | ------- | ------ |
 | 1   | [Pregunta pendiente] | Sí/No   | fase X |
 
@@ -232,7 +232,7 @@ _PRD compacto: dejar solo los items que aplican._
 - [ ] Todo AC tiene al menos un caso de uso vinculado y todo caso de uso tiene al menos un AC vinculado
 - [ ] Todo caso de uso tiene al menos un test en la Estrategia de Tests
 - [ ] La Matriz de Edge Cases cubre las seis categorías obligatorias (o declara `No aplica` con justificación)
-- [ ] Si hay UI visible, el Contrato Visual esta `locked` y `implement-change` no tiene que inventar la pantalla
+- [ ] Si hay UI visible, el Contrato Visual está `locked` y `implement-change` no tiene que inventar la pantalla
 - [ ] Si no hay UI visible, `UI lock: not-applicable` tiene una razón de una línea
 - [ ] Si hay prototipo, cada choque con los patterns tiene decisión en el `Lock visual` y cada elemento tiene componente
 

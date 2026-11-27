@@ -20,7 +20,7 @@ Contexto:
 
 Reglas:
 1. Lee la skill indicada y las instrucciones del repo que apliquen.
-2. Mapea criterios a tests concretos, cada regla en su capa duena; busca tests existentes de la misma regla y extiendelos antes de crear otros.
+2. Mapea criterios a tests concretos, cada regla en su capa dueña; busca tests existentes de la misma regla y extiéndelos antes de crear otros.
 3. Edita solo archivos dentro de tu ownership.
 4. Reporta usando el formato de salida de la skill.
 ```

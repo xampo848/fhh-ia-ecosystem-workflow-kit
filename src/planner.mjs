@@ -974,7 +974,9 @@ const classPlanners = {
 function planOwnedFile({ base, templateContent, rendered, existingContent, recorded, mode, backupMode, catalog, modelProfiles }) {
   const content = (rendered ? null : renderDelegateAdapterForPath(base.relativePath, catalog, modelProfiles)?.content) ?? templateContent;
   const plan = (operation, extra = {}) => ({ ...base, operation, content, stateChecksum: computeChecksum(content), ...extra });
-  if (existingContent === null) return plan('create');
+  // Recorded as installed and gone from disk: named in the plan, never
+  // folded into the count of new files.
+  if (existingContent === null) return plan('create', recorded?.sha256 ? { missingRecorded: true } : {});
   // Content that already equals what this version would write is not a local
   // edit, whatever the state recorded: someone took the new version by hand.
   if (existingContent === content) return plan('unchanged');
@@ -995,7 +997,7 @@ function planOwnedFile({ base, templateContent, rendered, existingContent, recor
 function planAdapter({ base, entry, templateContent, existingContent, recorded, backupMode }) {
   const blockName = entry.block ?? defaultBlockName;
   const plan = (operation, content, extra = {}) => ({ ...base, operation, content, stateChecksum: managedBlockChecksum(content, blockName), ...extra });
-  if (existingContent === null) return plan('create', templateContent);
+  if (existingContent === null) return plan('create', templateContent, recorded?.sha256 ? { missingRecorded: true } : {});
 
   const replaced = replaceManagedBlock(existingContent, templateContent, blockName);
   if (replaced !== null) {
@@ -1153,6 +1155,7 @@ export function formatPlan(plan) {
     // A seed exists: the project owns it, the kit leaves it as it is.
     if (item.operation === 'skip_unmanaged' && item.reason === 'project_owned') note = ' (project-owned; left as it is)';
     if (item.untracked) note = ' (kit-location removed; leaves the install as a project file)';
+    if (item.missingRecorded) note = ' (recorded as installed and missing from disk; created again)';
     if (item.recreated) note = ' (project file that was deleted; created again from its template)';
     if (item.blockEdited) note = ` (its kit block was edited; the kit version replaces it${item.operation === 'overwrite_with_backup' ? ' and the backup keeps the edit' : ''})`;
     if (item.decisions && !migrationListsPending) note = ` (${item.reason}): ${item.decisions.join(' | ')}`;

@@ -231,7 +231,7 @@ test('fix 8: no checkbox line sits directly on a table, and Preguntas Abiertas h
     const section = text.split('## 6. Preguntas Abiertas')[1].split('\n## ')[0];
     assert.doesNotMatch(section, /- \[ \]/, file);
     const done = text.split('## 8. Definition of Done Global')[1].split('\n## ')[0];
-    for (const rule of ['Contrato Visual esta `locked`', '`UI lock: not-applicable`', '`Lock visual`']) assert.ok(done.includes(rule), `${file} keeps ${rule} in the Definition of Done`);
+    for (const rule of ['Contrato Visual está `locked`', '`UI lock: not-applicable`', '`Lock visual`']) assert.ok(done.includes(rule), `${file} keeps ${rule} in the Definition of Done`);
   });
 });
 

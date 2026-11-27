@@ -149,3 +149,40 @@ test('review: a rollback that fails partway still ends with a result line', asyn
     await fs.chmod(folder, 0o755);
   }
 });
+
+// Repair round after the pilot run on this branch.
+test('repair: a plan names every kit file that install-state records and is missing from disk', async () => {
+  const target = await installed();
+  const deleted = ['.agents/instructions.md', '.agents/kit-boundary.md', '.agents/skills/index.md', '.agents/skills/00-router/workflow-router/SKILL.md', 'CLAUDE.md'];
+  for (const file of deleted) await fs.rm(path.join(target, file));
+  const update = await cli('update', '--target', target);
+  for (const file of deleted) {
+    assert.match(update.stdout, new RegExp(`^- create: ${file.replace(/[.]/g, '\\.')} \\(recorded as installed and missing from disk; created again\\)$`, 'm'), file);
+  }
+  // A fresh install has nothing recorded: its creates are still one line.
+  const fresh = await makeTempRepo();
+  const init = await cli('init', '--target', fresh, '--runtime', 'claude');
+  assert.doesNotMatch(init.stdout, /recorded as installed and missing/);
+  assert.match(init.stdout, /^- create: \d+ file\(s\) \(add --all to list them\)$/m);
+});
+
+test('repair: doctor counts instead of listing when no kit file is there, even next to an own CLAUDE.md', async () => {
+  const target = await makeTempRepo();
+  await fs.writeFile(path.join(target, 'CLAUDE.md'), '# Own rules\n');
+  const doctor = await cli('doctor', '--target', target, '--runtime', 'claude');
+  assert.equal(doctor.code, 1);
+  assert.match(doctor.stdout, /^Missing files: \d+ \(not listed: nothing of the kit is here\)$/m);
+  assert.ok(doctor.stdout.split('\n').length < 40, `${doctor.stdout.split('\n').length} lines`);
+});
+
+test('repair: the help says what --all does and which results a rollback prints', async () => {
+  for (const command of ['init', 'update', 'export']) {
+    const help = await cli(command, '--help');
+    assert.match(help.stdout, /--all lists every file/, command);
+  }
+  const general = await cli('--help');
+  assert.match(general.stdout, /--all lists every file/);
+  const rollback = await cli('rollback', '--help');
+  assert.match(rollback.stdout, /Result: rolled-back, restored-from-backups, cleaned-up, nothing-to-undo or backups-not-restored/);
+  assert.match(rollback.stdout, /interrupted or failed/);
+});
