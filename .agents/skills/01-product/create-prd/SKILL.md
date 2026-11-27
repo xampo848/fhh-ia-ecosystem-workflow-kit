@@ -73,7 +73,7 @@ In compact mode:
 - fold Phase 2 and Phase 3 into one short pass when there are no blocking questions;
 - draft and self-audit in one pass only after calibration and pattern lock exist;
 - do not omit acceptance criteria, use cases, test strategy, or the edge-case matrix;
-- keep it proportional: a section that does not apply is one line (`No aplica: <reason>`), never a filled placeholder; a single phase with at most three slices lists one line per slice with the same ten fields as the slice table, instead of the table; aim for 80 to 120 lines and never pad to match the template;
+- keep it proportional: a section that does not apply is one line (`No aplica: <reason>`), never a filled placeholder; a single phase with at most three slices lists one line per slice with the same ten fields as the slice table, instead of the table; omit section 9 (the traceability matrix), since each slice line already names its AC, use cases, and tests; section 8 keeps only the items that apply and section 10 only its table; aim for 80 to 120 lines and never pad to match the template;
 - the class diagram follows its gate below;
 - do not mention `solution-sketch`.
 
@@ -178,7 +178,7 @@ Load and execute [reference/self-audit.md](reference/self-audit.md). This is a h
 Load a reference only when its condition holds:
 
 - [reference/execution-granularity.md](reference/execution-granularity.md) — read it in Phase 4, when writing phases and execution slices
-- [reference/architecture-rules.md](reference/architecture-rules.md) — read it in Phase 4, when the PRD touches the data model, domain placement, enumerations, or tests
+- [reference/architecture-rules.md](reference/architecture-rules.md) — read it in Phase 4, when the PRD has a parent epic, creates or changes persisted entities, or defines enumerations
 - [reference/traceability-tables.md](reference/traceability-tables.md) — read it in Phase 4, when filling the three mandatory traceability tables
 - [reference/quality-bar.md](reference/quality-bar.md) — read it after each round of answers and before delivering the PRD
 - [reference/visual-lock.md](reference/visual-lock.md) — read it in Phase 2 and Phase 4 when the request brings a prototype (HTML or image)

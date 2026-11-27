@@ -101,7 +101,8 @@ criteria touched. Escalate to fresh-context QA when a risk trigger fires.
 If the change altered patterns, validation commands, structure, or exposed an
 environment quirk, the orchestrator proposes a small diff to
 `.agents/project/context.md` (legacy: `.agents/project-context.md`) in the same change. Only the orchestrator edits
-that file, and only at closure.
+that file, and only at closure, except for the initial
+Discovery of the project, which the router runs as project context setup.
 
 Closure: the N1 evidence plus coverage of the touched acceptance criteria,
 focused QA with `ready_to_close: yes`, and `## 10. Evidencia de

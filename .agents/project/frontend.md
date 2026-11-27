@@ -4,9 +4,10 @@
 
 Project rules for frontend work. Delegates that touch this layer read this file;
 runtimes that load instructions from their own folder get a generated copy.
-This file is still the template: replace the placeholders, or delete the file
-if the project has no frontend. Remove the template marker above when it is
-filled in. Stack-specific rules installed from a stack pack live in
+This file is still the template: replace the placeholders. What the code does
+not settle is one line `not determined: <reason>`, never a `[TODO`. Remove the
+template marker above when no `[TODO` is left. If the project has no frontend, do not delete this file: replace its whole content with one line,
+`This project has no frontend.` Stack-specific rules installed from a stack pack live in
 `.agents/project/stack.md`, which exists only when a stack pack was installed
 (`--stack`).
 

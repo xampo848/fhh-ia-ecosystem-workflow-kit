@@ -38,7 +38,7 @@ only the pre-filter's N1 rule in `.agents/instructions.md`; this skill and
 Read `.agents/project/context.md` (legacy: `.agents/project-context.md`) (the project's fixed knowledge base:
 structure, validation commands and their cost, test conventions, environment
 quirks) before exploring code when it exists and is filled in; if it still
-contains `[TODO]` placeholders, say `project context: no configurado` once and
+carries its template marker (`<!-- workflow-kit:project-context:template -->`), say once that the project context is not set up and
 continue. Discovery is a delta over it.
 
 Shared references stay under `../implement-prd/reference/` and are read only in
@@ -71,7 +71,7 @@ Read only the matching section of `reference/input-types.md`.
 ## Step 2 · Confirm the level
 
 The router or the pre-filter proposes the level; this skill confirms it before
-any edit. One classification only: the old operating modes map to levels.
+any edit. With an explicit PRD (a hard trigger, which skips the level signals) this skill sets the level itself, from the PRD's hazards and size. One classification only: the old operating modes map to levels.
 
 | Level | Former mode | Load |
 | --- | --- | --- |

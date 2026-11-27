@@ -1,17 +1,17 @@
-# PRD: [Feature Name]
+# PRD: [Nombre de la funcionalidad]
 
-**Ticket**: [User story or ticket reference]
-**Autor**: [Team or person]
-**Fecha**: [Date]
+**Ticket**: [Historia de usuario o referencia del ticket]
+**Autor**: [Equipo o persona]
+**Fecha**: [Fecha]
 **Estado**: Borrador | En revision | Aprobado
 
 ---
 
 ## 1. Contexto y Objetivo
 
-[2-3 sentences: what problem this solves, what the user wants to achieve]
+[2 o 3 frases: que problema resuelve y que quiere lograr el usuario]
 
-> **Alcance estricto**: [Clear statement of what IS and is NOT in scope for this PRD]
+> **Alcance estricto**: [Que SI entra y que NO entra en este PRD]
 
 **Sketch heredado**: `docs/design/<slug>-sketch.md` | No aplica | `sketch: skipped`
 **UI lock**: locked | not-applicable | missing
@@ -31,7 +31,7 @@ _Si el PRD pertenece a una epica, insertar aqui las secciones "Contexto de Epica
 
 ## 2. Requerimientos Funcionales
 
-### 2.1 [Requirement Group 1]
+### 2.1 [Grupo de requerimientos 1]
 
 [Tabla de entradas, salidas o parametros nuevos; los campos persistidos van en 3.1]:
 
@@ -39,11 +39,11 @@ _Si el PRD pertenece a una epica, insertar aqui las secciones "Contexto de Epica
 | -------- | ---- | ----------- | ----------- |
 | ...      | ...  | ...         | ...         |
 
-### 2.2 Regla de Negocio: [Name]
+### 2.2 Regla de Negocio: [Nombre]
 
-> **Decision confirmada**: [Exact business rule, in one clear paragraph]
+> **Decision confirmada**: [Regla de negocio exacta, en un parrafo claro]
 
-**Condicion de aplicacion**: [When does the rule trigger?]
+**Condicion de aplicacion**: [Cuando se dispara la regla]
 **Alcance de la regla**: [A que elementos aplica y como se identifican]
 **Datos afectados**: [Lista exhaustiva]
 **Datos NO afectados**: [Lista exhaustiva con razon]
@@ -51,34 +51,34 @@ _Si el PRD pertenece a una epica, insertar aqui las secciones "Contexto de Epica
 
 ### 2.3 Criterios de Aceptacion
 
-| ID | Given | When | Then | Evidence expected |
+| ID | Dado | Cuando | Entonces | Evidencia esperada |
 | --- | --- | --- | --- | --- |
-| AC-1 | [Precondition] | [Action/event] | [Observable result] | [Test/contract/smoke evidence] |
+| AC-1 | [Precondicion] | [Accion o evento] | [Resultado observable] | [Test, contrato o smoke que lo prueba] |
 
 ### 2.4 Casos de Uso
 
 | ID | Actor | Precondiciones | Flujo principal | Resultado observable (falsable) | AC vinculado |
 | --- | --- | --- | --- | --- | --- |
-| UC-1 | [Actor] | [Precondition] | [Main flow steps] | [Falsifiable observable result] | AC-1 |
+| UC-1 | [Actor] | [Precondicion] | [Pasos del flujo principal] | [Resultado observable y falsable] | AC-1 |
 
 ### 2.5 Estrategia de Tests
 
 | Nivel | Objetivo | Caso de uso vinculado | Cobertura esperada | Comando o mecanismo de validacion |
 | --- | --- | --- | --- | --- |
-| Unidad/Integracion/Contrato/Smoke/E2E | [What this proves] | UC-1 | [Expected coverage] | `[exact command]` |
+| Unidad/Integracion/Contrato/Smoke/E2E | [Que prueba] | UC-1 | [Cobertura esperada] | `[comando exacto]` |
 
 ### 2.6 Matriz de Edge Cases
 
 | Categoria | Descripcion | Caso de uso vinculado | Capa duena | Validacion | Estado |
 | --- | --- | --- | --- | --- | --- |
-| Datos vacios | [Scenario] | UC-1 | [Query/servicio] | [Test/contract/smoke/evidencia manual] | Pending |
-| Limites | [Scenario] | UC-1 | [Query/servicio] | [Test/contract/smoke/evidencia manual] | Pending |
-| Errores | [Scenario] | UC-1 | [Servicio/entrada HTTP] | [Test/contract/smoke/evidencia manual] | Pending |
-| Permisos/tenancy | [Scenario] | UC-1 | [Entrada HTTP] | [Test/contract/smoke/evidencia manual] | Pending |
-| Concurrencia/orden | [Scenario] | UC-1 | [Servicio/job] | [Test/contract/smoke/evidencia manual] | Pending |
-| Rollout/rollback | [Scenario] | UC-1 | [Despliegue/datos] | [Test/contract/smoke/evidencia manual] | Pending |
+| Datos vacios | [Escenario] | UC-1 | [Query/servicio] | [Test/contract/smoke/evidencia manual] | Pendiente |
+| Limites | [Escenario] | UC-1 | [Query/servicio] | [Test/contract/smoke/evidencia manual] | Pendiente |
+| Errores | [Escenario] | UC-1 | [Servicio/punto de entrada] | [Test/contract/smoke/evidencia manual] | Pendiente |
+| Permisos/tenancy | [Escenario] | UC-1 | [Punto de entrada] | [Test/contract/smoke/evidencia manual] | Pendiente |
+| Concurrencia/orden | [Escenario] | UC-1 | [Servicio/job] | [Test/contract/smoke/evidencia manual] | Pendiente |
+| Rollout/rollback | [Escenario] | UC-1 | [Despliegue/datos] | [Test/contract/smoke/evidencia manual] | Pendiente |
 
-Una categoria sin caso aplicable se marca `No aplica` con una justificacion de una linea basada en el alcance real; nunca se omite en silencio. `Capa duena` es la capa mas baja que contiene la regla (query, servicio, modelo, job, entrada HTTP, componente): el caso se prueba ahi y solo ahi, salvo permisos/tenancy, que siempre se prueban tambien en la entrada HTTP.
+Una categoria sin caso aplicable se marca `No aplica` con una justificacion de una linea basada en el alcance real; nunca se omite en silencio. `Capa duena` es la capa mas baja que contiene la regla (query, servicio, modelo, job, punto de entrada, componente): el caso se prueba ahi y solo ahi, salvo permisos/tenancy, que siempre se prueban tambien en el punto de entrada.
 
 ### 2.7 Contrato Visual (UI lock)
 
@@ -122,19 +122,19 @@ Documentar las clases, entidades, value objects, servicios o interfaces introduc
 
 ```mermaid
 classDiagram
-  class AggregateRoot {
-    +id: UUID
-    +perform(): Result
+  class EntidadPrincipal {
+    +id
+    +operacion(): Resultado
   }
-  class RelatedEntity {
-    +id: UUID
+  class EntidadRelacionada {
+    +id
   }
-  class ApplicationService {
-    +call(input): Result
+  class Servicio {
+    +ejecutar(entrada): Resultado
   }
 
-  AggregateRoot "1" --> "many" RelatedEntity : owns
-  ApplicationService --> AggregateRoot : coordinates
+  EntidadPrincipal "1" --> "muchos" EntidadRelacionada : contiene
+  Servicio --> EntidadPrincipal : coordina
 ```
 
 ### 3.3 Diagrama de Flujo
@@ -150,16 +150,16 @@ flowchart LR
 
 ## 4. Plan de Implementacion por Fases
 
-### Fase 1 - [Name]
+### Fase 1 - [Nombre]
 
-**Objetivo**: [One-sentence goal]
+**Objetivo**: [Meta en una frase]
 
 **Slices ejecutables**:
 
-| ID | Outcome | Depends on | Scope / likely files | Acceptance criteria | Use cases | Tests | Edge cases | Validation | Evidence |
+| ID | Resultado | Depende de | Alcance / archivos probables | Criterios de aceptacion | Casos de uso | Tests | Edge cases | Validacion | Evidencia |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P1-S1 | [One small result] | none | [One responsibility] | AC-1 | UC-1 | [Focused test] | [Edge case row, if any] | `[exact command]` | [Passing output/diff/check] |
-| P1-S2 | [Next small result] | P1-S1 | [One responsibility] | AC-2 | UC-1 | [Focused test] | [Edge case row, if any] | `[exact command]` | [Passing output/diff/check] |
+| P1-S1 | [Un resultado pequeno] | ninguno | [Una responsabilidad] | AC-1 | UC-1 | [Test enfocado] | [Fila de edge case, si hay] | `[comando exacto]` | [Salida en verde, diff o chequeo] |
+| P1-S2 | [Siguiente resultado pequeno] | P1-S1 | [Una responsabilidad] | AC-2 | UC-1 | [Test enfocado] | [Fila de edge case, si hay] | `[comando exacto]` | [Salida en verde, diff o chequeo] |
 
 En un PRD compacto de una sola fase con hasta tres slices, reemplazar la tabla por una linea por slice: `P1-S1: resultado · depende de · archivos · AC · casos de uso · tests · edge cases · validacion · evidencia`.
 
@@ -169,31 +169,27 @@ Los cuatro campos siguientes valen para toda la fase; anotarlos en un slice solo
 **Chequeos de calidad**: [Contrato, tenancy/auth, i18n, rendimiento u otros que apliquen, o `No aplica`]
 **Activacion**: [Paso para datos existentes, comando de despliegue, smoke y nota de rollback, o `No aplica`]
 
-**Slice stop conditions**:
+**Condiciones de parada**:
 
-- [Condition that requires clarification or replanning]
+- [Condicion que obliga a aclarar o replanificar]
 
 **Definition of Done**:
 
-- Every slice is `VERIFIED`, not merely implemented
-- Acceptance criteria assigned to this phase have evidence
-- Focused tests and validations pass
-- Relevant quality checks (contract, tenancy/auth, i18n, performance, rollback) are satisfied or explicitly not applicable
-- No deferred cleanup or unexplained failure is hidden inside the next phase
+- Cada slice esta `VERIFIED`, no solo implementado
+- Los criterios de aceptacion de esta fase tienen evidencia
+- Los tests enfocados y las validaciones pasan
+- Los chequeos de calidad que aplican (contrato, tenancy/auth, i18n, rendimiento, rollback) se cumplen o se declaran `No aplica`
+- No queda limpieza pendiente ni un fallo sin explicar escondido en la fase siguiente
 
----
+### Fase 2 - [Nombre]
 
-### Fase 2 - [Name]
+Repetir la estructura completa de la fase anterior. No reemplazar los slices ejecutables por una lista amplia de entregables.
 
-Repeat the complete phase structure above. Do not replace executable slices with a broad deliverables list.
-
----
-
-### Fase Futura - [Name] _(fuera de alcance de este PRD)_
+### Fase Futura - [Nombre] _(fuera de alcance de este PRD)_
 
 > Sera abordada en PRD separado.
 
-- [Brief description of what will come later]
+- [Descripcion breve de lo que vendra despues]
 
 ---
 
@@ -209,7 +205,7 @@ Repeat the complete phase structure above. Do not replace executable slices with
 
 | #   | Pregunta           | Bloquea | Area   |
 | --- | ------------------ | ------- | ------ |
-| 1   | [Pending question] | Si/No   | fase X |
+| 1   | [Pregunta pendiente] | Si/No   | fase X |
 
 _(Vacio = PRD listo para implementar)_
 
@@ -224,6 +220,8 @@ _(Vacio = PRD listo para implementar)_
 ---
 
 ## 8. Definition of Done Global
+
+_PRD compacto: dejar solo los items que aplican._
 
 - [ ] Todas las fases completadas
 - [ ] `[comando de tests del proyecto, segun .agents/project/context.md o el legacy .agents/project-context.md]` en verde
@@ -242,9 +240,11 @@ _(Vacio = PRD listo para implementar)_
 
 ## 9. Matriz de Trazabilidad
 
-| Acceptance criterion | Caso de uso | Phase / slice | Test evidence | Edge case(s) | Validation evidence | Status |
+_PRD compacto: omitir esta seccion; cada linea de slice ya nombra sus AC, casos de uso y tests._
+
+| Criterio de aceptacion | Caso de uso | Fase / slice | Evidencia de test | Edge case(s) | Evidencia de validacion | Estado |
 | --- | --- | --- | --- | --- | --- | --- |
-| AC-1 | UC-1 | P1-S1 | [test path/name] | [edge case row] | [command/check] | Pending |
+| AC-1 | UC-1 | P1-S1 | [ruta o nombre del test] | [fila de edge case] | [comando o chequeo] | Pendiente |
 
 ---
 

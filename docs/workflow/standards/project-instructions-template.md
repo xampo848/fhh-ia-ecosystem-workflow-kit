@@ -1,89 +1,42 @@
-# Project Runtime Instructions Template
+# Filling in the project instruction files
 
-Use this file as a starter when onboarding workflow-kit into a real product repository.
+Use this guide when onboarding workflow-kit into a real product repository.
 
-Goal: make backend/frontend implementation skills load project-specific rules instead of guessing conventions.
+Goal: make backend and frontend implementation skills load project-specific rules instead of guessing conventions.
 
-## Required files in the target repository
+## The files
 
-The installer creates `.agents/project/quality-gate.md` and templates for the two files below. They are runtime-neutral: every runtime reads them. For GitHub Copilot, `workflow-kit update` generates `.github/instructions/<name>.instructions.md` from each neutral file once it is filled in; to control which files load it, add the Copilot file once with your `applyTo` frontmatter and the installer will keep that frontmatter. Stack-specific rules can come from a stack pack (`--stack rails-react`) in `.agents/project/stack.md`.
-
-Fill these in when those surfaces exist:
+`init` creates these files as templates. They are runtime-neutral: every runtime reads them, and runtimes that load instructions from their own folder get a generated copy.
 
 - `.agents/project/backend.md`
 - `.agents/project/frontend.md`
+- `.agents/project/context.md`
+- `.agents/project/quality-gate.md`
 
-If your project has only one surface (for example backend-only), create only the relevant file and document the missing surface as N/A in your standards docs.
+There is one template for each, the one `init` installs. This guide does not carry a second copy: edit the installed files.
 
-## Backend template
+A template carries a marker line: `<!-- workflow-kit:project-instructions:template -->` in `backend.md` and `frontend.md`, `<!-- workflow-kit:project-context:template -->` in `context.md`. While the marker is there, the workflow treats the file as not filled in and `workflow-kit doctor` reports it for `context.md`.
 
-Create `.agents/project/backend.md`:
+## How to fill them in
 
-```md
-# Backend Instructions
+The quickest way is to ask your agent for the initial Discovery of the project: the router handles it as project context setup, fills the files from a bounded read of the code, and shows you the diff.
 
-## Stack and architecture
-- Language/runtime: <node|ruby|python|go|...>
-- Framework: <express|rails|fastapi|...>
-- Layer boundaries: <controllers/services/repositories/etc>
+By hand, per file:
 
-## Coding rules
-- Naming conventions: <required format>
-- Error handling policy: <exceptions/result objects/http mapping>
-- Data and migrations: <forward/backward compatibility rules>
-- Security rules: <authz/authn/input validation/secrets>
+- Replace every `[TODO` placeholder with a decision of this project. What nobody can settle yet is one line, `not determined: <reason>`, never a leftover `[TODO`.
+- `backend.md` and `frontend.md`: the stack and its layer boundaries, naming and error-handling conventions, the test framework and what every change must cover, and the shortcuts that are forbidden in that layer.
+- `context.md`: the structure map, the validation commands with their cost, the test conventions, the environment quirks, and pointers to longer documents.
+- Remove the marker line when no `[TODO` is left.
+- Longer human-facing standards may live in `docs/workflow/standards/` or elsewhere. Agents reach them only through a pointer in the project file.
 
-## Validation commands
-- Lint: `<command>`
-- Tests: `<command>`
-- Type checks/static analysis: `<command>`
-- Contract checks (if backend serves frontend): `<command>`
+## A layer the project does not have
 
-## Delivery constraints
-- Required tests before merge: <unit/integration/contracts>
-- Performance constraints: <latency, memory, DB query budget>
-- Observability requirements: <logs/metrics/traces>
-
-## Out of scope
-- <what this instruction file should not decide>
-```
-
-## Frontend template
-
-Create `.agents/project/frontend.md`:
-
-```md
-# Frontend Instructions
-
-## Stack and architecture
-- Framework: <react/vue/svelte/...>
-- State/data flow: <query library, state management>
-- UI architecture: <design system/components/tokens>
-
-## Coding and UX rules
-- Accessibility baseline: <WCAG level, keyboard rules>
-- Responsive behavior: <breakpoints/layout constraints>
-- UX writing/tone: <copy and microcopy conventions>
-- Error and empty states: <minimum handling expectations>
-
-## Validation commands
-- Lint/format: `<command>`
-- Unit/integration tests: `<command>`
-- E2E tests: `<command>`
-- Visual or a11y checks: `<command>`
-
-## Contract consumption rules
-- API compatibility expectations: <required response shape handling>
-- Backward compatibility policy: <feature flags/fallback UI>
-
-## Out of scope
-- <what this instruction file should not decide>
-```
+Do not delete the file. Replace its whole content with one line that says so, for example `This project has no frontend.` A deleted file is reported by `workflow-kit doctor` as missing.
 
 ## Fast adoption checklist
 
-1. Create both instruction files (or document one as N/A).
-2. Replace every `<...>` placeholder with project-specific decisions.
-3. Run each validation command locally and ensure it works.
+1. Fill in both instruction files, or leave the one-line note for a layer that does not exist.
+2. Check that no `[TODO` is left and that the marker lines are gone.
+3. Run each validation command locally and make sure it works.
 4. Add the same commands to CI for enforcement.
 5. Link these files from your onboarding and contribution docs.

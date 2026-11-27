@@ -315,7 +315,7 @@ test('create-prd requires use cases, test strategy, and edge-case matrix before 
   assert.match(template, /### 2\.4 Casos de Uso/);
   assert.match(template, /### 2\.5 Estrategia de Tests/);
   assert.match(template, /### 2\.6 Matriz de Edge Cases/);
-  assert.match(template, /\| Use cases \| Tests \| Edge cases \| Validation \| Evidence \|/);
+  assert.match(template, /\| Casos de uso \| Tests \| Edge cases \| Validacion \| Evidencia \|/);
   assert.match(skill, /Hard Gate: Class Diagram Is Non-Optional/);
   assert.match(template, /### 3\.2 Diagrama de Clases/);
   assert.match(template, /classDiagram/);

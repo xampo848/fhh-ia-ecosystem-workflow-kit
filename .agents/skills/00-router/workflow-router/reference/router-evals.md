@@ -45,6 +45,7 @@ router, and recording the result in the PR.
 | L27 | "sí, avanza" (the previous turn ended in `awaiting-user-choice` with one route proposed: `create-prd`) | N2 | create-prd, no second confirmation: the reply authorizes the single proposed route and the answer says which route starts |
 | L28 | "sí" (the previous turn showed a menu of several routes with one marked Recommended) | N2 | stays in awaiting-user-choice and asks which option; a reply such as "la 2" or "la recomendada" authorizes that one |
 | L29 | "Agrega exportar a CSV al listado de pedidos" (no PRD; confidence High for `create-prd`) | N2 | COMPACT trace, proposes create-prd and waits; create-prd is not loaded before the user authorizes it |
+| L30 | "Haz el Discovery inicial del proyecto" (`.agents/project/context.md` still carries its template marker; the project has no frontend) | N2 | direct-edit (project context setup): fills every section of `context.md` and `backend.md`, writes `not determined: <reason>` where the code does not say, leaves `frontend.md` as one line saying the layer does not exist, removes the markers, and shows the diff |
 <!-- router-evals:level-prompts:end -->
 
 Notes:
@@ -65,6 +66,8 @@ Notes:
   proposed (L27), a bare yes to a menu of several covers none (L28), and a
   writing skill is loaded only after its authorization, even at High
   confidence (L29).
+- L30 is the project context setup route: N2, no workflow skill, trace
+  `direct-edit`; nothing is left as `[TODO` and no project file is deleted.
 - Cost posture: the level sets the default; only documentation and
   workflow-maintenance routes may go one step lower.
 - L14 is a bug input touching an API response: reproduce, failing-first test,

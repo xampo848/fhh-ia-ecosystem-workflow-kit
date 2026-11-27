@@ -1,6 +1,6 @@
 # Architecture, Enumeration, and Testing Rules
 
-Part of [SKILL.md](../SKILL.md). Read it in Phase 4, when the PRD touches the data model, domain placement, enumerations, or tests.
+Part of [SKILL.md](../SKILL.md). Read it in Phase 4, when the PRD has a parent epic, creates or changes persisted entities, or defines enumerations.
 
 ### Required architectural rules
 

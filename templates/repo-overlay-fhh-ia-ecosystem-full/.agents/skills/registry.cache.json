@@ -30,7 +30,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/backend-phase-implementer/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "dc8abd9684fb429f7ee4129943825d16890a8c4da8304f292eac1c5e9b8c3a18"
+      "skill_sha256": "645824529f4de2b1cd97c8ca34455565da2ed37b8ca10570da2f3b015e72631a"
     },
     {
       "key": "cavecrew",
@@ -156,7 +156,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "761b211e37e23aea107d401628e1eedadc5bc6d1e4c6941968649ca529b71df8"
+      "skill_sha256": "91fd5025f2d1c39790d45216dfd5074e1c6ec6128c4298825f2013c7e6942ad1"
     },
     {
       "key": "document-development",
@@ -219,7 +219,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-change/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "c6dbde015642ef9aff660040fd92cc8ba7f47f4b20d83ccc07df57339d9d2f00"
+      "skill_sha256": "1150fd57e914e87b66ee66433433d297a39e812667872561ea62fa6002b8bc90"
     },
     {
       "key": "implement-prd",
@@ -291,7 +291,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/prd-readiness-review/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "7ba6aa42b7e1c30f5dc90ecf7911f23c8dac611df5eb09b51a0abcafba8e209a"
+      "skill_sha256": "1c1c51147ca15988506843756ef53a9b96d1b7e4fbfcc8d884fb51eb4c25d3a4"
     },
     {
       "key": "project-formation",
@@ -399,7 +399,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "2356eb94a376de093c30b060924fda632c6af0dfc42c1191a0e0e1b0536a2991"
+      "skill_sha256": "fb38509ec550774f23f84b7a31fbdba4f6548700bd8adfddcdacadd37d83504c"
     }
   ]
 }

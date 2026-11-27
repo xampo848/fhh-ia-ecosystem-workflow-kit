@@ -10,7 +10,8 @@ with a small diff in the same PR. Point to other documents; do not copy them.
 This file is still the template. Ask your agent for the initial
 Discovery of the project (the router handles it as project context setup) and
 review the diff before relying on it.
-Remove the template marker above when it is filled in.
+What the code does not settle is one line `not determined: <reason>`, never a
+`[TODO`. Remove the template marker above when no `[TODO` is left.
 
 ## Structure map
 

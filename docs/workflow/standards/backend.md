@@ -37,6 +37,6 @@ When your repository has backend code, provide:
 
 - `.agents/project/backend.md`
 
-Use `docs/workflow/standards/project-instructions-template.md` as a starter and adapt it to your stack. Longer human-facing standards may live in this folder; agents reach them only through a pointer in that file.
+`init` creates that file as a template; `docs/workflow/standards/project-instructions-template.md` says how to fill it in. Longer human-facing standards may live in this folder; agents reach them only through a pointer in that file.
 
 Keep this document technology-neutral and add repository-specific rules below this line. Agents only see what `.agents/project/backend.md` states or points to, so put a pointer there.
