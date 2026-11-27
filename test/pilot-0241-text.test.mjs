@@ -145,3 +145,14 @@ test('a compact PRD drops the traceability matrix and keeps only the Definition 
     assert.match(await read(file), /no traceability matrix \(section 9\)/, file);
   }
 });
+
+test('review: the slice fields are listed in the order of the template columns, and no English placeholder is left', async () => {
+  for (const file of bothCopies(`${createPrd}/reference/execution-granularity.md`)) {
+    const fields = (await read(file)).split('\n').filter((line) => /\| Slice table \|/.test(line)).map((line) => line.split('|')[1].trim());
+    assert.deepEqual(fields, ['ID', 'Outcome', 'Depends on', 'Scope', 'Acceptance criteria', 'Use cases', 'Tests', 'Edge cases', 'Validation', 'Evidence'], file);
+  }
+  for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
+    const hit = (await read(file)).split('\n').find((line) => /Test\/contract\/smoke|\[`command`/.test(line));
+    assert.equal(hit, undefined, `${file}: ${hit}`);
+  }
+});

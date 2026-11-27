@@ -31,9 +31,9 @@ Each execution slice must state the fields below. The ten columns of the slice t
 | Acceptance criteria | Slice table | PRD criterion IDs covered |
 | Use cases | Slice table | PRD use-case IDs (`UC-N`) this slice implements or verifies |
 | Tests | Slice table | Focused automated tests to add or update, inherited from the PRD Estrategia de Tests rows for the linked use cases |
+| Edge cases | Slice table | PRD edge-case matrix rows this slice must satisfy, if any |
 | Validation | Slice table | Exact narrow command or check |
 | Quality checks | Phase block | Relevant tenancy, auth, i18n, contract, performance, SOLID/DRY/KISS checks |
-| Edge cases | Slice table | PRD edge-case matrix rows this slice must satisfy, if any |
 | Evidence | Slice table | Artifact/output needed to mark the slice verified |
 | Stop conditions | Phase block | Ambiguities or failures that prohibit continuing |
 | Activation | Phase block | Existing-data bootstrap/backfill/repair step, deploy command, smoke target, rollback note |

@@ -108,8 +108,9 @@ async function planRollback(options = {}) {
 
     if (knowsPrevious) {
       // A finished apply created it and it is gone: removed by hand after
-      // the run, not a file the run never reached.
-      if (entry.action === 'created' && current === null && journal.completed !== false) {
+      // the run, not a file the run never reached. A rollback that already
+      // started may have removed it itself, so it says nothing then.
+      if (entry.action === 'created' && current === null && journal.completed !== false && typeof journal.rollbackStartedAt !== 'string') {
         operations.push({ ...base, action: 'keep_modified', gone: true, createdGone: true });
         continue;
       }
@@ -226,9 +227,13 @@ async function buildLegacyRollbackPlan(targetPath) {
   const operations = [];
   // The files the kit only merges into (.gitignore, plugin settings) are not
   // in install-state, and an install backs them up too.
-  const managed = state ? [...new Set([...Object.keys(state.files ?? {}), '.gitignore', ...Object.values(pluginSettingsPaths).flat()])] : [];
+  const recorded = Object.keys(state?.files ?? {});
+  const merged = state ? ['.gitignore', ...Object.values(pluginSettingsPaths).flat()].filter((relativePath) => !recorded.includes(relativePath)) : [];
   let matchingBackups = 0;
-  for (const relativePath of managed) {
+  for (const relativePath of [...recorded, ...merged]) {
+    // A merged file behind a symbolic link is never written by the kit, so
+    // it has no backup of its own to offer: skipped, not an error.
+    if (merged.includes(relativePath) && await findSymlinkInPath(targetPath, relativePath)) continue;
     const targetFile = await safeTargetFile(targetPath, relativePath);
     const latestBackup = await findLatestBackup(targetFile);
     if (!latestBackup) continue;
@@ -241,7 +246,7 @@ async function buildLegacyRollbackPlan(targetPath) {
     }
     operations.push({ relativePath, targetFile, action: 'restore', backupPath: latestBackup.backupPath, backupStamp: latestBackup.backupStamp, ...(current !== null ? { keepsCopy: true } : {}) });
   }
-  return { targetPath, source: 'backups', operations, checkedFiles: managed.length, matchingBackups };
+  return { targetPath, source: 'backups', operations, checkedFiles: recorded.length, matchingBackups };
 }
 
 // How many backups of earlier runs a rollback with --from-backups would
@@ -384,11 +389,15 @@ async function readBufferIfPresent(file) {
 }
 
 export function summarizeRollback(results) {
+  // Files a finished apply created and someone removed by hand: counted
+  // apart (and only when there are any), never as "kept (edited)".
+  const alreadyGone = results.filter((item) => item.createdGone).length;
   return {
     restored: results.filter((item) => item.restored).length,
     removed: results.filter((item) => item.removed).length,
-    keptModified: results.filter((item) => item.action === 'keep_modified').length,
-    withoutBackup: results.filter((item) => item.action === 'no_backup').length
+    keptModified: results.filter((item) => item.action === 'keep_modified' && !item.createdGone).length,
+    withoutBackup: results.filter((item) => item.action === 'no_backup').length,
+    ...(alreadyGone > 0 ? { alreadyGone } : {})
   };
 }
 

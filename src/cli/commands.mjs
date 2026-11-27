@@ -208,7 +208,7 @@ export async function runRollbackCommand(options, { stdout, stderr }) {
   const { result: results, code } = await applyWithInterrupts((signal) => applyRollbackPlan(plan, { signal }), stderr, { targetPath: plan.targetPath, rollback: true });
   if (code !== undefined) return code;
   const summary = summarizeRollback(results);
-  stdout.write(`Restored files: ${summary.restored}\nRemoved created files: ${summary.removed}\nKept (edited after the apply): ${summary.keptModified}\nNot restorable (no backup): ${summary.withoutBackup}\n`);
+  stdout.write(`Restored files: ${summary.restored}\nRemoved created files: ${summary.removed}\nKept (edited after the apply): ${summary.keptModified}\nNot restorable (no backup): ${summary.withoutBackup}\n${summary.alreadyGone > 0 ? `Already removed by hand: ${summary.alreadyGone}\n` : ''}`);
   const copies = results.filter((item) => item.keptCopy).map((item) => path.relative(plan.targetPath, item.keptCopy).split(path.sep).join('/'));
   if (copies.length > 0) stdout.write(`Copies of the replaced content (${copies.length}):\n${copies.map((copy) => `- ${copy}`).join('\n')}\n`);
   return 0;

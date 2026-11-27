@@ -71,12 +71,12 @@ _Si el PRD pertenece a una epica, insertar aqui las secciones "Contexto de Epica
 
 | Categoria | Descripcion | Caso de uso vinculado | Capa duena | Validacion | Estado |
 | --- | --- | --- | --- | --- | --- |
-| Datos vacios | [Escenario] | UC-1 | [Query/servicio] | [Test/contract/smoke/evidencia manual] | Pendiente |
-| Limites | [Escenario] | UC-1 | [Query/servicio] | [Test/contract/smoke/evidencia manual] | Pendiente |
-| Errores | [Escenario] | UC-1 | [Servicio/punto de entrada] | [Test/contract/smoke/evidencia manual] | Pendiente |
-| Permisos/tenancy | [Escenario] | UC-1 | [Punto de entrada] | [Test/contract/smoke/evidencia manual] | Pendiente |
-| Concurrencia/orden | [Escenario] | UC-1 | [Servicio/job] | [Test/contract/smoke/evidencia manual] | Pendiente |
-| Rollout/rollback | [Escenario] | UC-1 | [Despliegue/datos] | [Test/contract/smoke/evidencia manual] | Pendiente |
+| Datos vacios | [Escenario] | UC-1 | [Query/servicio] | [Test, contrato, smoke o evidencia manual] | Pendiente |
+| Limites | [Escenario] | UC-1 | [Query/servicio] | [Test, contrato, smoke o evidencia manual] | Pendiente |
+| Errores | [Escenario] | UC-1 | [Servicio/punto de entrada] | [Test, contrato, smoke o evidencia manual] | Pendiente |
+| Permisos/tenancy | [Escenario] | UC-1 | [Punto de entrada] | [Test, contrato, smoke o evidencia manual] | Pendiente |
+| Concurrencia/orden | [Escenario] | UC-1 | [Servicio/job] | [Test, contrato, smoke o evidencia manual] | Pendiente |
+| Rollout/rollback | [Escenario] | UC-1 | [Despliegue/datos] | [Test, contrato, smoke o evidencia manual] | Pendiente |
 
 Una categoria sin caso aplicable se marca `No aplica` con una justificacion de una linea basada en el alcance real; nunca se omite en silencio. `Capa duena` es la capa mas baja que contiene la regla (query, servicio, modelo, job, punto de entrada, componente): el caso se prueba ahi y solo ahi, salvo permisos/tenancy, que siempre se prueban tambien en el punto de entrada.
 
@@ -258,7 +258,7 @@ Esta seccion es el registro durable de cierre: un resumen, no una bitacora. `imp
 | --- | --- |
 | Cambios entregados | [Resumen concreto y rutas relevantes] |
 | Criterios de aceptacion | [AC-N: COMPLETE/BLOCKED y evidencia] |
-| Validaciones ejecutadas | [`command` - PASS/FAIL y resultado relevante] |
+| Validaciones ejecutadas | [`comando` - PASS/FAIL y resultado relevante] |
 | Calidad y QA | [Quality gate y `ready_to_close` con evidencia] |
 | Referencia de cambio | [Commit, PR o diff identificable] |
 | Riesgos o waivers | [Ninguno o riesgo, aprobador y motivo] |

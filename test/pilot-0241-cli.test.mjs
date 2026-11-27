@@ -108,3 +108,53 @@ test('the update plan says when it replaces a kit block that was edited in place
     assert.match(text, /^- overwrite_with_backup: CLAUDE\.md \(its kit block was edited; the kit version replaces it and the backup keeps the edit\)$/m, mode);
   }
 });
+
+// Findings of the independent review of 0.24.1.
+test('review: a resumed rollback does not call the files it already removed "removed by hand", and the summary counts hand-removed files apart', async () => {
+  const target = await installed();
+  const journalPath = path.join(target, applyJournalRelativePath);
+  const created = '.agents/skills/00-router/workflow-router/SKILL.md';
+  await fs.rm(path.join(target, created));
+
+  const io = createMemoryIo();
+  const { summarizeRollback, applyRollbackPlan } = await import('../src/rollback.mjs');
+  const firstPlan = await buildRollbackPlan({ targetPath: target });
+  assert.equal(firstPlan.operations.filter((item) => item.createdGone).length, 1);
+
+  const journal = JSON.parse(await fs.readFile(journalPath, 'utf8'));
+  await fs.writeFile(journalPath, `${JSON.stringify({ ...journal, rollbackStartedAt: new Date().toISOString() }, null, 2)}\n`);
+  const resumed = await buildRollbackPlan({ targetPath: target });
+  assert.equal(resumed.operations.filter((item) => item.createdGone).length, 0, 'a rollback that already started removed it itself');
+  assert.doesNotMatch(formatRollbackPlan(resumed), /were removed after it/);
+
+  await fs.writeFile(journalPath, `${JSON.stringify(journal, null, 2)}\n`);
+  const summary = summarizeRollback(await applyRollbackPlan(await buildRollbackPlan({ targetPath: target })));
+  assert.equal(summary.keptModified, 0);
+  assert.equal(summary.alreadyGone, 1);
+  assert.equal(io.output.stderr, '');
+});
+
+test('review: the rollback summary line names files removed by hand', async () => {
+  const target = await installed();
+  await fs.rm(path.join(target, '.agents/skills/00-router/workflow-router/SKILL.md'));
+  const result = await cli('rollback', '--target', target, '--apply', '--yes');
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /^Kept \(edited after the apply\): 0$/m);
+  assert.match(result.stdout, /^Already removed by hand: 1$/m);
+});
+
+test('review: a symbolic link at .gitignore does not stop a rollback without a journal, and the file count is the one install-state lists', async () => {
+  const target = await makeTempRepo();
+  const elsewhere = await makeTempRepo();
+  await fs.writeFile(path.join(elsewhere, 'shared-ignore'), 'node_modules\n');
+  await fs.symlink(path.join(elsewhere, 'shared-ignore'), path.join(target, '.gitignore'));
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+  await fs.rm(path.join(target, applyJournalRelativePath));
+
+  const dry = await cli('rollback', '--target', target);
+  assert.equal(dry.code, 0, dry.stderr);
+  assert.match(dry.stdout, /Nothing to roll back\./);
+  const state = JSON.parse(await fs.readFile(path.join(target, '.agents/workflow-kit/install-state.json'), 'utf8'));
+  assert.match(dry.stdout, new RegExp(`next to the ${Object.keys(state.files).length} managed file\\(s\\) install-state lists`));
+  assert.equal(await fs.readFile(path.join(elsewhere, 'shared-ignore'), 'utf8'), 'node_modules\n');
+});
