@@ -30,7 +30,7 @@ older binary.
 A tag is the version with a `v` prefix and points at the commit on `main` that
 released it. **Tags are created only when the maintainer approves them**
 ([RELEASE.md](../RELEASE.md)). The remote has a tag for every version from
-`0.16.0` to `0.23.8`, so a pin such as `--ref v0.23.8-pilot-text` works. A
+`0.16.0` to `0.23.9`, so a pin such as `--ref v0.23.9-pilot-context` works. A
 version released later has no tag until the maintainer approves it; pin its
 full commit hash instead (see "Versions without a tag yet").
 
@@ -38,7 +38,8 @@ full commit hash instead (see "Versions without a tag yet").
 
 | Tag | Notes |
 | --- | --- |
-| `v0.23.8-pilot-text` | latest tag; commit `cf84f93bac7e4a3d2f8a4c0ba0110a67c76b68d4` |
+| `v0.23.9-pilot-context` | latest tag; commit `28bf3bff9264f0897331aac3399961e227a29f54` |
+| `v0.23.8-pilot-text` | commit `cf84f93bac7e4a3d2f8a4c0ba0110a67c76b68d4` |
 | `v0.23.7-pilot-fixes` | commit `349c8e9f8f002d5852ca7cd267d64c56d25d49c2` |
 | `v0.23.6-ac-guards` | commit `393756cc0870410304372eeedb48d1d5bc905541` |
 | `v0.23.5-cli-fixes` | commit `4fe9ac788a0057b9b15f539abf135596ca9af865` |
@@ -78,7 +79,7 @@ the next tagged version instead.
 
 ### Versions without a tag yet
 
-Every released version from `0.16.0` to `0.23.8` has a tag. `0.23.9` has none
+Every released version from `0.16.0` to `0.23.9` has a tag. `0.24.0` has none
 until the maintainer creates it.
 A version released before its tag exists is pinned by its full commit hash,
 for example `workflow-kit upgrade --ref <40-character-hash> --apply --yes`
@@ -90,7 +91,7 @@ use the full hash. Each commit is the squash merge that released the version.
 
 | Version | Commit on `main` |
 | --- | --- |
-| `0.23.9-pilot-context` | the squash merge of this release; its hash is added after the merge |
+| `0.24.0-pilot-decisions` | the squash merge of this release; its hash is added after the merge |
 
 When the maintainer creates a tag for one of these, or for a future version,
 it takes the name in the first column with a `v` prefix, and the release steps

@@ -103,7 +103,7 @@ Tabla o lista de términos técnicos usados en el documento. Cada entrada: térm
 
 ## Anexo: Archivos técnicos de referencia
 
-| Propósito   | Archivo                                  |
-| ----------- | ---------------------------------------- |
-| Descripción | [ruta/al/archivo.rb](ruta/al/archivo.rb) |
+| Propósito   | Archivo                            |
+| ----------- | ---------------------------------- |
+| Descripción | [ruta/al/archivo](ruta/al/archivo) |
 ```

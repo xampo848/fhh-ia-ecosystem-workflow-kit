@@ -39,6 +39,8 @@ Antes de continuar, necesito resolver estas dudas:
 - Do not ask non-blocking questions. Record each as an assumption with its
   default value in the PRD's `Supuestos e integraciones` section; the user can
   change it.
+- Feature flag: ask only when the change alters behavior existing users already see, touches existing data, or needs a gradual rollout;
+  otherwise record `sin feature flag` as an assumption in that section.
 
 ## Edge-Case Confirmation Round
 

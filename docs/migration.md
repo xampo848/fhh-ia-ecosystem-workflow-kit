@@ -100,9 +100,17 @@ edited after the run is kept as a `-before-rollback` copy before the previous
 state comes back, and a file removed by hand after the run is reported as
 removed and left as it is.
 
-Without the journal (`.agents/workflow-kit/last-apply.json`), `rollback`
-restores the newest backup of each managed file instead. It cannot tell which
-files changed after that backup, so it first keeps the current content of
+Without the journal (`.agents/workflow-kit/last-apply.json`), `rollback` has
+no applied run to undo and restores nothing: it lists the backup files that sit
+next to managed files, with the date of each one. This is the case of a
+project installed before `0.17.0`, of a removed journal, and of a second
+`rollback` in a row (only the last apply is recorded). Those backups may come
+from a run older than the one you mean to undo, for example the original
+`init`, so restoring them is asked for by name (since `0.24.0`):
+`workflow-kit rollback --target <repo> --from-backups` (a dry run; then add
+`--apply --yes`) restores the newest backup of each managed file. It cannot
+tell which files changed after that backup, so it first keeps the current
+content of
 each file it replaces as a `.workflow-kit-backup-<timestamp>-before-rollback`
 copy (listed after the run; a later rollback never restores those). Running
 it again restores nothing more. Created and moved files and the install state

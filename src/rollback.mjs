@@ -75,9 +75,19 @@ async function planRollback(options = {}) {
     const kit = await kitFolders();
     const recorded = stale.createdDirectories.filter((folder) => kit.has(folder));
     const temporaryFiles = await findTemporaryLeftovers(targetPath);
-    return { targetPath, source: 'leftovers', observed, stoppedRun: stale.kind, stoppedAt: stale.startedAt, previousJournal: journal !== null, createdDirectories: recorded, temporaryFiles, removedFolders: await foldersThatGo(targetPath, recorded, [applyLockRelativePath, ...temporaryFiles], journal !== null), operations: [] };
+    return { targetPath, source: 'leftovers', observed, stoppedRun: stale.kind, stoppedAt: stale.startedAt, previousJournal: journal !== null, olderBackups: journal === null ? await countOlderBackups(targetPath) : 0, fromBackupsDeferred: options.fromBackups === true, createdDirectories: recorded, temporaryFiles, removedFolders: await foldersThatGo(targetPath, recorded, [applyLockRelativePath, ...temporaryFiles], journal !== null), operations: [] };
   }
-  if (!journal) return { ...await buildLegacyRollbackPlan(targetPath), observed };
+  // Without a journal nothing says which run a backup belongs to: the newest
+  // one may be from the original init. Restoring them is asked for by name
+  // (--from-backups); otherwise the plan only lists what is there.
+  if (!journal) {
+    const legacy = await buildLegacyRollbackPlan(targetPath);
+    if (options.fromBackups === true) return { ...legacy, observed, fromBackups: true };
+    return { ...legacy, observed, operations: [], availableBackups: legacy.operations };
+  }
+  if (options.fromBackups === true) {
+    throw new Error(`--from-backups applies only when there is no record of an applied run. This project has one (${applyJournalRelativePath}): run ${code(kitCommand(targetPath, 'rollback'))} (a dry run) without --from-backups to see what it undoes. Nothing was changed.`);
+  }
 
   const operations = [];
   // Entries written since 0.23.2 carry the checksum the file had before the
@@ -216,10 +226,23 @@ async function buildLegacyRollbackPlan(targetPath) {
     const backup = await readFileNamed(latestBackup.backupPath);
     // Already the backup's content: nothing to restore (a second run is a no-op).
     if (current !== null && current.equals(backup)) continue;
-    operations.push({ relativePath, targetFile, action: 'restore', backupPath: latestBackup.backupPath, ...(current !== null ? { keepsCopy: true } : {}) });
+    operations.push({ relativePath, targetFile, action: 'restore', backupPath: latestBackup.backupPath, backupStamp: latestBackup.backupStamp, ...(current !== null ? { keepsCopy: true } : {}) });
   }
   return { targetPath, source: 'backups', operations, checkedFiles: Object.keys(state?.files ?? {}).length };
 }
+
+// How many backups of earlier runs a rollback with --from-backups would
+// restore. A state that cannot be read counts as none: this only words a hint.
+async function countOlderBackups(targetPath) {
+  try {
+    return (await buildLegacyRollbackPlan(targetPath)).operations.length;
+  } catch {
+    return 0;
+  }
+}
+
+// `20261126T202311Z` as `2026-11-26 20:23:11 UTC`.
+const stampAsDate = (stamp) => stamp.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/, '$1-$2-$3 $4:$5:$6 UTC');
 
 // Journals written before 0.23.2 do not record the folders their run created:
 // the empty folders above a removed file go, as those versions did.
@@ -363,7 +386,11 @@ export function formatRollbackPlan(plan) {
   // when the run wrote it, install-state.
   if (plan.source === 'leftovers') {
     const removals = [`remove ${applyLockRelativePath} (the lock the stopped run left)`, ...plan.temporaryFiles.map((file) => `remove ${file} (temporary file of the stopped run)`), ...plan.removedFolders.map((folder) => `remove folder ${folder} (created by the stopped run, empty)`)];
-    return [`${header}`, `A workflow-kit ${plan.stoppedRun} that started ${plan.stoppedAt} was stopped before it finished${plan.stoppedRun === 'apply' ? ' and before it wrote its record' : ''}. This rollback removes only what it left behind (nothing else changes; folders that hold anything stay) and does not undo any apply.${plan.previousJournal ? ' The record of the last finished apply is not touched: run rollback again after this one to undo that apply.' : ' Nothing else is left to roll back.'}`, ...removals].join('\n');
+    return [`${header}`, `A workflow-kit ${plan.stoppedRun} that started ${plan.stoppedAt} was stopped before it finished${plan.stoppedRun === 'apply' ? ' and before it wrote its record' : ''}. This rollback removes only what it left behind (nothing else changes; folders that hold anything stay) and does not undo any apply.${plan.previousJournal ? ' The record of the last finished apply is not touched: run rollback again after this one to undo that apply.' : plan.olderBackups > 0 ? ` No record of an applied run is left, so a second rollback has nothing to undo. ${plan.olderBackups} backup file(s) of earlier runs stay next to managed files; ${code(kitCommand(plan.targetPath, 'rollback', '--from-backups'))} (a dry run) lists them.` : ' Nothing else is left to roll back.'}${plan.fromBackupsDeferred ? ' --from-backups was not applied: this run only cleans up. Run the same command again to restore the backups.' : ''}`, ...removals].join('\n');
+  }
+  if (plan.source === 'backups' && (plan.availableBackups?.length ?? 0) > 0) {
+    const backups = plan.availableBackups.map((item) => `- ${item.relativePath} <- ${path.basename(item.backupPath)} (backup taken ${stampAsDate(item.backupStamp)})`);
+    return [header, `No apply journal found, so there is no applied run to undo. Nothing is restored. ${backups.length} backup file(s) of earlier runs sit next to managed files:`, ...backups, `They may come from a run older than the one you mean to undo (for example the original init). To restore the newest backup of each file anyway, run ${code(kitCommand(plan.targetPath, 'rollback', '--from-backups'))} (a dry run; then add --apply --yes).`].join('\n');
   }
   if (plan.source !== 'journal' && listed.length === 0) {
     const checked = plan.checkedFiles === undefined ? 'the managed paths' : `the ${plan.checkedFiles} managed file(s) install-state lists`;
@@ -389,7 +416,7 @@ export function formatRollbackPlan(plan) {
     const initNote = plan.mode === 'init' ? ' That run is the install itself: rolling it back removes the files it installed.' : '';
     scope = `${plan.rollbackStartedAt ? `Finishes the rollback started ${plan.rollbackStartedAt}, which did not finish. ` : ''}Undoes ${run}; ${state}${listed.length === 0 ? '; no file needs restoring or removing' : ''}. The record of that apply is removed.${initNote}`;
   } else {
-    scope = `No apply journal found: restoring the newest backup of each managed file; the current content of each file it replaces is kept first as a ${beforeRollbackSuffix} copy. Created and moved files and install-state stay as they are, so run ${code(kitCommand(plan.targetPath, 'doctor'))} next. To return to this kit version, run ${code(kitCommand(plan.targetPath, 'update'))} (dry run first) and decide each pending file with --edited; \`--edited all=discard\` would also drop every kept edit and the own text of adapters (left in backups).`;
+    scope = `--from-backups: restoring the newest backup of each managed file (no apply journal found, so these may come from a run older than the last one); the current content of each file it replaces is kept first as a ${beforeRollbackSuffix} copy. Created and moved files and install-state stay as they are, so run ${code(kitCommand(plan.targetPath, 'doctor'))} next. To return to this kit version, run ${code(kitCommand(plan.targetPath, 'update'))} (dry run first) and decide each pending file with --edited; \`--edited all=discard\` would also drop every kept edit and the own text of adapters (left in backups).`;
   }
   return [header, scope, ...lines].join('\n');
 }

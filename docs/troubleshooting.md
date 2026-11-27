@@ -291,6 +291,15 @@ Things to know:
   only those. It does not undo any apply, and it leaves the record of an
   earlier finished apply alone: run rollback once more to undo that one. It
   refuses when the lock path goes through a symbolic link.
+- "No apply journal found, so there is no applied run to undo": the project
+  has no record of an apply (installed before `0.17.0`, the record was
+  removed, or the last apply was already rolled back). `rollback` restores
+  nothing and lists the backup files it found with their dates. They may come
+  from an older run, such as the original `init`. To restore the newest backup
+  of each managed file anyway, run
+  `workflow-kit rollback --target /path/to/repo --from-backups` (a dry run),
+  then add `--apply --yes`; the content it replaces is kept as
+  `-before-rollback` copies.
 - "changed after this plan was made": another run changed the repository
   between your plan and your write. Nothing was written; run the command again
   so it plans from the repository as it is now. The same stop applies to

@@ -17,17 +17,15 @@
 **UI lock**: locked | not-applicable | missing
 **Visible UI**: Si | No
 
+_PRD compacto: una seccion que no aplica se reduce a una linea `No aplica: razon`; no se rellenan placeholders._
+
 _Si el PRD pertenece a una epica, insertar aqui las secciones "Contexto de Epica Padre" y "Contrato entre Fases" desde `template-sections/epic-context.md`. Si no, omitirlas._
 
 ### Estado Actual
 
-| Capa                | Componente  | Archivo           |
-| ------------------- | ----------- | ----------------- |
-| [Model/Service/...] | [ClassName] | [path/to/file.rb] |
-
-### Columnas/Estado Actuales en [TableName]
-
-[List existing columns/fields relevant to the feature]
+| Capa                  | Componente    | Archivo           |
+| --------------------- | ------------- | ----------------- |
+| [Modulo/Servicio/...] | [Nombre real] | [ruta/al/archivo] |
 
 ---
 
@@ -35,21 +33,21 @@ _Si el PRD pertenece a una epica, insertar aqui las secciones "Contexto de Epica
 
 ### 2.1 [Requirement Group 1]
 
-[Table of new columns, fields, or parameters]:
+[Tabla de entradas, salidas o parametros nuevos; los campos persistidos van en 3.1]:
 
-| Campo origen | Campo BD | Tipo | Nullable | Descripcion |
-| ------------ | -------- | ---- | -------- | ----------- |
-| ...          | ...      | ...  | ...      | ...         |
+| Elemento | Tipo | Obligatorio | Descripcion |
+| -------- | ---- | ----------- | ----------- |
+| ...      | ...  | ...         | ...         |
 
 ### 2.2 Regla de Negocio: [Name]
 
 > **Decision confirmada**: [Exact business rule, in one clear paragraph]
 
 **Condicion de aplicacion**: [When does the rule trigger?]
-**Entidad de agrupacion**: [What identifies a group? e.g. (id_elemento, month)]
-**Campos afectados**: [Exhaustive list]
-**Campos NO afectados**: [Exhaustive list with reason]
-**Almacenamiento**: [What gets persisted - raw, computed, or both]
+**Alcance de la regla**: [A que elementos aplica y como se identifican]
+**Datos afectados**: [Lista exhaustiva]
+**Datos NO afectados**: [Lista exhaustiva con razon]
+**Resultado**: [Que se devuelve, muestra o guarda]
 
 ### 2.3 Criterios de Aceptacion
 
@@ -78,7 +76,7 @@ _Si el PRD pertenece a una epica, insertar aqui las secciones "Contexto de Epica
 | Errores | [Scenario] | UC-1 | [Servicio/entrada HTTP] | [Test/contract/smoke/evidencia manual] | Pending |
 | Permisos/tenancy | [Scenario] | UC-1 | [Entrada HTTP] | [Test/contract/smoke/evidencia manual] | Pending |
 | Concurrencia/orden | [Scenario] | UC-1 | [Servicio/job] | [Test/contract/smoke/evidencia manual] | Pending |
-| Rollout/rollback | [Scenario] | UC-1 | [Migracion/datos] | [Test/contract/smoke/evidencia manual] | Pending |
+| Rollout/rollback | [Scenario] | UC-1 | [Despliegue/datos] | [Test/contract/smoke/evidencia manual] | Pending |
 
 Una categoria sin caso aplicable se marca `No aplica` con una justificacion de una linea basada en el alcance real; nunca se omite en silencio. `Capa duena` es la capa mas baja que contiene la regla (query, servicio, modelo, job, entrada HTTP, componente): el caso se prueba ahi y solo ahi, salvo permisos/tenancy, que siempre se prueban tambien en la entrada HTTP.
 
@@ -110,18 +108,17 @@ Lo que este desarrollo deja obsoleto forma parte del alcance. Si no hay nada, es
 
 ---
 
-## 3. Modelo de Datos
+## 3. Diseno Tecnico
 
-### 3.1 Migracion Requerida
+### 3.1 Datos y Persistencia
 
-```ruby
-# Pseudo-code of migration
-add_column :table_name, :column_name, :type, default: nil
-```
+**Persistencia**: aplica | no aplica
+
+Si el PRD crea o cambia datos persistidos, reemplazar este bloque por la seccion completa de `template-sections/data-model.md`. Si no, dejar `Persistencia: no aplica` y una razon de una linea.
 
 ### 3.2 Diagrama de Clases
 
-Documentar las clases, entidades, value objects, servicios o interfaces introducidos o modificados y sus relaciones confirmadas. Usar nombres reales del diseno; indicar cardinalidades cuando apliquen.
+Documentar las clases, entidades, value objects, servicios o interfaces introducidos o modificados y sus relaciones confirmadas. Usar nombres reales del diseno; indicar cardinalidades cuando apliquen. En un PRD que solo agrega o cambia funciones (sin clases, entidades ni servicios nuevos o modificados), reemplazar el diagrama por una lista de firmas: nombre, entradas, salida y modulo de cada funcion. Si el PRD crea o mueve entidades de dominio sin persistencia, anotar aqui su contexto dueno y la direccion de sus dependencias.
 
 ```mermaid
 classDiagram
@@ -144,9 +141,9 @@ classDiagram
 
 ```mermaid
 flowchart LR
-  A[CSV] --> B[RowProcessor]
-  B --> C[DB]
-  C --> D[Service]
+  A[Entrada] --> B[Validacion]
+  B --> C[Regla de negocio]
+  C --> D[Resultado]
 ```
 
 ---
@@ -163,6 +160,14 @@ flowchart LR
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P1-S1 | [One small result] | none | [One responsibility] | AC-1 | UC-1 | [Focused test] | [Edge case row, if any] | `[exact command]` | [Passing output/diff/check] |
 | P1-S2 | [Next small result] | P1-S1 | [One responsibility] | AC-2 | UC-1 | [Focused test] | [Edge case row, if any] | `[exact command]` | [Passing output/diff/check] |
+
+En un PRD compacto de una sola fase con hasta tres slices, reemplazar la tabla por una linea por slice: `P1-S1: resultado · depende de · archivos · AC · casos de uso · tests · edge cases · validacion · evidencia`.
+
+Los cuatro campos siguientes valen para toda la fase; anotarlos en un slice solo cuando difiere.
+
+**Fuera de alcance**: [Trabajo adyacente que esta fase no absorbe]
+**Chequeos de calidad**: [Contrato, tenancy/auth, i18n, rendimiento u otros que apliquen, o `No aplica`]
+**Activacion**: [Paso para datos existentes, comando de despliegue, smoke y nota de rollback, o `No aplica`]
 
 **Slice stop conditions**:
 
@@ -194,11 +199,9 @@ Repeat the complete phase structure above. Do not replace executable slices with
 
 ## 5. Decisiones Tomadas
 
-| #   | Pregunta                                | Respuesta     | Impacto en diseno              |
-| --- | --------------------------------------- | ------------- | ------------------------------ |
-| 1   | ¿Solo para tipo X o todos los soportes? | Todos         | Division aplica genericamente  |
-| 2   | ¿Almacenar cruda o dividida?            | Solo dividida | No se persisten valores crudos |
-| 3   | ¿Feature flag?                          | No            | Implementacion directa         |
+| #   | Pregunta            | Respuesta              | Impacto en diseno     |
+| --- | ------------------- | ---------------------- | --------------------- |
+| 1   | [Pregunta resuelta] | [Respuesta confirmada] | [Efecto en el diseno] |
 
 ---
 
@@ -214,9 +217,9 @@ _(Vacio = PRD listo para implementar)_
 
 ## 7. Riesgos y Mitigaciones
 
-| Riesgo                                        | Probabilidad | Impacto | Mitigacion                                                    |
-| --------------------------------------------- | ------------ | ------- | ------------------------------------------------------------- |
-| [e.g. Division por cero si unique_people = 0] | Media        | Alto    | Guard in service: skip calculation if denominator is 0 or nil |
+| Riesgo            | Probabilidad      | Impacto         | Mitigacion               |
+| ----------------- | ----------------- | --------------- | ------------------------ |
+| [Riesgo concreto] | Baja/Media/Alta   | Bajo/Medio/Alto | [Mitigacion verificable] |
 
 ---
 
@@ -225,10 +228,9 @@ _(Vacio = PRD listo para implementar)_
 - [ ] Todas las fases completadas
 - [ ] `[comando de tests del proyecto, segun .agents/project/context.md o el legacy .agents/project-context.md]` en verde
 - [ ] `[comando de lint del proyecto]` sin hallazgos
-- [ ] Retrocompatibilidad: archivos sin columnas nuevas siguen importando
-- [ ] Columnas BD en ingles
-- [ ] Sin queries N+1
-- [ ] Errores capturados con `Errors::CaptureExceptionService`
+- [ ] Retrocompatibilidad: [que sigue funcionando igual] verificado, o `No aplica` con razon
+- [ ] Identificadores segun el `identifier_language` del Pattern Lock
+- [ ] Errores manejados segun la convencion del proyecto
 - [ ] Todo AC tiene al menos un caso de uso vinculado y todo caso de uso tiene al menos un AC vinculado
 - [ ] Todo caso de uso tiene al menos un test en la Estrategia de Tests
 - [ ] La Matriz de Edge Cases cubre las seis categorias obligatorias (o declara `No aplica` con justificacion)

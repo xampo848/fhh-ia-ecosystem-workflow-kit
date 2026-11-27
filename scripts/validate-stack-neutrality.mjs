@@ -14,7 +14,10 @@ const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const coreRoots = ['.agents/skills/00-router', '.agents/skills/01-product', '.agents/skills/02-implement', '.agents/skills/03-quality', '.agents/skills/06-patterns/authoring', '.agents/delegation'];
 // Stack tools are loaded only when their stack is detected; they may name it.
 const stackToolPrefixes = ['.agents/skills/03-quality/react-doctor/', '.agents/skills/03-quality/playwright-testing/'];
-const stackTerms = /\b(Rails|Ruby|Minitest|RSpec|RuboCop|rubocop|Bullet|CanCanCan|Pundit|acts_as_tenant|enumerate_it|TanStack|Zustand|Formik|Yup|Vitest|Jest|MSW|Sidekiq|Django|Laravel)\b|\bTesting Library\b|\bmake test|\bbun run |\bbundle exec\b/;
+const stackTerms = /\b(Rails|Ruby|Minitest|RSpec|RuboCop|rubocop|Bullet|CanCanCan|Pundit|acts_as_tenant|enumerate_it|TanStack|Zustand|Formik|Yup|Vitest|Jest|MSW|Sidekiq|Django|Laravel)\b|\bTesting Library\b|\bmake test|\bbun run |\bbundle exec\b|\b[\w/.-]+\.(?:rb|erb|rake)\b|\badd_column\b|\b[A-Z]\w*(?:::[A-Z]\w*)+\b/;
+// Code written in one stack's language is a stack rule too, even with no
+// framework name in it: a fenced block tagged with that language.
+const stackFence = /^\s*(?:```|~~~)(ruby|rb|erb)\b/;
 const exampleMarker = /for example|e\.g\.|p\. ?ej\.|por ejemplo/i;
 
 // A line may name a stack only as an example: every stack term must come after
@@ -53,6 +56,10 @@ export async function validateStackNeutrality({ root = packageRoot } = {}) {
       if (stackToolPrefixes.some((prefix) => file.startsWith(prefix))) continue;
       const lines = (await fs.readFile(path.join(root, file), 'utf8')).split('\n');
       lines.forEach((line, index) => {
+        if (stackFence.test(line)) {
+          failures.push(`${file}:${index + 1} opens a ruby code fence — write the example in neutral prose or move it to a stack pack.`);
+          return;
+        }
         const match = line.match(stackTerms);
         if (match && !isMarkedExample(line)) {
           failures.push(`${file}:${index + 1} states "${match[0].trim()}" as a rule — move it to a stack pack or mark the line as an example.`);

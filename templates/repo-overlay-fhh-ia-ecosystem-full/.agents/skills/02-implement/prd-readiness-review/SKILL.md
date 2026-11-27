@@ -99,7 +99,7 @@ Use compact readiness when all are true:
 - API/read-path activation, if any, is explicitly deferred or has a clear checklist.
 - The likely implementation can be sliced without user decisions.
 
-In compact readiness, still return the required handoff fields, but keep each field dense. Prefer IDs, short phrases, and traceability references over long prose.
+In compact readiness, still return the required handoff fields, but keep each field dense. Prefer IDs, short phrases, and traceability references over long prose. A compact PRD may carry one line per slice instead of the slice table, a signature list instead of the class diagram when no class changes, and one-line `No aplica` sections: none of these is a readiness gap.
 
 ## Granularity Audit
 
@@ -107,7 +107,7 @@ Flag a phase or task as `TOO_COARSE` when it:
 
 - has more than one observable outcome;
 - crosses backend/frontend, data/API, or implementation/rollout boundaries;
-- combines two or more high-risk concerns: migration, public contract, auth/tenancy, jobs, external integration, or visible UI;
+- combines two or more high-risk concerns: migration, public contract (an interface consumed outside the repository or across a deployment boundary; `.agents/instructions.md`, "Level rules"), auth/tenancy, jobs, external integration, or visible UI;
 - cannot name a focused test and validation check;
 - uses vague verbs such as “implement”, “integrate”, “complete UI”, or “add tests” without a bounded result;
 - defers all testing or verification to the end;

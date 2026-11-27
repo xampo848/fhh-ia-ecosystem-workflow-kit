@@ -29,6 +29,8 @@
     { "id": "bun-validate-css", "movedFrom": "validation-and-stop-conditions, frontend-phase-implementer", "packPattern": "`bun run validate:css`" },
     { "id": "bun-validate-all", "movedFrom": "validation-and-stop-conditions", "packPattern": "`bun run validate:all` only for broad changes" },
     { "id": "review-focus", "movedFrom": "qa-handoff-review", "packPattern": "service boundaries, CanCanCan, tenancy, i18n, Minitest" },
-    { "id": "backend-standards", "movedFrom": "create-prd", "packPattern": "`BACKEND_STANDARDS\\.md`" }
+    { "id": "backend-standards", "movedFrom": "create-prd", "packPattern": "`BACKEND_STANDARDS\\.md`" },
+    { "id": "prd-rails-migration", "movedFrom": "create-prd, codebase-discovery", "packPattern": "PRD data sections write the migration as Rails migration pseudo-code" },
+    { "id": "prd-error-capture", "movedFrom": "create-prd", "packPattern": "errors are captured with `Errors::CaptureExceptionService`" }
   ]
 }

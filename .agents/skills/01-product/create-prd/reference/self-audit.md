@@ -12,11 +12,11 @@ After drafting, perform the final hard gate before delivering the PRD. Persist t
 - Every acceptance criterion, use case, test-strategy row, and mandatory edge-case category is mapped to evidence or a justified `No aplica`.
 - Parent invariants map to acceptance criteria without unresolved contradictions.
 - If the parent epic locked a live path and phase cut, this PRD does not invert that sequence.
-- A comparable anchor is recorded when available; identifiers follow repository language rules.
+- A comparable anchor is recorded when available; identifiers follow the `identifier_language` recorded in the Pattern Lock.
 - Current state references real files, phases have Definitions of Done, and execution slices have ownership, validation, evidence, stop conditions, and activation where applicable.
 - Slices do not combine backend/frontend or multiple high-risk boundaries without a written split rationale.
 - Business rules are confirmed decisions, the decision table preserves the conversation, and product future scope is explicitly out of the current PRD.
-- Risks have mitigations; the Mermaid class diagram, data-model, and flow artifacts are present; relevant architecture and standards were checked.
+- Risks have mitigations; the Mermaid class diagram (or the signature list of a PRD without class changes), the data section when data is persisted, and flow artifacts are present; relevant architecture and standards were checked.
 - If `visible_ui: yes`, the Contrato Visual (UI lock) is complete; a mockup or photo may be cited but does not replace the lock. If `visible_ui: no`, `UI lock: not-applicable` is recorded with a one-line reason. If a prototype is cited, the `Lock visual` names its source and level, and every element has a component and every clash a decision (`visual-lock.md`).
 
 ## Adversarial Review
@@ -27,7 +27,8 @@ Challenge the draft:
 - Is a phase a large bucket instead of a milestone with executable slices?
 - Does any acceptance criterion lack evidence, or any use case lack a linked test or expected edge case?
 - Does the edge-case matrix omit a mandatory category without justification?
-- Does the Mermaid class diagram represent the confirmed classes and relationships rather than placeholders or a flowchart?
+- When classes change, does the Mermaid class diagram represent the confirmed classes and relationships rather than placeholders or a flowchart?
+- Is a compact PRD padded with placeholders or sections that do not apply instead of one-line `No aplica` entries?
 - Can a reviewer distinguish current scope, future scope, and blocked unknowns?
 - If `visible_ui: yes`, would `implement-change` still have to invent density, hierarchy, primary action, or UI states?
 - Does the PRD match the repository's structure and rigor?

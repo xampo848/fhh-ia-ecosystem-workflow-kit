@@ -7,6 +7,70 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.24.0-pilot-decisions
+
+Eight design decisions the maintainer took after the pilot, and three
+inconsistencies in `create-prd` that a later pilot run found. In your projects,
+`workflow-kit update` changes `kit_version`, adds one kit file
+(`create-prd/template-sections/data-model.md`) and updates the kit text listed
+below. Adapters (`CLAUDE.md`, `AGENTS.md` and the others) do not change. One
+CLI behaviour changes: see `rollback`.
+
+- `rollback` no longer restores backups on its own when the project has no
+  record of an applied run (installed before `0.17.0`, a removed record, or a
+  second `rollback` in a row). It restores nothing and lists the backups it
+  found with their dates; the new flag `--from-backups` restores the newest
+  backup of each managed file, keeping `-before-rollback` copies as before.
+  A script that relied on `rollback --apply --yes` in that case must add the
+  flag. With a record present, `--from-backups` is refused. After cleaning up
+  a run killed before its record, `rollback` no longer says nothing is left
+  when older backups remain.
+- Router: a plain yes authorizes the route when the previous turn proposed
+  exactly one, or when the reply points at one menu option; a bare yes to a
+  menu of several still asks which. "Explicit PRD" is defined (the path of an
+  existing PRD, or a request to implement one, goes to `implement-change`).
+  At High confidence a skill of a route that writes is loaded only after the
+  user authorizes it.
+- N1: the one-or-two-file limit counts production files; the test file of
+  each target goes with it, may be edited and does not count. A bounded
+  read-only lookup to locate the target, its test and the check command may
+  precede the yes. The generated pre-filter block of the adapters is
+  unchanged, so an agent that reads only that block does not see this
+  clarification.
+- `.agents/instructions.md` defines "contract" once: an interface consumed
+  outside the repository or across a deployment boundary. A symbol exported
+  and used only inside the repository is not one. The compact-path gate of
+  `create-prd` and the granularity rules of `prd-readiness-review`,
+  `implementation-slicing` and `create-prd` point at that definition.
+- `create-prd`: identifiers follow the project's rules, then the dominant
+  convention of the existing code, then English. Calibration records
+  `identifier_language` and its source, and the agent offers once to save a
+  convention it took from the code.
+- `create-prd`: the PRD template names no stack. Persistence (current data,
+  fields, migration, lifecycle, tenant isolation) moved to the conditional
+  section `template-sections/data-model.md`; section 3 is now "Diseno
+  Tecnico". The Rails migration and error-capture examples moved to the `rails-react`
+  stack pack; the enumeration example is now neutral.
+  `check:workflow` now also fails on a Ruby code fence, a `.rb`, `.erb` or `.rake` path,
+  `add_column` or a Ruby constant path in a core skill; two such lines in
+  `codebase-discovery` and `document-development` were made neutral.
+- `create-prd`: a compact PRD is proportional. It keeps acceptance criteria,
+  use cases, test strategy and the edge-case matrix; a section that does not
+  apply is one line; a single phase with up to three slices lists one line
+  per slice, with the same fields as the table. In any PRD the class diagram
+  is required only when classes, entities or services change (otherwise a
+  signature list). The target is 80 to 120
+  lines.
+- `create-prd`: every section the skill requires has a heading. The data
+  section gains "Ubicacion en el dominio" and "Enumeraciones".
+- `create-prd`: the slice rule and the template agree. The slice table keeps
+  its ten columns; out of scope, quality checks, stop conditions and activation
+  are written once per phase and on a slice only when it differs.
+- `create-prd`: a feature flag is asked about only when the change alters
+  behavior existing users see, touches existing data or needs a gradual
+  rollout; otherwise it is recorded as an assumption. The quality bar no longer
+  says "always ask".
+
 ## 0.23.9-pilot-context
 
 Four text fixes from a third pilot run, on `0.23.8`. In your projects,

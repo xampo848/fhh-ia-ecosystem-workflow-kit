@@ -66,7 +66,7 @@ that is missing is recorded under `project_context_gaps`.
 1. If `codebase-memory-mcp` is active (tools exposed and project index status is `ready`), use it first for multi-hop discovery (cross-file impact, callers/callees, architecture traversal). For exact single-file or single-symbol lookups, use `rg` and `rg --files` directly. If MCP is unavailable, unready, or fails, fall back immediately to `rg` plus targeted reads. When subagents are available and the task is narrow path/symbol/test lookup, prefer `cavecrew-investigator` via `.agents/skills/05-caveman/cavecrew-investigator/SKILL.md`.
 2. Find analogous features, models, services, controllers, serializers, adapters, hooks, components, routes, tests, and i18n keys.
 3. Identify current conventions for naming, class naming, service orchestration, error handling, authorization, tenancy, API response shape, form handling, and validation.
-4. For data model changes, inspect `backend/db/schema.rb` and the most relevant adjacent migrations only.
+4. For data model changes, inspect the project's schema definition and the most relevant adjacent migrations only.
 5. For frontend changes, identify design system primitives, token usage, hooks, query keys, i18n namespaces, and test style.
 6. For resume mode, inspect implemented files and current test state without re-implementing.
 7. Use Context7 (MCP tools resolve-library-id and query-docs) only when validating third-party framework or library patterns where project-local code is insufficient.

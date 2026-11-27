@@ -44,14 +44,14 @@ Product future scope remains out of the current PRD. Workflow reuse of `.ai-work
 - Delivering a visible-UI PRD whose screen `implement-change` would still have to invent
 - Treating a mockup or photo as the visual contract instead of locking density, hierarchy, primary action, and UI states
 - Letting a prototype's colors, fonts, or spacing override the project patterns without a recorded `Lock visual` decision, or leaving a prototype clash for the implementer to resolve
-- Using Spanish names for code identifiers
-- Describing UI changes in an importer-only PRD (they belong in a separate PRD)
-- Assuming a feature flag is not needed — **always ask**
+- Naming identifiers in a language other than the `identifier_language` recorded in the Pattern Lock
+- Describing UI changes in a PRD with `visible_ui: no` (they belong in a separate PRD)
+- Skipping the feature flag question when the change carries rollout risk, or asking it when it does not (the rule is in `ambiguity-detection.md`)
 - Vague business rules like "divide as needed" — rules must be deterministic and complete
-- Forgetting backward compatibility requirements (files without new columns must still import)
+- Forgetting backward compatibility requirements (existing inputs and stored data must keep working)
 - Ignoring bounded contexts or DDD ownership.
 - Creating root-level models for bounded-context concepts.
-- Omitting multi-tenancy rules.
+- Omitting tenant isolation rules in a multi-tenant project.
 - Omitting lifecycle rules for stateful entities.
 - Recreating deleted legacy models accidentally.
 - Using a test framework other than the project's in new PRDs.
@@ -64,4 +64,5 @@ Product future scope remains out of the current PRD. Workflow reuse of `.ai-work
 - Adding arbitrary phases instead of splitting work at failure, ownership, contract, or validation boundaries.
 - Deferring tests, lint, contract checks, or quality review until the end of the PRD.
 - Writing vague tasks such as “implement backend”, “add UI”, or “test everything”.
-- Omitting the Mermaid class diagram or replacing it with a flowchart.
+- Omitting the Mermaid class diagram when classes change, or replacing it with a flowchart.
+- Padding a compact PRD with filled placeholders or sections that do not apply instead of one `No aplica: <reason>` line.
