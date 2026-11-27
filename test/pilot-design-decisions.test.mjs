@@ -272,7 +272,7 @@ test('third pilot: a feature flag is asked about only when the change carries ro
   for (const file of bothCopies(`${createPrd}/reference/ambiguity-detection.md`)) {
     const text = await read(file);
     assert.match(text, /Feature flag: ask only when the change alters behavior existing users already see, touches existing data, or needs a gradual rollout/, file);
-    assert.match(text, /otherwise record `sin feature flag` as an assumption/, file);
+    assert.match(text, /otherwise record `no feature flag` as an assumption/, file);
   }
 });
 

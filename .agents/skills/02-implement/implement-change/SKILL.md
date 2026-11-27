@@ -153,7 +153,7 @@ No level, modifier, or user hurry removes these:
    layers it touches (`.agents/project/backend.md`, `.agents/project/frontend.md`,
    and `.agents/project/stack.md` when present); `.agents/project/paths.json`
    maps these names for projects with another layout. Nothing is skipped
-   silently: if the kit default is missing, say `quality gate: no configurado`
+   silently: if the kit default is missing, say `quality gate: not configured`
    in the trace; at N3 that is a stop, and a path the input requires that is
    missing is always a hard stop.
 5. **Stop conditions and brakes** in `../implement-prd/reference/validation-and-stop-conditions.md`

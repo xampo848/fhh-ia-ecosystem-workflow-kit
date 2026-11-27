@@ -78,7 +78,7 @@ test('the delegate contract states the legacy context fallback and the kit-first
   // PRD kit-overlay-contract AC-7: the kit quality gate first, then the project additions.
   const kit = text.indexOf('kit default `.agents/delegation/quality-gate.md`, then the project additions in `.agents/project/quality-gate.md` when present');
   assert.ok(kit >= 0, `${file} reads the kit quality gate first, then the project additions`);
-  assert.match(text, /The kit default always applies; if it is missing, report `quality gate: no configurado`; never skip it silently\./);
+  assert.match(text, /The kit default always applies; if it is missing, report `quality gate: not configured`; never skip it silently\./);
 });
 
 test('the kit quality gate lets project additions tighten, never relax, in both copies', async () => {

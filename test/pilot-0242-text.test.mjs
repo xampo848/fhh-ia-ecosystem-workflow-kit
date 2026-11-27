@@ -144,3 +144,28 @@ test('repair: no unaccented Spanish word of the reviewed list is left in the PRD
     assert.doesNotMatch(await flat(file), citing, file);
   }
 });
+
+test('0.25.0: no Spanish status literal is left inside English kit text', async () => {
+  const literals = /quality gate: no configurado|project context: no configurado|`sin feature flag`|ejecución inline: subagentes|`· autónomo`/;
+  const walk = async (directory) => {
+    const found = [];
+    for (const entry of await fs.readdir(path.join(root, directory), { withFileTypes: true })) {
+      const child = `${directory}/${entry.name}`;
+      if (entry.isDirectory()) found.push(...await walk(child));
+      else if (/\.(md|yaml|json)$/.test(entry.name)) found.push(child);
+    }
+    return found;
+  };
+  for (const directory of ['.agents', `${overlay}/.agents`, 'templates/runtime-adapters', '.claude/agents', '.github/agents']) {
+    let files;
+    try {
+      files = await walk(directory);
+    } catch (error) {
+      if (error.code === 'ENOENT') continue;
+      throw error;
+    }
+    for (const file of files) assert.doesNotMatch(await read(file), literals, file);
+  }
+  for (const file of bothCopies('.agents/delegation/delegate-contract.md')) assert.match(await read(file), /`quality gate: not configured`/, file);
+  for (const file of bothCopies(`${createPrd}/reference/ambiguity-detection.md`)) assert.match(await read(file), /record `no feature flag` as an assumption/, file);
+});

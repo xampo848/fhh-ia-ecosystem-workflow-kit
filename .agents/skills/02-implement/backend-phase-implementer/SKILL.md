@@ -30,7 +30,7 @@ Use exists-or-skip for product docs. A missing optional path is not a failed sea
 - `.agents/delegation/delegate-contract.md` (not `.agents/instructions.md` or the router)
 - `.agents/project/backend.md` when it exists, and `.agents/project/stack.md` when it exists
 - `docs/foundations/ARCHITECTURE.md` only when it exists and the slice is cross-layer, architectural, migration-heavy, authorization-sensitive, or tenancy-sensitive
-- The quality gate: `.agents/delegation/quality-gate.md` (kit default, always), then `.agents/project/quality-gate.md` when it exists (project additions, which may tighten but never relax the default). If the kit default is missing, never skip it silently: report `quality gate: no configurado`; if the PRD requires it or the level is N3, return `blocked`
+- The quality gate: `.agents/delegation/quality-gate.md` (kit default, always), then `.agents/project/quality-gate.md` when it exists (project additions, which may tighten but never relax the default). If the kit default is missing, never skip it silently: report `quality gate: not configured`; if the PRD requires it or the level is N3, return `blocked`
 - Exact matcher-selected `required_pattern_skills` paths when present.
 - Matcher-selected `fallback_docs` when required pattern skills are absent.
 - Relevant backend docs from `docs/patterns/backend/` when present

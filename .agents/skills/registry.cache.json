@@ -30,7 +30,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/backend-phase-implementer/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "645824529f4de2b1cd97c8ca34455565da2ed37b8ca10570da2f3b015e72631a"
+      "skill_sha256": "c70b067d942eec0a3492a7880c6649164f63b4b6f752cd71b884b89c8ac58b2a"
     },
     {
       "key": "cavecrew",
@@ -192,7 +192,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/frontend-phase-implementer/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "8b117235d521adcba65cb9799a63aef34bc2ec57732506891159c29b0909cf8f"
+      "skill_sha256": "c8e881a158e12193bc76e7c3445a1ee07f6e2002a0282f80abbcb04733f93770"
     },
     {
       "key": "generate-pm-ticket",
@@ -219,7 +219,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-change/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "9336906f129de16a30aafc7a9244721375a6ab2490cbaaa17eb1d2952bc00f23"
+      "skill_sha256": "7e76f66267e4c840cb028e3bf18c3a7c18b2a9e93d097947bc7bac9282ec4bf5"
     },
     {
       "key": "implement-prd",
