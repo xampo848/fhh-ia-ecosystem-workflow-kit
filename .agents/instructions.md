@@ -199,6 +199,11 @@ Level rules:
   the change is small, propose N1. Both cases ask the user.
 - The user can force a level. Forcing a level below an N3 signal requires
   naming the concrete risk before proceeding.
+- The N1 file limit counts production files: the test file of each target goes
+  with it, is named in the line when known, may be edited, and does not count
+  toward the one-or-two-file limit. Before the yes, a bounded read-only lookup
+  (locate the target, its test, and the check command) is allowed; reading to
+  design the change waits for the yes.
 - A test set of prompts with their expected level lives in
   `.agents/skills/00-router/workflow-router/reference/router-evals.md`.
 
@@ -239,6 +244,7 @@ Execution authorization gate:
 - Before explicit route authorization of a writing route, the agent must stay in `awaiting-user-choice` for route-selection turns.
 - While in `awaiting-user-choice`, the agent must not inspect product code for implementation, must not plan implementation tasks, and must not edit files.
 - Execution starts only after the user explicitly authorizes the selected route (for example: "usa create-prd", "implementa este PRD", "haz el ticket", "procede con esa ruta").
+- A plain yes authorizes the single route proposed in the previous turn. When several options were offered, the reply must identify one (number, skill name, label, or an unmistakable description); otherwise ask which one.
 
 Routing-to-execution binding (mandatory):
 

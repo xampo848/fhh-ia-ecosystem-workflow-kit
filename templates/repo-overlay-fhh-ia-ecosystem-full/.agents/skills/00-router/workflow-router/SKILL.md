@@ -40,10 +40,8 @@ workflow logic they may carry. If an adapter conflicts with
 
 Catalogs: `.agents/skills/index.md`, then `.agents/project/index.md` and `.agents/project/routing.md` when they exist (else empty); project entries never weaken a kit gate (`reference/project-overlay.md`).
 
-Read `.agents/instructions.md` and this file once per session or right after a
-genuine workflow switch. On continuation turns apply the continuation fast-path
-from `.agents/instructions.md`: the latest routing trace visible in the
-conversation (session memory) is enough, and this file is not re-read.
+Read `.agents/instructions.md` and this file once per session or right after a genuine workflow switch. On continuation turns apply the continuation fast-path
+from `.agents/instructions.md`: the latest routing trace visible in the conversation (session memory) is enough, and this file is not re-read.
 
 ## Per-turn intake boundary
 
@@ -100,7 +98,7 @@ PRD" runs `implement-change` (alias `implement-prd`); "haz el ticket" runs
 - Before explicit route authorization of a writing route, stay in `awaiting-user-choice`.
 - In `awaiting-user-choice`, do not inspect product implementation files, do not generate implementation plans, and do not edit code.
 - Start execution only after an explicit authorization utterance for a route ("procede", "usa create-prd", "implementa este PRD", "haz el ticket").
-- If the reply is affirmative but names no route, ask the user to confirm the route by name.
+- An affirmative reply authorizes a route when the previous turn proposed exactly one, or when it points at one menu option by number, skill name, label, or an unmistakable description; say which route starts. A bare yes to a menu of several options authorizes none: ask which one.
 - N1 surgical offers are authorized by a short "yes" to the one-line proposal. An irreversible action (push, deploy, delete) always names its risk and waits for an explicit yes.
 
 ## Routing decision trace
@@ -170,6 +168,10 @@ Route to `project-formation` as the recommended option (not auto-execution) when
 
 Offer `solution-sketch` as the recommended next step and never auto-start it when the user asks to sketch classes, compare architectures, or brainstorm the solution before a spec ("dibujemos las clases", "brainstorm de la solucion", "comparemos arquitecturas antes del PRD"). Do not add `solution-sketch` as a fifth standing option in the product-shaping menu. If the user declines, continue routing the parent product path.
 
+#### Explicit PRD hard trigger
+
+"Explicit PRD" in the level pre-filter means the user gives the path of an existing PRD or asks to implement one ("implementa este PRD", "el PRD ya está aprobado, avanza"). Route to `implement-change` whatever the level: the PRD is the input and the authorization, and the level only sets the ceremony. A request to write a PRD is not this trigger: it is a `create-prd` proposal that waits for the user's choice.
+
 ### Route precedence for ambiguous prompts
 
 1. explicit skill invocation
@@ -181,12 +183,11 @@ Offer `solution-sketch` as the recommended next step and never auto-start it whe
 7. review or documentation routes
 8. direct answer
 
-Example: "resolve PR comments and implement the PRD changes" applies rule 2
-first; after comment resolution, emit a new trace for `implement-change`.
+Example: "resolve PR comments and implement the PRD changes" applies rule 2 first; after comment resolution, emit a new trace for `implement-change`.
 
 ## Confidence levels
 
-- High: one workflow clearly fits. Emit the COMPACT trace and load the skill; proceed when the route is read-only or the imperative names the work, else ask for the route by name.
+- High: one workflow clearly fits. Emit the COMPACT trace. Load the skill and proceed when the route is read-only or the imperative names the work; for a route that writes, propose that one route, stop in `awaiting-user-choice`, and load the skill only after the user authorizes it.
 - Medium: two workflows are plausible. Recommend one, include the cheaper safe alternative in the trace, ask at most one short question.
 - Low: outcome, scope, or artifact is missing. Show the options menu from `reference/route-menus.md`, recommend the smallest safe workflow, and wait for explicit authorization.
 
