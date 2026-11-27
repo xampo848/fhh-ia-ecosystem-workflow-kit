@@ -8,6 +8,7 @@ const checkWorkflowCommands = [
   'node scripts/sync-skill-registry.mjs --check',
   'node scripts/sync-delegate-runtime-adapters.mjs --check',
   'node scripts/sync-level-prefilter.mjs',
+  'node scripts/sync-adapter-kit-texts.mjs',
   'node scripts/sync-claude-skills.mjs',
   'node scripts/build-plugin.mjs',
   'node scripts/validate-delegate-contract.mjs',
