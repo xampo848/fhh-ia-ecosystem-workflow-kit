@@ -28,7 +28,7 @@
 ## P0 — Crítico (corregir de inmediato)
 
 ### P0.1 — Inconsistencia de versión entre `package.json` y la documentación
-- **Estado:** hecho en 0.17.0. La documentación ya no cita el tag inexistente `v0.7.0`; hasta `0.17.3` cada versión publicada tiene su tag `v<versión>`. Desde `0.18.0` no hay tags en el remoto (el mantenedor difirió crearlos): esas versiones se fijan por commit (lista en `docs/versioning.md`), y `RELEASE.md` sigue pidiendo aprobación para crear cada tag.
+- **Estado:** hecho en 0.17.0. La documentación ya no cita el tag inexistente `v0.7.0`; hasta `0.17.3` cada versión publicada tiene su tag `v<versión>`. Desde `0.18.0` no hay tags en el remoto (el mantenedor difirió crearlos): esas versiones se fijan por commit (lista en `docs/versioning.md`), y `RELEASE.md` sigue pidiendo aprobación para crear cada tag. Actualización del 2026-11-27: el mantenedor ya aprobó esos tags y existen para todas las versiones de `0.16.0` a `0.23.8`.
 - **Observación:** `package.json` declara `"version": "0.6.0-public-install-export"`, mientras que el `README.md` instruye a instalar `#v0.7.0` (`bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.7.0`).
 - **Riesgo:** Los usuarios instalan un tag que no corresponde a la versión publicada del código; confusión en soporte y en el flujo de release.
 - **Propuesta:**

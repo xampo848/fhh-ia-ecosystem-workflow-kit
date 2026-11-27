@@ -94,3 +94,18 @@ test('calibration says when it tells the user and Summary Visibility agrees', as
     assert.match(visibility, /one-line notice/, file);
   }
 });
+
+test('doctor, troubleshooting and the context template name the same route for the initial Discovery', async () => {
+  const sources = ['src/workspace-diagnostics.mjs', 'docs/troubleshooting.md', ...bothCopies('.agents/project/context.md')];
+  for (const file of sources) {
+    const text = (await read(file)).replace(/\s+/g, ' ');
+    assert.match(text, /initial Discovery of the project \([^)]*project context setup\)/, file);
+  }
+  for (const file of bothCopies('.agents/project/context.md')) {
+    assert.match((await read(file)).replace(/\s+/g, ' '), /After the initial Discovery, only the orchestrator updates it/, file);
+  }
+  for (const file of bothCopies(routerFile)) {
+    const row = (await read(file)).split('\n').find((line) => line.startsWith('| Project context setup'));
+    assert.match(row, /once authorized, direct edit/, file);
+  }
+});

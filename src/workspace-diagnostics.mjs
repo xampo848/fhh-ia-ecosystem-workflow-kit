@@ -108,7 +108,7 @@ export async function projectContextDiagnostics({ targetPath, pluginMode = false
   const content = current ?? legacy;
 
   if (content.includes(projectContextTemplateMarker)) {
-    return [...both, warning('project-context/not-initialized', contextPath, 'Still the template. Generate the first version with an initial Discovery of the project (an N2 task), review it, and remove the template marker.')];
+    return [...both, warning('project-context/not-initialized', contextPath, 'Still the template. Ask your agent for the initial Discovery of the project (an N2 task the router handles as project context setup), review the diff, and check that the template marker is gone.')];
   }
 
   const diagnostics = [...both];

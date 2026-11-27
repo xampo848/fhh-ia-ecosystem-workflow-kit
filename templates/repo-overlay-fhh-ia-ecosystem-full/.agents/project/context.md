@@ -4,7 +4,7 @@
 
 Fixed knowledge base of this project for AI work. Discovery reads it first and
 explores only what is specific to a change. It is versioned, reviewed by
-humans, and limited to 200 lines. Only the orchestrator updates it, at closure,
+humans, and limited to 200 lines. After the initial Discovery, only the orchestrator updates it, at closure,
 with a small diff in the same PR. Point to other documents; do not copy them.
 
 This file is still the template. Ask your agent for the initial

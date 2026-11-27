@@ -327,7 +327,7 @@ Practical notes:
 : Use `docs/workflow/migration/legacy-docs-map.md` if generated. It includes suggested destinations and `git mv` commands.
 
 - "Where do I configure backend/frontend standards?"
-: Use `docs/workflow/standards/setup-and-migration.md`, `docs/workflow/standards/backend.md`, and `docs/workflow/standards/frontend.md` in the target repository.
+: State them in `.agents/project/backend.md` and `.agents/project/frontend.md`, which is what agents read. `docs/workflow/standards/setup-and-migration.md`, `docs/workflow/standards/backend.md`, and `docs/workflow/standards/frontend.md` in the target repository are the setup guides.
 
 - "How do I recover from a wrong apply?"
 : Run `workflow-kit rollback --target /path/to/repo --dry-run`, then `--apply --yes`. It undoes the last applied `init`/`update`. As a fallback, restore from the `*.workflow-kit-backup-<timestamp>` files and re-run dry-run before applying again.
