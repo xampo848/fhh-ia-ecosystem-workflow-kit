@@ -7,6 +7,54 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.24.2-pilot-followup
+
+Fixes and decisions from the pilot run on `0.24.1`. In your projects,
+`workflow-kit update` changes `kit_version`, updates the kit text listed
+below and the workflow block of `docs/README.md`, and recreates a project file
+under `.agents/project/` that was deleted. Adapters (`CLAUDE.md`, `AGENTS.md`
+and the others) do not change. The output of the CLI changes in three places:
+see `rollback`, the plans and `doctor`.
+
+- `rollback` ends every run with a line `Result: …` a script can read:
+  `rolled-back`, `restored-from-backups`, `cleaned-up`, `nothing-to-undo` or
+  `backups-not-restored`; a dry run prints `Result: dry-run (would be: …)`.
+  Exit codes are unchanged (3 for `backups-not-restored` with `--apply`).
+  The plan of `--from-backups` says that the kit stays installed and that a
+  restored adapter or `.gitignore` loses what the install added until
+  `update` puts it back.
+- Plans of `init`, `update` and `export` show one line with a count for the
+  files that need no attention (created, unchanged, project-owned). The new
+  flag `--all` lists every file. A script that read one line per file needs
+  `--all`.
+- `update` recreates a project file under `.agents/project/` that was
+  deleted, from its template. A file that exists is never rewritten. `doctor`
+  says so next to the missing file. The stack rules file keeps its own rule
+  (`stack-pack/missing`).
+- `doctor` on a folder without the kit prints the number of missing files
+  instead of listing every kit file.
+- PRD state: `create-prd` delivers the PRD with `Estado: En revisión` and
+  only the user moves it to `Aprobado`. Asked to implement a PRD that is not
+  approved, `implement-change` says so and asks for a yes; with it, it marks
+  the PRD approved. A PRD without the field is not blocked.
+- `create-prd`: the compact PRD target is "at most about 170 lines", which
+  is what the mandatory tables take (it said 80 to 120). Section numbers do
+  not shift when the traceability matrix is omitted, and each phase keeps only
+  the Definition of Done lines that apply.
+- `create-prd`: the PRD template and its conditional sections are written
+  with accents ("Diseño Técnico", "Capa dueña", "Qué queda obsoleto"), and
+  the skills that cite those headings use the same spelling. A PRD written
+  before this version keeps its headings without accents; they are the same
+  sections, and the CLI reads both.
+- `implement-change` maps an explicit PRD to a level (N3 with a hazard, N1
+  when compact with one slice, N2 otherwise) and does not treat the execution
+  mode offer as a second confirmation.
+- Smaller alignments: an unanswered blocking question is asked again, never
+  assumed; the initial Discovery also removes the template notice of
+  `context.md`; `.agents/instructions.md` names the project context setup
+  route; the docs index says that `docs/workflow/handoffs/` is not created by
+  `init`.
+
 ## 0.24.1-pilot-alignment
 
 Fixes and decisions from the pilots run on `0.23.9` and `0.24.0`. In your

@@ -1,7 +1,7 @@
 # Trabajo pendiente del kit (registro de traspaso)
 
 Fecha del registro: 2026-11-25; actualizado el 2026-11-27. Base: `main` en
-`1b2f67f` (`0.24.0-pilot-decisions`); este PR lleva `0.24.1-pilot-alignment`.
+`328d328` (`0.24.1-pilot-alignment`); este PR lleva `0.24.2-pilot-followup`.
 
 Este documento permite continuar el trabajo desde otra sesión o equipo. Es una
 foto: antes de actuar, compruébalo con `git log`, los PR abiertos y el
@@ -33,7 +33,8 @@ PR abiertos, y dime qué sigue antes de editar nada.
 | Segundo piloto: `create-prd` leía guías de configuración como estándares y no avisaba de plantillas sin completar, ejemplo y propuesta de N1, lista de principios de `create-prd` | #97 | 0.23.8-pilot-text |
 | Tercer piloto: dónde viven los estándares, ruta del Discovery inicial, detección de plantilla por marcador y momento del aviso en `create-prd` | #98 | 0.23.9-pilot-context |
 | Decisiones de diseño tras el piloto: sí con ruta única, "Explicit PRD", límite de archivos del N1, definición de contrato, idioma de identificadores, plantilla del PRD neutral, PRD compacto proporcional, `rollback --from-backups`, y tres incoherencias de `create-prd` (secciones sin encabezado, campos del slice, feature flag) | #99 | 0.24.0-pilot-decisions |
-| Pilotos de la 0.23.9 y la 0.24.0: capa ausente, una sola plantilla de reglas del proyecto, ruta de contexto con nivel y traza, plantilla del PRD en español y compacto más corto, código de salida y mensajes de `rollback` sin registro, falso positivo de `doctor` con rutas relativas | este PR | 0.24.1-pilot-alignment |
+| Pilotos de la 0.23.9 y la 0.24.0: capa ausente, una sola plantilla de reglas del proyecto, ruta de contexto con nivel y traza, plantilla del PRD en español y compacto más corto, código de salida y mensajes de `rollback` sin registro, falso positivo de `doctor` con rutas relativas | #100 | 0.24.1-pilot-alignment |
+| Piloto de la 0.24.1: línea `Result` en `rollback`, `update` recrea un archivo de proyecto borrado, simulación resumida (`--all`), aviso de lo que deja `--from-backups`, `doctor` en una carpeta sin kit, Estado del PRD, meta real del PRD compacto, tildes en la plantilla del PRD | este PR | 0.24.2-pilot-followup |
 
 Publicado el 2026-11-26, con aprobación del mantenedor:
 
@@ -44,7 +45,8 @@ Publicado el 2026-11-26, con aprobación del mantenedor:
 Publicado el 2026-11-27, con aprobación del mantenedor: los tags
 `v0.17.4-usage-measurement`, `v0.17.5-slice-checkpoint`,
 `v0.17.6-bounded-output`, `v0.23.7-pilot-fixes`, `v0.23.8-pilot-text` y
-`v0.23.9-pilot-context`. También `v0.24.0-pilot-decisions`.
+`v0.23.9-pilot-context`. También `v0.24.0-pilot-decisions` y
+`v0.24.1-pilot-alignment`.
 
 Ninguna de las dos verificaciones independientes (2026-11-25 sobre 0.23.3 y
 2026-11-26 sobre 0.23.6) encontró pérdida de contenido sin copia de respaldo.
@@ -63,7 +65,7 @@ Resueltas:
 2. **Tags desde 0.18.0:** creados y subidos. `RELEASE.md` sigue pidiendo
    aprobación para cada tag nuevo. El 2026-11-27 se crearon, con aprobación
    del mantenedor, los tags de 0.17.4, 0.17.5, 0.17.6, 0.23.7, 0.23.8 y
-   0.23.9 y 0.24.0; 0.24.1 aún no tiene tag (`docs/versioning.md` dará su commit tras la fusión).
+   0.23.9, 0.24.0 y 0.24.1; 0.24.2 aún no tiene tag (`docs/versioning.md` dará su commit tras la fusión).
 3. **Ramas ya fusionadas:** el remoto solo tiene `main`, `plugin` y las de
    Dependabot; las ramas locales fusionadas se borraron.
 4. **Documentos de traspaso:** no se publican. Dos quedaron respaldados fuera
@@ -189,6 +191,22 @@ Follow-ups de los PRD que siguen abiertos por decisión: dividir
 
 Ideas sin decidir: Copilot solo descubre skills a un nivel bajo
 `.agents/skills`.
+
+Del piloto de la `0.24.1`, anotado por decisión del mantenedor (no se hace en
+la `0.24.2`):
+
+- `update` se niega también en simulación cuando hay un apply incompleto, así
+  que no se puede ver el plan antes del `rollback`. Es una guarda puesta a
+  propósito; relajarla pide decidir qué puede leer una simulación en ese estado.
+- El menú guiado está en español y el resto del CLI en inglés. Fue una
+  decisión anterior (`0.23.3`); unificar el idioma es un cambio de producto.
+- `doctor` no revisa en `.agents/project/context.md` las rutas que empiezan
+  con `../`: son relativas a otro archivo y no se pueden resolver desde la raíz.
+- El literal `quality gate: no configurado` (español dentro de texto en
+  inglés) vive en el contrato de delegados y en texto generado: va en la
+  `0.25.0`, junto con la apertura del bloque del pre-filtro.
+- El costo de lectura del Discovery inicial y de `create-prd` compacto (unas
+  950 líneas de instrucciones para un resultado pequeño) no se abordó.
 
 ## 5. Nunca verificado
 
