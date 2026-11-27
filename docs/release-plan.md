@@ -23,8 +23,9 @@ Do not run GitHub repository creation, package publication, release uploads, tag
 ## Versioning
 
 Versions follow [Versioning](versioning.md). The current version is the one in
-`package.json` (`0.23.8-pilot-text` at the time of writing); its notes are
+`package.json` (`0.23.9-pilot-context` at the time of writing); its notes are
 in `CHANGELOG.md`. A version is released when it is merged on `main`; a
 `v<version>` tag is created only with the maintainer's approval, and the remote
-has none after `0.17.3`. Which versions have a tag, and how to pin the others
-by commit, is in [Versioning](versioning.md).
+has a tag for every version from `0.16.0` to `0.23.8` but none yet for
+`0.23.9`. Which versions have a tag, and how to pin the others by commit, is
+in [Versioning](versioning.md).

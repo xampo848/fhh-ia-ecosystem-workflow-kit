@@ -21,7 +21,7 @@ older binary.
 ## Rollout channels
 
 - **`main`:** `workflow-kit upgrade --apply --yes` installs the latest merged
-  version. This is the supported channel for every version after `0.17.3`.
+  version. This is the supported channel for every version.
 - **Pinned ref:** `workflow-kit upgrade --ref <ref> --apply --yes`. `<ref>` is a
   tag, a branch or a commit of the toolkit repository. Pinning is the better
   choice for coordinated team rollouts; use a tag when the version has one and
@@ -30,7 +30,7 @@ older binary.
 A tag is the version with a `v` prefix and points at the commit on `main` that
 released it. **Tags are created only when the maintainer approves them**
 ([RELEASE.md](../RELEASE.md)). The remote has a tag for every version from
-`0.18.0` to `0.23.6`, so a pin such as `--ref v0.23.6-ac-guards` works. A
+`0.16.0` to `0.23.8`, so a pin such as `--ref v0.23.8-pilot-text` works. A
 version released later has no tag until the maintainer approves it; pin its
 full commit hash instead (see "Versions without a tag yet").
 
@@ -38,7 +38,9 @@ full commit hash instead (see "Versions without a tag yet").
 
 | Tag | Notes |
 | --- | --- |
-| `v0.23.6-ac-guards` | latest tag; commit `393756cc0870410304372eeedb48d1d5bc905541` |
+| `v0.23.8-pilot-text` | latest tag; commit `cf84f93bac7e4a3d2f8a4c0ba0110a67c76b68d4` |
+| `v0.23.7-pilot-fixes` | commit `349c8e9f8f002d5852ca7cd267d64c56d25d49c2` |
+| `v0.23.6-ac-guards` | commit `393756cc0870410304372eeedb48d1d5bc905541` |
 | `v0.23.5-cli-fixes` | commit `4fe9ac788a0057b9b15f539abf135596ca9af865` |
 | `v0.23.4-docs-sync` | commit `718aa4eb181b63b9049c064215e1553865f7a472` |
 | `v0.23.3-strict-cli` | commit `96ec070136314053080535e3c40ce73c874268d7` |
@@ -53,6 +55,9 @@ full commit hash instead (see "Versions without a tag yet").
 | `v0.19.0-test-design` | commit `9901069873bb910141139b7c4504ca6b4de2f78a` |
 | `v0.18.1-orchestrator-reads` | commit `f5ddeb070c846d0c599b2443dcbe4c1e0da45460` |
 | `v0.18.0-equilibrado-profile` | commit `ad1d9b882826f88347a6d03d31c17b754e56719e` |
+| `v0.17.6-bounded-output` | commit `e4a660db57a85b939483caa31604f9cc5df2ed56` |
+| `v0.17.5-slice-checkpoint` | commit `1c766cd4b6a7693ad133ff5611146118b216717f` |
+| `v0.17.4-usage-measurement` | commit `fd1d055c7c58991d29b20bc1b156c0b2c9dbc2ef` |
 | `v0.17.3-contract-gaps` | |
 | `v0.17.2-catalog-rows` | |
 | `v0.17.1-stack-detection` | |
@@ -73,9 +78,8 @@ the next tagged version instead.
 
 ### Versions without a tag yet
 
-Every released version from `0.18.0` to `0.23.6` has a tag. `0.23.7` and `0.23.8` have
-none until the maintainer creates them, and three earlier versions merged on
-`main` still have none: `0.17.4`, `0.17.5` and `0.17.6`.
+Every released version from `0.16.0` to `0.23.8` has a tag. `0.23.9` has none
+until the maintainer creates it.
 A version released before its tag exists is pinned by its full commit hash,
 for example `workflow-kit upgrade --ref <40-character-hash> --apply --yes`
 or `bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#<hash>`.
@@ -86,11 +90,7 @@ use the full hash. Each commit is the squash merge that released the version.
 
 | Version | Commit on `main` |
 | --- | --- |
-| `0.23.8-pilot-text` | the squash merge of this release; its hash is added after the merge |
-| `0.23.7-pilot-fixes` | `349c8e9f8f002d5852ca7cd267d64c56d25d49c2` |
-| `0.17.6-bounded-output` | `e4a660db57a85b939483caa31604f9cc5df2ed56` |
-| `0.17.5-slice-checkpoint` | `1c766cd4b6a7693ad133ff5611146118b216717f` |
-| `0.17.4-usage-measurement` | `fd1d055c7c58991d29b20bc1b156c0b2c9dbc2ef` |
+| `0.23.9-pilot-context` | the squash merge of this release; its hash is added after the merge |
 
 When the maintainer creates a tag for one of these, or for a future version,
 it takes the name in the first column with a `v` prefix, and the release steps
