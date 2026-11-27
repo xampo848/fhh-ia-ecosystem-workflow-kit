@@ -27,13 +27,15 @@ see `rollback`, the plans and `doctor`.
 - Plans of `init`, `update` and `export` show one line with a count for the
   files that need no attention (created, unchanged). The new flag `--all`
   lists every file. A script that read one line per file needs
-  `--all`.
+  `--all`. A file install-state records and that is missing from disk, and a
+  project file the plan leaves alone or recreates, are always named.
 - `update` recreates a project file under `.agents/project/` that was
   deleted, from its template, and the plan names it. A file that exists is
   never rewritten. `doctor` says so next to the missing file. The stack rules file keeps its own rule
   (`stack-pack/missing`).
-- `doctor` on a folder without the kit prints the number of missing files
-  instead of listing every kit file.
+- `doctor` on a folder with no kit file (an own `CLAUDE.md` or `AGENTS.md`
+  does not count) prints the number of missing files instead of listing every
+  kit file.
 - PRD state: `create-prd` delivers the PRD with `Estado: En revisión` and
   only the user moves it to `Aprobado`. Asked to implement a PRD that is not
   approved, `implement-change` says so and asks for a yes; with it, it marks
@@ -47,8 +49,9 @@ see `rollback`, the plans and `doctor`.
   the skills that cite those headings use the same spelling. A PRD written
   before this version keeps its headings without accents; they are the same
   sections, and the CLI reads both.
-- `implement-change` maps an explicit PRD to a level (N3 with a hazard, N1
-  when compact with one slice, N2 otherwise) and does not treat the execution
+- `implement-change` sets the level of an explicit PRD with its existing
+  escalation rules (N1 when compact with one slice and no listed hazard, N2
+  otherwise) and does not treat the execution
   mode offer as a second confirmation.
 - Smaller alignments: an unanswered blocking question is asked again, never
   assumed; the initial Discovery also removes the template notice of
