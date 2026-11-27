@@ -178,10 +178,11 @@ test('fix 6: no voseo in kit text', async () => {
 });
 
 test('fix 5 guard: a 0.18.1 adapter still gets the split decision, so the generated block must keep matching what 0.18.1 wrote', async () => {
-  // split is offered only when the adapter holds the current kit text byte for
-  // byte. Editing the generated pre-filter block (even one word) makes every
-  // upgrade from a 0.18.1 install lose split. If this fails, do not edit the
-  // fixture or this test: restore the block, or ship a migration for it.
+  // split is offered when the adapter holds a kit text byte for byte: the
+  // current one, or an earlier one recorded in src/adapter-kit-texts.json.
+  // If this fails, do not edit the fixture or this test: the adapter text
+  // changed without `node scripts/sync-adapter-kit-texts.mjs --record`, or an
+  // entry of `previous` was deleted.
   const adapters = ['CLAUDE.md', 'AGENTS.md', 'ANTIGRAVITY.md', '.github/copilot-instructions.md'];
   const target = await makeTempRepo();
   await installLegacy0181(target, { runtimes: ['claude', 'codex', 'copilot', 'antigravity'] });

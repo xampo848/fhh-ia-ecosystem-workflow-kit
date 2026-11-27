@@ -326,7 +326,9 @@ Things to know:
   or `.agents/project/skills` as a file), or a folder where it writes a file
   (for example `.agents/kit-boundary.md` as a folder), stops `init` and
   `update` before anything is written; move it aside.
-- An adapter with Windows (CRLF) line endings never qualifies for `split`.
+- An adapter that holds the kit text with Windows (CRLF) line endings, or
+  with a line of it edited, never qualifies for `split`. One with no kit text
+  at all does: `split` adds the block and keeps the whole file.
 
 ## `last-apply.json` was committed
 

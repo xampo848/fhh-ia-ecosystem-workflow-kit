@@ -307,7 +307,7 @@ Each pending file lists its valid decisions in the dry run:
 | `keep` (default) | The file stays as it is and stays pending. `keep` is not remembered: every `update` and `doctor` lists the file again, and nothing overwrites it until you choose another decision |
 | `discard` | The kit version replaces it; your version stays in the backup |
 | `shadow` | Only while migrating, and only for a leaf skill that is not `workflow-router` or `instructions`: your version moves to `.agents/project/shadows/<skill>/` with a `shadow.json` (base hash and kit version) and a row in the `Shadows` table; the kit file takes the new version. `doctor` warns when the kit skill changes later |
-| `split` | Only for an adapter without markers whose kit text appears unchanged inside it: the new block goes where the template puts it and your own text stays byte for byte outside the markers. An adapter with Windows (CRLF) line endings never qualifies; choose `keep` or `discard` |
+| `split` | Only for an adapter without markers. When the kit text appears unchanged inside it (the current text, or one an earlier version shipped, which `update` recognizes since `0.25.0`), the new block goes where the template puts it and your own text stays byte for byte outside the markers. When the file holds no kit text at all (an own file from before the kit, or one a rollback restored), the whole file is your own text and the block is added to it; the plan says so. When the file holds a kit text someone edited, including one with Windows (CRLF) line endings, `split` does not apply: choose `keep` or `discard` |
 
 ```bash
 workflow-kit update --target /path/to/repo --edited .agents/instructions.md=discard --edited CLAUDE.md=split --apply --yes
@@ -332,7 +332,7 @@ written. `--edited all=<decision>` applies where it is valid and is a no-op
 when nothing is pending. The TUI offers three ways: keep my edits, replace all
 with the kit version (`split` for an adapter where it applies, so its own text
 stays; an adapter without markers where `split` does not apply, such as one
-with Windows line endings, stays pending; `discard` for the rest), or decide
+whose kit text was edited or has Windows line endings, stays pending; `discard` for the rest), or decide
 file by file.
 
 Reviewing an update (since `0.16.0`): the plan lists its one-time migrations

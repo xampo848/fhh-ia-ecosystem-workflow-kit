@@ -113,3 +113,28 @@ test('a 0.18.1 install still gets split for every adapter, with the text it has 
     assert.equal((content.match(/Level pre-filter \(apply to every new user prompt/g) ?? []).length, 1, adapter);
   }
 });
+
+test('the generated pre-filter carries the N1 file rule in every adapter, and the text it replaced is still recognized', async () => {
+  const { extractPrefilterBlock, prefilterTargets } = await import('../scripts/sync-level-prefilter.mjs');
+  const block = extractPrefilterBlock(await fs.readFile(path.join(root, '.agents/instructions.md'), 'utf8'));
+  assert.match(block, /\| Behavior-changing edit in 1–2 production files with clear scope \| N1 \|/);
+  assert.match(block, /edit only the target files \(the test file of each one goes with it and does not count toward the 1–2\)/);
+  for (const target of prefilterTargets) {
+    assert.equal(extractPrefilterBlock(await fs.readFile(path.join(root, target), 'utf8'), target), block, target);
+  }
+  // The text every adapter carried up to 0.24.2 is listed as a previous one.
+  const texts = loadAdapterKitTexts();
+  for (const adapter of ['CLAUDE.md', 'AGENTS.md', 'ANTIGRAVITY.md', '.github/copilot-instructions.md']) {
+    assert.ok(texts.adapters[adapter].previous.some((item) => item.lastVersion === '0.24.2-pilot-followup'), adapter);
+  }
+});
+
+test('an adapter that holds the kit text with Windows line endings is still an edited kit text: no split', async () => {
+  const template = await claudeTemplate();
+  const crlf = `${kitBody(template, blockName)}\n\nNota del equipo.\n`.replace(/\n/g, '\r\n');
+  assert.equal(holdsKitLines(crlf, kitBody(template, blockName), []), true);
+  assert.equal(splitUnmarkedAdapter(crlf, template, blockName, []), null);
+  // Indented or re-wrapped kit lines count too.
+  const indented = kitBody(template, blockName).split('\n').map((line) => `  ${line}`).join('\n');
+  assert.equal(splitUnmarkedAdapter(indented, template, blockName, []), null);
+});

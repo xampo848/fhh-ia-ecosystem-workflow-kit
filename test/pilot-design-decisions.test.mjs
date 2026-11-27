@@ -83,9 +83,10 @@ test('decision 2: an N1 limit counts production files, the test goes with its fi
     const rules = section(text, 'Level rules:');
     assert.match(rules, /N1 file limit counts production files/, file);
     assert.match(rules, /bounded read-only lookup/, file);
-    // The generated block is frozen (the `split` decision of old installs
-    // depends on it), so the clarification lives outside its markers.
-    assert.doesNotMatch(extractPrefilterBlock(text), /production files|read-only lookup/, file);
+    // Since 0.25.0 the generated block carries the file rule too (earlier
+    // texts stay recognized by fingerprint); the lookup stays outside it.
+    assert.match(extractPrefilterBlock(text), /1–2 production files/, file);
+    assert.doesNotMatch(extractPrefilterBlock(text), /read-only lookup/, file);
   }
 });
 

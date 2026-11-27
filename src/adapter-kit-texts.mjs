@@ -15,7 +15,9 @@ const sha256 = (text) => crypto.createHash('sha256').update(text, 'utf8').digest
 // A line this long is not shared by chance with a project's own text
 // (a heading such as "# CLAUDE.md" is).
 export const distinctiveLineLength = 30;
-const lineHash = (line) => sha256(line).slice(0, 16);
+// Lines are compared without the white space around them, so a kit text
+// with Windows line endings or an indent still counts as kit text.
+const lineHash = (line) => sha256(line.trim()).slice(0, 16);
 const distinctiveLines = (text) => text.split('\n').filter((line) => line.trim().length >= distinctiveLineLength);
 
 export function fingerprintOf(body) {
