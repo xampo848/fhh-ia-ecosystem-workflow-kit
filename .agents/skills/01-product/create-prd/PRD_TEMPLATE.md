@@ -163,6 +163,12 @@ flowchart LR
 
 En un PRD compacto de una sola fase con hasta tres slices, reemplazar la tabla por una linea por slice: `P1-S1: resultado · archivos · AC · casos de uso · validacion · evidencia`.
 
+Los cuatro campos siguientes valen para toda la fase; anotarlos en un slice solo cuando difiere.
+
+**Fuera de alcance**: [Trabajo adyacente que esta fase no absorbe]
+**Chequeos de calidad**: [Contrato, tenancy/auth, i18n, rendimiento u otros que apliquen, o `No aplica`]
+**Activacion**: [Paso para datos existentes, comando de despliegue, smoke y nota de rollback, o `No aplica`]
+
 **Slice stop conditions**:
 
 - [Condition that requires clarification or replanning]

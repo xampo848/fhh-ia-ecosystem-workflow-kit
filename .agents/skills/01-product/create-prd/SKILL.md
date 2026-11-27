@@ -158,7 +158,7 @@ Additional required sections:
 - Contrato Visual (UI lock) when `visible_ui: yes`, or an explicit `UI lock: not-applicable` when it is not
 - Parent epic context and inherited-invariant mapping when a parent epic exists
 - Contrato entre Fases (precondiciones/postcondiciones) when a parent epic exists
-- When the PRD creates or changes persisted data: the data section from `template-sections/data-model.md`, with DDD placement decisions, enumeration strategy, lifecycle rules, cross-context dependency rules, and tenant integrity rules when the project is multi-tenant; otherwise `Persistencia: no aplica` with a one-line reason
+- When the PRD creates or changes persisted data: the data section from `template-sections/data-model.md`, whose blocks hold them: "Ubicacion en el dominio" (DDD placement and cross-context dependency rules), "Enumeraciones" (enumeration strategy), "Ciclo de vida" (lifecycle rules), and "Aislamiento entre tenants" (tenant integrity rules, when the project is multi-tenant); otherwise `Persistencia: no aplica` with a one-line reason
 - Mermaid class diagram, or the signature list its hard gate allows (see above)
 - Casos de Uso table (mandatory, see below)
 - Estrategia de Tests table (mandatory, see below)

@@ -6,6 +6,14 @@ Conditional section of [PRD_TEMPLATE.md](../PRD_TEMPLATE.md). Insert it as secti
 
 **Persistencia**: aplica
 
+#### Ubicacion en el dominio
+
+[Contexto o modulo dueno de la entidad, namespace, estrategia de nombres de tabla o coleccion y dependencias entre contextos: quien depende de quien y en que direccion]
+
+#### Enumeraciones
+
+[Valores restringidos y la enumeracion con nombre que los define, segun la convencion del proyecto; `Ninguna` si no hay]
+
 #### Estado actual de los datos
 
 [Tablas, colecciones o archivos existentes que el cambio toca, con sus campos relevantes]

@@ -231,3 +231,46 @@ test('decision 7: a compact PRD is proportional, and its class diagram is requir
     assert.match(await read(file), /compact PRD[^\n]*one line per slice[^\n]*signature list/, file);
   }
 });
+
+test('third pilot: every section create-prd requires has a heading in the template or one of its sections', async () => {
+  for (const file of bothCopies(`${createPrd}/template-sections/data-model.md`)) {
+    const text = await read(file);
+    assert.match(text, /#### Ubicacion en el dominio/, file);
+    assert.match(text, /#### Enumeraciones/, file);
+    assert.match(text, /dependencias entre contextos/i, file);
+  }
+  for (const file of bothCopies(`${createPrd}/SKILL.md`)) {
+    assert.match(await read(file), /"Ubicacion en el dominio"[^\n]*"Enumeraciones"[^\n]*"Ciclo de vida"/, file);
+  }
+});
+
+test('third pilot: the slice fields the rule asks for match what the template holds', async () => {
+  const columns = ['ID', 'Outcome', 'Depends on', 'Scope / likely files', 'Acceptance criteria', 'Use cases', 'Tests', 'Edge cases', 'Validation', 'Evidence'];
+  for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
+    const template = await read(file);
+    assert.ok(template.includes(`| ${columns.join(' | ')} |`), file);
+    for (const label of ['**Fuera de alcance**', '**Chequeos de calidad**', '**Slice stop conditions**', '**Activacion**']) assert.ok(template.includes(label), `${file}: ${label}`);
+  }
+  for (const file of bothCopies(`${createPrd}/reference/execution-granularity.md`)) {
+    const rule = await read(file);
+    assert.match(rule, /ten columns of the slice table/, file);
+    assert.match(rule, /once per phase, below the table[^\n]*Out of scope, Quality checks, Stop conditions, and Activation/, file);
+    assert.match(rule, /on the slice only when it differs/, file);
+    const fields = rule.split('\n').filter((line) => /^\| (?!Field|---)[^|]+\| (?:Slice table|Phase block)/.test(line));
+    assert.equal(fields.filter((line) => /\| Slice table/.test(line)).length, 10, file);
+    assert.equal(fields.filter((line) => /\| Phase block/.test(line)).length, 4, file);
+  }
+});
+
+test('third pilot: a feature flag is asked about only when the change carries rollout risk', async () => {
+  for (const file of bothCopies(`${createPrd}/reference/quality-bar.md`)) {
+    const bar = await read(file);
+    assert.doesNotMatch(bar, /feature flag is not needed — \*\*always ask\*\*/, file);
+    assert.match(bar, /feature flag[^\n]*`ambiguity-detection\.md`/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/reference/ambiguity-detection.md`)) {
+    const text = await read(file);
+    assert.match(text, /Feature flag: ask only when the change alters behavior existing users already see, touches existing data, or needs a gradual rollout/, file);
+    assert.match(text, /otherwise record `sin feature flag` as an assumption/, file);
+  }
+});

@@ -46,7 +46,7 @@ Product future scope remains out of the current PRD. Workflow reuse of `.ai-work
 - Letting a prototype's colors, fonts, or spacing override the project patterns without a recorded `Lock visual` decision, or leaving a prototype clash for the implementer to resolve
 - Naming identifiers in a language other than the `identifier_language` recorded in the Pattern Lock
 - Describing UI changes in a PRD with `visible_ui: no` (they belong in a separate PRD)
-- Assuming a feature flag is not needed — **always ask**
+- Skipping the feature flag question when the change carries rollout risk, or asking it when it does not (the rule is in `ambiguity-detection.md`)
 - Vague business rules like "divide as needed" — rules must be deterministic and complete
 - Forgetting backward compatibility requirements (existing inputs and stored data must keep working)
 - Ignoring bounded contexts or DDD ownership.
