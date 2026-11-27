@@ -21,7 +21,7 @@ What the installed workflow does:
 One neutral source of truth lives in `.agents/`; runtime files such as
 `CLAUDE.md` or `AGENTS.md` are thin adapters that point back to it.
 
-> Status: public GitHub install, version `0.23.9-pilot-context`. The CLI
+> Status: public GitHub install, version `0.24.0-pilot-decisions`. The CLI
 > installs, updates, exports, checks and rolls back the workflow (the TUI does
 > all of that except rollback), with dry-run by default and backups before
 > every overwrite. The package is intentionally
@@ -44,7 +44,7 @@ workflow-kit --help
 ```
 
 `main` installs the latest merged version. To pin one instead, append
-`#<ref>`: a tag (the latest is `#v0.23.8-pilot-text`) or, for a version without a tag,
+`#<ref>`: a tag (the latest is `#v0.23.9-pilot-context`) or, for a version without a tag,
 the full commit hash listed in [Versioning](docs/versioning.md).
 SSH install and access details:
 [docs/github-install.md](docs/github-install.md).
@@ -140,7 +140,7 @@ other commands. Main flags:
 | `--adopt-existing` | `update` only: record an install made before state tracking. |
 | `--from-backups` | `rollback` only: when the project has no record of an applied run, restore the newest backup of each managed file (the content it replaces is kept as `-before-rollback` copies). Without it, `rollback` only lists those backups, which may come from an older run such as the original `init`. |
 | `--backup-mode required\|none` | `required` (default) backs up every file before overwrite or merge; `none` skips backups, and `rollback` cannot restore those files. |
-| `--ref <git-ref>` / `--package-manager bun` | `upgrade` only: the branch, tag or full commit hash to install (use the full hash for a commit) (default `main`; tags exist for `0.16.0` to `0.23.8`, the latest is `v0.23.8-pilot-text`, see [Versioning](docs/versioning.md)) and the package manager to use; an unsupported manager is rejected in the dry run too, and nothing runs. |
+| `--ref <git-ref>` / `--package-manager bun` | `upgrade` only: the branch, tag or full commit hash to install (use the full hash for a commit) (default `main`; tags exist for `0.16.0` to `0.23.9`, the latest is `v0.23.9-pilot-context`, see [Versioning](docs/versioning.md)) and the package manager to use; an unsupported manager is rejected in the dry run too, and nothing runs. |
 
 ## Updating
 

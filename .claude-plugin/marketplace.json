@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Marketplace of the fhh workflow kit plugin.",
-    "version": "0.23.9-pilot-context"
+    "version": "0.24.0-pilot-decisions"
   },
   "plugins": [
     {

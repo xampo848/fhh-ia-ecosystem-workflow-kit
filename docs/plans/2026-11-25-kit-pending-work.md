@@ -1,7 +1,7 @@
 # Trabajo pendiente del kit (registro de traspaso)
 
-Fecha del registro: 2026-11-25; actualizado el 2026-11-26. Base: `main` en
-`cf84f93` (`0.23.8-pilot-text`); este PR lleva `0.23.9-pilot-context`.
+Fecha del registro: 2026-11-25; actualizado el 2026-11-27. Base: `main` en
+`28bf3bf` (`0.23.9-pilot-context`); este PR lleva `0.24.0-pilot-decisions`.
 
 Este documento permite continuar el trabajo desde otra sesión o equipo. Es una
 foto: antes de actuar, compruébalo con `git log`, los PR abiertos y el
@@ -31,7 +31,8 @@ PR abiertos, y dime qué sigue antes de editar nada.
 | Cierre: guardas de tests y validadores que faltaban | #92 | 0.23.6-ac-guards |
 | Piloto: textos del kit que confundían a un agente en un proyecto instalado, respaldos fuera de `.gitignore`, guarda de rutas instaladas | #96 | 0.23.7-pilot-fixes |
 | Segundo piloto: `create-prd` leía guías de configuración como estándares y no avisaba de plantillas sin completar, ejemplo y propuesta de N1, lista de principios de `create-prd` | #97 | 0.23.8-pilot-text |
-| Tercer piloto: dónde viven los estándares, ruta del Discovery inicial, detección de plantilla por marcador y momento del aviso en `create-prd` | este PR | 0.23.9-pilot-context |
+| Tercer piloto: dónde viven los estándares, ruta del Discovery inicial, detección de plantilla por marcador y momento del aviso en `create-prd` | #98 | 0.23.9-pilot-context |
+| Decisiones de diseño tras el piloto: sí con ruta única, "Explicit PRD", límite de archivos del N1, definición de contrato, idioma de identificadores, plantilla del PRD neutral, PRD compacto proporcional, `rollback --from-backups`, y tres incoherencias de `create-prd` (secciones sin encabezado, campos del slice, feature flag) | este PR | 0.24.0-pilot-decisions |
 
 Publicado el 2026-11-26, con aprobación del mantenedor:
 
@@ -41,7 +42,8 @@ Publicado el 2026-11-26, con aprobación del mantenedor:
 
 Publicado el 2026-11-27, con aprobación del mantenedor: los tags
 `v0.17.4-usage-measurement`, `v0.17.5-slice-checkpoint`,
-`v0.17.6-bounded-output`, `v0.23.7-pilot-fixes` y `v0.23.8-pilot-text`.
+`v0.17.6-bounded-output`, `v0.23.7-pilot-fixes`, `v0.23.8-pilot-text` y
+`v0.23.9-pilot-context`.
 
 Ninguna de las dos verificaciones independientes (2026-11-25 sobre 0.23.3 y
 2026-11-26 sobre 0.23.6) encontró pérdida de contenido sin copia de respaldo.
@@ -59,8 +61,8 @@ Resueltas:
    llega a quienes usan el plugin solo cuando se vuelve a publicar.
 2. **Tags desde 0.18.0:** creados y subidos. `RELEASE.md` sigue pidiendo
    aprobación para cada tag nuevo. El 2026-11-27 se crearon, con aprobación
-   del mantenedor, los tags de 0.17.4, 0.17.5, 0.17.6, 0.23.7 y 0.23.8;
-   0.23.9 aún no tiene tag (`docs/versioning.md` dará su commit tras la fusión).
+   del mantenedor, los tags de 0.17.4, 0.17.5, 0.17.6, 0.23.7, 0.23.8 y
+   0.23.9; 0.24.0 aún no tiene tag (`docs/versioning.md` dará su commit tras la fusión).
 3. **Ramas ya fusionadas:** el remoto solo tiene `main`, `plugin` y las de
    Dependabot; las ramas locales fusionadas se borraron.
 4. **Documentos de traspaso:** no se publican. Dos quedaron respaldados fuera
@@ -110,9 +112,16 @@ revisiones del cierre; reproducir antes de corregir.
 CLI y `doctor`:
 
 - `rollback` guarda un solo nivel: al deshacer un apply borra su registro y no
-  restaura el del apply anterior, así que un segundo `rollback` seguido entra
-  al modo sin registro (restaura backups y deja copias `-before-rollback`). La
-  simulación lo dice. Guardar más niveles sería una función nueva.
+  restaura el del apply anterior. Desde `0.24.0` un segundo `rollback` seguido
+  ya no restaura nada: lista los backups y pide `--from-backups`. Guardar más
+  niveles sería una función nueva.
+- El bloque generado del pre-filtro de los adaptadores no se puede cambiar
+  sin quitarle la decisión `split` a una instalación antigua, así que la
+  aclaración del N1 de `0.24.0` (el test no cuenta en el límite de archivos)
+  no llega a un agente que solo lee ese bloque. Abrirlo pide que el planner
+  reconozca también los textos anteriores del bloque, con un test sobre
+  `test/fixtures/legacy-0.18.1/**`: es un lote propio de riesgo alto, en una
+  versión aparte.
 - `doctor` dice que un lock que es enlace simbólico "será tomado", pero
   `update` y `rollback` lo rechazan; el mensaje de rechazo dice "folder".
 - `doctor` muestra `EISDIR` o `EACCES` en `managed/path-unreadable` cuando no
@@ -132,11 +141,6 @@ CLI y `doctor`:
 - Una señal durante el último archivo imprime "Stopping…" y termina con 0.
 - Con un registro sin terminar y un lock vivo, también las simulaciones se
   detienen; las guías dicen que un lock no detiene una simulación.
-- Un `update` muerto antes de escribir nada sobre un proyecto instalado con
-  una versión antigua (sin registro) no deja lock ni registro; un `rollback`
-  posterior entra al modo sin registro y restaura desde los backups del
-  `init` original. La simulación lo avisa. Decidido en el piloto: se corrige
-  en `0.24.0` con un flag explícito.
 - Una negación del usuario `!*.workflow-kit-backup-*` en `.gitignore` queda
   anulada: `update` agrega la entrada del kit después.
 - Con un `.gitignore` que es enlace simbólico, el menú guiado no muestra la
@@ -178,12 +182,6 @@ Tests:
   hora de inicio, filtro de nombres de archivos temporales, lista de carpetas
   de la simulación de `rollback` con un enlace, validación de carpeta en el
   prompter real del menú y el quoting del consejo de `doctor` del menú.
-
-Decisiones de diseño del flujo tomadas tras el piloto, por implementar en
-`0.24.0`: doble confirmación del router, el test como archivo implícito en
-N1, definición de "Explicit PRD" y de contrato público, identificadores en
-inglés frente a código en español, plantillas del PRD menos sesgadas a un
-stack, ceremonia del PRD para cambios chicos y `rollback --from-backups`.
 
 Follow-ups de los PRD que siguen abiertos por decisión: dividir
 `src/migration.mjs` y QA-07 (F2); R7, R9, R11 y N5 (F4, límites aceptados).

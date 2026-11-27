@@ -36,16 +36,16 @@ workflow-kit export --output /tmp/workflow-kit-export --runtime codex
 
 The commands above install the latest merged version from `main`. To pin a
 version, append a ref: a tag, or the full commit hash of a version that has no
-tag. The remote has a tag for every version from `0.16.0` to `0.23.8`; the
-latest is `v0.23.8-pilot-text`. A later version has no tag until the maintainer
+tag. The remote has a tag for every version from `0.16.0` to `0.23.9`; the
+latest is `v0.23.9-pilot-context`. A later version has no tag until the maintainer
 creates it. Examples:
 
 ```bash
 # a version that has a tag
-bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.23.8-pilot-text
+bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#v0.23.9-pilot-context
 # fallback for a version without a tag: use its full commit hash
-# (here the commit of 0.23.8-pilot-text)
-bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#cf84f93bac7e4a3d2f8a4c0ba0110a67c76b68d4
+# (here the commit of 0.23.9-pilot-context)
+bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#28bf3bff9264f0897331aac3399961e227a29f54
 ```
 
 See [Versioning](versioning.md) for the tags and the commit of each later
