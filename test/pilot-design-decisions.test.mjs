@@ -135,3 +135,99 @@ test('decision 5: identifiers follow the project rules, then the existing code, 
     assert.match(await read(file), /identifiers follow the `identifier_language` recorded/, file);
   }
 });
+
+const stackBias = /```(?:ruby|rb|erb)\b|\b[\w/]+\.rb\b|\badd_column\b|CaptureExceptionService|Columnas BD|Campo BD|\[TableName\]|siguen importando|RowProcessor|N\+1|Analytics::|must still import|importer-only/;
+
+test('decision 6: the PRD template and its rules name no stack, and persistence is a conditional section', async () => {
+  for (const name of ['PRD_TEMPLATE.md', 'reference/architecture-rules.md', 'reference/quality-bar.md', 'SKILL.md']) {
+    for (const file of bothCopies(`${createPrd}/${name}`)) {
+      const hit = (await read(file)).split('\n').find((line) => stackBias.test(line));
+      assert.equal(hit, undefined, `${file}: ${hit}`);
+    }
+  }
+  for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
+    const template = await read(file);
+    assert.match(template, /## 3\. Diseno Tecnico/, file);
+    assert.match(template, /### 3\.1 Datos y Persistencia/, file);
+    assert.match(template, /template-sections\/data-model\.md/, file);
+    assert.match(template, /`Persistencia: no aplica`/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/template-sections/data-model.md`)) {
+    const sectionText = await read(file);
+    assert.match(sectionText.split('\n').slice(0, 4).join('\n'), /only when the PRD creates or changes persisted data/, file);
+    for (const heading of ['Estado actual de los datos', 'Campos nuevos o modificados', 'Migracion requerida', 'Ciclo de vida', 'Aislamiento entre tenants']) {
+      assert.match(sectionText, new RegExp(`#### ${heading}`), `${file}: ${heading}`);
+    }
+    assert.match(sectionText, /Aislamiento entre tenants _\(solo si el proyecto es multi-tenant\)_/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/reference/architecture-rules.md`)) {
+    const rules = await read(file);
+    assert.match(rules, /PRDs that create or change persisted entities/, file);
+    assert.match(rules, /when the project is multi-tenant/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/SKILL.md`)) {
+    const skill = await read(file);
+    assert.match(skill, /`data-model\.md` \(the PRD creates or changes persisted data\)/, file);
+    assert.ok(skill.replace(/\n$/, '').split('\n').length <= 200, `${file} must stay at or under 200 lines`);
+  }
+});
+
+test('decision 6: the neutrality check catches stack-specific code in a core skill, and the Rails pack keeps what left the template', async () => {
+  const { validateStackNeutrality } = await import('../scripts/validate-stack-neutrality.mjs');
+  const { makeTempRepo } = await import('./helpers.mjs');
+  const fixture = await makeTempRepo('workflow-kit-neutral-');
+  await fs.cp(path.join(root, '.agents'), path.join(fixture, '.agents'), { recursive: true });
+  await fs.cp(path.join(root, 'templates/stack-packs'), path.join(fixture, 'templates/stack-packs'), { recursive: true });
+  await fs.mkdir(path.join(fixture, 'scripts'));
+  await fs.copyFile(path.join(root, 'scripts/stack-rule-inventory.json'), path.join(fixture, 'scripts/stack-rule-inventory.json'));
+  assert.deepEqual((await validateStackNeutrality({ root: fixture })).failures, []);
+
+  const template = path.join(fixture, `${createPrd}/PRD_TEMPLATE.md`);
+  await fs.appendFile(template, '\n```ruby\nadd_column :orders, :due_on, :date\n```\n\n| Service | app/services/orders/create.rb |\n\n- Errors go through `Errors::CaptureExceptionService`.\n- For example, a path such as app/models/order.rb.\n');
+  const failures = (await validateStackNeutrality({ root: fixture })).failures.filter((failure) => failure.includes('PRD_TEMPLATE.md'));
+  assert.equal(failures.length, 4, failures.join('\n'));
+  assert.ok(failures.some((failure) => failure.includes('ruby code fence')), failures.join('\n'));
+  assert.ok(failures.some((failure) => failure.includes('"add_column"')), failures.join('\n'));
+  assert.ok(failures.some((failure) => failure.includes('.rb"')), failures.join('\n'));
+  assert.ok(failures.some((failure) => failure.includes('CaptureExceptionService')), failures.join('\n'));
+
+  const pack = await read('templates/stack-packs/rails-react/stack.md');
+  assert.match(pack, /PRD data sections write the migration as Rails migration pseudo-code/);
+  assert.match(pack, /Errors::CaptureExceptionService/);
+  const inventory = JSON.parse(await read('scripts/stack-rule-inventory.json'));
+  for (const id of ['prd-rails-migration', 'prd-error-capture']) {
+    assert.ok(inventory.rules.some((rule) => rule.id === id && /create-prd/.test(rule.movedFrom)), id);
+  }
+});
+
+test('decision 7: a compact PRD is proportional, and its class diagram is required only when classes change', async () => {
+  for (const file of bothCopies(`${createPrd}/SKILL.md`)) {
+    const skill = await read(file);
+    const compact = section(skill, '### Compact Path Gate');
+    assert.doesNotMatch(compact, /do not omit use cases, test strategy, edge-case matrix, class diagram, or slice ownership/, file);
+    assert.match(compact, /do not omit acceptance criteria, use cases, test strategy, or the edge-case matrix/, file);
+    assert.match(compact, /`No aplica: <reason>`/, file);
+    assert.match(compact, /one line per slice/, file);
+    assert.match(compact, /80 to 120 lines/, file);
+    const gate = section(skill, '### Hard Gate: Class Diagram Is Non-Optional');
+    assert.match(gate, /introduces or changes classes, entities, value objects, services, or interfaces/, file);
+    assert.match(gate, /compact PRD that only adds or changes functions[^\n]*signature list/, file);
+    assert.match(gate, /Do not substitute a flowchart/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
+    const template = await read(file);
+    assert.match(template, /lista de firmas/, file);
+    assert.match(template, /una linea por slice/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/reference/self-audit.md`)) {
+    assert.match(await read(file), /class diagram \(or the signature list of a compact PRD without class changes\)/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/reference/quality-bar.md`)) {
+    const bar = await read(file);
+    assert.match(bar, /Padding a compact PRD/, file);
+    assert.match(bar, /Omitting the Mermaid class diagram when classes change/, file);
+  }
+  for (const file of bothCopies('.agents/skills/02-implement/prd-readiness-review/SKILL.md')) {
+    assert.match(await read(file), /compact PRD[^\n]*one line per slice[^\n]*signature list/, file);
+  }
+});

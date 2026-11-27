@@ -17,32 +17,28 @@ When the PRD has a parent epic:
 - stop before drafting if this PRD would invert that cut — for example by leaving the live path on the old system when the epic locked the live path onto the new system, or by reordering the chosen sequence;
 - continue only after an explicit user-approved change request records the cut invariant ID, reason, and approver.
 
-PRDs that introduce backend entities must explicitly define:
+PRDs that create or change persisted entities must explicitly define, in the data section (`template-sections/data-model.md`):
 
 - bounded context;
 - namespace strategy;
-- table naming strategy;
+- table or collection naming strategy;
 - append-only vs mutable lifecycle;
-- multi-tenancy rules;
-- test strategy with the project's test framework;
+- tenant isolation rules, when the project is multi-tenant;
 - enumerations following the project's convention.
+
+Every PRD defines its test strategy with the project's test framework.
 
 ### Enumeration rules
 
 Do not leave constrained values as anonymous string arrays only.
 
-PRDs must define explicit enumeration classes when applicable, for example:
-
-```ruby
-Analytics::SeverityEnumeration
-Analytics::DetectionStatusEnumeration
-```
+PRDs must define an explicit, named enumeration in the form the project's convention uses (for example a `Severity` enumeration that lists its allowed values).
 
 ### Testing rules
 
-PRDs must align to the repository backend testing standard:
+PRDs must align to the project's testing standard:
 
-- backend tests use the project's test framework;
-- tenant boundaries must be tested;
+- tests use the project's test framework;
+- when the project is multi-tenant, tenant boundaries must be tested;
 - append-only models must test immutability;
 - lifecycle consistency rules must be tested.

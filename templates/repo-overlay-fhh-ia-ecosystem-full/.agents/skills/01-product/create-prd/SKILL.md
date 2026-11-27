@@ -37,7 +37,7 @@ Use this skill when:
 5. **Iterate until complete** — after each round of answers, update the PRD immediately. The document should converge to zero open questions.
 6. **Identifiers follow the project** — code identifiers (columns, variables, classes) follow, in this order: the project's rules; the dominant convention of the existing code around the change; English for new code that has neither. Never mix languages inside one module to satisfy a default.
 7. **Milestones contain executable slices** — phases express product milestones; they are not permission to group large implementation tasks. Every non-trivial phase must decompose into small, ordered slices with one observable outcome and a verification gate.
-8. **DDD before implementation** — PRDs must define bounded context placement, ownership, namespace, table strategy, and dependency direction before implementation starts.
+8. **DDD before implementation** — a PRD that creates or moves domain entities defines bounded context placement, ownership, namespace, and dependency direction before implementation starts; table strategy applies only when data is persisted.
 9. **Standards-aware PRDs** — PRDs follow the project's standards documents and stack rules (`.agents/project/backend.md`, `.agents/project/frontend.md`, and `.agents/project/stack.md` when a stack pack was installed), including its test framework and enumeration conventions.
 10. **Evidence before completion** — every deliverable must name how it will be tested, validated, and verified. “Tests later” and phase-end-only validation are not acceptable.
 11. **Activation is part of scope** — when a PRD replaces a read path, materialization model, cache, projection, or persisted contract, it must define how existing data becomes visible after cutover (bootstrap, backfill, repair, smoke verification, and rollback if activation fails).
@@ -72,7 +72,9 @@ In compact mode:
 - keep the four `.ai-work/<prd-slug>/orchestration.md` sections;
 - fold Phase 2 and Phase 3 into one short pass when there are no blocking questions;
 - draft and self-audit in one pass only after calibration and pattern lock exist;
-- do not omit use cases, test strategy, edge-case matrix, class diagram, or slice ownership;
+- do not omit acceptance criteria, use cases, test strategy, or the edge-case matrix;
+- keep it proportional: a section that does not apply is one line (`No aplica: <reason>`), never a filled placeholder; a single phase with at most three slices lists one line per slice (ID, outcome, files, AC, validation, evidence) instead of the slice table; aim for 80 to 120 lines and never pad to match the template;
+- the class diagram follows its gate below;
 - do not mention `solution-sketch`.
 
 ### Hard Gate: Use Cases, Test Strategy, and Edge Cases Are Non-Optional
@@ -89,9 +91,9 @@ A PRD is never "ready to implement" on AC alone. Before delivering the final PRD
 
 ### Hard Gate: Class Diagram Is Non-Optional
 
-- Every PRD must include a Mermaid `classDiagram` in `## 3. Modelo de Datos`.
-- The diagram must show the classes, entities, value objects, services, or interfaces that are introduced or changed, including named relationships and cardinalities where relevant.
-- A PRD with no persisted data change still diagrams the relevant runtime classes and dependencies. Do not substitute a flowchart for this requirement.
+- Every PRD that introduces or changes classes, entities, value objects, services, or interfaces must include a Mermaid `classDiagram` in `## 3. Diseno Tecnico`, showing them with named relationships and cardinalities where relevant.
+- A compact PRD that only adds or changes functions (no class, entity, or service is introduced or changed) replaces the diagram with a signature list: name, inputs, output, and module of each function.
+- A PRD with no persisted data change that changes runtime classes still diagrams them. Do not substitute a flowchart for this requirement.
 - The diagram uses confirmed names and relationships from the pattern lock; placeholders are not acceptable in a PRD ready for `implement-change`.
 
 ### Hard Gate: Visible UI Requires A Visual Contract
@@ -104,7 +106,7 @@ When calibration records `visible_ui: yes`, a PRD is never ready to implement on
 - A mockup, screenshot, or photo is an input to the lock, not the lock. High-fidelity mockups are never a universal requirement.
 - Do not lock hex colors, new typefaces, or animation unless the user already has a product design system decision for them or explicitly asks for a `pixel` lock.
 - When the request brings a prototype (HTML or image), read [reference/visual-lock.md](reference/visual-lock.md) in Phase 2: the prototype locks structure and content, the project patterns own the visual language; list every clash, ask once, and record each decision and component in the `Lock visual` table. The implementer never resolves a clash.
-- If `visible_ui: no`, record `UI lock: not-applicable` plus a one-line reason. Do not invent a visual section for importer-only or backend-only PRDs.
+- If `visible_ui: no`, record `UI lock: not-applicable` plus a one-line reason. Do not invent a visual section for a PRD with no user-facing screen.
 - If `implement-change` would still have to invent the screen, stop: the visual contract is blocking ambiguity, same bar as an unlocked API contract.
 
 ### Phase 1: Repository and Ecosystem Calibration
@@ -156,12 +158,8 @@ Additional required sections:
 - Contrato Visual (UI lock) when `visible_ui: yes`, or an explicit `UI lock: not-applicable` when it is not
 - Parent epic context and inherited-invariant mapping when a parent epic exists
 - Contrato entre Fases (precondiciones/postcondiciones) when a parent epic exists
-- DDD placement decisions
-- Enumeration strategy
-- Lifecycle rules
-- Tenant integrity rules
-- Cross-context dependency rules
-- Mermaid class diagram (mandatory, see below)
+- When the PRD creates or changes persisted data: the data section from `template-sections/data-model.md`, with DDD placement decisions, enumeration strategy, lifecycle rules, cross-context dependency rules, and tenant integrity rules when the project is multi-tenant; otherwise `Persistencia: no aplica` with a one-line reason
+- Mermaid class diagram, or the signature list its hard gate allows (see above)
 - Casos de Uso table (mandatory, see below)
 - Estrategia de Tests table (mandatory, see below)
 - Matriz de Edge Cases table (mandatory, see below)
@@ -193,5 +191,5 @@ Use the canonical template at:
 
 The template holds the sections every PRD needs. Conditional sections live in
 `template-sections/` and are inserted only when they apply:
-`epic-context.md` (the PRD has a parent epic) and `visual-contract.md` (the
-PRD changes visible UI).
+`epic-context.md` (the PRD has a parent epic), `visual-contract.md` (the
+PRD changes visible UI), and `data-model.md` (the PRD creates or changes persisted data).

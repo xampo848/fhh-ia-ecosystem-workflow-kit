@@ -84,3 +84,5 @@ Frontend, run from `front/`:
 
 - Backend: service boundaries, CanCanCan, tenancy, i18n, Minitest.
 - PRDs follow `BACKEND_STANDARDS.md`; new PRDs do not use RSpec instructions.
+- PRD data sections write the migration as Rails migration pseudo-code (for example `add_column :table_name, :column_name, :type, default: nil`), and data model discovery starts from `backend/db/schema.rb`.
+- A PRD's Definition of Done includes that errors are captured with `Errors::CaptureExceptionService`.
