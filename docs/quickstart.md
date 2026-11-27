@@ -339,7 +339,7 @@ Practical notes:
 
 > **Published, not yet verified end to end.** The plugin marketplace in `main`
 > points at the public branch `plugin`, which is published and serves the
-> version in its `plugin.json` (`0.23.6-ac-guards` at the time of writing).
+> version in its `plugin.json` (`0.24.1-pilot-alignment` at the time of writing).
 > Nobody has yet run a real `claude plugin install` against it, so treat the
 > install path as unverified. See
 > [Versions and publishing](#versions-and-publishing).

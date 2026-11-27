@@ -40,7 +40,8 @@ Publicado el 2026-11-26, con aprobación del mantenedor:
 
 - Tags `v0.18.0-equilibrado-profile` a `v0.23.6-ac-guards` (15), uno por
   versión, sobre el commit de la tabla de `docs/versioning.md`.
-- Rama `plugin`, con el plugin `fhh` en la versión `0.23.6-ac-guards`.
+- Rama `plugin`, con el plugin `fhh` en la versión `0.24.1-pilot-alignment`
+  (republicada el 2026-11-27 con aprobación del mantenedor).
 
 Publicado el 2026-11-27, con aprobación del mantenedor: los tags
 `v0.17.4-usage-measurement`, `v0.17.5-slice-checkpoint`,

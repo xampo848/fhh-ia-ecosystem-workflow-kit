@@ -186,7 +186,7 @@ committing it.
 
 The marketplace committed in `main` points at the branch `plugin`. That branch
 is published on the remote and serves the version in its `plugin.json`
-(`0.23.6-ac-guards` at the time of writing). A new kit version reaches plugin
+(`0.24.1-pilot-alignment` at the time of writing). A new kit version reaches plugin
 users only after the maintainer publishes it again, as described below. No
 real `claude plugin install` against the published branch has been verified
 yet.
