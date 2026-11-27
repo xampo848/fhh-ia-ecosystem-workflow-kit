@@ -89,7 +89,7 @@ test('update migrates hand-written Copilot instructions to the neutral location 
   assert.equal(doctor.diagnostics.some((item) => item.code.startsWith('boundary/')), false);
 });
 
-test('doctor reports a stale wrapper; without project additions the wrapper is the kit default alone', async () => {
+test('doctor reports a stale wrapper; a deleted project quality gate comes back from its template', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'copilot' }));
   await fs.appendFile(path.join(target, '.agents/project/quality-gate.md'), '\n9. New project rule.\n');
@@ -101,9 +101,13 @@ test('doctor reports a stale wrapper; without project additions the wrapper is t
 
   await fs.rm(path.join(target, '.agents/project/quality-gate.md'));
   await fs.rm(path.join(target, '.github/instructions/quality-gate.instructions.md'));
-  // Without project additions the wrapper is the kit default alone.
+  // The deleted project file comes back from its template (since 0.24.2), so
+  // the wrapper is what a fresh install writes.
+  const fresh = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: fresh, runtime: 'copilot' }));
   const withoutAdditions = await buildUpdatePlan({ targetPath: target, runtime: 'copilot' });
-  assert.equal(withoutAdditions.operations.find((item) => item.relativePath === '.github/instructions/quality-gate.instructions.md').content, renderCopilotWrapper('quality-gate', await read(target, '.agents/delegation/quality-gate.md')));
+  assert.equal(withoutAdditions.operations.find((item) => item.relativePath === '.github/instructions/quality-gate.instructions.md').content, await read(fresh, '.github/instructions/quality-gate.instructions.md'));
+  assert.equal(withoutAdditions.operations.find((item) => item.relativePath === '.agents/project/quality-gate.md').operation, 'create');
 });
 
 test('implementation skills never skip a missing quality gate silently', async () => {

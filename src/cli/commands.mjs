@@ -82,7 +82,7 @@ export async function runInitCommand(options, { stdout, stderr }) {
 
   // options.mode (repo by default, or plugin) reaches the planner as given.
   const plan = await buildInstallPlan({ ...options, mode: options.mode ?? 'repo', toolkitVersion: packageJson.version });
-  stdout.write(`${options.apply ? 'Apply plan' : 'Dry-run plan'}\n${formatPlan(plan)}\n`);
+  stdout.write(`${options.apply ? 'Apply plan' : 'Dry-run plan'}\n${summarizedPlan(formatPlan(plan), options)}\n`);
   if (options.diff) stdout.write(`\nDiff of files that would change:\n${await renderPlanDiffs(plan)}\n`);
 
   if (!options.apply) return 0;
@@ -104,7 +104,7 @@ export async function runUpdateCommand(options, { stdout, stderr }) {
   // options.mode (when given) reaches the planner, which resolves it against
   // the recorded mode.
   const plan = await buildUpdatePlan({ ...options, toolkitVersion: packageJson.version });
-  stdout.write(`${options.apply ? 'Update apply plan' : 'Update dry-run plan'}\n${formatPlan(plan)}\n`);
+  stdout.write(`${options.apply ? 'Update apply plan' : 'Update dry-run plan'}\n${summarizedPlan(formatPlan(plan), options)}\n`);
   if (options.diff) stdout.write(`\nDiff of files that would change:\n${await renderPlanDiffs(plan)}\n`);
 
   if (!options.apply) return 0;
@@ -167,7 +167,7 @@ export async function runExportCommand(options, { stdout, stderr }) {
   }
 
   const plan = await buildInstallPlan({ ...options, export: true, ensureWorkspaceIgnore: false, recordJournal: false, toolkitVersion: packageJson.version });
-  stdout.write(`${options.apply ? 'Export apply plan' : 'Export dry-run plan'}\n${formatPlan(plan)}\n`);
+  stdout.write(`${options.apply ? 'Export apply plan' : 'Export dry-run plan'}\n${summarizedPlan(formatPlan(plan), options)}\n`);
 
   if (!options.apply) return 0;
 
@@ -175,6 +175,40 @@ export async function runExportCommand(options, { stdout, stderr }) {
   if (code !== undefined) return code;
   stdout.write(formatExportApplySummary(applied));
   return 0;
+}
+
+// A plan lists hundreds of files that need no attention (created as they
+// ship, unchanged, or project-owned and left alone). Each such kind is one
+// line with its count unless --all asks for every file; a line that carries a
+// note or a decision is always listed.
+const quietLines = [
+  { prefix: '- create: ', note: '', summary: (count) => `- create: ${count} file(s) (add --all to list them)` },
+  { prefix: '- unchanged: ', note: '', summary: (count) => `- unchanged: ${count} file(s) (add --all to list them)` },
+  { prefix: '- skip_unmanaged: ', note: ' (project-owned; left as it is)', summary: (count) => `- skip_unmanaged: ${count} file(s) (project-owned; left as they are; add --all to list them)` }
+];
+const quietThreshold = 3;
+function summarizedPlan(text, options) {
+  if (options.all) return text;
+  const kindOf = (line) => quietLines.find((kind) => line.startsWith(kind.prefix)
+    && (kind.note === '' ? !line.slice(kind.prefix.length).includes(' ') : line.endsWith(kind.note)));
+  const lines = text.split('\n');
+  const counts = new Map();
+  for (const line of lines) {
+    const kind = kindOf(line);
+    if (kind) counts.set(kind, (counts.get(kind) ?? 0) + 1);
+  }
+  const written = new Set();
+  const out = [];
+  for (const line of lines) {
+    const kind = kindOf(line);
+    if (!kind || counts.get(kind) <= quietThreshold) {
+      out.push(line);
+    } else if (!written.has(kind)) {
+      written.add(kind);
+      out.push(kind.summary(counts.get(kind)));
+    }
+  }
+  return out.join('\n');
 }
 
 export async function runDoctorCommand(options, { stdout }) {
@@ -192,16 +226,26 @@ export async function runRollbackCommand(options, { stdout, stderr }) {
 
   const plan = await buildRollbackPlan(options);
   stdout.write(`${options.apply ? 'Rollback apply plan' : 'Rollback dry-run plan'}\n${formatRollbackPlan(plan)}\n`);
+  // One fixed last line, so a script never has to read the prose above.
+  const outcome = rollbackOutcome(plan);
+  const result = (line) => stdout.write(`Result: ${line}\n`);
 
   // A journal is always applied, even with no file left to restore: the
   // previous state comes back and the record of the unfinished run goes, so
   // the next update is not stopped by it again.
-  if (!options.apply) return 0;
+  if (!options.apply) {
+    result(`dry-run (would be: ${outcome})`);
+    return 0;
+  }
   if (plan.operations.length === 0 && plan.source === 'backups') {
     // Asked to apply, and backups that could be restored were left alone:
     // a script must be able to tell this from "there was nothing to undo".
-    if ((plan.availableBackups?.length ?? 0) === 0) return 0;
+    if (outcome !== 'backups-not-restored') {
+      result(outcome);
+      return 0;
+    }
     stderr.write('Exit code 3: backups exist and none was restored. Add --from-backups to restore them.\n');
+    result(outcome);
     return 3;
   }
 
@@ -211,7 +255,16 @@ export async function runRollbackCommand(options, { stdout, stderr }) {
   stdout.write(`Restored files: ${summary.restored}\nRemoved created files: ${summary.removed}\nKept (edited after the apply): ${summary.keptModified}\nNot restorable (no backup): ${summary.withoutBackup}\n${summary.alreadyGone > 0 ? `Already removed by hand: ${summary.alreadyGone}\n` : ''}`);
   const copies = results.filter((item) => item.keptCopy).map((item) => path.relative(plan.targetPath, item.keptCopy).split(path.sep).join('/'));
   if (copies.length > 0) stdout.write(`Copies of the replaced content (${copies.length}):\n${copies.map((copy) => `- ${copy}`).join('\n')}\n`);
+  result(outcome);
   return 0;
+}
+
+// What a rollback plan amounts to, as one word for the Result line.
+function rollbackOutcome(plan) {
+  if (plan.source === 'leftovers') return 'cleaned-up';
+  if (plan.source === 'journal') return 'rolled-back';
+  if (plan.operations.length > 0) return 'restored-from-backups';
+  return (plan.availableBackups?.length ?? 0) > 0 ? 'backups-not-restored' : 'nothing-to-undo';
 }
 
 export async function runTuiCommand(_options, { stdout }) {

@@ -79,7 +79,7 @@ test('only the three OS junk names are skipped, other dotfiles in a template fol
   const folder = path.join(copy, 'templates/repo-overlay-fhh-ia-ecosystem-full/docs/workflow/standards');
   await fs.writeFile(path.join(folder, '.keep-me'), 'x');
   const target = await makeTempRepo('workflow-kit-l6-');
-  const result = await copyCli(copy, ['init', '--runtime', 'claude', '--target', target]);
+  const result = await copyCli(copy, ['init', '--runtime', 'claude', '--target', target, '--all']);
   assert.equal(result.code, 0, result.err);
   assert.match(result.out, /docs\/workflow\/standards\/\.keep-me/);
 });

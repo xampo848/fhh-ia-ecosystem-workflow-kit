@@ -558,6 +558,11 @@ export async function runDoctor(options = {}) {
   return {
     ok: missing.length === 0 && !diagnostics.some((item) => item.severity === 'error'),
     missingHint: missing.length > 0 ? missingFilesHint(storedState, targetPath) : null,
+    // No state and not one kit file: the list of every file adds nothing.
+    nothingInstalled: !storedState && present.length === 0,
+    // Project files (seeds) an install created and someone deleted: update
+    // recreates them from their templates.
+    missingProjectFiles: storedState ? missing.filter((relativePath) => storedState.files?.[relativePath]?.class === 'seed') : [],
     targetPath,
     installMode: pluginMode ? 'plugin' : 'repo',
     runtimes,
@@ -680,8 +685,15 @@ export function formatDoctorResult(result) {
   if (result.missing.length > 0) {
     // What explains the list comes before it, not after hundreds of lines.
     if (result.missingHint) lines.push(result.missingHint);
-    lines.push('Missing files:');
-    for (const item of result.missing) lines.push(`- ${item}`);
+    if ((result.missingProjectFiles ?? []).length > 0) {
+      lines.push(`A project file is missing (${result.missingProjectFiles.join(', ')}): run ${code(kitCommand(result.targetPath, 'update', '--apply', '--yes'))} to recreate it from its template. If the project does not have that layer, keep the file with one line that says so.`);
+    }
+    if (result.nothingInstalled) {
+      lines.push(`Missing files: ${result.missing.length} (not listed: nothing of the kit is here)`);
+    } else {
+      lines.push('Missing files:');
+      for (const item of result.missing) lines.push(`- ${item}`);
+    }
   }
 
   if (result.diagnostics.length > 0) {

@@ -1032,14 +1032,17 @@ function insertManagedBlock(existingContent, templateContent, blockName) {
   return `${existingContent}${separator}\n${block}\n`;
 }
 
-// seed: created once; after that the project owns it. A seed the kit created
-// and the project deleted is never recreated. Hand-written Copilot
+// seed: created when it is missing; while it exists the project owns it and
+// the kit never rewrites it. Hand-written Copilot
 // instructions become the seed's first content instead of the template.
 function planSeed({ base, templateContent, existingContent, recorded, migratedInstructions }) {
   if (existingContent !== null) return { ...base, operation: 'skip_unmanaged', content: existingContent, reason: 'project_owned' };
   const migrated = migratedInstructions[base.relativePath];
   if (typeof migrated === 'string') return { ...base, operation: 'create', content: migrated };
-  if (recorded?.class === 'seed') return null;
+  // A project file the install created and someone deleted comes back from
+  // its template: doctor requires it, and nothing else can repair it. The
+  // stack rules file keeps its own rule (doctor: stack-pack/missing).
+  if (recorded?.class === 'seed' && base.relativePath === stackRulesPath) return null;
   return { ...base, operation: 'create', content: templateContent };
 }
 

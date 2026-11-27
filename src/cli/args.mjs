@@ -3,10 +3,10 @@ import { code, installModes, shellWord } from '../plugin-mode.mjs';
 import { pluginRuntimes, supportedRuntimes } from '../runtime-matrix.mjs';
 
 const usageLines = {
-  init: 'workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--mode repo|plugin] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--diff] [--backup-mode required|none]',
-  update: 'workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--mode repo|plugin] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--diff] [--adopt-existing] [--backup-mode required|none] [--edited <path>=<decision>]... [--edited all=<decision>]',
+  init: 'workflow-kit init [--target <path>] [--dry-run] [--apply --yes] [--mode repo|plugin] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--diff] [--all] [--backup-mode required|none]',
+  update: 'workflow-kit update [--target <path>] [--dry-run] [--apply --yes] [--mode repo|plugin] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--diff] [--all] [--adopt-existing] [--backup-mode required|none] [--edited <path>=<decision>]... [--edited all=<decision>]',
   upgrade: 'workflow-kit upgrade [--ref <git-ref>] [--package-manager bun] [--dry-run] [--apply --yes]',
-  export: 'workflow-kit export --output <path> [--dry-run] [--apply --yes] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--backup-mode required|none]',
+  export: 'workflow-kit export --output <path> [--dry-run] [--apply --yes] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--all] [--backup-mode required|none]',
   doctor: 'workflow-kit doctor [--target <path>] [--runtime <list>]',
   rollback: 'workflow-kit rollback [--target <path>] [--dry-run] [--apply --yes] [--from-backups]',
   tui: 'workflow-kit tui'
@@ -24,15 +24,16 @@ const commandSummaries = {
 
 const runtimeNote = `--runtime takes a comma-separated list of: ${[...supportedRuntimes, 'neutral'].join(', ')} (neutral: no runtime adapter).`;
 const dryRunNote = 'Without --apply --yes every command is a dry run and writes nothing.';
+const allNote = 'A plan shows one line with a count for the files that need no attention (created, unchanged, project-owned); --all lists every file.';
 const editedNote = 'update --edited decides on a file the dry run lists as pending (repeat the flag per file, or use all=):\nkeep leaves it as it is (the next update lists it again), discard takes the kit version, shadow moves the edit to a project shadow (only while\nmigrating from install-state 1.0.0), split keeps the own lines of an adapter without markers below the new block.';
 const modeNote = '--mode repo (the default for init) installs the kit files in the project. --mode plugin (runtimes claude, copilot)\ninstalls only the adapters, the project overlay and the plugin declaration: the kit runs as the plugin fhh,\nwhich each person installs once per clone.';
 
 // The notes each command's own --help carries.
 const commandNotes = {
-  init: [runtimeNote, dryRunNote, modeNote],
-  update: [runtimeNote, dryRunNote, editedNote, modeNote],
+  init: [runtimeNote, dryRunNote, allNote, modeNote],
+  update: [runtimeNote, dryRunNote, allNote, editedNote, modeNote],
   upgrade: [dryRunNote],
-  export: [runtimeNote, dryRunNote],
+  export: [runtimeNote, dryRunNote, allNote],
   doctor: [runtimeNote, 'doctor only reads: it never writes, so it takes no --apply, --yes or --dry-run.'],
   rollback: [dryRunNote, '--from-backups restores the newest backup of each managed file when there is no record of an applied run (a project installed before 0.17.0, or a removed record). Without it, rollback only lists those backups: they may come from a run older than the one you mean to undo.'],
   tui: ['The menu needs an interactive terminal; in scripts use the other commands.']
@@ -64,10 +65,10 @@ const valueFlags = {
 // --overlay has one value and stays accepted where it is read (not in --help).
 const applyFlags = ['--dry-run', '--apply', '--yes'];
 const commandFlags = {
-  init: ['--target', '--runtime', '--overlay', '--profile', '--stack', '--mode', '--diff', '--backup-mode', ...applyFlags],
-  update: ['--target', '--runtime', '--overlay', '--profile', '--stack', '--mode', '--diff', '--backup-mode', '--adopt-existing', '--edited', ...applyFlags],
+  init: ['--target', '--runtime', '--overlay', '--profile', '--stack', '--mode', '--diff', '--all', '--backup-mode', ...applyFlags],
+  update: ['--target', '--runtime', '--overlay', '--profile', '--stack', '--mode', '--diff', '--backup-mode', '--adopt-existing', '--edited', '--all', ...applyFlags],
   upgrade: ['--ref', '--package-manager', ...applyFlags],
-  export: ['--output', '--runtime', '--overlay', '--profile', '--stack', '--backup-mode', ...applyFlags],
+  export: ['--output', '--runtime', '--overlay', '--profile', '--stack', '--backup-mode', '--all', ...applyFlags],
   doctor: ['--target', '--runtime', '--overlay'],
   rollback: ['--target', '--from-backups', ...applyFlags],
   tui: []
@@ -196,7 +197,7 @@ export function parseArgs(argv) {
       index += 1;
       return value;
     };
-    const known = Object.hasOwn(valueFlags, arg) || ['--edited', '--diff', '--dry-run', '--apply', '--yes', '--adopt-existing', '--from-backups'].includes(arg);
+    const known = Object.hasOwn(valueFlags, arg) || ['--edited', '--diff', '--dry-run', '--apply', '--yes', '--adopt-existing', '--from-backups', '--all'].includes(arg);
     if (known) assertFlagApplies(first, arg);
     if (Object.hasOwn(valueFlags, arg)) {
       // A value flag given twice would keep only one of them without a word.
@@ -210,6 +211,7 @@ export function parseArgs(argv) {
     else if (arg === '--yes') options.yes = true;
     else if (arg === '--adopt-existing') options.adoptExisting = true;
     else if (arg === '--from-backups') options.fromBackups = true;
+    else if (arg === '--all') options.all = true;
     else if (arg === '--help' || arg === '-h') options.help = true;
     else throw new Error(`Unknown argument: ${arg}`);
   }

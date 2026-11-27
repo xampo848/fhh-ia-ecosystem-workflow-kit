@@ -138,9 +138,12 @@ Behavior on update (since `0.22.0`, by the class each path has in
    instructions, the block of `docs/README.md`) get only their
    `workflow-kit:managed` block regenerated; your text outside the markers is
    never changed.
-3. Seeds (for example `.agents/project/context.md`) are created once; after
-   that they are project files and `update` never writes them again.
-4. Nothing under `.agents/project/` is changed, moved or deleted, except by
+3. Seeds (for example `.agents/project/context.md`) are created when they
+   are missing; while they exist they are project files and `update` never
+   writes them. Since `0.24.2` a seed someone deleted is created again from
+   its template (the stack rules file is the exception: see
+   `stack-pack/missing`).
+4. Nothing that exists under `.agents/project/` is changed, moved or deleted, except by
    the one-time layout migration below.
 5. A kit file that no runtime of the new version ships is deleted when you did
    not edit it, always with a backup next to it; an edited one stays and

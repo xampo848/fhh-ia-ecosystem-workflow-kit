@@ -74,8 +74,17 @@ test('doctor fails and names missing files for incomplete target', async () => {
 
   assert.equal(code, 1);
   assert.match(io.output.stdout, /Doctor: failed/);
-  assert.match(io.output.stdout, /\.agents\/instructions\.md/);
-  assert.match(io.output.stdout, /AGENTS\.md/);
+  // Nothing of the kit is there: the count, not a list of every kit file.
+  assert.match(io.output.stdout, /^Missing files: \d+ \(not listed: nothing of the kit is here\)$/m);
+
+  // An incomplete install names the files that are missing.
+  await runCli(['init', '--target', target, '--runtime', 'codex', '--apply', '--yes'], createMemoryIo());
+  await fs.rm(path.join(target, '.agents/instructions.md'));
+  await fs.rm(path.join(target, 'AGENTS.md'));
+  const partial = createMemoryIo();
+  assert.equal(await runCli(['doctor', '--target', target, '--runtime', 'codex'], partial), 1);
+  assert.match(partial.output.stdout, /^- \.agents\/instructions\.md$/m);
+  assert.match(partial.output.stdout, /^- AGENTS\.md$/m);
 });
 
 test('doctor fails with actionable semantic diagnostics', async () => {
@@ -412,7 +421,7 @@ test('missing files come after what explains them: no install, or an install fro
   const empty = await makeTempRepo();
   const none = formatDoctorResult(await runDoctor({ targetPath: empty })).split('\n');
   const noneHint = none.findIndex((line) => line.startsWith('No workflow-kit install-state here'));
-  assert.ok(noneHint >= 0 && noneHint === none.indexOf('Missing files:') - 1, none.slice(0, 12).join('\n'));
+  assert.ok(noneHint >= 0 && noneHint === none.findIndex((line) => line.startsWith('Missing files: ')) - 1, none.slice(0, 12).join('\n'));
   assert.ok(none[noneHint].includes(`\`workflow-kit init --target ${empty}\``));
 
   const target = await makeTempRepo();
