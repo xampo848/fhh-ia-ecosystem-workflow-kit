@@ -154,7 +154,7 @@ first, how visible the routing is, and the cost posture.
 | Level | What it loads | Budget | Ask before acting? | Visibility | Cost posture |
 | --- | --- | --- | --- | --- | --- |
 | N0 Operational | nothing from the workflow | up to 3 tool calls; if more are needed, stop and propose N1 | No: the user's intent is enough | no trace | `lean` |
-| N1 Surgical | the target files, their tests, and at most one PRD | no tracker, no delegates, no Discovery; one focused check | Yes, a short "yes" | one line, for example `N1 · surgical · touches X and its test` | `lean` |
+| N1 Surgical | the target files, their tests, and at most one PRD | no tracker, no delegates, no Discovery; one focused check | Yes, a short "yes" | one line, for example `N1 · surgical · lib/cart.mjs, lib/cart.test.mjs` | `lean` |
 | N2 Standard | the normal implementation route | per route | Only for routes that write (see the execution authorization gate) | full or compact routing trace | `balanced` |
 | N3 High risk | full gates | per route | As N2; an irreversible action always names the concrete risk and waits for an explicit yes | full or compact routing trace | `premium` |
 

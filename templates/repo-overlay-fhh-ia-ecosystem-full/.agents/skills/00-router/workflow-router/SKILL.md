@@ -111,7 +111,7 @@ High, CONTINUATION when the fast-path applies, FULL otherwise.
 
 - COMPACT: `[skill or direct-answer] · [lean | balanced | premium] · [reason in ≤8 words]`
 - CONTINUATION: `[skill] · continuing · no reroute`
-- N1 offer: `N1 · surgical · <files>` (say in words which focused check it will run)
+- N1 offer: `N1 · surgical · <files>`
 
 FULL format:
 
