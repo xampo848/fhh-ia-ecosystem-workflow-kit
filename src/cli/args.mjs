@@ -8,7 +8,7 @@ const usageLines = {
   upgrade: 'workflow-kit upgrade [--ref <git-ref>] [--package-manager bun] [--dry-run] [--apply --yes]',
   export: 'workflow-kit export --output <path> [--dry-run] [--apply --yes] [--runtime <list>] [--profile <runtime>=<calidad|equilibrado|costo>,...] [--stack none|rails-react] [--backup-mode required|none]',
   doctor: 'workflow-kit doctor [--target <path>] [--runtime <list>]',
-  rollback: 'workflow-kit rollback [--target <path>] [--dry-run] [--apply --yes]',
+  rollback: 'workflow-kit rollback [--target <path>] [--dry-run] [--apply --yes] [--from-backups]',
   tui: 'workflow-kit tui'
 };
 
@@ -34,7 +34,7 @@ const commandNotes = {
   upgrade: [dryRunNote],
   export: [runtimeNote, dryRunNote],
   doctor: [runtimeNote, 'doctor only reads: it never writes, so it takes no --apply, --yes or --dry-run.'],
-  rollback: [dryRunNote],
+  rollback: [dryRunNote, '--from-backups restores the newest backup of each managed file when there is no record of an applied run (a project installed before 0.17.0, or a removed record). Without it, rollback only lists those backups: they may come from a run older than the one you mean to undo.'],
   tui: ['The menu needs an interactive terminal; in scripts use the other commands.']
 };
 
@@ -69,7 +69,7 @@ const commandFlags = {
   upgrade: ['--ref', '--package-manager', ...applyFlags],
   export: ['--output', '--runtime', '--overlay', '--profile', '--stack', '--backup-mode', ...applyFlags],
   doctor: ['--target', '--runtime', '--overlay'],
-  rollback: ['--target', ...applyFlags],
+  rollback: ['--target', '--from-backups', ...applyFlags],
   tui: []
 };
 
@@ -196,7 +196,7 @@ export function parseArgs(argv) {
       index += 1;
       return value;
     };
-    const known = Object.hasOwn(valueFlags, arg) || ['--edited', '--diff', '--dry-run', '--apply', '--yes', '--adopt-existing'].includes(arg);
+    const known = Object.hasOwn(valueFlags, arg) || ['--edited', '--diff', '--dry-run', '--apply', '--yes', '--adopt-existing', '--from-backups'].includes(arg);
     if (known) assertFlagApplies(first, arg);
     if (Object.hasOwn(valueFlags, arg)) {
       // A value flag given twice would keep only one of them without a word.
@@ -209,6 +209,7 @@ export function parseArgs(argv) {
     else if (arg === '--apply') { options.apply = true; options.dryRun = false; }
     else if (arg === '--yes') options.yes = true;
     else if (arg === '--adopt-existing') options.adoptExisting = true;
+    else if (arg === '--from-backups') options.fromBackups = true;
     else if (arg === '--help' || arg === '-h') options.help = true;
     else throw new Error(`Unknown argument: ${arg}`);
   }

@@ -330,7 +330,7 @@ Practical notes:
 : State them in `.agents/project/backend.md` and `.agents/project/frontend.md`, which is what agents read. `docs/workflow/standards/setup-and-migration.md`, `docs/workflow/standards/backend.md`, and `docs/workflow/standards/frontend.md` in the target repository are the setup guides.
 
 - "How do I recover from a wrong apply?"
-: Run `workflow-kit rollback --target /path/to/repo --dry-run`, then `--apply --yes`. It undoes the last applied `init`/`update`. As a fallback, restore from the `*.workflow-kit-backup-<timestamp>` files and re-run dry-run before applying again.
+: Run `workflow-kit rollback --target /path/to/repo --dry-run`, then `--apply --yes`. It undoes the last applied `init`/`update`. When the project has no record of an apply, it restores nothing and lists the backups it found; `--from-backups` restores the newest backup of each managed file. As a fallback, restore from the `*.workflow-kit-backup-<timestamp>` files and re-run dry-run before applying again.
 
 - "What else is needed besides install (agents, skills, hooks)?"
 : Run `docs/workflow/runbooks/runtime-native-readiness-checklist.md` and complete adapter, skill-registry, and project instruction-hook checks.

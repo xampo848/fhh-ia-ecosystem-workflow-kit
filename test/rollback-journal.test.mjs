@@ -7,7 +7,9 @@ import { applyInstallPlan, applyJournalRelativePath } from '../src/apply.mjs';
 import { buildInstallPlan, buildUpdatePlan, installStateRelativePath } from '../src/planner.mjs';
 import { applyRollbackPlan, buildRollbackPlan, formatRollbackPlan, summarizeRollback } from '../src/rollback.mjs';
 import { installLegacy0181 } from './fixtures/legacy-0.18.1/install.mjs';
-import { makeTempRepo } from './helpers.mjs';
+import { createMemoryIo, makeTempRepo } from './helpers.mjs';
+import { runCli } from '../src/cli.mjs';
+import { spawn } from 'node:child_process';
 
 // Journal 2.0.0 and rollback (AC-5): an apply that deleted retired kit files,
 // overwrote and created others is undone byte for byte.
@@ -249,7 +251,7 @@ test('rollback without a journal on a migrated 2.0.0 repository keeps a copy of 
   for (const relativePath of ['CLAUDE.md', '.agents/project/quality-gate.md']) await fs.appendFile(path.join(target, relativePath), ownText);
   await fs.rm(path.join(target, applyJournalRelativePath));
 
-  const plan = await buildRollbackPlan({ targetPath: target });
+  const plan = await buildRollbackPlan({ targetPath: target, fromBackups: true });
   const restores = plan.operations.filter((item) => item.action === 'restore');
   assert.ok(['CLAUDE.md', '.agents/project/quality-gate.md'].every((relativePath) => restores.some((item) => item.relativePath === relativePath)));
   // Round 4 (N4): the dry run says a copy is kept first and what comes next.
@@ -268,7 +270,108 @@ test('rollback without a journal on a migrated 2.0.0 repository keeps a copy of 
     assert.ok(kept.some((content) => content.equals(before.get(item.relativePath))), `${item.relativePath}: its content before the rollback is kept`);
   }
   // A second rollback restores nothing: the copies it kept are not backups to restore.
-  assert.deepEqual((await buildRollbackPlan({ targetPath: target })).operations, []);
+  assert.deepEqual((await buildRollbackPlan({ targetPath: target, fromBackups: true })).operations, []);
+});
+
+// Pilot finding: without a journal, `rollback --apply --yes` restored the
+// backups of an older run (the original init) although the last run had
+// written nothing. Now it changes nothing unless --from-backups asks for it.
+async function migratedWithoutJournal() {
+  const target = await makeTempRepo();
+  await installLegacy0181(target);
+  await applyInstallPlan(await buildUpdatePlan({ targetPath: target }));
+  await fs.appendFile(path.join(target, 'CLAUDE.md'), '\nOwn text added after the migration.\n');
+  await fs.rm(path.join(target, applyJournalRelativePath));
+  return target;
+}
+
+async function treeOf(root) {
+  const entries = [];
+  async function walk(current) {
+    for (const entry of (await fs.readdir(current, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
+      const absolute = path.join(current, entry.name);
+      if (entry.isDirectory()) await walk(absolute);
+      else entries.push([path.relative(root, absolute), sha(await fs.readFile(absolute, 'utf8'))]);
+    }
+  }
+  await walk(root);
+  return entries;
+}
+
+test('rollback without a journal changes nothing unless --from-backups is given, and says which backups exist', async () => {
+  const target = await migratedWithoutJournal();
+  const before = await treeOf(target);
+
+  const plan = await buildRollbackPlan({ targetPath: target });
+  assert.equal(plan.source, 'backups');
+  assert.deepEqual(plan.operations, []);
+  assert.ok(plan.availableBackups.some((item) => item.relativePath === 'CLAUDE.md'));
+  const text = formatRollbackPlan(plan);
+  assert.match(text, /No apply journal found, so there is no applied run to undo\. Nothing is restored\./);
+  assert.match(text, /^- CLAUDE\.md <- CLAUDE\.md\.workflow-kit-backup-\d{8}T\d{6}Z \(backup taken \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC\)$/m);
+  assert.match(text, /may come from a run older than the one you mean to undo/);
+  assert.match(text, /`workflow-kit rollback --target \S+ --from-backups`/);
+  assert.doesNotMatch(text, /^restore /m);
+
+  for (const args of [['rollback', '--target', target], ['rollback', '--target', target, '--apply', '--yes']]) {
+    const io = createMemoryIo();
+    assert.equal(await runCli(args, io), 0, io.output.stderr);
+    assert.match(io.output.stdout, /Nothing is restored\./);
+    assert.doesNotMatch(io.output.stdout, /Restored files:/);
+  }
+  assert.deepEqual(await treeOf(target), before);
+
+  const io = createMemoryIo();
+  assert.equal(await runCli(['rollback', '--target', target, '--from-backups', '--apply', '--yes'], io), 0, io.output.stderr);
+  assert.match(io.output.stdout, /--from-backups: restoring the newest backup of each managed file/);
+  assert.match(io.output.stdout, /Restored files: [1-9]/);
+  assert.doesNotMatch(await fs.readFile(path.join(target, 'CLAUDE.md'), 'utf8'), /Own text added after the migration/);
+});
+
+test('--from-backups is refused when a journal exists, and belongs to rollback only', async () => {
+  const target = await makeTempRepo();
+  await installLegacy0181(target);
+  await applyInstallPlan(await buildUpdatePlan({ targetPath: target }));
+  const before = await treeOf(target);
+  await assert.rejects(buildRollbackPlan({ targetPath: target, fromBackups: true }), /--from-backups applies only when there is no record of an applied run\. This project has one .*run `workflow-kit rollback --target \S+` \(a dry run\) without --from-backups.*Nothing was changed\./s);
+  const io = createMemoryIo();
+  assert.notEqual(await runCli(['rollback', '--target', target, '--from-backups', '--apply', '--yes'], io), 0);
+  assert.deepEqual(await treeOf(target), before);
+
+  const other = createMemoryIo();
+  assert.notEqual(await runCli(['update', '--target', target, '--from-backups'], other), 0);
+  assert.match(other.output.stderr, /--from-backups does not apply to update/);
+  const help = createMemoryIo();
+  await runCli(['rollback', '--help'], help);
+  assert.match(help.output.stdout, /\[--from-backups\]/);
+  assert.match(help.output.stdout, /--from-backups restores the newest backup of each managed file when there is no record of an applied run/);
+});
+
+test('cleaning up a run killed before its record no longer says nothing is left when older backups remain', async () => {
+  const target = await migratedWithoutJournal();
+  const dead = spawn(process.execPath, ['-e', '']);
+  await new Promise((resolve) => dead.on('close', resolve));
+  await fs.writeFile(path.join(target, '.agents/workflow-kit/apply.lock'), `${JSON.stringify({ pid: dead.pid, startedAt: new Date().toISOString(), kind: 'apply', createdDirectories: [] })}\n`);
+  const before = (await treeOf(target)).filter(([file]) => !file.endsWith('apply.lock'));
+
+  const plan = await buildRollbackPlan({ targetPath: target });
+  assert.equal(plan.source, 'leftovers');
+  const text = formatRollbackPlan(plan);
+  assert.doesNotMatch(text, /Nothing else is left to roll back/);
+  assert.match(text, /No record of an applied run is left, so a second rollback has nothing to undo\. \d+ backup file\(s\) of earlier runs stay next to managed files; `workflow-kit rollback --target \S+ --from-backups` \(a dry run\) lists them\./);
+
+  // The pilot's exact sequence: rollback --apply --yes, twice.
+  for (let run = 0; run < 2; run += 1) {
+    const io = createMemoryIo();
+    assert.equal(await runCli(['rollback', '--target', target, '--apply', '--yes'], io), 0, io.output.stderr);
+  }
+  assert.deepEqual(await treeOf(target), before);
+
+  // With no backup at all the old sentence is still true.
+  const clean = await makeTempRepo();
+  await fs.mkdir(path.join(clean, '.agents/workflow-kit'), { recursive: true });
+  await fs.writeFile(path.join(clean, '.agents/workflow-kit/apply.lock'), `${JSON.stringify({ pid: dead.pid, startedAt: new Date().toISOString(), kind: 'apply', createdDirectories: ['.agents', '.agents/workflow-kit'] })}\n`);
+  assert.match(formatRollbackPlan(await buildRollbackPlan({ targetPath: clean })), /Nothing else is left to roll back\./);
 });
 
 // Round 4 (N6): a journal this version wrote but whose entries rollback cannot
