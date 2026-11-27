@@ -73,8 +73,9 @@ the next tagged version instead.
 
 ### Versions without a tag yet
 
-Every released version from `0.18.0` to `0.23.6` has a tag. Three earlier
-versions merged on `main` still have none: `0.17.4`, `0.17.5` and `0.17.6`.
+Every released version from `0.18.0` to `0.23.6` has a tag. `0.23.7` has none
+until the maintainer creates it, and three earlier versions merged on `main`
+still have none: `0.17.4`, `0.17.5` and `0.17.6`.
 A version released before its tag exists is pinned by its full commit hash,
 for example `workflow-kit upgrade --ref <40-character-hash> --apply --yes`
 or `bun add -g github:xampo848/fhh-ia-ecosystem-workflow-kit#<hash>`.
@@ -85,6 +86,7 @@ use the full hash. Each commit is the squash merge that released the version.
 
 | Version | Commit on `main` |
 | --- | --- |
+| `0.23.7-pilot-fixes` | the squash merge of this release; its hash is added after the merge |
 | `0.17.6-bounded-output` | `e4a660db57a85b939483caa31604f9cc5df2ed56` |
 | `0.17.5-slice-checkpoint` | `1c766cd4b6a7693ad133ff5611146118b216717f` |
 | `0.17.4-usage-measurement` | `fd1d055c7c58991d29b20bc1b156c0b2c9dbc2ef` |

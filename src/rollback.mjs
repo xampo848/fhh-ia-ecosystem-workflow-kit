@@ -8,7 +8,7 @@ import { pluginSettingsPaths, runtimeEntrypoints, supportedRuntimes } from './ru
 
 const backupSuffixPattern = /\.workflow-kit-backup-(\d{8}T\d{6}Z)$/;
 // Copies a rollback without a journal keeps; never picked as a backup to restore.
-const beforeRollbackSuffix = '-before-rollback';
+export const beforeRollbackSuffix = '-before-rollback';
 // 1.0.0 journals only hold `created` and `overwritten` entries; 2.0.0 adds
 // `deleted` (a retired kit file removed with a backup).
 

@@ -3,7 +3,7 @@
 // it never deletes them.
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { gitignoreHasWorkspaceEntry, workspaceDirectory } from './planner.mjs';
+import { backupIgnoreEntry, gitignoreHasBackupEntry, gitignoreHasWorkspaceEntry, workspaceDirectory } from './planner.mjs';
 import { updateAdvice } from './plugin-mode.mjs';
 import { classifyPath, legacyPathFor, loadKitManifest } from './kit-manifest.mjs';
 
@@ -134,6 +134,19 @@ export async function projectContextDiagnostics({ targetPath, pluginMode = false
     diagnostics.push(warning('project-context/missing-path', contextPath, `Points to \`${candidate}\`, which does not exist. Update the file at the next closure.`));
   }
   return diagnostics;
+}
+
+// An installed repository whose .gitignore lacks the backup pattern lets
+// `git add -A` version the backups the CLI keeps next to user files.
+export async function backupIgnoreDiagnostics({ targetPath }) {
+  let gitignore = '';
+  try {
+    gitignore = await fs.readFile(path.join(targetPath, '.gitignore'), 'utf8');
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  if (gitignoreHasBackupEntry(gitignore)) return [];
+  return [warning('workspace/backups-not-ignored', '.gitignore', `The backups workflow-kit keeps next to your files (*.workflow-kit-backup-*) are not ignored by Git, so git add -A would version them. Run ${updateAdvice(targetPath)}, or add "${backupIgnoreEntry}" to .gitignore.`)];
 }
 
 export async function workspaceDiagnostics({ targetPath, now = Date.now() }) {

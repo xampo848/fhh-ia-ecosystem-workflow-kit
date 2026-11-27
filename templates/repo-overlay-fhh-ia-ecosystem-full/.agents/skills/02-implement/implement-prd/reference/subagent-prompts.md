@@ -16,7 +16,7 @@ Load this section immediately before any GitHub Copilot `runSubagent` delegation
 6. One correction only: when the tool rejects the agent name or model before any work started and the message lists a valid observed option in the same required tier, re-resolve with that option and invoke once. Never replay after a timeout, tool failure, task failure, partial output, or whenever execution may have begun; mark `PENDING_SUBAGENT` and ask the user.
 7. A pinned model that is unavailable needs explicit user consent before any fallback (`--allow-pinned-fallback`); no silent tier downgrade or upgrade.
 8. If the tier has no observed candidate or the runtime blocks it for cost or policy, stop with an actionable choice (another observed model of the same tier, an explicitly authorized tier, or inline execution). Do not silently inherit the parent model. A budget never moves a task to a cheaper tier, and a budget without complete token counts and `billingMode: token` is blocked, not guessed.
-9. Selecting or configuring a model is not proof of execution. Verify with `node .agents/model-routing/verify-copilot-model-evidence.mjs` using request IDs from this invocation's run interval; the operational recipe (including the workflow-kit checkout paths under `scripts/`) is `docs/workflow/copilot-subagent-model-routing.md` in the workflow-kit repository.
+9. Selecting or configuring a model is not proof of execution. Verify with `node .agents/model-routing/verify-copilot-model-evidence.mjs` using request IDs from this invocation's run interval; the operational recipe is a maintainer document of the workflow-kit repository and is not installed in this project.
 
 ## Standard Writable Delegate
 
@@ -47,7 +47,7 @@ Reglas:
 5. Puedes ejecutar comandos de terminal para buscar, testear, lintiar y validar.
 6. Debes leer y aplicar las skills y docs relevantes antes de implementar.
 7. Antes de editar, nombra el patron existente que vas a seguir.
-8. Si ves una alternativa mejor, desafiala en una frase y recomienda una opcion.
+8. Si ves una alternativa mejor, desafíala en una frase y recomienda una opcion.
 9. No optimices fuera del alcance del slice.
 10. No dejes trabajo a medias: implementa, valida y reporta usando el formato de la skill.
 11. Output constraint: Return findings strictly in TOON format matching your schema in `.agents/skills/02-implement/implement-prd/reference/handoff-schemas.md`. Avoid conversational filler.

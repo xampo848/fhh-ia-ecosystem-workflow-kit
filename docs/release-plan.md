@@ -23,7 +23,7 @@ Do not run GitHub repository creation, package publication, release uploads, tag
 ## Versioning
 
 Versions follow [Versioning](versioning.md). The current version is the one in
-`package.json` (`0.23.6-ac-guards` at the time of writing); its notes are
+`package.json` (`0.23.7-pilot-fixes` at the time of writing); its notes are
 in `CHANGELOG.md`. A version is released when it is merged on `main`; a
 `v<version>` tag is created only with the maintainer's approval, and the remote
 has none after `0.17.3`. Which versions have a tag, and how to pin the others

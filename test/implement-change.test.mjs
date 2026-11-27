@@ -177,7 +177,7 @@ test('N2/N3 delegation prefers catalog delegates over general-purpose and names 
   const section = instructions.slice(instructions.indexOf('Compressed delegation preference:'), instructions.indexOf('## Model routing'));
   const rule = section.split('\n').find((line) => line.includes('general-purpose'));
   assert.ok(rule, 'Compressed delegation preference must keep the catalog-delegate rule (from a usage analysis of `general-purpose` runs)');
-  assert.match(rule, /^- in N2\/N3, when delegating, pick a catalog delegate by role/);
+  assert.match(rule, /^- in N2\/N3, when delegating, pick one of the delegates installed for your runtime by role/);
   assert.match(rule, /Use `general-purpose` only when no catalog delegate fits the role, and state why before launching it/);
 
   const catalogAgents = new Set(JSON.parse(catalogText).agents.map((agent) => agent.slug));

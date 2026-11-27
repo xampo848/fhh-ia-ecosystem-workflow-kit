@@ -19,7 +19,7 @@ Direct, causal, no hedging. State what breaks or what it costs, not that it "cou
 ```text
 Antes de fijar esto: [alternativa descartada] evita/resuelve [consecuencia concreta].
 ¿Por qué [decisión propuesta] en vez de eso?
-Si la confirmás, la registro como decisión con este trade-off explícito.
+Si la confirmas, la registro como decisión con este trade-off explícito.
 ```
 
 Banned phrasing: "podría ser un problema", "tal vez conviene revisar", "en general se recomienda". Replace with the actual failure mode, cost, or contradiction.

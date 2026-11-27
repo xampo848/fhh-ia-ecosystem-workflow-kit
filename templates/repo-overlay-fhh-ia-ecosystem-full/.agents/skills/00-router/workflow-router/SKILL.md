@@ -89,7 +89,7 @@ runtime capability; stop or use the explicitly authorized fallback instead.
 
 Natural-language binding: "usa create-prd" runs `create-prd`; "implementa este
 PRD" runs `implement-change` (alias `implement-prd`); "haz el ticket" runs
-`generate-pm-ticket`; "usa solution-sketch" or "hacé el sketch" runs
+`generate-pm-ticket`; "usa solution-sketch" or "haz el sketch" runs
 `solution-sketch`. For `project-formation`, `create-prd`, `create-epic`, and
 `generate-pm-ticket`, never auto-load the skill: present the options from
 `reference/route-menus.md` and wait.
@@ -111,7 +111,7 @@ High, CONTINUATION when the fast-path applies, FULL otherwise.
 
 - COMPACT: `[skill or direct-answer] · [lean | balanced | premium] · [reason in ≤8 words]`
 - CONTINUATION: `[skill] · continuing · no reroute`
-- N1 offer: `N1 · surgical · [files and check]`
+- N1 offer: `N1 · surgical · <files>` (say in words which focused check it will run)
 
 FULL format:
 

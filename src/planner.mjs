@@ -419,8 +419,11 @@ async function planInstall(options = {}) {
     targetPath, files, manifest, mode: 'init', previousFiles, backupMode, catalog, modelProfiles, migratedInstructions, pluginMode
   });
   if (!pluginMode) operations.push(...await buildOneTimeDocsMigrationOperations({ targetPath, previousFiles }));
+  const notices = [];
   if (options.ensureWorkspaceIgnore !== false) {
-    operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
+    const ignore = await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest });
+    operations.push(...ignore.operations);
+    notices.push(...ignore.notices);
   }
   const kitQualityGate = pluginMode ? await packageKitQualityGate() : undefined;
   operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode, kitQualityGate }));
@@ -446,6 +449,7 @@ async function planInstall(options = {}) {
     observed,
     recordJournal: options.recordJournal !== false,
     migrations: describeMigrations({ operations, existingState: null, migratedInstructions }),
+    notices,
     targetPath,
     stateFilePath: path.join(targetPath, installStateRelativePath),
     nextInstallState,
@@ -535,7 +539,8 @@ async function planUpdate(options = {}) {
   // A switch to plugin mode decides its pending files once the retired ones are known.
   const shadows = switching ? [] : await planEditedDecisions({ targetPath, operations, edited: options.edited ?? {}, manifest, migration });
   if (migration) await migration.completeOperations(operations, shadows);
-  operations.push(...await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }));
+  const ignore = await buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest });
+  operations.push(...ignore.operations);
   const kitQualityGate = pluginMode ? await packageKitQualityGate() : undefined;
   operations.push(...projectInstructionWrapperOperations({ targetPath, runtimes, operations, instructionInspection, backupMode, kitQualityGate }));
   operations.push(...await buildStackPackOperations({ targetPath, stackPack, previousFiles }));
@@ -601,6 +606,7 @@ async function planUpdate(options = {}) {
     // The TUI names a switch, not the layout migration, as the block it does not list.
     modeSwitch: Boolean(switchTo),
     migrations,
+    notices: ignore.notices,
     nextInstallState,
     toolkitVersion: options.toolkitVersion ?? null,
     previousToolkitVersion: existingState?.toolkitVersion ?? null,
@@ -1124,6 +1130,8 @@ export function formatPlan(plan) {
       for (const note of migration.notes ?? []) lines.push(`  - note: ${note}`);
     }
   }
+  // What the plan could not do and the user has to (it does not stop the plan).
+  for (const notice of plan.notices ?? []) lines.push(`Note: ${notice}`);
   lines.push('Operations:');
 
   // A pending file lists the decisions that settle it, as the migration lines
@@ -1376,39 +1384,102 @@ export const workspaceDirectory = '.ai-work';
 
 const normalizeIgnoreLine = (line) => line.trim().replace(/^\//, '').replace(/\/$/, '');
 
+// Whether git ends up ignoring `entry` through the file's lines, read in order:
+// a later "!entry" takes it back. "**/entry" says the same as "entry". An entry
+// that names a file anywhere in the tree (starts with "*") is not covered by
+// the same pattern anchored to the root ("/entry"): that one skips nested files.
 function gitignoreHasEntry(content, entry) {
   const wanted = normalizeIgnoreLine(entry);
-  return String(content).split(/\r?\n/).some((line) => normalizeIgnoreLine(line) === wanted);
+  const anywhere = entry.startsWith('*');
+  let ignored = false;
+  for (const line of String(content).split(/\r?\n/)) {
+    const trimmed = line.trim();
+    const negated = trimmed.startsWith('!');
+    const body = negated ? trimmed.slice(1) : trimmed;
+    if (anywhere && body.startsWith('/')) continue;
+    if (normalizeIgnoreLine(body.replace(/^\*\*\//, '')) === wanted) ignored = !negated;
+  }
+  return ignored;
 }
 
 export function gitignoreHasWorkspaceEntry(content) {
   return gitignoreHasEntry(content, workspaceDirectory);
 }
 
+// Every backup the CLI names is <file>.workflow-kit-backup-<stamp>[suffix]; one
+// pattern on the marker covers them all (the manifest lists the same line).
+export const backupIgnoreEntry = `*${backupFileMarker}*`;
+
+export function gitignoreHasBackupEntry(content) {
+  return gitignoreHasEntry(content, backupIgnoreEntry);
+}
+
 export function gitignoreHasApplyJournalEntry(content) {
   return gitignoreHasEntry(content, applyJournalRelativePath);
 }
 
+const ignoreBlockHeader = '# workflow-kit local state (stays on this machine)';
+
+// The line ending the file already uses (CRLF when it has at least as many CRLF
+// lines as bare LF lines), so the lines the kit adds do not mix endings.
+function lineEndingOf(content) {
+  const crlf = (content.match(/\r\n/g) ?? []).length;
+  const lf = (content.match(/\n/g) ?? []).length - crlf;
+  return crlf > 0 && crlf >= lf ? '\r\n' : '\n';
+}
+
+// New content for an existing .gitignore. When the kit block is already there
+// (found by its header), the missing entries join it right after its last line;
+// otherwise a block with the header is appended. User lines never move.
+function addIgnoreEntries(existing, entries) {
+  const eol = lineEndingOf(existing);
+  const parts = existing.split(/(?<=\n)/);
+  const headerAt = parts.map((part) => part.trim()).lastIndexOf(ignoreBlockHeader);
+  // A "!entry" in the file wins over an entry placed above it: append at the end then, as before.
+  const negated = entries.some((entry) => parts.some((part) => part.trim() === `!${entry}`));
+  if (headerAt >= 0 && !negated) {
+    let end = headerAt + 1;
+    while (end < parts.length && parts[end].trim() !== '' && !parts[end].trim().startsWith('#')) end += 1;
+    const head = parts.slice(0, end);
+    if (!head[end - 1].endsWith('\n')) head[end - 1] += eol;
+    return [...head, ...entries.map((entry) => `${entry}${eol}`), ...parts.slice(end)].join('');
+  }
+  const separator = existing.length === 0 || existing.endsWith('\n') ? '' : eol;
+  return `${existing}${separator}${eol}${ignoreBlockHeader}${eol}${entries.map((entry) => `${entry}${eol}`).join('')}`;
+}
+
+// Operations for the ignore entries, and notices for what it cannot write: the
+// kit never writes through a symbolic link (fs-safety refuses a plan that
+// does), so a linked .gitignore is left alone and the user adds the lines.
 async function buildWorkspaceIgnoreOperations({ targetPath, backupMode, manifest }) {
   const targetFile = path.join(targetPath, gitignorePath);
   const existing = await readOptional(targetFile);
   const ignoredEntries = manifest.ignore_entries.filter((entry) => !gitignoreHasEntry(existing ?? '', entry));
-  if (ignoredEntries.length === 0) return [];
-  const block = `# workflow-kit local state (stays on this machine)\n${ignoredEntries.join('\n')}\n`;
+  if (ignoredEntries.length === 0) return { operations: [], notices: [] };
 
-  if (existing === null) {
-    return [{ operation: 'create', relativePath: gitignorePath, targetFile, sourcePath: null, content: block, ignoredEntries }];
+  if (await findSymlinkInPath(targetPath, gitignorePath)) {
+    return {
+      operations: [],
+      notices: [`.gitignore is a symbolic link, and workflow-kit does not write through symbolic links, so it did not add these lines: ${ignoredEntries.join(', ')}. Add them to the file it points to yourself; doctor keeps warning until they are there.`]
+    };
   }
 
-  const separator = existing.length === 0 || existing.endsWith('\n') ? '' : '\n';
-  return [{
-    operation: mergeOperation(backupMode),
-    relativePath: gitignorePath,
-    targetFile,
-    sourcePath: null,
-    content: `${existing}${separator}\n${block}`,
-    ignoredEntries
-  }];
+  if (existing === null) {
+    const block = `${ignoreBlockHeader}\n${ignoredEntries.join('\n')}\n`;
+    return { operations: [{ operation: 'create', relativePath: gitignorePath, targetFile, sourcePath: null, content: block, ignoredEntries }], notices: [] };
+  }
+
+  return {
+    operations: [{
+      operation: mergeOperation(backupMode),
+      relativePath: gitignorePath,
+      targetFile,
+      sourcePath: null,
+      content: addIgnoreEntries(existing, ignoredEntries),
+      ignoredEntries
+    }],
+    notices: []
+  };
 }
 
 // Generated seed: written once at init when legacy docs exist, never again.

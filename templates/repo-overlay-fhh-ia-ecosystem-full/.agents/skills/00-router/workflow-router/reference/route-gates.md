@@ -45,7 +45,7 @@ Do not choose the predecessor for the user. Present the options from
 ## N1 surgical offer
 
 The router offers N1 explicitly instead of hiding it as an exception. Offer it,
-as an option with its one-line trace (`N1 · surgical · <files and check>`), only
+as an option with its one-line trace (`N1 · surgical · <files>`), only
 when all of these hold:
 
 1. The change touches at most one or two files.

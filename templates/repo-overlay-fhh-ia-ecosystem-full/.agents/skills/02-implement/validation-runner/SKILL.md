@@ -30,7 +30,7 @@ If `bin/validate-slice` does not exist in the target repository, its absence is 
 
 If the wrapper is too broad for an isolated quick check, fall back to the
 narrowest lint or fast test command declared for the touched layer in
-`.agents/project/context.md` (legacy: `.agents/project-context.md`), `.agents/project/stack.md`, the quality gate, or
+`.agents/project/context.md` (legacy: `.agents/project-context.md`), `.agents/project/stack.md` (when present), the quality gate, or
 that layer's instructions (`.agents/project/backend.md`,
 `.agents/project/frontend.md`, or the paths in `.agents/project/paths.json`),
 in that order. If no command is declared anywhere for that layer, report it
@@ -52,7 +52,7 @@ instead of guessing one.
 8. When a failure is classified as "Pre-existing unrelated failure", do not decide its resolution unilaterally. Record it in `unrelated_failures[N]` and trigger the mandatory stop below instead of silently skipping or silently registering it as a follow-up.
 9. Re-run the failed command after a fix. Each fix-and-rerun cycle is one repair round; the limit is 2 per slice, and the third stops with options for the user (see `../implement-prd/reference/validation-and-stop-conditions.md`).
 10. Classify every failure as product or environment before fixing. Environment failures (database, ports, seeding or purging, infrastructure timeouts, a model that cannot be launched) get one recovery attempt and are then reported, not repaired inside the slice. A flaky test with no code change is rerun once and recorded as flaky.
-11. Before running an expensive deterministic check (package typecheck, unit suite, build), apply Evidence Reuse in `../implement-prd/reference/validation-and-stop-conditions.md`: compute the fingerprint with `scripts/validation-fingerprint.mjs`, ask `decide`, and `record` every result. In shadow mode always run and report whether the result matched what would have been reused.
+11. Before running an expensive deterministic check (package typecheck, unit suite, build), apply Evidence Reuse in `../implement-prd/reference/validation-and-stop-conditions.md`: compute the fingerprint with `.agents/skills/02-implement/validation-runner/scripts/validation-fingerprint.mjs`, ask `decide`, and `record` every result. In shadow mode always run and report whether the result matched what would have been reused.
 12. Report evidence compactly: command, exit code, duration, passed/failed counts, and the path of the full log under `.ai-work/<prd-slug>/logs/`. Include at most ~30 relevant lines per failure (first error and its stack); never paste a full log.
 13. Escalate to broader validation only when narrow validation passes and risk warrants it.
 

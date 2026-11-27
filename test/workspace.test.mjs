@@ -106,7 +106,7 @@ test('update ignores the rollback journal in a repository that already ignores t
   const plan = await buildUpdatePlan({ targetPath: target, runtime: 'neutral' });
   const operation = plan.operations.find((item) => item.relativePath === '.gitignore');
   assert.equal(operation.operation, 'merge_with_backup');
-  assert.deepEqual(plan.migrations.map((item) => item.id).filter((id) => id.includes('ignored') || id.includes('workspace')), ['0.17.2-apply-journal-ignored']);
+  assert.deepEqual(plan.migrations.map((item) => item.id).filter((id) => id.includes('ignored') || id.includes('workspace')), ['0.17.2-apply-journal-ignored', '0.23.7-backups-ignored']);
   await applyInstallPlan(plan);
 
   const gitignore = await fs.readFile(path.join(target, '.gitignore'), 'utf8');

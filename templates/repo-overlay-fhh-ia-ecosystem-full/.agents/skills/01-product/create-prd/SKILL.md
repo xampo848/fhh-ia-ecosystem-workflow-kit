@@ -38,7 +38,7 @@ Use this skill when:
 5. **English in code** — code identifiers (columns, variables, classes) use English, even if the domain language is Spanish, unless the project's rules say otherwise.
 6. **Milestones contain executable slices** — phases express product milestones; they are not permission to group large implementation tasks. Every non-trivial phase must decompose into small, ordered slices with one observable outcome and a verification gate.
 7. **DDD before implementation** — PRDs must define bounded context placement, ownership, namespace, table strategy, and dependency direction before implementation starts.
-8. **Standards-aware PRDs** — PRDs follow the project's standards documents and stack rules (`.agents/project/backend.md`, `.agents/project/frontend.md`, `.agents/project/stack.md`), including its test framework and enumeration conventions.
+8. **Standards-aware PRDs** — PRDs follow the project's standards documents and stack rules (`.agents/project/backend.md`, `.agents/project/frontend.md`, and `.agents/project/stack.md` when a stack pack was installed), including its test framework and enumeration conventions.
 9. **Evidence before completion** — every deliverable must name how it will be tested, validated, and verified. “Tests later” and phase-end-only validation are not acceptable.
 10. **Activation is part of scope** — when a PRD replaces a read path, materialization model, cache, projection, or persisted contract, it must define how existing data becomes visible after cutover (bootstrap, backfill, repair, smoke verification, and rollback if activation fails).
 11. **No phase skipping** — the default workflow is five sequential phases. Compact mode may fold drafting into a shorter path, but it may not skip calibration, ambiguity resolution, pattern lock, or self-audit.
@@ -168,6 +168,12 @@ Additional required sections:
 - Supuestos e integraciones table, from the Unknowns Inventory in `reference/calibration.md` (`Ninguno` with a one-line reason when there is no external or poorly known dependency)
 - Que queda obsoleto table, from the Obsolescence Scan in `reference/calibration.md` (`Ninguno` with a one-line reason when nothing becomes obsolete)
 - Evidencia de Implementacion section (initialized in the PRD template and completed only at `implement-change` closure)
+
+---
+
+### Phase 5: Self-Audit and Hardening
+
+Load and execute [reference/self-audit.md](reference/self-audit.md). This is a hard gate; persist its required artifact and final readiness declaration before delivering the PRD.
 
 ## References
 

@@ -51,8 +51,8 @@ Read the project instructions first, using exists-or-skip. A missing file is not
 - `.agents/instructions.md`
 - `.agents/project/backend.md` if backend may be touched
 - `.agents/project/frontend.md` if frontend may be touched
-- `docs/foundations/ARCHITECTURE.md` only for cross-layer, architectural, migration-heavy, or tenancy-sensitive initiatives
-- Only relevant pattern docs from `docs/patterns/README.md`
+- `docs/foundations/ARCHITECTURE.md` when it exists, only for cross-layer, architectural, migration-heavy, or tenancy-sensitive initiatives
+- Only relevant pattern docs from `docs/patterns/README.md` when it exists
 - Existing PRDs, guides, tests, models, services, controllers, hooks, pages, serializers, API modules, and i18n files related to the idea
 
 Use `rg`/`rg --files` first. Persist a reusable evidence pack at `docs/epics/<feature-or-project>/<slug>-evidence.md` with local findings, missing paths, and any external sources. Child `create-prd` runs should reuse this pack instead of rediscovering the same context.

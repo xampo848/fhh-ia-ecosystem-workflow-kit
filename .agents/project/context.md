@@ -38,4 +38,4 @@ only") so they run once and not per slice.
 
 | Document | Read it when |
 | --- | --- |
-| [TODO: docs/foundations/ARCHITECTURE.md] | [TODO: cross-layer or architectural work] |
+| [TODO: your project's architecture document, such as docs/foundations/ARCHITECTURE.md] | [TODO: cross-layer or architectural work] |

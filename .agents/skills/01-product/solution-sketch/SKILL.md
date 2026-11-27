@@ -36,7 +36,7 @@ Human flow map: `docs/workflow/decisions/2026-08-24-solution-sketch-flow.md`.
 
 ## Never auto-start
 
-This skill starts only after explicit authorization (`usa solution-sketch`, `hacé el sketch`, or choosing it from an offer). An offer is not execution. If the user declines, record `sketch: skipped` in the parent artifact and resume the parent workflow.
+This skill starts only after explicit authorization (`usa solution-sketch`, `haz el sketch`, or choosing it from an offer). An offer is not execution. If the user declines, record `sketch: skipped` in the parent artifact and resume the parent workflow.
 
 ## Core rules
 

@@ -614,9 +614,9 @@ test('a claude plugin list above 1 MB is read, not reported as a failure to run'
   assert.deepEqual(await inspectInstalledPlugins({ targetPath: process.cwd(), executor, timeoutMs: 20000 }), { status: 'installed', version: packageJson.version, enabled: true });
 });
 
-test('init --mode plugin --apply says the install commands fail until the plugin branch is published', async () => {
+test('init --mode plugin --apply says the marketplace serves the published version and points to doctor', async () => {
   const target = await makeTempRepo();
   const init = await cli(['init', '--target', target, '--mode', 'plugin', '--runtime', 'claude', '--apply', '--yes']);
   assert.equal(init.code, 0, init.stderr);
-  assert.match(init.stdout, new RegExp(`- Claude Code: cd ${target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} && ${claudeInstall}\\nEach person runs it once per clone of this repository; the repository only declares the plugin\\.\\nThe marketplace serves the plugin only after the kit's \`plugin\` branch is published; until then these commands fail\\.\\n`));
+  assert.match(init.stdout, new RegExp(`- Claude Code: cd ${target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} && ${claudeInstall}\\nEach person runs it once per clone of this repository; the repository only declares the plugin\\.\\nThe marketplace serves the version published on the kit's \`plugin\` branch, which may be older than this CLI until the maintainer publishes again; run \`workflow-kit doctor --target \\S+\` to check it\\.\\n`));
 });

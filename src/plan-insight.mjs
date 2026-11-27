@@ -3,7 +3,7 @@
 // line diff of every file it would change.
 import fs from 'node:fs/promises';
 import { applyJournalRelativePath } from './apply.mjs';
-import { workspaceDirectory } from './planner.mjs';
+import { backupIgnoreEntry, workspaceDirectory } from './planner.mjs';
 import { neutralInstructionPath, projectInstructionNames } from './project-instructions.mjs';
 
 // Migrations are derived from the plan itself, so they are idempotent: once a
@@ -21,6 +21,9 @@ export function describeMigrations({ operations, existingState, modelProfiles = 
   }
   if (ignored.includes(`/${applyJournalRelativePath}`)) {
     migrations.push({ id: '0.17.2-apply-journal-ignored', summary: `Add ${applyJournalRelativePath} (local rollback journal) to .gitignore. If it was committed before, run: git rm --cached ${applyJournalRelativePath}` });
+  }
+  if (ignored.includes(backupIgnoreEntry)) {
+    migrations.push({ id: '0.23.7-backups-ignored', summary: `Add ${backupIgnoreEntry} (the backups next to your files) to .gitignore. If a backup was already committed, run: git rm --cached <file>` });
   }
   const defaultedRuntimes = existingState
     ? Object.keys(modelProfiles).filter((runtime) => !existingState.modelProfiles?.[runtime] && !requestedProfiles[runtime])
