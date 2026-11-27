@@ -304,6 +304,16 @@ Things to know:
   restored" from "nothing to roll back" (code 0). The list includes the
   backup of `.gitignore`. "Nothing to restore: … each managed file already has
   the content of its newest backup" means the backups were already restored.
+  Every `rollback` that gets as far as a plan ends with a line `Result: …` a script can read
+  (`rolled-back`, `restored-from-backups`, `cleaned-up`, `nothing-to-undo`,
+  `backups-not-restored`; a dry run prints `Result: dry-run (would be: …)`).
+  After `--from-backups` the kit stays installed: a restored `CLAUDE.md` or
+  `.gitignore` loses what the install added, `doctor` reports it, and `update`
+  puts it back.
+- "A project file is missing": a file under `.agents/project/` was deleted.
+  `workflow-kit update --apply --yes` recreates it from its template; a file
+  that exists is never rewritten (`doctor` names the command). If the project does not have that layer,
+  keep the file with one line that says so.
 - "changed after this plan was made": another run changed the repository
   between your plan and your write. Nothing was written; run the command again
   so it plans from the repository as it is now. The same stop applies to

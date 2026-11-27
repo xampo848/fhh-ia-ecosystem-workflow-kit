@@ -55,5 +55,5 @@ per-run identifiers that leak an internal correlation id used elsewhere.
 ## Absence Is Not A Blocker
 
 Missing diagnostics do not block PRD closure. Delivery evidence (tests,
-validation commands, and the PRD's own `## 10. Evidencia de Implementacion`)
+validation commands, and the PRD's own `## 10. Evidencia de Implementación`)
 is independent of this optional artifact.

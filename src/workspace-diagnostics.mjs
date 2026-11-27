@@ -203,7 +203,7 @@ export async function workspaceDiagnostics({ targetPath, now = Date.now() }) {
   for (const prd of prds) {
     const lines = prd.section.split('\n').filter((line) => line.trim().length > 0).length;
     if (lines > section10LineGuide) {
-      diagnostics.push(warning('prd/section-10-oversized', relative(prd.absolute), `"## 10. Evidencia de Implementacion" has ${lines} non-empty lines (guide: about ${section10LineGuide}). It is a durable summary, not a log; repair history belongs in the PR and commits.`));
+      diagnostics.push(warning('prd/section-10-oversized', relative(prd.absolute), `"## 10. Evidencia de Implementación" has ${lines} non-empty lines (guide: about ${section10LineGuide}). It is a durable summary, not a log; repair history belongs in the PR and commits.`));
     }
   }
 

@@ -30,7 +30,7 @@ older binary.
 A tag is the version with a `v` prefix and points at the commit on `main` that
 released it. **Tags are created only when the maintainer approves them**
 ([RELEASE.md](../RELEASE.md)). The remote has a tag for every version from
-`0.16.0` to `0.24.0`, so a pin such as `--ref v0.24.0-pilot-decisions` works. A
+`0.16.0` to `0.24.1`, so a pin such as `--ref v0.24.1-pilot-alignment` works. A
 version released later has no tag until the maintainer approves it; pin its
 full commit hash instead (see "Versions without a tag yet").
 
@@ -38,7 +38,8 @@ full commit hash instead (see "Versions without a tag yet").
 
 | Tag | Notes |
 | --- | --- |
-| `v0.24.0-pilot-decisions` | latest tag; commit `1b2f67f9dd0b88b012a3eda2a7d592ac92eabcc8` |
+| `v0.24.1-pilot-alignment` | latest tag; commit `328d3287f6cdaf05ccc56f49bb30efb34f82f252` |
+| `v0.24.0-pilot-decisions` | commit `1b2f67f9dd0b88b012a3eda2a7d592ac92eabcc8` |
 | `v0.23.9-pilot-context` | commit `28bf3bff9264f0897331aac3399961e227a29f54` |
 | `v0.23.8-pilot-text` | commit `cf84f93bac7e4a3d2f8a4c0ba0110a67c76b68d4` |
 | `v0.23.7-pilot-fixes` | commit `349c8e9f8f002d5852ca7cd267d64c56d25d49c2` |
@@ -80,7 +81,7 @@ the next tagged version instead.
 
 ### Versions without a tag yet
 
-Every released version from `0.16.0` to `0.24.0` has a tag. `0.24.1` has none
+Every released version from `0.16.0` to `0.24.1` has a tag. `0.24.2` has none
 until the maintainer creates it.
 A version released before its tag exists is pinned by its full commit hash,
 for example `workflow-kit upgrade --ref <40-character-hash> --apply --yes`
@@ -92,7 +93,7 @@ use the full hash. Each commit is the squash merge that released the version.
 
 | Version | Commit on `main` |
 | --- | --- |
-| `0.24.1-pilot-alignment` | the squash merge of this release; its hash is added after the merge |
+| `0.24.2-pilot-followup` | the squash merge of this release; its hash is added after the merge |
 
 When the maintainer creates a tag for one of these, or for a future version,
 it takes the name in the first column with a `v` prefix, and the release steps
@@ -185,7 +186,7 @@ committing it.
 
 The marketplace committed in `main` points at the branch `plugin`. That branch
 is published on the remote and serves the version in its `plugin.json`
-(`0.23.6-ac-guards` at the time of writing). A new kit version reaches plugin
+(`0.24.1-pilot-alignment` at the time of writing). A new kit version reaches plugin
 users only after the maintainer publishes it again, as described below. No
 real `claude plugin install` against the published branch has been verified
 yet.

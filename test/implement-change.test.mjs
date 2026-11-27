@@ -45,7 +45,7 @@ test('invariants and closure by level live in the core so no level skips them', 
 
 test('iteration and bug inputs keep quality while dropping ceremony', async () => {
   const inputs = await read(`${changeDir}/reference/input-types.md`);
-  assert.match(inputs, /The map is the PRD and its `## 10\. Evidencia de Implementacion`/);
+  assert.match(inputs, /The map is the PRD and its `## 10\. Evidencia de Implementación`/);
   assert.match(inputs, /Freshness is measured by changes, not time/);
   assert.match(inputs, /git diff <ref> -- <files>/);
   assert.match(inputs, /regression of the original feature by running the existing tests that\s+section 10 lists/);

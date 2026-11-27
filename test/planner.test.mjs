@@ -317,7 +317,7 @@ test('a 1.0.0 state is read with each entry classified; an unknown schema asks t
   await assert.rejects(buildUpdatePlan({ targetPath: target }), /uses schema 3\.0\.0.*upgrade the CLI/);
 });
 
-test('update by class: a seed is created once and never written again (AC-2)', async () => {
+test('update by class: a seed is created when missing and never written while it exists (AC-2)', async () => {
   const target = await makeTempRepo();
   await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'neutral' }));
   const state = await readState(target);
@@ -325,14 +325,15 @@ test('update by class: a seed is created once and never written again (AC-2)', a
   await fs.rm(path.join(target, '.agents/project/frontend.md'));
   delete state.files['.agents/project/frontend.md'];
   await writeState(target, state);
-  // Created by the kit and deleted by the project: stays deleted.
+  // Created by the kit and deleted by the project: comes back from its
+  // template (doctor requires it), since 0.24.2.
   await fs.rm(path.join(target, '.agents/project/context.md'));
   // Edited by the project: untouched.
   await fs.appendFile(path.join(target, '.agents/project/backend.md'), '\n- Regla propia.\n');
 
   const plan = await buildUpdatePlan({ targetPath: target });
   assert.equal(operationFor(plan, '.agents/project/frontend.md').operation, 'create');
-  assert.equal(operationFor(plan, '.agents/project/context.md'), undefined);
+  assert.equal(operationFor(plan, '.agents/project/context.md').operation, 'create');
   const backend = operationFor(plan, '.agents/project/backend.md');
   assert.equal(backend.operation, 'skip_unmanaged');
   assert.equal(backend.reason, 'project_owned');
@@ -340,7 +341,10 @@ test('update by class: a seed is created once and never written again (AC-2)', a
   await applyInstallPlan(plan);
   const next = await readState(target);
   assert.deepEqual(next.files['.agents/project/frontend.md'], { class: 'seed' });
-  assert.deepEqual(next.files['.agents/project/context.md'], { class: 'seed' }, 'the record keeps the seed from coming back');
+  assert.deepEqual(next.files['.agents/project/context.md'], { class: 'seed' });
+  assert.match(await fs.readFile(path.join(target, '.agents/project/context.md'), 'utf8'), /workflow-kit:project-context:template/);
+  // The edited one is still the project's.
+  assert.match(await fs.readFile(path.join(target, '.agents/project/backend.md'), 'utf8'), /Regla propia/);
 });
 
 test('with a 2.0.0 state no operation modifies anything under .agents/project/ (AC-6)', async () => {

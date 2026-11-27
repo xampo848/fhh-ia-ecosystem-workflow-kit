@@ -5,7 +5,7 @@ Use this structure for `docs/epics/<feature-or-project>/<slug>.md`. It intention
 ````markdown
 # Epic: [Project / Initiative Name]
 
-**Estado**: Borrador | En revision | Aprobado
+**Estado**: Borrador | En revisión | Aprobado
 **Apetito**: [Small bet | Medium bet | Large bet | One cycle | Multi-cycle | Custom]
 **Limite de inversion**: [Time/effort/team constraint]
 **Autor**: [Agent / Team]

@@ -170,7 +170,7 @@ VS Code and Copilot Chat versions:
 2. **Real run (B):** in the next N2 or N3 implementation with Copilot, keep the
    Copilot Chat log for the whole session. At closure, run the verifier once
    per delegation and fill the executed-model table that `implement-prd`
-   requires in `## 10. Evidencia de Implementacion`:
+   requires in `## 10. Evidencia de Implementación`:
 
    | Role | Expected model | Executed model | Verdict |
    | --- | --- | --- | --- |

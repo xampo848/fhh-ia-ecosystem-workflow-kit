@@ -34,7 +34,7 @@ Challenge the draft:
 - Does the PRD match the repository's structure and rigor?
 - Would `implement-change` discover the behavior of an external dependency at execution time?
 - Does any assumed item in `Supuestos e integraciones` affect an acceptance criterion without verification or an early verification slice?
-- After the change, would two sources of truth remain for anything listed (or missing) in `Que queda obsoleto`?
+- After the change, would two sources of truth remain for anything listed (or missing) in `Qué queda obsoleto`?
 
 ## Size Signals
 

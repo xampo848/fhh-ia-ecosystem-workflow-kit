@@ -25,6 +25,6 @@ Tests are part of the design, not a follow-up activity.
 Edge cases must be classified and traceable, not merely narrated in prose.
 
 - Mandatory categories: **datos vacíos**, **límites**, **errores**, **permisos/tenancy**, **concurrencia/orden**, **rollout/rollback**.
-- Format: `Categoría | Descripción | Caso de uso vinculado | Capa duena | Validación (test/contrato/smoke/evidencia manual justificada) | Estado`.
-- `Capa duena` names the lowest layer that contains the rule (query, service, model, job, entry point, component). The case is tested there only, except permissions/tenancy, which is always tested at the entry point too. Slicing and QA validate against this column (`.agents/skills/02-implement/implement-prd/reference/test-design-rules.md`).
+- Format: `Categoría | Descripción | Caso de uso vinculado | Capa dueña | Validación (test/contrato/smoke/evidencia manual justificada) | Estado`.
+- `Capa dueña` names the lowest layer that contains the rule (query, service, model, job, entry point, component). The case is tested there only, except permissions/tenancy, which is always tested at the entry point too. Slicing and QA validate against this column (`.agents/skills/02-implement/implement-prd/reference/test-design-rules.md`).
 - Every row maps to at least one validation mechanism. A category with no applicable case must say `No aplica` plus a one-line reason grounded in the actual scope — never a silent omission.

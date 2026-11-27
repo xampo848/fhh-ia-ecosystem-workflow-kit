@@ -11,7 +11,7 @@ This file is still the template. Ask your agent for the initial
 Discovery of the project (the router handles it as project context setup) and
 review the diff before relying on it.
 What the code does not settle is one line `not determined: <reason>`, never a
-`[TODO`. Remove the template marker above when no `[TODO` is left.
+`[TODO`. Remove the template marker above and this paragraph when no `[TODO` is left.
 
 ## Structure map
 

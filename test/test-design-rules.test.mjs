@@ -74,16 +74,16 @@ test('owning skills point to the test design rules and adapters do not carry the
 test('the PRD edge-case matrix has an owning-layer column that slicing and QA validate', async () => {
   const template = await read('.agents/skills/01-product/create-prd/PRD_TEMPLATE.md');
   const section = template.slice(template.indexOf('### 2.6 Matriz de Edge Cases'), template.indexOf('### 2.7'));
-  const header = section.split('\n').find((line) => line.startsWith('| Categoria'));
-  assert.equal(header, '| Categoria | Descripcion | Caso de uso vinculado | Capa duena | Validacion | Estado |');
-  const rows = section.split('\n').filter((line) => /^\| (Datos vacios|Limites|Errores|Permisos\/tenancy|Concurrencia\/orden|Rollout\/rollback) \|/.test(line));
+  const header = section.split('\n').find((line) => line.startsWith('| Categoría'));
+  assert.equal(header, '| Categoría | Descripción | Caso de uso vinculado | Capa dueña | Validación | Estado |');
+  const rows = section.split('\n').filter((line) => /^\| (Datos vacíos|Límites|Errores|Permisos\/tenancy|Concurrencia\/orden|Rollout\/rollback) \|/.test(line));
   assert.equal(rows.length, 6);
   for (const row of rows) assert.equal(row.split('|').slice(1, -1).length, 6, `row has the wrong cell count: ${row}`);
-  assert.match(template, /### 2\.9 Que queda obsoleto[\s\S]*Incluye los tests que dejan de tener sentido/);
+  assert.match(template, /### 2\.9 Qué queda obsoleto[\s\S]*Incluye los tests que dejan de tener sentido/);
   const slicing = await read('.agents/skills/02-implement/implementation-slicing/SKILL.md');
-  assert.match(slicing, /slice that owns its `Capa duena` layer/);
+  assert.match(slicing, /slice that owns its `Capa dueña` layer/);
   assert.match(slicing, /Rows of type `test`[^\n]*are deleted by their slice/);
-  assert.match(await read('.agents/skills/02-implement/qa-handoff-review/SKILL.md'), /`Capa duena` column\. A row proven only at another layer is a `gap`/);
+  assert.match(await read('.agents/skills/02-implement/qa-handoff-review/SKILL.md'), /`Capa dueña` column\. A row proven only at another layer is a `gap`/);
 });
 
 test('test design evals cover the entry-point, job, and migration cases', async () => {

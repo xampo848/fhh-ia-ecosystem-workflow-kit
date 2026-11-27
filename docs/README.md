@@ -22,7 +22,7 @@ Use this section to keep workflow artifacts discoverable without mixing them wit
 - `docs/workflow/README.md`: operating map, naming, and contribution rules for workflow docs.
 - `docs/workflow/decisions/`: architecture and workflow decisions captured over time.
 - `docs/workflow/runbooks/`: practical runbooks used during implementation and maintenance.
-- `docs/workflow/handoffs/`: handoff notes between product, engineering, and QA.
+- `docs/workflow/handoffs/`: handoff notes between product, engineering, and QA (not created by `init`; create the folder when you write the first one).
 - `docs/workflow/standards/`: setup guides for the project's backend and frontend rules (the rules themselves live in `.agents/project/`).
 - `docs/workflow/migration/legacy-docs-map.md`: one-time map generated during init when legacy docs are detected.
 

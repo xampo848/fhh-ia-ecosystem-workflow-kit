@@ -157,12 +157,12 @@ removes the installed version (a branch or tag by name; a full 40-character
 commit hash by fetching it; a short hash only when it is the tip of a branch or
 tag), so a mistyped ref, a network failure or a missing `git` changes nothing.
 To pin a version, pass a tag or, for versions without a tag, a full commit hash
-(the remote has a tag for every version from `0.16.0` to `0.24.0`; see
+(the remote has a tag for every version from `0.16.0` to `0.24.1`; see
 [Versioning](versioning.md)):
 
 ```bash
-workflow-kit upgrade --ref v0.24.0-pilot-decisions --apply --yes
-workflow-kit upgrade --ref 1b2f67f9dd0b88b012a3eda2a7d592ac92eabcc8 --apply --yes   # same version, by commit
+workflow-kit upgrade --ref v0.24.1-pilot-alignment --apply --yes
+workflow-kit upgrade --ref 328d3287f6cdaf05ccc56f49bb30efb34f82f252 --apply --yes   # same version, by commit
 ```
 
 After that, run `update` in each project you manage to bring its workflow to
@@ -339,7 +339,7 @@ Practical notes:
 
 > **Published, not yet verified end to end.** The plugin marketplace in `main`
 > points at the public branch `plugin`, which is published and serves the
-> version in its `plugin.json` (`0.23.6-ac-guards` at the time of writing).
+> version in its `plugin.json` (`0.24.1-pilot-alignment` at the time of writing).
 > Nobody has yet run a real `claude plugin install` against it, so treat the
 > install path as unverified. See
 > [Versions and publishing](#versions-and-publishing).

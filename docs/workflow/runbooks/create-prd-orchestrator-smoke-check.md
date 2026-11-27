@@ -50,7 +50,7 @@ Example: add a background reconciliation job for existing records.
 
 - [x] Every completed Phase 1, 2, 3, and 5 updates its matching section in `.ai-work/<prd-slug>/orchestration.md`, independent of chat visibility.
 - [x] `.ai-work/<prd-slug>/` is ignored by Git and is removed by `implement-prd` after durable closure evidence is recorded.
-- [x] The drafted PRD initializes `## 10. Evidencia de Implementacion`; `implement-prd` completes its durable delivery, validation, QA, change-reference, risk, and closure-date fields before cleaning `.ai-work/<prd-slug>/`.
+- [x] The drafted PRD initializes `## 10. Evidencia de Implementación`; `implement-prd` completes its durable delivery, validation, QA, change-reference, risk, and closure-date fields before cleaning `.ai-work/<prd-slug>/`.
 - [x] The no-summary default is respected when no explicit request or material-risk signal exists.
 - [x] Material-risk summaries occur for inherited-invariant contradictions, unresolved architecture/data/contract ambiguity, missing comparable patterns, and low calibration confidence.
 - [x] A historical PRD created before this model remains valid without `.ai-work/<prd-slug>/orchestration.md` or a five-phase retrofit.

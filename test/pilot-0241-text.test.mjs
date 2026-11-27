@@ -67,7 +67,7 @@ test('the project context setup route has a level, a trace form and a rule for w
     assert.match(row, /`direct-edit`/, file);
     for (const part of ['structure map', 'validation commands', 'test conventions', 'environment quirks', 'pointers']) assert.match(row, new RegExp(part), `${file}: ${part}`);
     assert.match(row, /`not determined: <reason>`, never `\[TODO`/, file);
-    assert.match(row, /marker goes only when no `\[TODO` is left/, file);
+    assert.match(row, /marker and the template notice go only when no `\[TODO` is left/, file);
     assert.match(text, /- COMPACT: `\[skill \| direct-answer \| direct-edit \| direct-action\] · /, file);
     assert.match(text, /- Selected workflow: `\[skill \| direct-answer \| direct-edit \| direct-action\]`/, file);
     assert.ok(text.replace(/\n$/, '').split('\n').length <= 199, `${file} must stay within the router line budget`);
@@ -117,7 +117,7 @@ test('the PRD template is in one language and carries no stack-shaped example', 
     const hit = (await read(file)).split('\n').find((line) => english.test(line));
     assert.equal(hit, undefined, `${file}: ${hit}`);
     const template = await read(file);
-    assert.ok(template.includes('| ID | Resultado | Depende de | Alcance / archivos probables | Criterios de aceptacion | Casos de uso | Tests | Edge cases | Validacion | Evidencia |'), file);
+    assert.ok(template.includes('| ID | Resultado | Depende de | Alcance / archivos probables | Criterios de aceptación | Casos de uso | Tests | Edge cases | Validación | Evidencia |'), file);
     assert.ok(template.includes('| ID | Dado | Cuando | Entonces | Evidencia esperada |'), file);
     assert.ok(template.includes('**Condiciones de parada**'), file);
   }
@@ -138,7 +138,7 @@ test('a compact PRD drops the traceability matrix and keeps only the Definition 
   }
   for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
     const template = await read(file);
-    assert.match(template.split('## 9. Matriz de Trazabilidad')[1].split('\n## ')[0], /PRD compacto: omitir esta seccion/, file);
+    assert.match(template.split('## 9. Matriz de Trazabilidad')[1].split('\n## ')[0], /PRD compacto: omitir esta sección/, file);
     assert.match(template.split('## 8. Definition of Done Global')[1].split('\n## ')[0], /PRD compacto: dejar solo los items que aplican/, file);
   }
   for (const file of bothCopies('.agents/skills/02-implement/prd-readiness-review/SKILL.md')) {

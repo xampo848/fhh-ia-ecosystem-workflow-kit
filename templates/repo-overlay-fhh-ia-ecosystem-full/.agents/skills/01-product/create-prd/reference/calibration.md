@@ -80,7 +80,7 @@ Tests count too: tests of the removed behavior, temporary migration tests, tests
 of a one-off tool that leaves, and tests that duplicate a rule this change moves
 to another layer.
 
-Record each item in the PRD's `Que queda obsoleto` table, with a verification
+Record each item in the PRD's `Qué queda obsoleto` table, with a verification
 search that must return zero usages. Only what **this** change makes obsolete
 counts; unrelated dead code is a suggestion, not scope.
 

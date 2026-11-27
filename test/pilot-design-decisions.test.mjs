@@ -147,7 +147,7 @@ test('decision 6: the PRD template and its rules name no stack, and persistence 
   }
   for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
     const template = await read(file);
-    assert.match(template, /## 3\. Diseno Tecnico/, file);
+    assert.match(template, /## 3\. Diseño Técnico/, file);
     assert.match(template, /### 3\.1 Datos y Persistencia/, file);
     assert.match(template, /template-sections\/data-model\.md/, file);
     assert.match(template, /`Persistencia: no aplica`/, file);
@@ -155,7 +155,7 @@ test('decision 6: the PRD template and its rules name no stack, and persistence 
   for (const file of bothCopies(`${createPrd}/template-sections/data-model.md`)) {
     const sectionText = await read(file);
     assert.match(sectionText.split('\n').slice(0, 4).join('\n'), /only when the PRD creates or changes persisted data/, file);
-    for (const heading of ['Estado actual de los datos', 'Campos nuevos o modificados', 'Migracion requerida', 'Ciclo de vida', 'Aislamiento entre tenants']) {
+    for (const heading of ['Estado actual de los datos', 'Campos nuevos o modificados', 'Migración requerida', 'Ciclo de vida', 'Aislamiento entre tenants']) {
       assert.match(sectionText, new RegExp(`#### ${heading}`), `${file}: ${heading}`);
     }
     assert.match(sectionText, /Aislamiento entre tenants _\(solo si el proyecto es multi-tenant\)_/, file);
@@ -208,7 +208,7 @@ test('decision 7: a compact PRD is proportional, and its class diagram is requir
     assert.match(compact, /do not omit acceptance criteria, use cases, test strategy, or the edge-case matrix/, file);
     assert.match(compact, /`No aplica: <reason>`/, file);
     assert.match(compact, /one line per slice/, file);
-    assert.match(compact, /80 to 120 lines/, file);
+    assert.match(compact, /at most about 170 lines/, file);
     const gate = section(skill, '### Hard Gate: Class Diagram Is Non-Optional');
     assert.match(gate, /introduces or changes classes, entities, value objects, services, or interfaces/, file);
     assert.match(gate, /PRD that only adds or changes functions[^\n]*signature list/, file);
@@ -217,7 +217,7 @@ test('decision 7: a compact PRD is proportional, and its class diagram is requir
   for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
     const template = await read(file);
     assert.match(template, /lista de firmas/, file);
-    assert.match(template, /una linea por slice/, file);
+    assert.match(template, /una línea por slice/, file);
   }
   for (const file of bothCopies(`${createPrd}/reference/self-audit.md`)) {
     assert.match(await read(file), /class diagram \(or the signature list of a PRD without class changes\)/, file);
@@ -235,21 +235,21 @@ test('decision 7: a compact PRD is proportional, and its class diagram is requir
 test('third pilot: every section create-prd requires has a heading in the template or one of its sections', async () => {
   for (const file of bothCopies(`${createPrd}/template-sections/data-model.md`)) {
     const text = await read(file);
-    assert.match(text, /#### Ubicacion en el dominio/, file);
+    assert.match(text, /#### Ubicación en el dominio/, file);
     assert.match(text, /#### Enumeraciones/, file);
     assert.match(text, /dependencias entre contextos/i, file);
   }
   for (const file of bothCopies(`${createPrd}/SKILL.md`)) {
-    assert.match(await read(file), /"Ubicacion en el dominio"[^\n]*"Enumeraciones"[^\n]*"Ciclo de vida"/, file);
+    assert.match(await read(file), /"Ubicación en el dominio"[^\n]*"Enumeraciones"[^\n]*"Ciclo de vida"/, file);
   }
 });
 
 test('third pilot: the slice fields the rule asks for match what the template holds', async () => {
-  const columns = ['ID', 'Resultado', 'Depende de', 'Alcance / archivos probables', 'Criterios de aceptacion', 'Casos de uso', 'Tests', 'Edge cases', 'Validacion', 'Evidencia'];
+  const columns = ['ID', 'Resultado', 'Depende de', 'Alcance / archivos probables', 'Criterios de aceptación', 'Casos de uso', 'Tests', 'Edge cases', 'Validación', 'Evidencia'];
   for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
     const template = await read(file);
     assert.ok(template.includes(`| ${columns.join(' | ')} |`), file);
-    for (const label of ['**Fuera de alcance**', '**Chequeos de calidad**', '**Condiciones de parada**', '**Activacion**']) assert.ok(template.includes(label), `${file}: ${label}`);
+    for (const label of ['**Fuera de alcance**', '**Chequeos de calidad**', '**Condiciones de parada**', '**Activación**']) assert.ok(template.includes(label), `${file}: ${label}`);
   }
   for (const file of bothCopies(`${createPrd}/reference/execution-granularity.md`)) {
     const rule = await read(file);
@@ -277,7 +277,7 @@ test('third pilot: a feature flag is asked about only when the change carries ro
 
 // Findings of the independent review of 0.24.0.
 test('review: the compact one-line slice carries the same ten fields as the slice table', async () => {
-  const fields = 'P1-S1: resultado · depende de · archivos · AC · casos de uso · tests · edge cases · validacion · evidencia';
+  const fields = 'P1-S1: resultado · depende de · archivos · AC · casos de uso · tests · edge cases · validación · evidencia';
   for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) assert.ok((await read(file)).includes(fields), file);
   for (const file of bothCopies(`${createPrd}/SKILL.md`)) {
     assert.match(section(await read(file), '### Compact Path Gate'), /one line per slice with the same ten fields as the slice table/, file);
@@ -298,7 +298,7 @@ test('review: domain placement has a heading when nothing is persisted, and any 
   for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
     const template = await read(file);
     assert.match(template, /En un PRD que solo agrega o cambia funciones/, file);
-    assert.match(template, /entidades de dominio sin persistencia[^\n]*contexto dueno/, file);
+    assert.match(template, /entidades de dominio sin persistencia[^\n]*contexto dueño/, file);
   }
   for (const file of bothCopies(`${createPrd}/reference/self-audit.md`)) {
     assert.match(await read(file), /class diagram \(or the signature list of a PRD without class changes\)/, file);

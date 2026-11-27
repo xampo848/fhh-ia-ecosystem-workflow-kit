@@ -33,6 +33,7 @@ Antes de continuar, necesito resolver estas dudas:
 
 - Ask at most about 10 questions per round, grouped by category, each with the
   answer you propose, so the user only confirms or corrects.
+- Wait for the answers: never draft past an unanswered blocking question. If the user replies without answering a blocking question, ask again once, naming the ones that remain; do not turn it into an assumption.
 - At most 3 rounds. If blocking questions still appear after the third round,
   the PRD is too large: count it as a size signal (see `self-audit.md`) and
   propose splitting it.

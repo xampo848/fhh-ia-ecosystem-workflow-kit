@@ -244,7 +244,7 @@ User-owned PRD decision enforcement:
 Execution authorization gate:
 
 - The gate applies to routes that write: code, PRDs, epics, tickets, installs, or other repository files.
-- Read-only routes (review, audit, explanation, or discovery the user asked for) need no extra confirmation, and neither does an explicit imperative that names the work ("audita X", "revisa este PR", "implementa este PRD"): that imperative is the authorization.
+- Read-only routes (review, audit, explanation, or discovery the user asked for) need no extra confirmation, and neither does an explicit imperative that names the work ("audita X", "revisa este PR", "implementa este PRD"): that imperative is the authorization. For a PRD, `implement-change` still asks once when its `Estado` is not `Aprobado`.
 - Intent language from the user (for example: "quiero", "necesito", "hagamos") is not execution authorization by itself.
 - Level exceptions: in N0 the user's intent is enough; in N1 a short "yes" to the one-line surgical proposal authorizes it. An irreversible operational action (push, deploy, delete) always names the concrete risk and waits for an explicit yes, even after an imperative.
 - Before explicit route authorization of a writing route, the agent must stay in `awaiting-user-choice` for route-selection turns.
@@ -345,6 +345,9 @@ selected rather than front-loaded into every runtime entrypoint.
   and authoring contract.
 - Apply the mandatory per-turn intake above for every new user prompt.
 - Load a workflow skill when the task enters that workflow.
+- The initial Discovery of the project (filling in `.agents/project/context.md`
+  and the rule file of each layer) is the router's "Project context setup" route:
+  an N2 direct edit with no workflow skill.
 - Load a standards/pattern skill only just-in-time when that repetitive
   procedure is actually needed. For repo-owned implementation patterns, use the
   contract in `.agents/skills/06-patterns/README.md` and load only the exact

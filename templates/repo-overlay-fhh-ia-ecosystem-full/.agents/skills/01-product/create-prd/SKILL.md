@@ -17,7 +17,7 @@ metadata:
 
 # Create PRD — Product Requirements Document
 
-After the PRD is approved, the expected next step is `implement-change`.
+This skill delivers the PRD with `Estado: En revisión`; only the user moves it to `Aprobado` (or tells the agent to mark it). When the user approves the delivered PRD in the conversation, set `Estado: Aprobado` right then. After the PRD is approved, the expected next step is `implement-change`.
 
 Use this skill when:
 
@@ -73,7 +73,7 @@ In compact mode:
 - fold Phase 2 and Phase 3 into one short pass when there are no blocking questions;
 - draft and self-audit in one pass only after calibration and pattern lock exist;
 - do not omit acceptance criteria, use cases, test strategy, or the edge-case matrix;
-- keep it proportional: a section that does not apply is one line (`No aplica: <reason>`), never a filled placeholder; a single phase with at most three slices lists one line per slice with the same ten fields as the slice table, instead of the table; omit section 9 (the traceability matrix), since each slice line already names its AC, use cases, and tests; section 8 keeps only the items that apply and section 10 only its table; aim for 80 to 120 lines and never pad to match the template;
+- keep it proportional: a section that does not apply is one line (`No aplica: <reason>`), never a filled placeholder; a single phase with at most three slices lists one line per slice with the same ten fields as the slice table, instead of the table; omit section 9 (the traceability matrix), since each slice line already names its AC, use cases, and tests; section 8 keeps only the items that apply and section 10 only its table; section numbers do not shift (10 stays 10) and each phase's Definition of Done keeps only the lines that apply; aim for at most about 170 lines, which is what the mandatory tables take, and never pad to match the template;
 - the class diagram follows its gate below;
 - do not mention `solution-sketch`.
 
@@ -84,14 +84,14 @@ A PRD is never "ready to implement" on AC alone. Before delivering the final PRD
 - Every PRD must contain a **Casos de Uso** table, a **Estrategia de Tests** table, and a **Matriz de Edge Cases** table (see Phase 3 and the canonical template).
 - Every acceptance criterion must link to at least one use case; every use case must link to at least one AC.
 - Every use case must link to at least one test in the test-strategy table.
-- The edge-case matrix must cover all six mandatory categories (datos vacíos, límites, errores, permisos/tenancy, concurrencia/orden, rollout/rollback), and every row names its `Capa duena` (the one layer where it is tested). A category may be marked `No aplica` only with a one-line justification tied to the actual scope.
+- The edge-case matrix must cover all six mandatory categories (datos vacíos, límites, errores, permisos/tenancy, concurrencia/orden, rollout/rollback), and every row names its `Capa dueña` (the one layer where it is tested). A category may be marked `No aplica` only with a one-line justification tied to the actual scope.
 - If any AC, use case, or edge-case category has no mapped row, stop drafting and either fill the gap or ask the user a targeted question. Do not deliver a PRD with an unmapped row and no justification.
 - This gate is verified again in the Quality Checklist and Final Self-Review before delivery.
 - When `visible_ui: yes`, every required UI state in the Contrato Visual must map to at least one use case or edge-case row. An unlocked screen is an unmapped row.
 
 ### Hard Gate: Class Diagram Is Non-Optional
 
-- Every PRD that introduces or changes classes, entities, value objects, services, or interfaces must include a Mermaid `classDiagram` in `## 3. Diseno Tecnico`, showing them with named relationships and cardinalities where relevant.
+- Every PRD that introduces or changes classes, entities, value objects, services, or interfaces must include a Mermaid `classDiagram` in `## 3. Diseño Técnico`, showing them with named relationships and cardinalities where relevant.
 - A PRD that only adds or changes functions (no class, entity, or service is introduced or changed) replaces the diagram with a signature list: name, inputs, output, and module of each function.
 - A PRD with no persisted data change that changes runtime classes still diagrams them. Do not substitute a flowchart for this requirement.
 - The diagram uses confirmed names and relationships from the pattern lock; placeholders are not acceptable in a PRD ready for `implement-change`.
@@ -158,14 +158,14 @@ Additional required sections:
 - Contrato Visual (UI lock) when `visible_ui: yes`, or an explicit `UI lock: not-applicable` when it is not
 - Parent epic context and inherited-invariant mapping when a parent epic exists
 - Contrato entre Fases (precondiciones/postcondiciones) when a parent epic exists
-- When the PRD creates or changes persisted data: the data section from `template-sections/data-model.md`, whose blocks hold them: "Ubicacion en el dominio" (DDD placement and cross-context dependency rules), "Enumeraciones" (enumeration strategy), "Ciclo de vida" (lifecycle rules), and "Aislamiento entre tenants" (tenant integrity rules, when the project is multi-tenant); otherwise `Persistencia: no aplica` with a one-line reason
+- When the PRD creates or changes persisted data: the data section from `template-sections/data-model.md`, whose blocks hold them: "Ubicación en el dominio" (DDD placement and cross-context dependency rules), "Enumeraciones" (enumeration strategy), "Ciclo de vida" (lifecycle rules), and "Aislamiento entre tenants" (tenant integrity rules, when the project is multi-tenant); otherwise `Persistencia: no aplica` with a one-line reason
 - Mermaid class diagram, or the signature list its hard gate allows (see above)
 - Casos de Uso table (mandatory, see below)
 - Estrategia de Tests table (mandatory, see below)
 - Matriz de Edge Cases table (mandatory, see below)
 - Supuestos e integraciones table, from the Unknowns Inventory in `reference/calibration.md` (`Ninguno` with a one-line reason when there is no external or poorly known dependency)
-- Que queda obsoleto table, from the Obsolescence Scan in `reference/calibration.md` (`Ninguno` with a one-line reason when nothing becomes obsolete)
-- Evidencia de Implementacion section (initialized in the PRD template and completed only at `implement-change` closure)
+- Qué queda obsoleto table, from the Obsolescence Scan in `reference/calibration.md` (`Ninguno` with a one-line reason when nothing becomes obsolete)
+- Evidencia de Implementación section (initialized in the PRD template and completed only at `implement-change` closure)
 
 ---
 

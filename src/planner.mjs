@@ -974,7 +974,9 @@ const classPlanners = {
 function planOwnedFile({ base, templateContent, rendered, existingContent, recorded, mode, backupMode, catalog, modelProfiles }) {
   const content = (rendered ? null : renderDelegateAdapterForPath(base.relativePath, catalog, modelProfiles)?.content) ?? templateContent;
   const plan = (operation, extra = {}) => ({ ...base, operation, content, stateChecksum: computeChecksum(content), ...extra });
-  if (existingContent === null) return plan('create');
+  // Recorded as installed and gone from disk: named in the plan, never
+  // folded into the count of new files.
+  if (existingContent === null) return plan('create', recorded?.sha256 ? { missingRecorded: true } : {});
   // Content that already equals what this version would write is not a local
   // edit, whatever the state recorded: someone took the new version by hand.
   if (existingContent === content) return plan('unchanged');
@@ -995,7 +997,7 @@ function planOwnedFile({ base, templateContent, rendered, existingContent, recor
 function planAdapter({ base, entry, templateContent, existingContent, recorded, backupMode }) {
   const blockName = entry.block ?? defaultBlockName;
   const plan = (operation, content, extra = {}) => ({ ...base, operation, content, stateChecksum: managedBlockChecksum(content, blockName), ...extra });
-  if (existingContent === null) return plan('create', templateContent);
+  if (existingContent === null) return plan('create', templateContent, recorded?.sha256 ? { missingRecorded: true } : {});
 
   const replaced = replaceManagedBlock(existingContent, templateContent, blockName);
   if (replaced !== null) {
@@ -1032,15 +1034,19 @@ function insertManagedBlock(existingContent, templateContent, blockName) {
   return `${existingContent}${separator}\n${block}\n`;
 }
 
-// seed: created once; after that the project owns it. A seed the kit created
-// and the project deleted is never recreated. Hand-written Copilot
+// seed: created when it is missing; while it exists the project owns it and
+// the kit never rewrites it. Hand-written Copilot
 // instructions become the seed's first content instead of the template.
 function planSeed({ base, templateContent, existingContent, recorded, migratedInstructions }) {
   if (existingContent !== null) return { ...base, operation: 'skip_unmanaged', content: existingContent, reason: 'project_owned' };
   const migrated = migratedInstructions[base.relativePath];
   if (typeof migrated === 'string') return { ...base, operation: 'create', content: migrated };
-  if (recorded?.class === 'seed') return null;
-  return { ...base, operation: 'create', content: templateContent };
+  // A project file the install created and someone deleted comes back from
+  // its template: doctor requires it, and nothing else can repair it. The
+  // stack rules file keeps its own rule (doctor: stack-pack/missing).
+  if (recorded?.class === 'seed' && base.relativePath === stackRulesPath) return null;
+  // Named in the plan even when the other creates are one line with a count.
+  return { ...base, operation: 'create', content: templateContent, ...(recorded?.class === 'seed' ? { recreated: true } : {}) };
 }
 
 // Checksum install-state records for a file of a given class: the managed
@@ -1149,6 +1155,8 @@ export function formatPlan(plan) {
     // A seed exists: the project owns it, the kit leaves it as it is.
     if (item.operation === 'skip_unmanaged' && item.reason === 'project_owned') note = ' (project-owned; left as it is)';
     if (item.untracked) note = ' (kit-location removed; leaves the install as a project file)';
+    if (item.missingRecorded) note = ' (recorded as installed and missing from disk; created again)';
+    if (item.recreated) note = ' (project file that was deleted; created again from its template)';
     if (item.blockEdited) note = ` (its kit block was edited; the kit version replaces it${item.operation === 'overwrite_with_backup' ? ' and the backup keeps the edit' : ''})`;
     if (item.decisions && !migrationListsPending) note = ` (${item.reason}): ${item.decisions.join(' | ')}`;
     if (item.note) note = ` (${item.reason}): ${item.note}`;

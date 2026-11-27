@@ -55,9 +55,9 @@ test('create-prd asks better questions, tracks assumptions and lists what become
     read(`${createPrd}/SKILL.md`)
   ]);
   assert.match(template, /### 2\.8 Supuestos e integraciones/);
-  assert.match(template, /\| Supuesto \| Fuente \| Estado \| Evidencia \| Que pasa si es falso \|/);
-  assert.match(template, /### 2\.9 Que queda obsoleto/);
-  assert.match(template, /Busqueda de verificacion/);
+  assert.match(template, /\| Supuesto \| Fuente \| Estado \| Evidencia \| Qué pasa si es falso \|/);
+  assert.match(template, /### 2\.9 Qué queda obsoleto/);
+  assert.match(template, /Búsqueda de verificación/);
   assert.match(template, /\| Iteraciones y causa \|/);
   assert.match(ambiguity, /## Edge-Case Confirmation Round/);
   // U-13 finding C1: an interaction scenario without a test escaped every stage.
@@ -72,7 +72,7 @@ test('create-prd asks better questions, tracks assumptions and lists what become
   assert.match(audit, /## Size Signals/);
   assert.match(audit, /\*\*2 or more:\*\* propose splitting/);
   assert.match(skill, /Supuestos e integraciones table/);
-  assert.match(skill, /Que queda obsoleto table/);
+  assert.match(skill, /Qué queda obsoleto table/);
 });
 
 test('obsolete items and assumptions are carried through discovery, slicing and QA', async () => {
@@ -82,8 +82,8 @@ test('obsolete items and assumptions are carried through discovery, slicing and 
     read('.agents/skills/02-implement/qa-handoff-review/SKILL.md'),
     read('.agents/skills/02-implement/implement-change/reference/input-types.md')
   ]);
-  assert.match(discovery, /`Que queda obsoleto` table[^\n]*Never widen scope silently/);
-  assert.match(slicing, /`Que queda obsoleto` table: every row belongs to a slice/);
+  assert.match(discovery, /`Qué queda obsoleto` table[^\n]*Never widen scope silently/);
+  assert.match(slicing, /`Qué queda obsoleto` table: every row belongs to a slice/);
   assert.match(qa, /run the verification search of every row/);
   assert.match(inputs, /`hueco del PRD`, `error de\s+implementación`, `entorno`, or `cambio de requisito`/);
 });
