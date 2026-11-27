@@ -71,7 +71,7 @@ Read only the matching section of `reference/input-types.md`.
 ## Step 2 · Confirm the level
 
 The router or the pre-filter proposes the level; this skill confirms it before
-any edit. With an explicit PRD (a hard trigger, which skips the level signals) this skill sets the level itself, from the PRD's hazards and size. One classification only: the old operating modes map to levels.
+any edit. With an explicit PRD (a hard trigger, which skips the level signals) this skill sets the level itself: N3 when the PRD names a hazard (a contract, data or a migration, auth or tenancy, a dependency, CI, or an irreversible step), N1 when it is compact with one slice and one or two production files, N2 otherwise. If the PRD's `Estado` is not `Aprobado`, say so and ask for a yes before any edit; with that yes, set `Estado: Aprobado` in the PRD. A PRD without the field (written before it existed) is not blocked. One classification only: the old operating modes map to levels.
 
 | Level | Former mode | Load |
 | --- | --- | --- |
@@ -99,7 +99,7 @@ Escalation rules, applied before choosing the level reference:
 Authorization: N1 needs a short "yes" to the one-line proposal
 (`N1 · surgical · <files>`). N2 and N3 need explicit route
 authorization; together with it, offer **supervised** (default: review pause
-between phases) or **autonomous** (`reference/modifiers.md`).
+between phases) or **autonomous** (`reference/modifiers.md`). "implementa este PRD" is that authorization; offering the execution mode is not a second confirmation: with no answer, run supervised.
 
 ## Step 3 · Execute with the level reference
 

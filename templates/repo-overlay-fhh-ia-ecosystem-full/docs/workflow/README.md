@@ -6,7 +6,7 @@ This folder is reserved for documents that support the installed AI workflow.
 
 - `decisions/`: durable decisions about workflow rules, routing, and architecture.
 - `runbooks/`: procedural documents for recurring operations.
-- `handoffs/`: implementation summaries and ownership transfers.
+- `handoffs/`: implementation summaries and ownership transfers (not created by `init`; create the folder when you write the first one).
 - `standards/`: backend/frontend standards and setup-migration guidance.
 - `migration/`: one-time adoption artifacts for recovering and reordering legacy docs.
 
@@ -100,6 +100,6 @@ frontend instructions live in `.agents/project/`, stack-specific rules (only whe
 - `runbooks/update-skill-registry.md`
 - `runbooks/router-skill-enforcement-manual-checklist.md`
 - `runbooks/runtime-native-readiness-checklist.md`
-- `handoffs/template-installation.md`
+- `handoffs/template-installation.md` (kit repository only; not created by `init`)
 - `standards/setup-and-migration.md`
 - `standards/project-instructions-template.md`

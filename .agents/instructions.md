@@ -345,6 +345,9 @@ selected rather than front-loaded into every runtime entrypoint.
   and authoring contract.
 - Apply the mandatory per-turn intake above for every new user prompt.
 - Load a workflow skill when the task enters that workflow.
+- The initial Discovery of the project (filling in `.agents/project/context.md`
+  and the rule file of each layer) is the router's "Project context setup" route:
+  an N2 direct edit with no workflow skill.
 - Load a standards/pattern skill only just-in-time when that repetitive
   procedure is actually needed. For repo-owned implementation patterns, use the
   contract in `.agents/skills/06-patterns/README.md` and load only the exact

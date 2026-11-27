@@ -17,7 +17,7 @@ metadata:
 
 # Create PRD — Product Requirements Document
 
-After the PRD is approved, the expected next step is `implement-change`.
+This skill delivers the PRD with `Estado: En revisión`; only the user moves it to `Aprobado` (or tells the agent to mark it). After the PRD is approved, the expected next step is `implement-change`.
 
 Use this skill when:
 
@@ -73,7 +73,7 @@ In compact mode:
 - fold Phase 2 and Phase 3 into one short pass when there are no blocking questions;
 - draft and self-audit in one pass only after calibration and pattern lock exist;
 - do not omit acceptance criteria, use cases, test strategy, or the edge-case matrix;
-- keep it proportional: a section that does not apply is one line (`No aplica: <reason>`), never a filled placeholder; a single phase with at most three slices lists one line per slice with the same ten fields as the slice table, instead of the table; omit section 9 (the traceability matrix), since each slice line already names its AC, use cases, and tests; section 8 keeps only the items that apply and section 10 only its table; aim for 80 to 120 lines and never pad to match the template;
+- keep it proportional: a section that does not apply is one line (`No aplica: <reason>`), never a filled placeholder; a single phase with at most three slices lists one line per slice with the same ten fields as the slice table, instead of the table; omit section 9 (the traceability matrix), since each slice line already names its AC, use cases, and tests; section 8 keeps only the items that apply and section 10 only its table; section numbers do not shift (10 stays 10) and each phase's Definition of Done keeps only the lines that apply; aim for at most about 170 lines, which is what the mandatory tables take, and never pad to match the template;
 - the class diagram follows its gate below;
 - do not mention `solution-sketch`.
 

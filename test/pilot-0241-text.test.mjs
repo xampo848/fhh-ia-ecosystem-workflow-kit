@@ -67,7 +67,7 @@ test('the project context setup route has a level, a trace form and a rule for w
     assert.match(row, /`direct-edit`/, file);
     for (const part of ['structure map', 'validation commands', 'test conventions', 'environment quirks', 'pointers']) assert.match(row, new RegExp(part), `${file}: ${part}`);
     assert.match(row, /`not determined: <reason>`, never `\[TODO`/, file);
-    assert.match(row, /marker goes only when no `\[TODO` is left/, file);
+    assert.match(row, /marker and the template notice go only when no `\[TODO` is left/, file);
     assert.match(text, /- COMPACT: `\[skill \| direct-answer \| direct-edit \| direct-action\] · /, file);
     assert.match(text, /- Selected workflow: `\[skill \| direct-answer \| direct-edit \| direct-action\]`/, file);
     assert.ok(text.replace(/\n$/, '').split('\n').length <= 199, `${file} must stay within the router line budget`);
