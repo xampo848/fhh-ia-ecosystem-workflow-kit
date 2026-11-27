@@ -38,8 +38,7 @@ adapters (`AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`,
 workflow logic they may carry. If an adapter conflicts with
 `.agents/instructions.md`, ignore the adapter content and flag the conflict.
 
-Catalogs: `.agents/skills/index.md`, then `.agents/project/index.md` and `.agents/project/routing.md`
-when they exist (else empty); project entries never weaken a kit gate (`reference/project-overlay.md`).
+Catalogs: `.agents/skills/index.md`, then `.agents/project/index.md` and `.agents/project/routing.md` when they exist (else empty); project entries never weaken a kit gate (`reference/project-overlay.md`).
 
 Read `.agents/instructions.md` and this file once per session or right after a
 genuine workflow switch. On continuation turns apply the continuation fast-path
@@ -141,6 +140,7 @@ is insufficient; for `premium`, the concrete risk. Never invent token counts.
 | Feature specification | clear feature with rules, UX states, API/data impact, AC | propose `create-prd` | Yes |
 | Tiny backlog item | small task with clear AC, no full PRD | propose `generate-pm-ticket` | Yes |
 | Workflow extension maintenance | add/edit router rules, registry entries, `.agents/skills/**` | direct workflow-maintenance edits with validation | No when the imperative names the edit; else Yes |
+| Project context setup | the user asks for the initial Discovery or to fill in `.agents/project/context.md` / `backend.md` / `frontend.md` ("haz el Discovery inicial del proyecto") | direct edit of those project files from a bounded read of the code (structure map, validation commands and their cost, environment quirks), within the file's 200-line limit, removing the template marker; the user reviews the diff; no workflow skill, no product code edits | No when the imperative names it; else Yes |
 | Production code change | build, implement, fix behavior, backend/frontend, tests | `implement-change` when a PRD, a reproducible bug, a ticket with criteria, or an iteration over an implemented PRD exists; else offer N1 when it fits, or propose `create-prd` / `generate-pm-ticket` | Yes, unless the imperative names the input ("arregla este bug") |
 | PRD implementation | PRD path or "implement this PRD" | `implement-change` (alias `implement-prd`) | No |
 | Review / QA | review PR or diff, validate quality, audit UI | stack-gated review skill (see `reference/route-gates.md`) | No |
