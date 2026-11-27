@@ -34,29 +34,22 @@ Verification rule:
 
 - Every adapter must reference `.agents/instructions.md`.
 - Every adapter must require per-turn intake.
-- Generated delegate adapters must pass `node scripts/sync-delegate-runtime-adapters.mjs --check`.
+- Generated delegate adapters must not be edited by hand; `workflow-kit doctor` reports an adapter block that was edited, and `workflow-kit update` restores it.
 
 ## 3) Skill catalog readiness
 
-1. Confirm local skills are registered.
-2. Sync generated registry artifacts.
-3. Re-run workflow checks.
+1. Confirm the kit skills are registered: `.agents/skills/registry.md` and `.agents/skills/index.md` exist.
+2. Let doctor confirm the install; the registry and the generated adapters are kit-owned and `workflow-kit update` refreshes them.
+3. Add your own skills under `.agents/project/` (see `.agents/kit-boundary.md`), never inside the kit folders.
 
 Commands:
 
 ```bash
-node scripts/sync-skill-registry.mjs --check
-node scripts/sync-delegate-runtime-adapters.mjs --check
-bun run check:workflow
+workflow-kit doctor --target /path/to/repo --runtime codex,copilot
+workflow-kit update --target /path/to/repo --runtime codex,copilot
 ```
 
-If you added or changed skills:
-
-```bash
-node scripts/sync-skill-registry.mjs --write
-node scripts/sync-delegate-runtime-adapters.mjs --write
-bun run check:workflow
-```
+`doctor` exits non-zero when it finds an error diagnostic. `update` without `--apply --yes` is a dry run: after a clean install its summary shows no `create` and no `overwrite` entries.
 
 ## 4) Project-specific instruction hooks (required for real product repos)
 
@@ -93,17 +86,8 @@ Use this checklist:
 
 Add minimum gates to CI before rollout:
 
-```bash
-bun run check:workflow
-bun run check:templates
-bun run test
-```
-
-Recommended release gate:
-
-```bash
-bun run check:release
-```
+- the project's own lint and test commands (the ones recorded in `.agents/project/context.md`);
+- `workflow-kit doctor --target . --runtime <list>`, which exits non-zero on an error diagnostic.
 
 ## Done criteria
 
@@ -111,7 +95,7 @@ Runtime-native readiness is complete only when all are true:
 
 - Install/apply and doctor pass for selected runtimes.
 - Adapter entrypoints are present and semantically aligned.
-- Skill registry is synchronized.
+- Doctor reports no error diagnostics, so the kit registry and adapters are intact.
 - Project instruction hooks exist for active code surfaces.
 - Manual routing smoke passes in native runtime.
 - CI gates are active and green.

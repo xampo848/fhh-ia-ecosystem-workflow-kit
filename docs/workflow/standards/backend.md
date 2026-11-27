@@ -4,7 +4,7 @@ This document explains how to configure and migrate backend standards when adopt
 
 ## Minimum baseline
 
-1. Define canonical backend standards location in this folder.
+1. Define where your backend standards live; agents read `.agents/project/backend.md`, so state them there or point to them from it.
 2. Reference the standards from your implementation workflow docs and PR templates.
 3. Add validation commands in project scripts or CI.
 
@@ -20,7 +20,7 @@ This document explains how to configure and migrate backend standards when adopt
 
 If your project already had backend standards in other docs paths:
 
-1. Locate candidates in `docs/workflow/migration/legacy-docs-map.md`.
+1. Locate candidates in `docs/workflow/migration/legacy-docs-map.md` (it exists only when `init` created it).
 2. Move the canonical doc(s) into `docs/workflow/standards/` using `git mv`.
 3. Keep aliases/links in old locations only when needed for backward compatibility.
 4. Update any old references in README, CONTRIBUTING, or CI docs.
@@ -37,6 +37,6 @@ When your repository has backend code, provide:
 
 - `.agents/project/backend.md`
 
-Use `docs/workflow/standards/project-instructions-template.md` as a starter and adapt it to your stack.
+`init` creates that file as a template; `docs/workflow/standards/project-instructions-template.md` says how to fill it in. Longer human-facing standards may live in this folder; agents reach them only through a pointer in that file.
 
-Keep this document technology-neutral and add repository-specific rules below this line.
+Keep this document technology-neutral and add repository-specific rules below this line. Agents only see what `.agents/project/backend.md` states or points to, so put a pointer there.

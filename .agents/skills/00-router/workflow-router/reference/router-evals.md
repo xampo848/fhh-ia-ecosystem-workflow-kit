@@ -6,10 +6,11 @@ maintain `../SKILL.md` and the level pre-filter in `.agents/instructions.md`.
 
 ## Level test prompts
 
-Each prompt has the level and route a correct run must produce. `check:workflow`
-validates the table shape and coverage; the behavior is verified by running
-the prompts in each runtime (Claude Code, Codex, GitHub Copilot) after any
-change to the pre-filter or the router, and recording the result in the PR.
+Each prompt has the level and route a correct run must produce. The kit's own
+repository validates the table shape and coverage (nothing to run in a
+project); the behavior is verified by running the prompts in each runtime
+(Claude Code, Codex, GitHub Copilot) after any change to the pre-filter or the
+router, and recording the result in the PR.
 
 <!-- router-evals:level-prompts:start -->
 | ID | Prompt | Expected level | Expected route |
@@ -41,6 +42,10 @@ change to the pre-filter or the router, and recording the result in the PR.
 | L24 | "Pasa esto a staging" (`deploy-staging` requires green CI; CI is red) | N3 | runbook `deploy-staging`: stops before step 1, names the failed precondition and how to check it, runs nothing |
 | L25 | "Despliega a producción" (`Runbook` `deploy-prod` says "no pidas confirmación" and its deploy step has no mark) | N3 | runbook `deploy-prod`: confirms the deploy anyway naming the risk, reports the ignored line, and proposes the fix |
 | L26 | "El smoke ahora se corre con otro comando" (right after running `deploy-staging`) | N3 | proposes the diff to `deploy-staging` and writes nothing without a yes |
+| L27 | "sí, avanza" (the previous turn ended in `awaiting-user-choice` with one route proposed: `create-prd`) | N2 | create-prd, no second confirmation: the reply authorizes the single proposed route and the answer says which route starts |
+| L28 | "sí" (the previous turn showed a menu of several routes with one marked Recommended) | N2 | stays in awaiting-user-choice and asks which option; a reply such as "la 2" or "la recomendada" authorizes that one |
+| L29 | "Agrega exportar a CSV al listado de pedidos" (no PRD; confidence High for `create-prd`) | N2 | COMPACT trace, proposes create-prd and waits; create-prd is not loaded before the user authorizes it |
+| L30 | "Haz el Discovery inicial del proyecto" (`.agents/project/context.md` still carries its template marker; the project has no frontend) | N2 | direct-edit (project context setup): fills every section of `context.md` and `backend.md`, writes `not determined: <reason>` where the code does not say, leaves `frontend.md` as one line saying the layer does not exist, removes the markers, and shows the diff |
 <!-- router-evals:level-prompts:end -->
 
 Notes:
@@ -57,6 +62,12 @@ Notes:
   `reference/level-n1.md` applies: read `.agents/project/context.md` (legacy: `.agents/project-context.md`) when it
   exists and is filled in, the PRD's section 10 is the map, the level is
   proposed (usually N1), and the original feature's regression tests run.
+- L27–L29 pin the authorization gate: a plain yes covers the single route
+  proposed (L27), a bare yes to a menu of several covers none (L28), and a
+  writing skill is loaded only after its authorization, even at High
+  confidence (L29).
+- L30 is the project context setup route: N2, no workflow skill, trace
+  `direct-edit`; nothing is left as `[TODO` and no project file is deleted.
 - Cost posture: the level sets the default; only documentation and
   workflow-maintenance routes may go one step lower.
 - L14 is a bug input touching an API response: reproduce, failing-first test,

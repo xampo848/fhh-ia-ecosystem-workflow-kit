@@ -9,7 +9,8 @@ only the pre-filter's N1 rule and never loads this file.
 
 All must hold; if one stops holding while working, stop and propose N2:
 
-1. At most one or two files, with the exact change already clear.
+1. At most one or two production files, with the exact change already clear.
+   The test file of each one goes with it and does not count toward that limit.
 2. No database, API contract, authorization, tenancy, background job,
    analytics, cross-layer, or migration impact, and no `criticalConcern`.
 3. The focused check (lint, build, or test) can be named before editing.
@@ -22,7 +23,7 @@ Discovery, no execution locks, no delegate matrix or prompt packs.
 
 ## Flow
 
-1. Propose `N1 · surgical · <files and check>` and wait for a short "yes".
+1. Propose `N1 · surgical · <files>` and wait for a short "yes". The test file for the target counts as a target file (it may be edited) but not toward the one-or-two-file limit: name it in the line when known. Before the yes, a bounded read-only lookup is allowed to locate the target, its test, and the check command; reading to design the change waits for the yes.
 2. Read the target files and their tests.
 3. Bug: reproduce, then write the test that fails before the fix. Behavior
    change: add or update the test. Non-semantic edit: no new test.

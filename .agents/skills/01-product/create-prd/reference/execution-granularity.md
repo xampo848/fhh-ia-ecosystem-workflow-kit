@@ -13,30 +13,30 @@ The PRD must be detailed enough that `implementation-slicing` does not need to i
 - A slice normally changes one primary production responsibility and 1–3 production files. Inseparable support files such as tests, styles, locales, factories, or fixtures may accompany it.
 - Backend and frontend implementation belong in separate slices. A changed API contract requires its own contract-verification gate between them.
 - Migrations, backfills, behavior activation, and cleanup must be separate slices when each can fail or be rolled back independently.
-- A slice that combines more than one of these risks must be split: data migration, public contract, authorization/tenancy, background execution, external integration, or visible UI behavior.
+- A slice that combines more than one of these risks must be split: data migration, public contract (an interface consumed outside the repository or across a deployment boundary; `.agents/instructions.md`, "Level rules"), authorization/tenancy, background execution, external integration, or visible UI behavior.
 - Existing-data activation, bootstrap, backfill, rollout command, and legacy cleanup must be separate slices when each can fail or be verified independently.
 - No dependent slice starts until its predecessor is `VERIFIED`, unless the plan explicitly proves that the write sets and contracts are independent.
 
 ### Required task fields
 
-Each execution slice must state:
+Each execution slice must state the fields below. The ten columns of the slice table in `PRD_TEMPLATE.md` hold the per-slice ones. The other four are written once per phase, below the table (Out of scope, Quality checks, Stop conditions, and Activation), and on the slice only when it differs from its phase. A compact PRD may write those ten fields as one line per slice instead of the table. The template names these columns in Spanish, in the same order.
 
-| Field | Requirement |
-| --- | --- |
-| ID | Stable identifier such as `P2-S3` |
-| Outcome | One externally observable or technically falsifiable result |
-| Depends on | Prior slice IDs or `none` |
-| Scope | Exact responsibility and likely files/components |
-| Out of scope | Adjacent work this slice must not absorb |
-| Acceptance criteria | PRD criterion IDs covered |
-| Use cases | PRD use-case IDs (`UC-N`) this slice implements or verifies |
-| Tests | Focused automated tests to add or update, inherited from the PRD Estrategia de Tests rows for the linked use cases |
-| Validation | Exact narrow command or check |
-| Quality checks | Relevant tenancy, auth, i18n, contract, performance, SOLID/DRY/KISS checks |
-| Edge cases | PRD edge-case matrix rows this slice must satisfy, if any |
-| Evidence | Artifact/output needed to mark the slice verified |
-| Stop conditions | Ambiguities or failures that prohibit continuing |
-| Activation | Existing-data bootstrap/backfill/repair step, deploy command, smoke target, rollback note |
+| Field | Where | Requirement |
+| --- | --- | --- |
+| ID | Slice table | Stable identifier such as `P2-S3` |
+| Outcome | Slice table | One externally observable or technically falsifiable result |
+| Depends on | Slice table | Prior slice IDs or `none` |
+| Scope | Slice table | Exact responsibility and likely files/components |
+| Out of scope | Phase block | Adjacent work this slice must not absorb |
+| Acceptance criteria | Slice table | PRD criterion IDs covered |
+| Use cases | Slice table | PRD use-case IDs (`UC-N`) this slice implements or verifies |
+| Tests | Slice table | Focused automated tests to add or update, inherited from the PRD Estrategia de Tests rows for the linked use cases |
+| Edge cases | Slice table | PRD edge-case matrix rows this slice must satisfy, if any |
+| Validation | Slice table | Exact narrow command or check |
+| Quality checks | Phase block | Relevant tenancy, auth, i18n, contract, performance, SOLID/DRY/KISS checks |
+| Evidence | Slice table | Artifact/output needed to mark the slice verified |
+| Stop conditions | Phase block | Ambiguities or failures that prohibit continuing |
+| Activation | Phase block | Existing-data bootstrap/backfill/repair step, deploy command, smoke target, rollback note |
 
 Every acceptance criterion, use case, test-strategy row, and edge-case row declared in the PRD must appear in at least one slice's fields above. A row with no owning slice is a traceability gap and must be resolved before the plan is considered complete.
 

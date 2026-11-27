@@ -20,7 +20,7 @@ This file is the decision core. Load a reference only when its condition holds:
 
 | Reference | Read it only when |
 | --- | --- |
-| [reference/route-menus.md](reference/route-menus.md) | you must present route options and stop in `awaiting-user-choice` |
+| [reference/route-menus.md](reference/route-menus.md) | you must present two or more route options and stop in `awaiting-user-choice` (a single proposed route needs no menu) |
 | [reference/route-gates.md](reference/route-gates.md) | the candidate route is review/QA, production code (PRD or not), an N1 surgical offer, an epic, or workflow extension |
 | [reference/project-overlay.md](reference/project-overlay.md) | `.agents/project/index.md` or `.agents/project/routing.md` exists |
 | [reference/router-evals.md](reference/router-evals.md) | never during execution; it holds trigger examples, anti-patterns, the definition of done, and the level test prompts for maintainers |
@@ -38,13 +38,9 @@ adapters (`AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`,
 workflow logic they may carry. If an adapter conflicts with
 `.agents/instructions.md`, ignore the adapter content and flag the conflict.
 
-Catalogs: `.agents/skills/index.md`, then `.agents/project/index.md` and `.agents/project/routing.md`
-when they exist (else empty); project entries never weaken a kit gate (`reference/project-overlay.md`).
+Catalogs: `.agents/skills/index.md`, then `.agents/project/index.md` and `.agents/project/routing.md` when they exist (else empty); project entries never weaken a kit gate (`reference/project-overlay.md`).
 
-Read `.agents/instructions.md` and this file once per session or right after a
-genuine workflow switch. On continuation turns apply the continuation fast-path
-from `.agents/instructions.md`: the latest routing trace visible in the
-conversation (session memory) is enough, and this file is not re-read.
+Read `.agents/instructions.md` and this file once per session or right after a genuine workflow switch. On continuation turns apply the continuation fast-path from `.agents/instructions.md`: the latest routing trace visible in the conversation (session memory) is enough, and this file is not re-read.
 
 ## Per-turn intake boundary
 
@@ -89,10 +85,10 @@ runtime capability; stop or use the explicitly authorized fallback instead.
 
 Natural-language binding: "usa create-prd" runs `create-prd`; "implementa este
 PRD" runs `implement-change` (alias `implement-prd`); "haz el ticket" runs
-`generate-pm-ticket`; "usa solution-sketch" or "hacé el sketch" runs
-`solution-sketch`. For `project-formation`, `create-prd`, `create-epic`, and
-`generate-pm-ticket`, never auto-load the skill: present the options from
-`reference/route-menus.md` and wait.
+`generate-pm-ticket`; "usa solution-sketch" or "haz el sketch" runs
+`solution-sketch`. Without such an explicit invocation, never auto-load `project-formation`, `create-prd`,
+`create-epic`, or `generate-pm-ticket`: propose the route (the options from
+`reference/route-menus.md` when there are several) and wait.
 
 ## Execution authorization gate
 
@@ -101,7 +97,7 @@ PRD" runs `implement-change` (alias `implement-prd`); "haz el ticket" runs
 - Before explicit route authorization of a writing route, stay in `awaiting-user-choice`.
 - In `awaiting-user-choice`, do not inspect product implementation files, do not generate implementation plans, and do not edit code.
 - Start execution only after an explicit authorization utterance for a route ("procede", "usa create-prd", "implementa este PRD", "haz el ticket").
-- If the reply is affirmative but names no route, ask the user to confirm the route by name.
+- An affirmative reply authorizes a route when the previous turn proposed exactly one, or when it points at one menu option by number, skill name, label, or an unmistakable description; say which route starts. A bare yes to a menu of several options authorizes none: ask which one.
 - N1 surgical offers are authorized by a short "yes" to the one-line proposal. An irreversible action (push, deploy, delete) always names its risk and waits for an explicit yes.
 
 ## Routing decision trace
@@ -109,15 +105,15 @@ PRD" runs `implement-change` (alias `implement-prd`); "haz el ticket" runs
 Emit a trace before loading the selected skill. Use COMPACT when confidence is
 High, CONTINUATION when the fast-path applies, FULL otherwise.
 
-- COMPACT: `[skill or direct-answer] · [lean | balanced | premium] · [reason in ≤8 words]`
+- COMPACT: `[skill | direct-answer | direct-edit | direct-action] · [lean | balanced | premium] · [reason in ≤8 words]` (`direct-edit`: an authorized edit with no workflow skill, such as project context setup or workflow maintenance; `direct-action`: an irreversible operational action)
 - CONTINUATION: `[skill] · continuing · no reroute`
-- N1 offer: `N1 · surgical · [files and check]`
+- N1 offer: `N1 · surgical · <files>`
 
 FULL format:
 
 ```markdown
 Routing decision:
-- Selected workflow: `[skill or direct-answer]`
+- Selected workflow: `[skill | direct-answer | direct-edit | direct-action]`
 - Level: N2 | N3
 - Confidence: Medium | Low
 - Reason: [concrete signal]
@@ -141,6 +137,7 @@ is insufficient; for `premium`, the concrete risk. Never invent token counts.
 | Feature specification | clear feature with rules, UX states, API/data impact, AC | propose `create-prd` | Yes |
 | Tiny backlog item | small task with clear AC, no full PRD | propose `generate-pm-ticket` | Yes |
 | Workflow extension maintenance | add/edit router rules, registry entries, `.agents/skills/**` | direct workflow-maintenance edits with validation | No when the imperative names the edit; else Yes |
+| Project context setup | the user asks for the initial Discovery or to fill in `.agents/project/context.md` / `backend.md` / `frontend.md` ("haz el Discovery inicial del proyecto") | once authorized, direct edit of those project files from a bounded read of the code (N2; trace `direct-edit`; no workflow skill, no product code edits): fill every section of `context.md` (structure map, validation commands and their cost, test conventions, environment quirks, pointers) and the rule file of each layer, within the file's 200-line limit; what the code cannot settle is one line `not determined: <reason>`, never `[TODO`, and the template marker goes only when no `[TODO` is left; a layer the project lacks keeps its file with one line that says so (never deleted); the user reviews the diff | No when the imperative names it; else Yes |
 | Production code change | build, implement, fix behavior, backend/frontend, tests | `implement-change` when a PRD, a reproducible bug, a ticket with criteria, or an iteration over an implemented PRD exists; else offer N1 when it fits, or propose `create-prd` / `generate-pm-ticket` | Yes, unless the imperative names the input ("arregla este bug") |
 | PRD implementation | PRD path or "implement this PRD" | `implement-change` (alias `implement-prd`) | No |
 | Review / QA | review PR or diff, validate quality, audit UI | stack-gated review skill (see `reference/route-gates.md`) | No |
@@ -170,6 +167,10 @@ Route to `project-formation` as the recommended option (not auto-execution) when
 
 Offer `solution-sketch` as the recommended next step and never auto-start it when the user asks to sketch classes, compare architectures, or brainstorm the solution before a spec ("dibujemos las clases", "brainstorm de la solucion", "comparemos arquitecturas antes del PRD"). Do not add `solution-sketch` as a fifth standing option in the product-shaping menu. If the user declines, continue routing the parent product path.
 
+#### Explicit PRD hard trigger
+
+"Explicit PRD" in the level pre-filter means the user gives the path of an existing PRD or asks to implement one ("implementa este PRD", "el PRD ya está aprobado, avanza"). Route to `implement-change` whatever the level: the PRD is the input and the authorization, and the level only sets the ceremony. A request to write a PRD is not this trigger: it is a `create-prd` proposal that waits for the user's choice.
+
 ### Route precedence for ambiguous prompts
 
 1. explicit skill invocation
@@ -181,13 +182,12 @@ Offer `solution-sketch` as the recommended next step and never auto-start it whe
 7. review or documentation routes
 8. direct answer
 
-Example: "resolve PR comments and implement the PRD changes" applies rule 2
-first; after comment resolution, emit a new trace for `implement-change`.
+Example: "resolve PR comments and implement the PRD changes" applies rule 2 first; after comment resolution, emit a new trace for `implement-change`.
 
 ## Confidence levels
 
-- High: one workflow clearly fits. Emit the COMPACT trace and load the skill; proceed when the route is read-only or the imperative names the work, else ask for the route by name.
-- Medium: two workflows are plausible. Recommend one, include the cheaper safe alternative in the trace, ask at most one short question.
+- High: one workflow clearly fits. Emit the COMPACT trace. Load the skill and proceed when the route is read-only or the imperative names the work; for a route that writes, propose that one route, stop in `awaiting-user-choice`, and load the skill only after the user authorizes it.
+- Medium: two workflows are plausible. Recommend one, include the cheaper safe alternative in the trace, ask at most one short question. The alternative in the trace is not a second offer: when the message proposes only the recommended route, a plain yes authorizes it; when it offers both, the reply must pick one.
 - Low: outcome, scope, or artifact is missing. Show the options menu from `reference/route-menus.md`, recommend the smallest safe workflow, and wait for explicit authorization.
 
 ## Router output

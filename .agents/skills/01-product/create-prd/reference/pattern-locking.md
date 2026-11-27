@@ -8,11 +8,12 @@ Before drafting, lock the implementation approach to one comparable local patter
 
 ## Procedure
 
-Find the nearest local pattern that shares the relevant boundary, failure mode, artifact shape, or validation style. Examples in this repository include:
+Find the nearest local pattern that shares the relevant boundary, failure mode, artifact shape, or validation style. Generic illustrations of the kinds of local pattern to look for in the project's own codebase (not a list of files to find):
 
-- hard gates and phase sequencing in workflow `SKILL.md` files
-- PRD-local TOON execution locks in `implement-change`
-- explicit `route-options` in `workflow-router`
+- how an existing endpoint or handler validates input and shapes its response
+- how a neighbouring service or job owns a similar business rule
+- how a sibling test file is structured (fixtures, layers, naming)
+- how an existing screen or component handles the same states
 
 Record:
 
@@ -20,7 +21,10 @@ Record:
 - anchor file or files
 - reused parts
 - intentionally different parts
+- `identifier_language` and its source, copied from `## Calibration`
 - justification for the decision
+
+When the `identifier_language` source is `existing-code`, tell the user which language the PRD follows and offer once to record it in the project's rules (`.agents/project/backend.md` or `.agents/project/frontend.md`); write it only after an explicit yes.
 
 When no comparable local pattern exists, state exactly: `no local comparable pattern found`. This is an explicit outcome, never a silently omitted section.
 

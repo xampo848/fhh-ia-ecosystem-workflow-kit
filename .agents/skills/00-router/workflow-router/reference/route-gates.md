@@ -45,11 +45,11 @@ Do not choose the predecessor for the user. Present the options from
 ## N1 surgical offer
 
 The router offers N1 explicitly instead of hiding it as an exception. Offer it,
-as an option with its one-line trace (`N1 · surgical · <files and check>`), only
+as an option with its one-line trace (`N1 · surgical · <files>`), only
 when all of these hold:
 
-1. The change touches at most one or two files.
-2. The target files and exact change are already clear.
+1. The change touches at most one or two production files; the test file of each one goes with it and does not count toward that limit.
+2. The target files and exact change are already clear. A bounded read-only lookup (locate the target, its test, and the check command) is allowed before the offer; reading to design the change waits for the yes.
 3. There is no database, API contract, authorization, tenancy, background job, analytics, cross-layer, or migration impact.
 4. The focused check (lint, build, or test) can be named before editing.
 

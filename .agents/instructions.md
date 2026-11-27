@@ -154,7 +154,7 @@ first, how visible the routing is, and the cost posture.
 | Level | What it loads | Budget | Ask before acting? | Visibility | Cost posture |
 | --- | --- | --- | --- | --- | --- |
 | N0 Operational | nothing from the workflow | up to 3 tool calls; if more are needed, stop and propose N1 | No: the user's intent is enough | no trace | `lean` |
-| N1 Surgical | the target files, their tests, and at most one PRD | no tracker, no delegates, no Discovery; one focused check | Yes, a short "yes" | one line, for example `N1 · surgical · touches X and its test` | `lean` |
+| N1 Surgical | the target files, their tests, and at most one PRD | no tracker, no delegates, no Discovery; one focused check | Yes, a short "yes" | one line, for example `N1 · surgical · lib/cart.mjs, lib/cart.test.mjs` | `lean` |
 | N2 Standard | the normal implementation route | per route | Only for routes that write (see the execution authorization gate) | full or compact routing trace | `balanced` |
 | N3 High risk | full gates | per route | As N2; an irreversible action always names the concrete risk and waits for an explicit yes | full or compact routing trace | `premium` |
 
@@ -164,7 +164,7 @@ workflow-maintenance routes. Never raise the posture silently: raising it
 requires naming the concrete risk in the trace.
 
 Level pre-filter (single source; generated copies live in the runtime
-adapters between the same markers and `check:workflow` fails when they drift):
+adapters between the same markers; `workflow-kit doctor` warns when an adapter's block was edited and `workflow-kit update` restores it):
 
 <!-- workflow-kit:level-prefilter:start -->
 Level pre-filter (apply to every new user prompt before loading any workflow file):
@@ -199,6 +199,17 @@ Level rules:
   the change is small, propose N1. Both cases ask the user.
 - The user can force a level. Forcing a level below an N3 signal requires
   naming the concrete risk before proceeding.
+- A contract, in the pre-filter and in every skill gate that says "contract"
+  or "public contract", is an interface consumed outside the repository or across a
+  deployment boundary: an HTTP or API endpoint, an event or message schema, the
+  flags or output of a CLI, a data schema another system reads, or an export of
+  a published package. A symbol exported and used only inside the
+  repository is not a contract.
+- The N1 file limit counts production files: the test file of each target goes
+  with it, is named in the line when known, may be edited, and does not count
+  toward the one-or-two-file limit. Before the yes, a bounded read-only lookup
+  (locate the target, its test, and the check command) is allowed; reading to
+  design the change waits for the yes.
 - A test set of prompts with their expected level lives in
   `.agents/skills/00-router/workflow-router/reference/router-evals.md`.
 
@@ -239,6 +250,7 @@ Execution authorization gate:
 - Before explicit route authorization of a writing route, the agent must stay in `awaiting-user-choice` for route-selection turns.
 - While in `awaiting-user-choice`, the agent must not inspect product code for implementation, must not plan implementation tasks, and must not edit files.
 - Execution starts only after the user explicitly authorizes the selected route (for example: "usa create-prd", "implementa este PRD", "haz el ticket", "procede con esa ruta").
+- A plain yes authorizes the single route proposed in the previous turn. When several options were offered, the reply must identify one (number, skill name, label, or an unmistakable description); otherwise ask which one.
 
 Routing-to-execution binding (mandatory):
 
@@ -448,7 +460,7 @@ Compressed delegation preference:
 - when narrow helper delegation is needed (locate, surgical edit, focused review), prefer attached compressed helpers such as cavecrew;
 - fall back to verbose delegates or inline execution when compressed output could hide important nuance;
 - in N2/N3 implementation the orchestrator does not read raw: see "Orchestrator reads (N2/N3)" in `.agents/skills/02-implement/implement-change/SKILL.md`;
-- in N2/N3, when delegating, pick a catalog delegate by role (`scripts/delegate-agent-catalog.json`): discovery `sherlock-estructura`, backend writer `turbo-backend`, frontend writer `pixel-ninja`, acceptance tests `testinator-5000`, focused validation or CI fixes `lint-ranger`, independent QA `qa-relampago`; for a narrow locate, edit, or review task use `cavecrew-investigator`, `cavecrew-builder`, or `cavecrew-reviewer`. Use `general-purpose` only when no catalog delegate fits the role, and state why before launching it.
+- in N2/N3, when delegating, pick one of the delegates installed for your runtime by role (listed in `.agents/skills/02-implement/implement-prd/reference/delegate-skill-matrix.md`): discovery `sherlock-estructura`, backend writer `turbo-backend`, frontend writer `pixel-ninja`, acceptance tests `testinator-5000`, focused validation or CI fixes `lint-ranger`, independent QA `qa-relampago`; for a narrow locate, edit, or review task use `cavecrew-investigator`, `cavecrew-builder`, or `cavecrew-reviewer`. Use `general-purpose` only when no catalog delegate fits the role, and state why before launching it.
 
 ## Prompt-driven integration policy
 
@@ -524,7 +536,8 @@ Runtime adapters may define:
 - sandbox/tool constraints;
 - how to point to the shared skill path and neutral routing policy;
 - the generated level pre-filter, copied verbatim from this file between the
-  `workflow-kit:level-prefilter` markers by `scripts/sync-level-prefilter.mjs`.
+  `workflow-kit:level-prefilter` markers by the kit; `workflow-kit update`
+  refreshes it.
 
 Every runtime entrypoint carries the same hand-written "Shared bootstrap"
 block, apart from runtime-specific notes: a pointer to this file as the source

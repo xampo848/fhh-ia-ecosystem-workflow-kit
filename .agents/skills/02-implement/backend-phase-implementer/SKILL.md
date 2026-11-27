@@ -39,13 +39,13 @@ Use exists-or-skip for product docs. A missing optional path is not a failed sea
 ## Backend Rules
 
 Framework, library, and command rules are the project's, not this skill's:
-follow `.agents/project/backend.md` and `.agents/project/stack.md`. If neither
+follow `.agents/project/backend.md` and `.agents/project/stack.md` (the latter exists only with a stack pack). If neither
 exists, reuse the conventions of the analogous files you read and say so in
 the handoff. Stack-neutral rules that always apply:
 
 - Entry points (controllers, handlers) delegate business logic to the project's service layer.
 - Use the project's authorization mechanism; do not introduce a second one.
-- Respect tenant and organization scoping.
+- Respect tenant and organization scoping when the project has it.
 - Never add cross-tenant queries without explicit inline justification and regression tests.
 - Put user-facing text in the project's locale files, never inline.
 - Use the project's test framework and the validation commands declared in `.agents/project/context.md` (legacy: `.agents/project-context.md`).
@@ -73,10 +73,10 @@ Reject the implementation or return `blocked` if satisfying the slice requires q
 5. Name the existing pattern being reused before creating or changing code.
 6. Record whether any matcher-suggested optional capability was actually used and whether it was active.
 7. Implement the smallest backend change that satisfies the slice.
-8. Keep business rules in services or domain collaborators, not controllers, serializers, jobs, or callbacks.
+8. Keep business rules in the layer the project assigns them (services or domain collaborators), not in entry points, serialization, or background jobs.
 9. Add or update tests with positive, empty/error, auth, tenancy, and contract cases as relevant, each rule at its owning layer: the service or query proves the rule's variants; the entry point proves authentication, authorization, tenancy, parameters, status, and response shape plus one wiring case; a job proves its own selection, batching, retries, and error handling. Every new branch needs an assertion there; a method that only delegates does not need its own test.
 10. Add i18n keys for any user-facing backend text.
-11. Run the narrowest validation that can falsify the slice, preserving matcher validation hooks when present. Use the backend commands declared in `.agents/project/context.md` (legacy: `.agents/project-context.md`) (or `.agents/project/stack.md`): the fast focused test target first, a single test file only when it is the narrowest reliable check, and lint only for touched backend files.
+11. Run the narrowest validation that can falsify the slice, preserving matcher validation hooks when present. Use the backend commands declared in `.agents/project/context.md` (legacy: `.agents/project-context.md`) (or `.agents/project/stack.md` when present): the fast focused test target first, a single test file only when it is the narrowest reliable check, and lint only for touched backend files.
 12. Fix root causes. Do not silence tests, weaken assertions, bypass tenant checks, or lower standards.
 13. Complete the quality gate result and matcher-consumption evidence in the handoff.
 

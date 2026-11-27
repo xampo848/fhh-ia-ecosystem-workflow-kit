@@ -64,8 +64,8 @@ for matching or ambiguous candidates, then read exact `SKILL.md` paths only for
 selected skills.
 
 Do not invent candidates. If `.agents/skills/06-patterns/index.md` is missing,
-regenerate it with `node scripts/sync-skill-registry.mjs --write` or fall back
-to `.agents/skills/registry.md` and record that fallback.
+fall back to `.agents/skills/registry.md` and record that fallback
+(`workflow-kit update` restores the index).
 
 The derived cache is a preflight/index aid only. It is not a source of truth and
 must never replace the compact pattern index, a needed registry row, or the

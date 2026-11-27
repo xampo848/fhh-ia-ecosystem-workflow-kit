@@ -89,7 +89,7 @@ starts in shadow mode, never applies to integration, E2E, critical slices, or
 the closure suite, and QA re-entries are focused on the repair.
 
 Project rules are runtime-neutral: the quality gate and the backend and
-frontend instructions live in `.agents/project/`, stack-specific rules in
+frontend instructions live in `.agents/project/`, stack-specific rules (only when a stack pack was installed) in
 `.agents/project/stack.md`, and the fixed knowledge base in
 `.agents/project/context.md` (legacy: `.agents/project-context.md`). Runtime folders only hold generated copies.
 

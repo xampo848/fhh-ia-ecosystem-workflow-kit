@@ -81,7 +81,7 @@ Split a candidate slice when any of these is true:
 - it spans backend and frontend implementation;
 - it mixes migration/backfill with behavior activation or cleanup;
 - it changes an API producer and consumer without an intermediate contract gate;
-- it combines two or more high-risk concerns: data migration, public contract, auth/tenancy, background execution, external integration, visible UI;
+- it combines two or more high-risk concerns: data migration, public contract (an interface consumed outside the repository or across a deployment boundary; `.agents/instructions.md`, "Level rules"), auth/tenancy, background execution, external integration, visible UI;
 - it requires multiple owner skills;
 - its focused validation would be “run everything” because no smaller falsification target exists;
 - a failure would leave the next task unable to distinguish partial from complete work.

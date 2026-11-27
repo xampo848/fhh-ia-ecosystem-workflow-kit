@@ -12,10 +12,10 @@ Use exists-or-skip for every listed path. A missing file is not a failed search:
 
 Read these when they exist and apply to the request:
 
-- `docs/foundations/ARCHITECTURE.md` when the work is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths
-- `docs/foundations/DOMAIN_MODEL.md` when domain ownership or entities change
-- `docs/standards/BACKEND_STANDARDS.md` and/or `docs/standards/FRONTEND_STANDARDS.md` for touched surfaces
-- `docs/standards/CODE_QUALITY.md` only when the PRD will add or change quality/test conventions
+- `.agents/project/context.md`, plus `.agents/project/backend.md` and/or `.agents/project/frontend.md` for touched surfaces, and `.agents/project/stack.md` only when a stack pack was installed
+- `docs/workflow/standards/backend.md` and `docs/workflow/standards/frontend.md` are setup guides for the person adopting the kit, not standards: do not read them for a PRD. Follow any pointer in the project files above to standards the project keeps under `docs/workflow/standards/` or elsewhere
+- A project file above that still carries its template marker (`<!-- workflow-kit:project-context:template -->` in `context.md`, `<!-- workflow-kit:project-instructions:template -->` in `backend.md` and `frontend.md`) is not filled in: record that under `## Calibration`, tell the user once, in the first message you send them after calibration (the first question round or the draft, whichever comes first), that the project context is not set up (an initial Discovery of the project fills it in, and doing so improves results), and continue from the code itself; do not block. Once the marker is gone, use the file and treat any remaining `[TODO` field as unknown for that field only
+- The project's own architecture, domain-model, and quality docs only when the project has them (their paths are recorded in `.agents/project/context.md`; `.agents/project/paths.json` maps relocated project files): read the architecture doc when the work is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths; the domain model when domain ownership or entities change; the quality or test conventions doc only when the PRD will add or change quality/test conventions
 - The referenced parent epic, including its `Invariantes No Negociables` table and the `Path vivo y corte de fases` block when present
 - The parent epic's companion ledger (`<slug>-ledger.md`) when it exists
 - The parent epic's evidence pack (`<slug>-evidence.md`) when it exists; reuse its local and external findings instead of rediscovering the same context
@@ -27,11 +27,13 @@ Inspect the existing models, services, queries, controllers, schema, and tests t
 
 When delegated discovery is useful and Cavecrew/Caveman is available, prefer `cavecrew-investigator` for file-path-first compressed findings. Use a normal exploratory agent only when the calibration needs architecture commentary instead of a location/result list.
 
-Use `semantic_search`, `grep_search`, `read_file`, and `file_search` proportionally. Do not enumerate a whole module or stream calibration notes into chat; persist the artifact and surface it only under Summary Visibility.
+Use the search and read tools of your runtime proportionally. Do not enumerate a whole module or stream calibration notes into chat; persist the artifact and surface it only under Summary Visibility.
 
 When a recent comparable PRD exists, read exactly one as a structure anchor. Calibrate tone, section density, table depth, and acceptance evidence from it; do not copy its business content.
 
 Determine existing columns and services, naming conventions, reusable base classes or concerns, bounded-context ownership, namespace and table conventions, and inherited parent-epic invariants.
+
+Determine the language of code identifiers, in this order: what the project's rules say (`.agents/project/backend.md`, `.agents/project/frontend.md`, or `.agents/project/stack.md` when a stack pack was installed); else the dominant language of the identifiers in the owner artifacts just inspected; else English.
 
 ## Unknowns Inventory
 
@@ -91,6 +93,7 @@ Write these fields under `## Calibration`:
 - `visible_ui`: `yes` when the PRD changes a user-facing screen, page, or navigable view; otherwise `no`
 - `ui_lock`: `required` when `visible_ui: yes`, else `not-applicable`
 - `comparable_anchor`
+- `identifier_language`: the language new identifiers use and its source, `project-rules | existing-code | default`
 - major risks
 - unresolved questions
 - `unknowns`: the Unknowns Inventory, or `none`
@@ -98,4 +101,4 @@ Write these fields under `## Calibration`:
 
 ## Summary Visibility
 
-Persist the artifact even when no summary is shown in chat. Show the summary on explicit user request or when the calibration finds a missing required source, conflicting repository guidance, unclear touched surfaces, or low confidence in the selected comparable anchor.
+Persist the artifact even when no summary is shown in chat. Show the summary on explicit user request or when the calibration finds a missing required source, conflicting repository guidance, unclear touched surfaces, low confidence in the selected comparable anchor, or a project file that still carries its template marker (a one-line notice, not the full summary).

@@ -1,6 +1,6 @@
 {
   "name": "fhh",
-  "version": "0.23.6-ac-guards",
+  "version": "0.24.1-pilot-alignment",
   "description": "Workflow kit: routed workflow skills and delegates that run from the plugin while each repository keeps its own project overlay.",
   "author": {
     "name": "fhh-ia-ecosystem"
