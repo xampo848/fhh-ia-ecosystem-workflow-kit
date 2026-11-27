@@ -40,8 +40,7 @@ workflow logic they may carry. If an adapter conflicts with
 
 Catalogs: `.agents/skills/index.md`, then `.agents/project/index.md` and `.agents/project/routing.md` when they exist (else empty); project entries never weaken a kit gate (`reference/project-overlay.md`).
 
-Read `.agents/instructions.md` and this file once per session or right after a genuine workflow switch. On continuation turns apply the continuation fast-path
-from `.agents/instructions.md`: the latest routing trace visible in the conversation (session memory) is enough, and this file is not re-read.
+Read `.agents/instructions.md` and this file once per session or right after a genuine workflow switch. On continuation turns apply the continuation fast-path from `.agents/instructions.md`: the latest routing trace visible in the conversation (session memory) is enough, and this file is not re-read.
 
 ## Per-turn intake boundary
 
