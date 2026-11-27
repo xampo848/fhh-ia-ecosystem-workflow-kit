@@ -178,19 +178,17 @@ export async function runExportCommand(options, { stdout, stderr }) {
 }
 
 // A plan lists hundreds of files that need no attention (created as they
-// ship, unchanged, or project-owned and left alone). Each such kind is one
-// line with its count unless --all asks for every file; a line that carries a
-// note or a decision is always listed.
+// ship, or unchanged). Each such kind is one line with its count unless --all
+// asks for every file; a line that carries a note or a decision is always
+// listed, and so is every project file the plan leaves alone.
 const quietLines = [
   { prefix: '- create: ', note: '', summary: (count) => `- create: ${count} file(s) (add --all to list them)` },
-  { prefix: '- unchanged: ', note: '', summary: (count) => `- unchanged: ${count} file(s) (add --all to list them)` },
-  { prefix: '- skip_unmanaged: ', note: ' (project-owned; left as it is)', summary: (count) => `- skip_unmanaged: ${count} file(s) (project-owned; left as they are; add --all to list them)` }
+  { prefix: '- unchanged: ', note: '', summary: (count) => `- unchanged: ${count} file(s) (add --all to list them)` }
 ];
 const quietThreshold = 3;
 function summarizedPlan(text, options) {
   if (options.all) return text;
-  const kindOf = (line) => quietLines.find((kind) => line.startsWith(kind.prefix)
-    && (kind.note === '' ? !line.slice(kind.prefix.length).includes(' ') : line.endsWith(kind.note)));
+  const kindOf = (line) => quietLines.find((kind) => line.startsWith(kind.prefix) && !line.slice(kind.prefix.length).includes(' '));
   const lines = text.split('\n');
   const counts = new Map();
   for (const line of lines) {
@@ -249,8 +247,19 @@ export async function runRollbackCommand(options, { stdout, stderr }) {
     return 3;
   }
 
-  const { result: results, code } = await applyWithInterrupts((signal) => applyRollbackPlan(plan, { signal }), stderr, { targetPath: plan.targetPath, rollback: true });
-  if (code !== undefined) return code;
+  // A rollback that stops partway still says so on its last line.
+  let applied;
+  try {
+    applied = await applyWithInterrupts((signal) => applyRollbackPlan(plan, { signal }), stderr, { targetPath: plan.targetPath, rollback: true });
+  } catch (error) {
+    result('failed');
+    throw error;
+  }
+  const { result: results, code } = applied;
+  if (code !== undefined) {
+    result('interrupted');
+    return code;
+  }
   const summary = summarizeRollback(results);
   stdout.write(`Restored files: ${summary.restored}\nRemoved created files: ${summary.removed}\nKept (edited after the apply): ${summary.keptModified}\nNot restorable (no backup): ${summary.withoutBackup}\n${summary.alreadyGone > 0 ? `Already removed by hand: ${summary.alreadyGone}\n` : ''}`);
   const copies = results.filter((item) => item.keptCopy).map((item) => path.relative(plan.targetPath, item.keptCopy).split(path.sep).join('/'));

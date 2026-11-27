@@ -24,7 +24,7 @@ const commandSummaries = {
 
 const runtimeNote = `--runtime takes a comma-separated list of: ${[...supportedRuntimes, 'neutral'].join(', ')} (neutral: no runtime adapter).`;
 const dryRunNote = 'Without --apply --yes every command is a dry run and writes nothing.';
-const allNote = 'A plan shows one line with a count for the files that need no attention (created, unchanged, project-owned); --all lists every file.';
+const allNote = 'A plan shows one line with a count for the files that need no attention (created, unchanged); --all lists every file.';
 const editedNote = 'update --edited decides on a file the dry run lists as pending (repeat the flag per file, or use all=):\nkeep leaves it as it is (the next update lists it again), discard takes the kit version, shadow moves the edit to a project shadow (only while\nmigrating from install-state 1.0.0), split keeps the own lines of an adapter without markers below the new block.';
 const modeNote = '--mode repo (the default for init) installs the kit files in the project. --mode plugin (runtimes claude, copilot)\ninstalls only the adapters, the project overlay and the plugin declaration: the kit runs as the plugin fhh,\nwhich each person installs once per clone.';
 

@@ -72,10 +72,10 @@ test('update recreates a project file that was deleted, and doctor says how to r
   const doctor = await cli('doctor', '--target', target, '--runtime', 'claude');
   assert.equal(doctor.code, 1);
   assert.match(doctor.stdout, /Missing files:\n- \.agents\/project\/frontend\.md/);
-  assert.match(doctor.stdout, /A project file is missing \(\.agents\/project\/frontend\.md\): run `workflow-kit update --target \S+ --apply --yes` to recreate it from its template\. If the project does not have that layer, keep the file with one line that says so\./);
+  assert.match(doctor.stdout, /A project file is missing \(\.agents\/project\/frontend\.md\): run `workflow-kit update --target \S+` \(a dry run; then add --apply --yes\) to recreate it from its template\. If the project does not have a layer, keep its file with one line that says so\./);
 
   const plan = await buildUpdatePlan({ targetPath: target });
-  assert.deepEqual(plan.operations.filter((item) => item.operation === 'create').map((item) => item.relativePath), [file]);
+  assert.deepEqual(plan.operations.filter((item) => item.operation === 'create').map((item) => [item.relativePath, item.recreated]), [[file, true]]);
   const updated = await cli('update', '--target', target, '--apply', '--yes');
   assert.equal(updated.code, 0, updated.stderr);
   assert.match(await fs.readFile(path.join(target, file), 'utf8'), /workflow-kit:project-instructions:template/);
@@ -113,9 +113,39 @@ test('a plan summarizes the files that need no attention, and --all lists them',
   const update = await cli('update', '--target', target);
   assert.match(update.stdout, /^- unchanged: \d+ file\(s\) \(add --all to list them\)$/m);
   assert.match(update.stdout, /^- skip_modified: \.agents\/instructions\.md /m);
-  assert.match(update.stdout, /^- skip_unmanaged: \d+ file\(s\) \(project-owned; left as they are; add --all to list them\)$/m);
+  // Every project file the plan leaves alone is still named.
+  assert.equal((update.stdout.match(/^- skip_unmanaged: \S+ \(project-owned; left as it is\)$/gm) ?? []).length, 5);
 
   const other = await cli('doctor', '--target', target, '--all');
   assert.notEqual(other.code, 0);
   assert.match(other.stderr, /--all does not apply to doctor/);
+});
+
+// Findings of the independent review of 0.24.2.
+test('review: a plan always names the project files it recreates, however many files it creates', async () => {
+  const target = await installed();
+  const deleted = ['frontend.md', 'context.md', 'quality-gate.md', 'paths.json'].map((name) => `.agents/project/${name}`);
+  for (const file of deleted) await fs.rm(path.join(target, file));
+  const update = await cli('update', '--target', target);
+  for (const file of deleted) {
+    assert.match(update.stdout, new RegExp(`^- create: ${file.replace(/[.]/g, '\\.')} \\(project file that was deleted; created again from its template\\)$`, 'm'), file);
+  }
+  const doctor = await cli('doctor', '--target', target, '--runtime', 'claude');
+  assert.match(doctor.stdout, /Project files are missing \(4\): run `workflow-kit update --target \S+` \(a dry run; then add --apply --yes\) to recreate them from their templates\./);
+});
+
+test('review: a rollback that fails partway still ends with a result line', async () => {
+  const target = await installed();
+  // A created file in a folder that cannot be written: removing it fails.
+  const folder = path.join(target, '.agents/skills/00-router/workflow-router');
+  await fs.chmod(folder, 0o555);
+  try {
+    const stopped = await cli('rollback', '--target', target, '--apply', '--yes');
+    assert.notEqual(stopped.code, 0);
+    const resultLines = stopped.stdout.split('\n').filter((line) => line.startsWith('Result: '));
+    assert.deepEqual(resultLines, ['Result: failed']);
+    assert.equal(lastLine(stopped.stdout), 'Result: failed');
+  } finally {
+    await fs.chmod(folder, 0o755);
+  }
 });

@@ -17,7 +17,7 @@ entry has a class:
 | `kit` | The kit, the whole file | `.agents/instructions.md`, `.agents/skills/**`, `docs/workflow/**` |
 | `derived` | The kit, generated from its sources | skill catalogs, `.claude/skills/**`, rendered delegate agents |
 | `adapter` | The kit owns only the block between `<!-- workflow-kit:managed:start -->` and `<!-- workflow-kit:managed:end -->`; the rest is the project's | `CLAUDE.md`, `AGENTS.md`, `ANTIGRAVITY.md`, Copilot instructions |
-| `seed` | Created by the kit when missing (also after a deletion), never rewritten while it exists | `.agents/project/backend.md`, `.agents/project/quality-gate.md` |
+| `seed` | Created by the kit when missing (also after a deletion, except `.agents/project/stack.md`), never rewritten while it exists | `.agents/project/backend.md`, `.agents/project/quality-gate.md` |
 | `state` | The `workflow-kit` CLI | `.agents/workflow-kit/install-state.json` |
 
 The portable core is the set of `kit` and `derived` paths. It must not include

@@ -21,18 +21,18 @@ Una contradicción exige un change request aprobado por el usuario con ID de inv
 **Ledger leido**: `docs/epics/<feature-or-project>/<slug>-ledger.md`
 **PRD anterior en la cola**: `[path/to/previous-prd.md]` (`No aplica` si es el primer PRD de la épica)
 
-**Precondiciones (que asume que ya existe de fases previas)**:
+**Precondiciones (qué asume que ya existe de fases previas)**:
 
 | ID | Precondición | Origen (PRD/ledger) | Verificado en discovery |
 | -- | ------------- | -------------------- | ------------------------ |
-| PRE-[N] | [Lo que este PRD asume que ya esta implementado o decidido] | [PRD/ledger row] | Sí/No |
+| PRE-[N] | [Lo que este PRD asume que ya está implementado o decidido] | [PRD/ledger row] | Sí/No |
 
 Si una precondición no se verifica contra el código real durante el calibration, este PRD no puede continuar sin resolver la discrepancia con el usuario.
 
-**Postcondiciones (que garantiza para fases siguientes)**:
+**Postcondiciones (qué garantiza para fases siguientes)**:
 
-| ID | Postcondicion | Como se prueba |
+| ID | Postcondición | Cómo se prueba |
 | -- | -------------- | --------------- |
-| POST-[N] | [Lo que este PRD deja garantizado para que el proximo PRD lo pueda asumir] | [Test/evidencia] |
+| POST-[N] | [Lo que este PRD deja garantizado para que el próximo PRD lo pueda asumir] | [Test/evidencia] |
 
 `document-development` copia estas postcondiciones al ledger de la épica al cerrar este PRD.

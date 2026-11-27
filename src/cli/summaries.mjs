@@ -9,7 +9,7 @@ export function countAppliedOperations(applied) {
     writeCount: applied.filter((item) => item.applied && item.operation !== deleteOperation).length,
     backupCount: applied.filter((item) => item.backupPath).length,
     modifiedSkips: applied.filter((item) => item.operation === 'skip_modified').length,
-    // A seed the project owns (created once, then the project's) is not an
+    // A seed the project owns (created when missing, then the project's) is not an
     // unmanaged file: it is counted on its own.
     unmanagedSkips: applied.filter((item) => item.operation === 'skip_unmanaged' && item.reason !== 'project_owned').length,
     projectOwned: applied.filter((item) => item.operation === 'skip_unmanaged' && item.reason === 'project_owned').length,

@@ -619,8 +619,8 @@ async function emptyFileDiagnostics({ targetPath, manifest, files, present, upda
   return diagnostics;
 }
 
-// A seed the kit created is never recreated, so update --stack cannot bring
-// the rules file back.
+// The stack rules file is the one seed update never recreates, so
+// update --stack cannot bring it back.
 async function stackPackDiagnostics({ targetPath, stackPack }) {
   if (!stackPack || stackPack === 'none') return [];
   if (await readOptional(path.join(targetPath, stackRulesPath)) !== null) return [];
@@ -686,7 +686,8 @@ export function formatDoctorResult(result) {
     // What explains the list comes before it, not after hundreds of lines.
     if (result.missingHint) lines.push(result.missingHint);
     if ((result.missingProjectFiles ?? []).length > 0) {
-      lines.push(`A project file is missing (${result.missingProjectFiles.join(', ')}): run ${code(kitCommand(result.targetPath, 'update', '--apply', '--yes'))} to recreate it from its template. If the project does not have that layer, keep the file with one line that says so.`);
+      const several = result.missingProjectFiles.length > 1;
+      lines.push(`${several ? `Project files are missing (${result.missingProjectFiles.length})` : `A project file is missing (${result.missingProjectFiles[0]})`}: run ${code(kitCommand(result.targetPath, 'update'))} (a dry run; then add --apply --yes) to recreate ${several ? 'them from their templates' : 'it from its template'}. If the project does not have a layer, keep its file with one line that says so.`);
     }
     if (result.nothingInstalled) {
       lines.push(`Missing files: ${result.missing.length} (not listed: nothing of the kit is here)`);

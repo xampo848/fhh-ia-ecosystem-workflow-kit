@@ -1043,7 +1043,8 @@ function planSeed({ base, templateContent, existingContent, recorded, migratedIn
   // its template: doctor requires it, and nothing else can repair it. The
   // stack rules file keeps its own rule (doctor: stack-pack/missing).
   if (recorded?.class === 'seed' && base.relativePath === stackRulesPath) return null;
-  return { ...base, operation: 'create', content: templateContent };
+  // Named in the plan even when the other creates are one line with a count.
+  return { ...base, operation: 'create', content: templateContent, ...(recorded?.class === 'seed' ? { recreated: true } : {}) };
 }
 
 // Checksum install-state records for a file of a given class: the managed
@@ -1152,6 +1153,7 @@ export function formatPlan(plan) {
     // A seed exists: the project owns it, the kit leaves it as it is.
     if (item.operation === 'skip_unmanaged' && item.reason === 'project_owned') note = ' (project-owned; left as it is)';
     if (item.untracked) note = ' (kit-location removed; leaves the install as a project file)';
+    if (item.recreated) note = ' (project file that was deleted; created again from its template)';
     if (item.blockEdited) note = ` (its kit block was edited; the kit version replaces it${item.operation === 'overwrite_with_backup' ? ' and the backup keeps the edit' : ''})`;
     if (item.decisions && !migrationListsPending) note = ` (${item.reason}): ${item.decisions.join(' | ')}`;
     if (item.note) note = ` (${item.reason}): ${item.note}`;

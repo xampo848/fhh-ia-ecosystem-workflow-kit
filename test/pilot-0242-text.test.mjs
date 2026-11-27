@@ -94,3 +94,20 @@ test('the PRD template and its sections are written with accents, and the reader
   assert.equal(typeof workspaceDiagnostics, 'function');
   assert.match(await read('src/workspace-diagnostics.mjs'), /Evidencia de Implementaci\[oó\]n/);
 });
+
+test('review: no unaccented template literal is left behind a line wrap, and the approval rule does not ask twice', async () => {
+  for (const file of bothCopies('.agents/skills/02-implement/implement-change/reference/level-n2.md')) {
+    assert.doesNotMatch((await read(file)).replace(/\s+/g, ' '), /Evidencia de Implementacion/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/template-sections/epic-context.md`)) {
+    assert.doesNotMatch(await read(file), /Postcondicion\b|Como se prueba|esta implementado|proximo/, file);
+  }
+  assert.doesNotMatch(await read('src/workspace-diagnostics.mjs'), /"## 10\. Evidencia de Implementacion"/);
+  for (const file of bothCopies(implementChange)) {
+    assert.match(await read(file), /A request that says the PRD is approved \("el PRD ya está aprobado, avanza"\) is that yes/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/SKILL.md`)) {
+    assert.match(await read(file), /When the user approves the delivered PRD in the conversation, set `Estado: Aprobado`/, file);
+  }
+  for (const file of bothCopies('.agents/kit-boundary.md')) assert.match(await read(file), /`\.agents\/project\/stack\.md`[^\n]*exception/, file);
+});

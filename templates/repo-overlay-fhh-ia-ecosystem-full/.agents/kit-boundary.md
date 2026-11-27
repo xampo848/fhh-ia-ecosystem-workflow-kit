@@ -17,7 +17,7 @@ project does not carry that validator.
   - `adapter`: the kit owns only the block between
     `<!-- workflow-kit:managed:start -->` and `<!-- workflow-kit:managed:end -->`
     (or the entry's own `block` name); text outside the block is the project's.
-  - `seed`: the kit creates it when it is missing (also after someone deleted it); while it exists the project owns it and the kit never rewrites it.
+  - `seed`: the kit creates it when it is missing (also after someone deleted it); while it exists the project owns it and the kit never rewrites it. `.agents/project/stack.md` is the exception: it is never recreated (`stack-pack/missing`).
   - `state`: install state written by the `workflow-kit` CLI.
 - **Project paths** are everything under `.agents/project/`. A kit update never
   edits them. A path that is neither kit nor project is reported, never touched.

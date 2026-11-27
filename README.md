@@ -116,7 +116,7 @@ apply in both. Example prompts for each phase are in
 | `upgrade` | Updates `workflow-kit` itself (this tool) on your machine; it does not change any project (it needs `git`, and checks the ref before removing the installed version: a full commit hash is fetched, a short one is accepted only as a branch or tag tip). |
 | `export` | Writes the templates to `--output` without treating it as an install. |
 | `doctor` | Checks installed files and workflow semantics; prints stable diagnostic codes. |
-| `rollback` | Undoes the last applied `init`/`update`: restores changed files from their backups, removes files that run created, and restores the previous install state. Without a record of an apply it restores nothing and lists the backups it found; `--from-backups` restores them. With `--apply --yes` that case exits with code 3 (backups exist and none was restored); a dry run and "nothing to roll back" exit with 0. Every run ends with a line `Result: …` (`rolled-back`, `restored-from-backups`, `cleaned-up`, `nothing-to-undo`, `backups-not-restored`; a dry run prints `Result: dry-run (would be: …)`). |
+| `rollback` | Undoes the last applied `init`/`update`: restores changed files from their backups, removes files that run created, and restores the previous install state. Without a record of an apply it restores nothing and lists the backups it found; `--from-backups` restores them. With `--apply --yes` that case exits with code 3 (backups exist and none was restored); a dry run and "nothing to roll back" exit with 0. Every run that gets as far as a plan ends with a line `Result: …` (`rolled-back`, `restored-from-backups`, `cleaned-up`, `nothing-to-undo`, `backups-not-restored`; a dry run prints `Result: dry-run (would be: …)`; a run that stops partway prints `interrupted` or `failed`). |
 | `tui` | Guided menu (in Spanish) for `init`, `update`, `export`, `doctor`, `upgrade` and the optional capabilities; `rollback` is a command only; see [Guided TUI](docs/quickstart.md#6-guided-tui). |
 
 `workflow-kit --help` prints the full usage, and `workflow-kit <command> --help`
@@ -137,7 +137,7 @@ other commands. Main flags:
 | `--profile <runtime>=<calidad\|equilibrado\|costo>` | Model profile per runtime, for example `claude=costo,codex=calidad`; a runtime the install does not record is an error. |
 | `--stack none\|rails-react` | Install the Rails + React stack rules as `.agents/project/stack.md`. |
 | `--diff` | Show the line diff of every file that would change. |
-| `--all` | `init`, `update` and `export`: list every file of the plan. Without it, the files that need no attention (created, unchanged, project-owned) are one line each with a count. |
+| `--all` | `init`, `update` and `export`: list every file of the plan. Without it, the files that need no attention (created, unchanged) are one line each with a count. |
 | `--adopt-existing` | `update` only: record an install made before state tracking. |
 | `--from-backups` | `rollback` only: when the project has no record of an applied run, restore the newest backup of each managed file (the content it replaces is kept as `-before-rollback` copies). Without it, `rollback` only lists those backups, which may come from an older run such as the original `init`. |
 | `--backup-mode required\|none` | `required` (default) backs up every file before overwrite or merge; `none` skips backups, and `rollback` cannot restore those files. |

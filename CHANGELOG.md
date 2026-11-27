@@ -16,20 +16,21 @@ under `.agents/project/` that was deleted. Adapters (`CLAUDE.md`, `AGENTS.md`
 and the others) do not change. The output of the CLI changes in three places:
 see `rollback`, the plans and `doctor`.
 
-- `rollback` ends every run with a line `Result: …` a script can read:
+- `rollback` ends every run that gets as far as a plan with a line `Result: …` a script can read:
   `rolled-back`, `restored-from-backups`, `cleaned-up`, `nothing-to-undo` or
-  `backups-not-restored`; a dry run prints `Result: dry-run (would be: …)`.
+  `backups-not-restored`, or `interrupted` / `failed` when it stops partway;
+  a dry run prints `Result: dry-run (would be: …)`.
   Exit codes are unchanged (3 for `backups-not-restored` with `--apply`).
   The plan of `--from-backups` says that the kit stays installed and that a
   restored adapter or `.gitignore` loses what the install added until
   `update` puts it back.
 - Plans of `init`, `update` and `export` show one line with a count for the
-  files that need no attention (created, unchanged, project-owned). The new
-  flag `--all` lists every file. A script that read one line per file needs
+  files that need no attention (created, unchanged). The new flag `--all`
+  lists every file. A script that read one line per file needs
   `--all`.
 - `update` recreates a project file under `.agents/project/` that was
-  deleted, from its template. A file that exists is never rewritten. `doctor`
-  says so next to the missing file. The stack rules file keeps its own rule
+  deleted, from its template, and the plan names it. A file that exists is
+  never rewritten. `doctor` says so next to the missing file. The stack rules file keeps its own rule
   (`stack-pack/missing`).
 - `doctor` on a folder without the kit prints the number of missing files
   instead of listing every kit file.
