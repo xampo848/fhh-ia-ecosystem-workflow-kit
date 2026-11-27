@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Marketplace of the fhh workflow kit plugin.",
-    "version": "0.24.0-pilot-decisions"
+    "version": "0.24.1-pilot-alignment"
   },
   "plugins": [
     {

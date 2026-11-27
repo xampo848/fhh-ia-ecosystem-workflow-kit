@@ -1,6 +1,6 @@
 {
   "name": "fhh-ia-ecosystem-workflow-kit",
-  "version": "0.24.0-pilot-decisions",
+  "version": "0.24.1-pilot-alignment",
   "private": true,
   "description": "Public GitHub-installable CLI/TUI workflow kit with safe install/export commands.",
   "license": "MIT",

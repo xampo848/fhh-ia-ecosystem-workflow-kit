@@ -157,12 +157,12 @@ removes the installed version (a branch or tag by name; a full 40-character
 commit hash by fetching it; a short hash only when it is the tip of a branch or
 tag), so a mistyped ref, a network failure or a missing `git` changes nothing.
 To pin a version, pass a tag or, for versions without a tag, a full commit hash
-(the remote has a tag for every version from `0.16.0` to `0.23.9`; see
+(the remote has a tag for every version from `0.16.0` to `0.24.0`; see
 [Versioning](versioning.md)):
 
 ```bash
-workflow-kit upgrade --ref v0.23.9-pilot-context --apply --yes
-workflow-kit upgrade --ref 28bf3bff9264f0897331aac3399961e227a29f54 --apply --yes   # same version, by commit
+workflow-kit upgrade --ref v0.24.0-pilot-decisions --apply --yes
+workflow-kit upgrade --ref 1b2f67f9dd0b88b012a3eda2a7d592ac92eabcc8 --apply --yes   # same version, by commit
 ```
 
 After that, run `update` in each project you manage to bring its workflow to
