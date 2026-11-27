@@ -23,7 +23,8 @@ neither do project files you already filled in.
   as project context setup, a direct edit of `.agents/project/context.md`,
   `backend.md` and `frontend.md` from a bounded read of the code, which you
   review. New installs get a `context.md` template that says how to ask for
-  it.
+  it. The `project-context/not-initialized` finding of `doctor` and
+  `docs/troubleshooting.md` name the same route.
 - `create-prd` detects a project file that is not filled in by its template
   marker, the same one `doctor` uses, instead of by `[TODO` text. Once the
   marker is gone, a remaining `[TODO` field is unknown for that field only.
