@@ -13,7 +13,7 @@ The PRD must be detailed enough that `implementation-slicing` does not need to i
 - A slice normally changes one primary production responsibility and 1–3 production files. Inseparable support files such as tests, styles, locales, factories, or fixtures may accompany it.
 - Backend and frontend implementation belong in separate slices. A changed API contract requires its own contract-verification gate between them.
 - Migrations, backfills, behavior activation, and cleanup must be separate slices when each can fail or be rolled back independently.
-- A slice that combines more than one of these risks must be split: data migration, public contract, authorization/tenancy, background execution, external integration, or visible UI behavior.
+- A slice that combines more than one of these risks must be split: data migration, public contract (an interface consumed outside the repository or across a deployment boundary; `.agents/instructions.md`, "Level rules"), authorization/tenancy, background execution, external integration, or visible UI behavior.
 - Existing-data activation, bootstrap, backfill, rollout command, and legacy cleanup must be separate slices when each can fail or be verified independently.
 - No dependent slice starts until its predecessor is `VERIFIED`, unless the plan explicitly proves that the write sets and contracts are independent.
 

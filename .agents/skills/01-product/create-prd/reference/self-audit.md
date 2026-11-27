@@ -12,7 +12,7 @@ After drafting, perform the final hard gate before delivering the PRD. Persist t
 - Every acceptance criterion, use case, test-strategy row, and mandatory edge-case category is mapped to evidence or a justified `No aplica`.
 - Parent invariants map to acceptance criteria without unresolved contradictions.
 - If the parent epic locked a live path and phase cut, this PRD does not invert that sequence.
-- A comparable anchor is recorded when available; identifiers follow repository language rules.
+- A comparable anchor is recorded when available; identifiers follow the `identifier_language` recorded in the Pattern Lock.
 - Current state references real files, phases have Definitions of Done, and execution slices have ownership, validation, evidence, stop conditions, and activation where applicable.
 - Slices do not combine backend/frontend or multiple high-risk boundaries without a written split rationale.
 - Business rules are confirmed decisions, the decision table preserves the conversation, and product future scope is explicitly out of the current PRD.

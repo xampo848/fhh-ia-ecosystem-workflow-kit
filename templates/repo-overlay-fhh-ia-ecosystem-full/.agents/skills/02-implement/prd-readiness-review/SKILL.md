@@ -107,7 +107,7 @@ Flag a phase or task as `TOO_COARSE` when it:
 
 - has more than one observable outcome;
 - crosses backend/frontend, data/API, or implementation/rollout boundaries;
-- combines two or more high-risk concerns: migration, public contract, auth/tenancy, jobs, external integration, or visible UI;
+- combines two or more high-risk concerns: migration, public contract (an interface consumed outside the repository or across a deployment boundary; `.agents/instructions.md`, "Level rules"), auth/tenancy, jobs, external integration, or visible UI;
 - cannot name a focused test and validation check;
 - uses vague verbs such as “implement”, “integrate”, “complete UI”, or “add tests” without a bounded result;
 - defers all testing or verification to the end;

@@ -88,3 +88,50 @@ test('decision 2: an N1 limit counts production files, the test goes with its fi
     assert.doesNotMatch(extractPrefilterBlock(text), /production files|read-only lookup/, file);
   }
 });
+
+const createPrd = '.agents/skills/01-product/create-prd';
+const contractGloss = /public contract \(an interface consumed outside the repository or across a deployment boundary; `\.agents\/instructions\.md`, "Level rules"\)/;
+
+test('decision 4: one definition of contract, and every gate that says "public contract" points at it', async () => {
+  for (const file of bothCopies(instructions)) {
+    const rules = section(await read(file), 'Level rules:');
+    assert.match(rules, /A contract[^.]*is an interface consumed outside the repository or across a\s+deployment boundary/, file);
+    assert.match(rules, /exported and used only inside the\s+repository is not a contract/, file);
+  }
+  const gates = [
+    `${createPrd}/SKILL.md`,
+    `${createPrd}/reference/execution-granularity.md`,
+    '.agents/skills/02-implement/prd-readiness-review/SKILL.md',
+    '.agents/skills/02-implement/implementation-slicing/SKILL.md'
+  ];
+  for (const gate of gates) {
+    for (const file of bothCopies(gate)) {
+      const text = await read(file);
+      const mentions = text.split('\n').filter((line) => /public contract/.test(line));
+      assert.ok(mentions.length > 0, file);
+      for (const line of mentions) assert.match(line, contractGloss, `${file}: ${line}`);
+    }
+  }
+});
+
+test('decision 5: identifiers follow the project rules, then the existing code, then English', async () => {
+  for (const file of bothCopies(`${createPrd}/SKILL.md`)) {
+    const text = await read(file);
+    assert.doesNotMatch(text, /use English, even if the domain language is Spanish/, file);
+    assert.match(text, /6\. \*\*Identifiers follow the project\*\*[^\n]*project's rules[^\n]*existing code[^\n]*English/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/reference/calibration.md`)) {
+    assert.match(await read(file), /- `identifier_language`: [^\n]*`project-rules \| existing-code \| default`/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/reference/pattern-locking.md`)) {
+    const text = await read(file);
+    assert.match(text, /`identifier_language`/, file);
+    assert.match(text, /offer once to record it in the project's rules/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/reference/quality-bar.md`)) {
+    assert.doesNotMatch(await read(file), /Using Spanish names for code identifiers/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/reference/self-audit.md`)) {
+    assert.match(await read(file), /identifiers follow the `identifier_language` recorded/, file);
+  }
+});

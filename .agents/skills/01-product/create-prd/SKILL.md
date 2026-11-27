@@ -35,7 +35,7 @@ Use this skill when:
 3. **Challenge before locking** — load [../shared/critical-stance.md](../shared/critical-stance.md). Every scope, business-rule, pattern, or invariant decision must survive one direct challenge before Phase 3 records it as final, whether the user or the AI proposed it.
 4. **Scope is sacred** — every PRD must have a hard line between what IS and what IS NOT in scope.
 5. **Iterate until complete** — after each round of answers, update the PRD immediately. The document should converge to zero open questions.
-6. **English in code** — code identifiers (columns, variables, classes) use English, even if the domain language is Spanish, unless the project's rules say otherwise.
+6. **Identifiers follow the project** — code identifiers (columns, variables, classes) follow, in this order: the project's rules; the dominant convention of the existing code around the change; English for new code that has neither. Never mix languages inside one module to satisfy a default.
 7. **Milestones contain executable slices** — phases express product milestones; they are not permission to group large implementation tasks. Every non-trivial phase must decompose into small, ordered slices with one observable outcome and a verification gate.
 8. **DDD before implementation** — PRDs must define bounded context placement, ownership, namespace, table strategy, and dependency direction before implementation starts.
 9. **Standards-aware PRDs** — PRDs follow the project's standards documents and stack rules (`.agents/project/backend.md`, `.agents/project/frontend.md`, and `.agents/project/stack.md` when a stack pack was installed), including its test framework and enumeration conventions.
@@ -64,7 +64,7 @@ Use compact mode only when all of these are true:
 
 - single primary surface;
 - no parent epic, or the parent epic already locked live path, phase cut, and inherited invariants;
-- no new persistence, public contract, authorization/tenancy rule, or rollout/activation path;
+- no new persistence, public contract (an interface consumed outside the repository or across a deployment boundary; `.agents/instructions.md`, "Level rules"), authorization/tenancy rule, or rollout/activation path;
 - comparable local pattern is already obvious from calibration.
 
 In compact mode:

@@ -199,6 +199,12 @@ Level rules:
   the change is small, propose N1. Both cases ask the user.
 - The user can force a level. Forcing a level below an N3 signal requires
   naming the concrete risk before proceeding.
+- A contract, in the pre-filter and in every skill gate that says "contract"
+  or "public contract", is an interface consumed outside the repository or across a
+  deployment boundary: an HTTP or API endpoint, an event or message schema, the
+  flags or output of a CLI, a data schema another system reads, or an export of
+  a published package. A symbol exported and used only inside the
+  repository is not a contract.
 - The N1 file limit counts production files: the test file of each target goes
   with it, is named in the line when known, may be edited, and does not count
   toward the one-or-two-file limit. Before the yes, a bounded read-only lookup

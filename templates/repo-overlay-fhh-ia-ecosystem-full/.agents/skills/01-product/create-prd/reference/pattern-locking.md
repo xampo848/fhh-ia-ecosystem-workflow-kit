@@ -21,7 +21,10 @@ Record:
 - anchor file or files
 - reused parts
 - intentionally different parts
+- `identifier_language` and its source, copied from `## Calibration`
 - justification for the decision
+
+When the `identifier_language` source is `existing-code`, tell the user which language the PRD follows and offer once to record it in the project's rules (`.agents/project/backend.md` or `.agents/project/frontend.md`); write it only after an explicit yes.
 
 When no comparable local pattern exists, state exactly: `no local comparable pattern found`. This is an explicit outcome, never a silently omitted section.
 

@@ -33,6 +33,8 @@ When a recent comparable PRD exists, read exactly one as a structure anchor. Cal
 
 Determine existing columns and services, naming conventions, reusable base classes or concerns, bounded-context ownership, namespace and table conventions, and inherited parent-epic invariants.
 
+Determine the language of code identifiers, in this order: what the project's rules say (`.agents/project/backend.md`, `.agents/project/frontend.md`, or `.agents/project/stack.md` when a stack pack was installed); else the dominant language of the identifiers in the owner artifacts just inspected; else English.
+
 ## Unknowns Inventory
 
 Run this whenever the PRD involves an external integration, real data, or
@@ -91,6 +93,7 @@ Write these fields under `## Calibration`:
 - `visible_ui`: `yes` when the PRD changes a user-facing screen, page, or navigable view; otherwise `no`
 - `ui_lock`: `required` when `visible_ui: yes`, else `not-applicable`
 - `comparable_anchor`
+- `identifier_language`: the language new identifiers use and its source, `project-rules | existing-code | default`
 - major risks
 - unresolved questions
 - `unknowns`: the Unknowns Inventory, or `none`
