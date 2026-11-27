@@ -7,6 +7,28 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.23.8-pilot-text
+
+Four text fixes from a second pilot run on `0.23.7`. In your projects,
+`workflow-kit update` changes `kit_version` and updates the kit text listed
+below. Adapters (`CLAUDE.md`, `AGENTS.md` and the others) do not change.
+
+- `create-prd` no longer sends the agent to read
+  `docs/workflow/standards/backend.md` and `frontend.md` as if they held
+  standards: they are setup guides, read only while the project files are
+  still templates. When a file under `.agents/project/` still holds only
+  `[TODO` placeholders, `create-prd` records it, tells the user once and
+  continues from the code.
+- The setup guides say that `docs/workflow/migration/legacy-docs-map.md`
+  exists only when `init` created it. `check:workflow` now fails when
+  installed text cites that file without saying so.
+- The N1 example in `.agents/instructions.md` shows the real format with file
+  names. The router and `level-n1.md` no longer ask to name the focused check
+  in the proposal, which matches the adapters; the test file of the target
+  counts as a target file.
+- `create-prd/SKILL.md`: the principles list is numbered 1 to 12 (it had a
+  `2.5.` item) and its opening sentence is in English.
+
 ## 0.23.7-pilot-fixes
 
 Fixes from a pilot that installed the kit in a fresh project and had an agent

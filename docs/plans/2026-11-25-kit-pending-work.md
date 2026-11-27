@@ -1,7 +1,7 @@
 # Trabajo pendiente del kit (registro de traspaso)
 
 Fecha del registro: 2026-11-25; actualizado el 2026-11-26. Base: `main` en
-`de31b96` (`0.23.6-ac-guards`); este PR lleva `0.23.7-pilot-fixes`.
+`349c8e9` (`0.23.7-pilot-fixes`); este PR lleva `0.23.8-pilot-text`.
 
 Este documento permite continuar el trabajo desde otra sesión o equipo. Es una
 foto: antes de actuar, compruébalo con `git log`, los PR abiertos y el
@@ -29,7 +29,8 @@ PR abiertos, y dime qué sigue antes de editar nada.
 | Cierre: la suite ya no deja carpetas temporales | #90 | sin versión (solo tests) |
 | Cierre: hallazgos del CLI de la verificación independiente y follow-ups de los PRD F2 y F4 | #91 | 0.23.5-cli-fixes |
 | Cierre: guardas de tests y validadores que faltaban | #92 | 0.23.6-ac-guards |
-| Piloto: textos del kit que confundían a un agente en un proyecto instalado, respaldos fuera de `.gitignore`, guarda de rutas instaladas | este PR | 0.23.7-pilot-fixes |
+| Piloto: textos del kit que confundían a un agente en un proyecto instalado, respaldos fuera de `.gitignore`, guarda de rutas instaladas | #96 | 0.23.7-pilot-fixes |
+| Segundo piloto: `create-prd` leía guías de configuración como estándares y no avisaba de plantillas sin completar, ejemplo y propuesta de N1, lista de principios de `create-prd` | este PR | 0.23.8-pilot-text |
 
 Publicado el 2026-11-26, con aprobación del mantenedor:
 

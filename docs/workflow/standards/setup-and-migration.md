@@ -39,6 +39,6 @@ Note: workflow-kit does not auto-generate project-specific runtime instructions.
 - Own skills live in `.agents/project/skills/<name>/` with a row in `.agents/project/index.md`, never in the kit's `.agents/skills/` catalogs; `workflow-kit doctor` reports `boundary/unowned-path` for an own file left in a kit folder.
 - Validation reuse stays in shadow mode until 2 or 3 implementations show identical results; only then add `validation_reuse: active` to `.agents/project/context.md` (legacy: `.agents/project-context.md`).
 - Legacy docs either migrated or explicitly marked as archived.
-- `docs/workflow/migration/legacy-docs-map.md` reviewed and updated.
+- `docs/workflow/migration/legacy-docs-map.md` reviewed and updated, if it was generated.
 
 Use `docs/workflow/standards/project-instructions-template.md` as a copy/paste starter.

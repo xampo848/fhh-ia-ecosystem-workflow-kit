@@ -20,7 +20,7 @@ This document explains how to configure and migrate frontend standards when adop
 
 If your project already had frontend guidance in scattered docs:
 
-1. Review `docs/workflow/migration/legacy-docs-map.md` suggestions.
+1. Review `docs/workflow/migration/legacy-docs-map.md` suggestions (it exists only when `init` created it).
 2. Move canonical guides to `docs/workflow/standards/` with `git mv`.
 3. Preserve useful legacy references via links instead of duplicates.
 4. Update links in onboarding or contributor docs.

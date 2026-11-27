@@ -17,7 +17,7 @@ metadata:
 
 # Create PRD — Product Requirements Document
 
-Después de aprobar el PRD, el siguiente paso esperado es `implement-change`.
+After the PRD is approved, the expected next step is `implement-change`.
 
 Use this skill when:
 
@@ -32,16 +32,16 @@ Use this skill when:
 
 1. **Explore first, write second** — never draft requirements without reading the existing codebase. Unknown context produces bad PRDs.
 2. **Ask, don't assume** — ambiguous requirements block implementation or cause rework. Surface gaps early through targeted questions.
-2.5. **Challenge before locking** — load [../shared/critical-stance.md](../shared/critical-stance.md). Every scope, business-rule, pattern, or invariant decision must survive one direct challenge before Phase 3 records it as final, whether the user or the AI proposed it.
-3. **Scope is sacred** — every PRD must have a hard line between what IS and what IS NOT in scope.
-4. **Iterate until complete** — after each round of answers, update the PRD immediately. The document should converge to zero open questions.
-5. **English in code** — code identifiers (columns, variables, classes) use English, even if the domain language is Spanish, unless the project's rules say otherwise.
-6. **Milestones contain executable slices** — phases express product milestones; they are not permission to group large implementation tasks. Every non-trivial phase must decompose into small, ordered slices with one observable outcome and a verification gate.
-7. **DDD before implementation** — PRDs must define bounded context placement, ownership, namespace, table strategy, and dependency direction before implementation starts.
-8. **Standards-aware PRDs** — PRDs follow the project's standards documents and stack rules (`.agents/project/backend.md`, `.agents/project/frontend.md`, and `.agents/project/stack.md` when a stack pack was installed), including its test framework and enumeration conventions.
-9. **Evidence before completion** — every deliverable must name how it will be tested, validated, and verified. “Tests later” and phase-end-only validation are not acceptable.
-10. **Activation is part of scope** — when a PRD replaces a read path, materialization model, cache, projection, or persisted contract, it must define how existing data becomes visible after cutover (bootstrap, backfill, repair, smoke verification, and rollback if activation fails).
-11. **No phase skipping** — the default workflow is five sequential phases. Compact mode may fold drafting into a shorter path, but it may not skip calibration, ambiguity resolution, pattern lock, or self-audit.
+3. **Challenge before locking** — load [../shared/critical-stance.md](../shared/critical-stance.md). Every scope, business-rule, pattern, or invariant decision must survive one direct challenge before Phase 3 records it as final, whether the user or the AI proposed it.
+4. **Scope is sacred** — every PRD must have a hard line between what IS and what IS NOT in scope.
+5. **Iterate until complete** — after each round of answers, update the PRD immediately. The document should converge to zero open questions.
+6. **English in code** — code identifiers (columns, variables, classes) use English, even if the domain language is Spanish, unless the project's rules say otherwise.
+7. **Milestones contain executable slices** — phases express product milestones; they are not permission to group large implementation tasks. Every non-trivial phase must decompose into small, ordered slices with one observable outcome and a verification gate.
+8. **DDD before implementation** — PRDs must define bounded context placement, ownership, namespace, table strategy, and dependency direction before implementation starts.
+9. **Standards-aware PRDs** — PRDs follow the project's standards documents and stack rules (`.agents/project/backend.md`, `.agents/project/frontend.md`, and `.agents/project/stack.md` when a stack pack was installed), including its test framework and enumeration conventions.
+10. **Evidence before completion** — every deliverable must name how it will be tested, validated, and verified. “Tests later” and phase-end-only validation are not acceptable.
+11. **Activation is part of scope** — when a PRD replaces a read path, materialization model, cache, projection, or persisted contract, it must define how existing data becomes visible after cutover (bootstrap, backfill, repair, smoke verification, and rollback if activation fails).
+12. **No phase skipping** — the default workflow is five sequential phases. Compact mode may fold drafting into a shorter path, but it may not skip calibration, ambiguity resolution, pattern lock, or self-audit.
 
 ---
 

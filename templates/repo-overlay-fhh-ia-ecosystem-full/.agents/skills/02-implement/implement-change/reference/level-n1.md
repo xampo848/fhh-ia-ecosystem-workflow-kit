@@ -22,7 +22,7 @@ Discovery, no execution locks, no delegate matrix or prompt packs.
 
 ## Flow
 
-1. Propose `N1 · surgical · <files>`, naming in words the one focused check you will run, and wait for a short "yes".
+1. Propose `N1 · surgical · <files>` and wait for a short "yes". The test file for the target counts as a target file: name it in the line when known.
 2. Read the target files and their tests.
 3. Bug: reproduce, then write the test that fails before the fix. Behavior
    change: add or update the test. Non-semantic edit: no new test.

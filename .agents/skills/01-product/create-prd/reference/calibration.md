@@ -13,7 +13,8 @@ Use exists-or-skip for every listed path. A missing file is not a failed search:
 Read these when they exist and apply to the request:
 
 - `.agents/project/context.md`, plus `.agents/project/backend.md` and/or `.agents/project/frontend.md` for touched surfaces, and `.agents/project/stack.md` only when a stack pack was installed
-- `docs/workflow/standards/backend.md` and/or `docs/workflow/standards/frontend.md` for touched surfaces (installed by the kit)
+- `docs/workflow/standards/backend.md` and `docs/workflow/standards/frontend.md` are setup guides for filling in the project files above, not standards; read them only when those project files are still templates
+- If a project file above still contains only `[TODO` placeholders, treat it as not filled in: record that under `## Calibration`, tell the user once that the project context is not set up (an initial Discovery of the project fills it in, and doing so improves results), and continue from the code itself; do not block
 - The project's own architecture, domain-model, and quality docs only when the project has them (their paths are recorded in `.agents/project/context.md`; `.agents/project/paths.json` maps relocated project files): read the architecture doc when the work is cross-layer, architectural, migration-heavy, authorization-sensitive, tenancy-sensitive, or changes persistent read paths; the domain model when domain ownership or entities change; the quality or test conventions doc only when the PRD will add or change quality/test conventions
 - The referenced parent epic, including its `Invariantes No Negociables` table and the `Path vivo y corte de fases` block when present
 - The parent epic's companion ledger (`<slug>-ledger.md`) when it exists

@@ -20,7 +20,7 @@ This document explains how to configure and migrate backend standards when adopt
 
 If your project already had backend standards in other docs paths:
 
-1. Locate candidates in `docs/workflow/migration/legacy-docs-map.md`.
+1. Locate candidates in `docs/workflow/migration/legacy-docs-map.md` (it exists only when `init` created it).
 2. Move the canonical doc(s) into `docs/workflow/standards/` using `git mv`.
 3. Keep aliases/links in old locations only when needed for backward compatibility.
 4. Update any old references in README, CONTRIBUTING, or CI docs.
