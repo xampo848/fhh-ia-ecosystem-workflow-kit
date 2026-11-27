@@ -157,12 +157,12 @@ removes the installed version (a branch or tag by name; a full 40-character
 commit hash by fetching it; a short hash only when it is the tip of a branch or
 tag), so a mistyped ref, a network failure or a missing `git` changes nothing.
 To pin a version, pass a tag or, for versions without a tag, a full commit hash
-(the remote has a tag for every version from `0.18.0` to `0.23.6`; see
+(the remote has a tag for every version from `0.16.0` to `0.23.8`; see
 [Versioning](versioning.md)):
 
 ```bash
-workflow-kit upgrade --ref v0.23.6-ac-guards --apply --yes
-workflow-kit upgrade --ref 393756cc0870410304372eeedb48d1d5bc905541 --apply --yes   # same version, by commit
+workflow-kit upgrade --ref v0.23.8-pilot-text --apply --yes
+workflow-kit upgrade --ref cf84f93bac7e4a3d2f8a4c0ba0110a67c76b68d4 --apply --yes   # same version, by commit
 ```
 
 After that, run `update` in each project you manage to bring its workflow to
@@ -327,7 +327,7 @@ Practical notes:
 : Use `docs/workflow/migration/legacy-docs-map.md` if generated. It includes suggested destinations and `git mv` commands.
 
 - "Where do I configure backend/frontend standards?"
-: Use `docs/workflow/standards/setup-and-migration.md`, `docs/workflow/standards/backend.md`, and `docs/workflow/standards/frontend.md` in the target repository.
+: State them in `.agents/project/backend.md` and `.agents/project/frontend.md`, which is what agents read. `docs/workflow/standards/setup-and-migration.md`, `docs/workflow/standards/backend.md`, and `docs/workflow/standards/frontend.md` in the target repository are the setup guides.
 
 - "How do I recover from a wrong apply?"
 : Run `workflow-kit rollback --target /path/to/repo --dry-run`, then `--apply --yes`. It undoes the last applied `init`/`update`. As a fallback, restore from the `*.workflow-kit-backup-<timestamp>` files and re-run dry-run before applying again.

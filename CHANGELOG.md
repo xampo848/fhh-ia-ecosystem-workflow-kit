@@ -7,6 +7,30 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.23.9-pilot-context
+
+Four text fixes from a third pilot run, on `0.23.8`. In your projects,
+`workflow-kit update` changes `kit_version` and updates the kit text listed
+below. Adapters (`CLAUDE.md`, `AGENTS.md` and the others) do not change, and
+neither do project files you already filled in.
+
+- One story for where standards live: agents read
+  `.agents/project/backend.md` and `.agents/project/frontend.md`. A project
+  may keep longer standards under `docs/workflow/standards/` or elsewhere, and
+  agents reach them only through a pointer in those files. `create-prd` no
+  longer reads the setup guides, and the guides say the same.
+- The initial Discovery of the project has a route: the router classifies it
+  as project context setup, a direct edit of `.agents/project/context.md`,
+  `backend.md` and `frontend.md` from a bounded read of the code, which you
+  review. New installs get a `context.md` template that says how to ask for
+  it. The `project-context/not-initialized` finding of `doctor` and
+  `docs/troubleshooting.md` name the same route.
+- `create-prd` detects a project file that is not filled in by its template
+  marker, the same one `doctor` uses, instead of by `[TODO` text. Once the
+  marker is gone, a remaining `[TODO` field is unknown for that field only.
+- `create-prd` says when it tells you the project context is not set up: once,
+  in its first message after calibration.
+
 ## 0.23.8-pilot-text
 
 Four text fixes from a second pilot run on `0.23.7`. In your projects,

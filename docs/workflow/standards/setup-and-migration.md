@@ -32,8 +32,8 @@ Note: workflow-kit does not auto-generate project-specific runtime instructions.
 
 ## Completion checklist
 
-- Backend standards consolidated in `docs/workflow/standards/backend.md` or linked canonical docs.
-- Frontend standards consolidated in `docs/workflow/standards/frontend.md` or linked canonical docs.
+- Backend standards stated in `.agents/project/backend.md` or reached by a pointer from it to a document in `docs/workflow/standards/` or elsewhere.
+- Frontend standards stated in `.agents/project/frontend.md` or reached by a pointer from it to a document in `docs/workflow/standards/` or elsewhere.
 - Backend/frontend runtime instruction files are present at `.agents/project/backend.md` and `.agents/project/frontend.md` (or explicitly marked as N/A when the surface does not exist).
 - `.agents/project/context.md` (legacy: `.agents/project-context.md`) filled in with an initial Discovery (structure map, validation commands with their cost, environment quirks) and its template marker removed; `workflow-kit doctor` stops reporting `project-context/not-initialized`.
 - Own skills live in `.agents/project/skills/<name>/` with a row in `.agents/project/index.md`, never in the kit's `.agents/skills/` catalogs; `workflow-kit doctor` reports `boundary/unowned-path` for an own file left in a kit folder.

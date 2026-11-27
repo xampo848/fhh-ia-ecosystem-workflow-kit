@@ -1,7 +1,7 @@
 # Trabajo pendiente del kit (registro de traspaso)
 
 Fecha del registro: 2026-11-25; actualizado el 2026-11-26. Base: `main` en
-`349c8e9` (`0.23.7-pilot-fixes`); este PR lleva `0.23.8-pilot-text`.
+`cf84f93` (`0.23.8-pilot-text`); este PR lleva `0.23.9-pilot-context`.
 
 Este documento permite continuar el trabajo desde otra sesión o equipo. Es una
 foto: antes de actuar, compruébalo con `git log`, los PR abiertos y el
@@ -30,13 +30,18 @@ PR abiertos, y dime qué sigue antes de editar nada.
 | Cierre: hallazgos del CLI de la verificación independiente y follow-ups de los PRD F2 y F4 | #91 | 0.23.5-cli-fixes |
 | Cierre: guardas de tests y validadores que faltaban | #92 | 0.23.6-ac-guards |
 | Piloto: textos del kit que confundían a un agente en un proyecto instalado, respaldos fuera de `.gitignore`, guarda de rutas instaladas | #96 | 0.23.7-pilot-fixes |
-| Segundo piloto: `create-prd` leía guías de configuración como estándares y no avisaba de plantillas sin completar, ejemplo y propuesta de N1, lista de principios de `create-prd` | este PR | 0.23.8-pilot-text |
+| Segundo piloto: `create-prd` leía guías de configuración como estándares y no avisaba de plantillas sin completar, ejemplo y propuesta de N1, lista de principios de `create-prd` | #97 | 0.23.8-pilot-text |
+| Tercer piloto: dónde viven los estándares, ruta del Discovery inicial, detección de plantilla por marcador y momento del aviso en `create-prd` | este PR | 0.23.9-pilot-context |
 
 Publicado el 2026-11-26, con aprobación del mantenedor:
 
 - Tags `v0.18.0-equilibrado-profile` a `v0.23.6-ac-guards` (15), uno por
   versión, sobre el commit de la tabla de `docs/versioning.md`.
 - Rama `plugin`, con el plugin `fhh` en la versión `0.23.6-ac-guards`.
+
+Publicado el 2026-11-27, con aprobación del mantenedor: los tags
+`v0.17.4-usage-measurement`, `v0.17.5-slice-checkpoint`,
+`v0.17.6-bounded-output`, `v0.23.7-pilot-fixes` y `v0.23.8-pilot-text`.
 
 Ninguna de las dos verificaciones independientes (2026-11-25 sobre 0.23.3 y
 2026-11-26 sobre 0.23.6) encontró pérdida de contenido sin copia de respaldo.
@@ -53,8 +58,9 @@ Resueltas:
 1. **Rama `plugin`:** publicada (ver sección 1). Cada versión nueva del kit
    llega a quienes usan el plugin solo cuando se vuelve a publicar.
 2. **Tags desde 0.18.0:** creados y subidos. `RELEASE.md` sigue pidiendo
-   aprobación para cada tag nuevo. Las versiones 0.17.4 a 0.17.6 siguen sin
-   tag (no estaban en la decisión); `docs/versioning.md` da su commit.
+   aprobación para cada tag nuevo. El 2026-11-27 se crearon, con aprobación
+   del mantenedor, los tags de 0.17.4, 0.17.5, 0.17.6, 0.23.7 y 0.23.8;
+   0.23.9 aún no tiene tag (`docs/versioning.md` dará su commit tras la fusión).
 3. **Ramas ya fusionadas:** el remoto solo tiene `main`, `plugin` y las de
    Dependabot; las ramas locales fusionadas se borraron.
 4. **Documentos de traspaso:** no se publican. Dos quedaron respaldados fuera

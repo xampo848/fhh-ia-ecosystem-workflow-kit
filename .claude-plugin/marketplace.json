@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Marketplace of the fhh workflow kit plugin.",
-    "version": "0.23.8-pilot-text"
+    "version": "0.23.9-pilot-context"
   },
   "plugins": [
     {

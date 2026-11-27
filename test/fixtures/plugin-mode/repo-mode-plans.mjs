@@ -1,5 +1,5 @@
 // What repo mode does in the release the fixture was last regenerated at
-// (0.23.8-pilot-text; first generated from 0.22.0, commit 558e9fb, the last
+// (0.23.9-pilot-context; first generated from 0.22.0, commit 558e9fb, the last
 // commit before plugin mode), as the AC-19 and T6 guards of
 // test/plugin-mode.test.mjs compare it, per runtime list:
 //

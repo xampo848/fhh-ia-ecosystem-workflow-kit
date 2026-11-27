@@ -159,7 +159,7 @@ quirks, and pointers to architecture docs. Discovery reads it first.
 
 | Code | Meaning | Action |
 | --- | --- | --- |
-| `project-context/not-initialized` | the file is still the installed template | run an initial Discovery of the project (an N2 task), review the result, and remove the template marker |
+| `project-context/not-initialized` | the file is still the installed template | ask your agent for the initial Discovery of the project (an N2 task the router handles as project context setup), review the diff, and check that the template marker is gone |
 | `project-context/too-long` | more than 200 lines | point to other documents instead of copying them |
 | `project-context/missing-path` | it names a path that no longer exists (in plugin mode, kit paths are skipped: the plugin delivers them) | fix it at the next closure; only the orchestrator edits this file |
 | `project-context/both-paths` | the file exists at both paths | merge the legacy file into `.agents/project/context.md` and delete `.agents/project-context.md` |
