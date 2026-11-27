@@ -85,7 +85,7 @@ test('one N1 procedure per entry path and a placeholder project context never bl
   assert.match(core, /An N1 reached through the level pre-filter \(no workflow files loaded\) follows\s+only the pre-filter's N1 rule/);
   assert.match(n1, /N1 reached through the level pre-filter, with no workflow files loaded, follows\s+only the pre-filter's N1 rule and never loads this file/);
   assert.doesNotMatch(n1, /replaces the\s+N1 rules of the pre-filter/);
-  assert.match(core, /when it exists and is filled in; if it still\s+contains `\[TODO\]` placeholders, say `project context: no configurado` once and\s+continue/);
+  assert.match(core, /when it exists and is filled in; if it still\s+carries its template marker \(`<!-- workflow-kit:project-context:template -->`\), say once that the project context is not set up and\s+continue/);
   assert.doesNotMatch(core, /before exploring code at any level/);
   assert.match(n2, /The N2 default is `avoided`/);
   assert.match(n2, /Tracker and execution locks are N3 coordination\. At N2 keep the tracker only\s+when the change has more than one slice/);

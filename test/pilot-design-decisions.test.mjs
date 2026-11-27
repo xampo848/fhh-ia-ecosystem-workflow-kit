@@ -245,11 +245,11 @@ test('third pilot: every section create-prd requires has a heading in the templa
 });
 
 test('third pilot: the slice fields the rule asks for match what the template holds', async () => {
-  const columns = ['ID', 'Outcome', 'Depends on', 'Scope / likely files', 'Acceptance criteria', 'Use cases', 'Tests', 'Edge cases', 'Validation', 'Evidence'];
+  const columns = ['ID', 'Resultado', 'Depende de', 'Alcance / archivos probables', 'Criterios de aceptacion', 'Casos de uso', 'Tests', 'Edge cases', 'Validacion', 'Evidencia'];
   for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
     const template = await read(file);
     assert.ok(template.includes(`| ${columns.join(' | ')} |`), file);
-    for (const label of ['**Fuera de alcance**', '**Chequeos de calidad**', '**Slice stop conditions**', '**Activacion**']) assert.ok(template.includes(label), `${file}: ${label}`);
+    for (const label of ['**Fuera de alcance**', '**Chequeos de calidad**', '**Condiciones de parada**', '**Activacion**']) assert.ok(template.includes(label), `${file}: ${label}`);
   }
   for (const file of bothCopies(`${createPrd}/reference/execution-granularity.md`)) {
     const rule = await read(file);

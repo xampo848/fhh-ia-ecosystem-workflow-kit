@@ -51,8 +51,8 @@ Before any release action, confirm all of these explicitly:
    it is there) to the tag table of `docs/versioning.md` and update the pinning
    examples of `README.md`, `docs/github-install.md` and `docs/quickstart.md`.
    Until the tag exists, add the version and its commit to the "without a tag"
-   table after the merge. Today every version from `0.16.0` to `0.23.9` has a
-   tag; the latest is `v0.23.9-pilot-context`.
+   table after the merge. Today every version from `0.16.0` to `0.24.0` has a
+   tag; the latest is `v0.24.0-pilot-decisions`.
 6. Publish a package only after explicit approval and a final dry-run.
 
 ## Safe rollout sequence for users
@@ -66,7 +66,7 @@ Before any release action, confirm all of these explicitly:
 
 2. Or pin to a reviewed ref: a tag, or the full commit hash of a version that
    has no tag yet (the remote has a tag for every version from `0.16.0` to
-   `0.23.9`; see `docs/versioning.md`):
+   `0.24.0`; see `docs/versioning.md`):
 
    ```bash
    workflow-kit upgrade --ref <tag-or-commit> --apply --yes

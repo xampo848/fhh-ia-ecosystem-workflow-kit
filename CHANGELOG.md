@@ -7,6 +7,50 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.24.1-pilot-alignment
+
+Fixes and decisions from the pilots run on `0.23.9` and `0.24.0`. In your
+projects, `workflow-kit update` changes `kit_version` and updates the kit text
+listed below. Adapters (`CLAUDE.md`, `AGENTS.md` and the others) do not
+change. The project files under `.agents/project/` are yours and are not
+rewritten: the new wording of their templates reaches new installs only. Two
+CLI behaviours change: see `rollback`.
+
+- `rollback --apply --yes` now exits with code 3 when the project has no
+  record of an applied run, backups exist, and none was restored (it used to
+  exit 0). A dry run and "nothing to roll back" still exit 0. The list of
+  backups now includes the one of `.gitignore`, and `--from-backups` restores
+  it. A repeated `--from-backups` says the files already match their backups
+  instead of saying there are none.
+- `rollback` with a record: files the last apply created and someone removed
+  by hand are reported as removed, not as files the apply did not change.
+- `doctor` no longer reports `project-context/missing-path` for a path that
+  starts with `../` in `.agents/project/context.md` (a path relative to
+  another file, such as an import).
+- The `update` plan says when it replaces a kit block that was edited in
+  place inside an adapter.
+- A layer the project does not have: its rules file keeps one line that says
+  so and is never deleted. The templates said to delete it, and `doctor` then
+  reported a missing file. The setup guide and the router say the same now.
+- `docs/workflow/standards/project-instructions-template.md` no longer
+  carries a second copy of the templates. It explains how to fill in the
+  files `init` installs.
+- Router: the project context setup route is N2 and has a trace form
+  (`direct-edit`); it fills every section, writes `not determined: <reason>`
+  for what the code does not settle, and removes the template marker only
+  when no `[TODO` is left. An explicit invocation is the stated exception to
+  "never auto-load"; at Medium confidence the alternative in the trace is not
+  a second offer; a single proposed route needs no menu.
+- `implement-change` detects a template by its marker, as `create-prd` does,
+  and sets the level itself when the input is an explicit PRD. `level-n2.md`
+  names the initial Discovery as the exception to "only at closure".
+- `create-prd`: the PRD template is in Spanish throughout (headings, columns
+  and Definition of Done items; IDs and state tokens are unchanged) and its
+  examples name no stack. A compact PRD omits the traceability matrix and
+  keeps only the Definition of Done items that apply. `architecture-rules.md`
+  is read only when the PRD has a parent epic, persisted entities or
+  enumerations.
+
 ## 0.24.0-pilot-decisions
 
 Eight design decisions the maintainer took after the pilot, and three

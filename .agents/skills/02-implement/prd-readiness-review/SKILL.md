@@ -99,7 +99,7 @@ Use compact readiness when all are true:
 - API/read-path activation, if any, is explicitly deferred or has a clear checklist.
 - The likely implementation can be sliced without user decisions.
 
-In compact readiness, still return the required handoff fields, but keep each field dense. Prefer IDs, short phrases, and traceability references over long prose. A compact PRD may carry one line per slice instead of the slice table, a signature list instead of the class diagram when no class changes, and one-line `No aplica` sections: none of these is a readiness gap.
+In compact readiness, still return the required handoff fields, but keep each field dense. Prefer IDs, short phrases, and traceability references over long prose. A compact PRD may carry one line per slice instead of the slice table, a signature list instead of the class diagram when no class changes, one-line `No aplica` sections, and no traceability matrix (section 9): none of these is a readiness gap.
 
 ## Granularity Audit
 

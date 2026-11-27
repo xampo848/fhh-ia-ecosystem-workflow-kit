@@ -313,9 +313,11 @@ test('rollback without a journal changes nothing unless --from-backups is given,
   assert.match(text, /`workflow-kit rollback --target \S+ --from-backups`/);
   assert.doesNotMatch(text, /^restore /m);
 
-  for (const args of [['rollback', '--target', target], ['rollback', '--target', target, '--apply', '--yes']]) {
+  // The dry run exits 0; an apply that leaves restorable backups alone exits 3,
+  // so a script can tell it from "there was nothing to undo".
+  for (const [args, expected] of [[['rollback', '--target', target], 0], [['rollback', '--target', target, '--apply', '--yes'], 3]]) {
     const io = createMemoryIo();
-    assert.equal(await runCli(args, io), 0, io.output.stderr);
+    assert.equal(await runCli(args, io), expected, io.output.stderr);
     assert.match(io.output.stdout, /Nothing is restored\./);
     assert.doesNotMatch(io.output.stdout, /Restored files:/);
   }
@@ -361,9 +363,10 @@ test('cleaning up a run killed before its record no longer says nothing is left 
   assert.match(text, /No record of an applied run is left, so a second rollback has nothing to undo\. \d+ backup file\(s\) of earlier runs stay next to managed files; `workflow-kit rollback --target \S+ --from-backups` \(a dry run\) lists them\./);
 
   // The pilot's exact sequence: rollback --apply --yes, twice.
-  for (let run = 0; run < 2; run += 1) {
+  // The first one cleans up (0); the second restores nothing and says so (3).
+  for (const expected of [0, 3]) {
     const io = createMemoryIo();
-    assert.equal(await runCli(['rollback', '--target', target, '--apply', '--yes'], io), 0, io.output.stderr);
+    assert.equal(await runCli(['rollback', '--target', target, '--apply', '--yes'], io), expected, io.output.stderr);
   }
   assert.deepEqual(await treeOf(target), before);
 

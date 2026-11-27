@@ -299,7 +299,11 @@ Things to know:
   of each managed file anyway, run
   `workflow-kit rollback --target /path/to/repo --from-backups` (a dry run),
   then add `--apply --yes`; the content it replaces is kept as
-  `-before-rollback` copies.
+  `-before-rollback` copies. `rollback --apply --yes` without the flag exits
+  with code 3 in this case, so a script can tell "backups exist and none was
+  restored" from "nothing to roll back" (code 0). The list includes the
+  backup of `.gitignore`. "Nothing to restore: … each managed file already has
+  the content of its newest backup" means the backups were already restored.
 - "changed after this plan was made": another run changed the repository
   between your plan and your write. Nothing was written; run the command again
   so it plans from the repository as it is now. The same stop applies to

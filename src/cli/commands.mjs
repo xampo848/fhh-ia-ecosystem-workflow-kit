@@ -196,12 +196,19 @@ export async function runRollbackCommand(options, { stdout, stderr }) {
   // A journal is always applied, even with no file left to restore: the
   // previous state comes back and the record of the unfinished run goes, so
   // the next update is not stopped by it again.
-  if (!options.apply || (plan.operations.length === 0 && plan.source === 'backups')) return 0;
+  if (!options.apply) return 0;
+  if (plan.operations.length === 0 && plan.source === 'backups') {
+    // Asked to apply, and backups that could be restored were left alone:
+    // a script must be able to tell this from "there was nothing to undo".
+    if ((plan.availableBackups?.length ?? 0) === 0) return 0;
+    stderr.write('Exit code 3: backups exist and none was restored. Add --from-backups to restore them.\n');
+    return 3;
+  }
 
   const { result: results, code } = await applyWithInterrupts((signal) => applyRollbackPlan(plan, { signal }), stderr, { targetPath: plan.targetPath, rollback: true });
   if (code !== undefined) return code;
   const summary = summarizeRollback(results);
-  stdout.write(`Restored files: ${summary.restored}\nRemoved created files: ${summary.removed}\nKept (edited after the apply): ${summary.keptModified}\nNot restorable (no backup): ${summary.withoutBackup}\n`);
+  stdout.write(`Restored files: ${summary.restored}\nRemoved created files: ${summary.removed}\nKept (edited after the apply): ${summary.keptModified}\nNot restorable (no backup): ${summary.withoutBackup}\n${summary.alreadyGone > 0 ? `Already removed by hand: ${summary.alreadyGone}\n` : ''}`);
   const copies = results.filter((item) => item.keptCopy).map((item) => path.relative(plan.targetPath, item.keptCopy).split(path.sep).join('/'));
   if (copies.length > 0) stdout.write(`Copies of the replaced content (${copies.length}):\n${copies.map((copy) => `- ${copy}`).join('\n')}\n`);
   return 0;
