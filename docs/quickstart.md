@@ -162,7 +162,7 @@ To pin a version, pass a tag or, for versions without a tag, a full commit hash
 
 ```bash
 workflow-kit upgrade --ref v0.23.9-pilot-context --apply --yes
-workflow-kit upgrade --ref cf84f93bac7e4a3d2f8a4c0ba0110a67c76b68d4 --apply --yes   # same version, by commit
+workflow-kit upgrade --ref 28bf3bff9264f0897331aac3399961e227a29f54 --apply --yes   # same version, by commit
 ```
 
 After that, run `update` in each project you manage to bring its workflow to

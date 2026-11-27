@@ -40,8 +40,8 @@ CLI behaviour changes: see `rollback`.
 - `.agents/instructions.md` defines "contract" once: an interface consumed
   outside the repository or across a deployment boundary. A symbol exported
   and used only inside the repository is not one. The compact-path gate of
-  `create-prd`, `prd-readiness-review`, `implementation-slicing` and the
-  slicing rules point at that definition.
+  `create-prd` and the granularity rules of `prd-readiness-review`,
+  `implementation-slicing` and `create-prd` point at that definition.
 - `create-prd`: identifiers follow the project's rules, then the dominant
   convention of the existing code, then English. Calibration records
   `identifier_language` and its source, and the agent offers once to save a
@@ -49,15 +49,17 @@ CLI behaviour changes: see `rollback`.
 - `create-prd`: the PRD template names no stack. Persistence (current data,
   fields, migration, lifecycle, tenant isolation) moved to the conditional
   section `template-sections/data-model.md`; section 3 is now "Diseno
-  Tecnico". The Rails examples moved to the `rails-react` stack pack.
-  `check:workflow` now also fails on a Ruby code fence, a `.rb` path,
+  Tecnico". The Rails migration and error-capture examples moved to the `rails-react`
+  stack pack; the enumeration example is now neutral.
+  `check:workflow` now also fails on a Ruby code fence, a `.rb`, `.erb` or `.rake` path,
   `add_column` or a Ruby constant path in a core skill; two such lines in
   `codebase-discovery` and `document-development` were made neutral.
 - `create-prd`: a compact PRD is proportional. It keeps acceptance criteria,
   use cases, test strategy and the edge-case matrix; a section that does not
   apply is one line; a single phase with up to three slices lists one line
-  per slice; the class diagram is required only when classes, entities or
-  services change (otherwise a signature list). The target is 80 to 120
+  per slice, with the same fields as the table. In any PRD the class diagram
+  is required only when classes, entities or services change (otherwise a
+  signature list). The target is 80 to 120
   lines.
 - `create-prd`: every section the skill requires has a heading. The data
   section gains "Ubicacion en el dominio" and "Enumeraciones".

@@ -37,7 +37,7 @@ Use this skill when:
 5. **Iterate until complete** — after each round of answers, update the PRD immediately. The document should converge to zero open questions.
 6. **Identifiers follow the project** — code identifiers (columns, variables, classes) follow, in this order: the project's rules; the dominant convention of the existing code around the change; English for new code that has neither. Never mix languages inside one module to satisfy a default.
 7. **Milestones contain executable slices** — phases express product milestones; they are not permission to group large implementation tasks. Every non-trivial phase must decompose into small, ordered slices with one observable outcome and a verification gate.
-8. **DDD before implementation** — a PRD that creates or moves domain entities defines bounded context placement, ownership, namespace, and dependency direction before implementation starts; table strategy applies only when data is persisted.
+8. **DDD before implementation** — a PRD that creates or moves domain entities defines bounded context placement, ownership, namespace, and dependency direction before implementation starts: in the data section when it is persisted, otherwise next to the class diagram; table strategy applies only when data is persisted.
 9. **Standards-aware PRDs** — PRDs follow the project's standards documents and stack rules (`.agents/project/backend.md`, `.agents/project/frontend.md`, and `.agents/project/stack.md` when a stack pack was installed), including its test framework and enumeration conventions.
 10. **Evidence before completion** — every deliverable must name how it will be tested, validated, and verified. “Tests later” and phase-end-only validation are not acceptable.
 11. **Activation is part of scope** — when a PRD replaces a read path, materialization model, cache, projection, or persisted contract, it must define how existing data becomes visible after cutover (bootstrap, backfill, repair, smoke verification, and rollback if activation fails).
@@ -73,7 +73,7 @@ In compact mode:
 - fold Phase 2 and Phase 3 into one short pass when there are no blocking questions;
 - draft and self-audit in one pass only after calibration and pattern lock exist;
 - do not omit acceptance criteria, use cases, test strategy, or the edge-case matrix;
-- keep it proportional: a section that does not apply is one line (`No aplica: <reason>`), never a filled placeholder; a single phase with at most three slices lists one line per slice (ID, outcome, files, AC, validation, evidence) instead of the slice table; aim for 80 to 120 lines and never pad to match the template;
+- keep it proportional: a section that does not apply is one line (`No aplica: <reason>`), never a filled placeholder; a single phase with at most three slices lists one line per slice with the same ten fields as the slice table, instead of the table; aim for 80 to 120 lines and never pad to match the template;
 - the class diagram follows its gate below;
 - do not mention `solution-sketch`.
 
@@ -92,7 +92,7 @@ A PRD is never "ready to implement" on AC alone. Before delivering the final PRD
 ### Hard Gate: Class Diagram Is Non-Optional
 
 - Every PRD that introduces or changes classes, entities, value objects, services, or interfaces must include a Mermaid `classDiagram` in `## 3. Diseno Tecnico`, showing them with named relationships and cardinalities where relevant.
-- A compact PRD that only adds or changes functions (no class, entity, or service is introduced or changed) replaces the diagram with a signature list: name, inputs, output, and module of each function.
+- A PRD that only adds or changes functions (no class, entity, or service is introduced or changed) replaces the diagram with a signature list: name, inputs, output, and module of each function.
 - A PRD with no persisted data change that changes runtime classes still diagrams them. Do not substitute a flowchart for this requirement.
 - The diagram uses confirmed names and relationships from the pattern lock; placeholders are not acceptable in a PRD ready for `implement-change`.
 

@@ -19,7 +19,7 @@ The PRD must be detailed enough that `implementation-slicing` does not need to i
 
 ### Required task fields
 
-Each execution slice must state the fields below. The ten columns of the slice table in `PRD_TEMPLATE.md` hold the per-slice ones. The other four are written once per phase, below the table (Out of scope, Quality checks, Stop conditions, and Activation), and on the slice only when it differs from its phase.
+Each execution slice must state the fields below. The ten columns of the slice table in `PRD_TEMPLATE.md` hold the per-slice ones. The other four are written once per phase, below the table (Out of scope, Quality checks, Stop conditions, and Activation), and on the slice only when it differs from its phase. A compact PRD may write those ten fields as one line per slice instead of the table.
 
 | Field | Where | Requirement |
 | --- | --- | --- |

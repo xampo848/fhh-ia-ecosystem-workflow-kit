@@ -156,7 +156,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "c0406088e44d629a9f073f5898a8c1276cb59914f09eb83f8466338c54b12444"
+      "skill_sha256": "761b211e37e23aea107d401628e1eedadc5bc6d1e4c6941968649ca529b71df8"
     },
     {
       "key": "document-development",

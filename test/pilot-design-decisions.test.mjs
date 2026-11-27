@@ -211,7 +211,7 @@ test('decision 7: a compact PRD is proportional, and its class diagram is requir
     assert.match(compact, /80 to 120 lines/, file);
     const gate = section(skill, '### Hard Gate: Class Diagram Is Non-Optional');
     assert.match(gate, /introduces or changes classes, entities, value objects, services, or interfaces/, file);
-    assert.match(gate, /compact PRD that only adds or changes functions[^\n]*signature list/, file);
+    assert.match(gate, /PRD that only adds or changes functions[^\n]*signature list/, file);
     assert.match(gate, /Do not substitute a flowchart/, file);
   }
   for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
@@ -220,7 +220,7 @@ test('decision 7: a compact PRD is proportional, and its class diagram is requir
     assert.match(template, /una linea por slice/, file);
   }
   for (const file of bothCopies(`${createPrd}/reference/self-audit.md`)) {
-    assert.match(await read(file), /class diagram \(or the signature list of a compact PRD without class changes\)/, file);
+    assert.match(await read(file), /class diagram \(or the signature list of a PRD without class changes\)/, file);
   }
   for (const file of bothCopies(`${createPrd}/reference/quality-bar.md`)) {
     const bar = await read(file);
@@ -273,4 +273,47 @@ test('third pilot: a feature flag is asked about only when the change carries ro
     assert.match(text, /Feature flag: ask only when the change alters behavior existing users already see, touches existing data, or needs a gradual rollout/, file);
     assert.match(text, /otherwise record `sin feature flag` as an assumption/, file);
   }
+});
+
+// Findings of the independent review of 0.24.0.
+test('review: the compact one-line slice carries the same ten fields as the slice table', async () => {
+  const fields = 'P1-S1: resultado · depende de · archivos · AC · casos de uso · tests · edge cases · validacion · evidencia';
+  for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) assert.ok((await read(file)).includes(fields), file);
+  for (const file of bothCopies(`${createPrd}/SKILL.md`)) {
+    assert.match(section(await read(file), '### Compact Path Gate'), /one line per slice with the same ten fields as the slice table/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/reference/execution-granularity.md`)) {
+    assert.match(await read(file), /A compact PRD may write those ten fields as one line per slice instead of the table/, file);
+  }
+});
+
+test('review: domain placement has a heading when nothing is persisted, and any PRD without class changes may use the signature list', async () => {
+  for (const file of bothCopies(`${createPrd}/SKILL.md`)) {
+    const skill = await read(file);
+    assert.match(skill, /8\. \*\*DDD before implementation\*\*[^\n]*data section when it is persisted, otherwise next to the class diagram/, file);
+    const gate = section(skill, '### Hard Gate: Class Diagram Is Non-Optional');
+    assert.match(gate, /A PRD that only adds or changes functions[^\n]*signature list/, file);
+    assert.doesNotMatch(gate, /A compact PRD that only adds or changes functions/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
+    const template = await read(file);
+    assert.match(template, /En un PRD que solo agrega o cambia funciones/, file);
+    assert.match(template, /entidades de dominio sin persistencia[^\n]*contexto dueno/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/reference/self-audit.md`)) {
+    assert.match(await read(file), /class diagram \(or the signature list of a PRD without class changes\)/, file);
+  }
+});
+
+test('review: the neutrality check also catches erb and rake paths and tilde fences', async () => {
+  const { validateStackNeutrality } = await import('../scripts/validate-stack-neutrality.mjs');
+  const { makeTempRepo } = await import('./helpers.mjs');
+  const fixture = await makeTempRepo('workflow-kit-neutral-');
+  await fs.cp(path.join(root, '.agents'), path.join(fixture, '.agents'), { recursive: true });
+  await fs.cp(path.join(root, 'templates/stack-packs'), path.join(fixture, 'templates/stack-packs'), { recursive: true });
+  await fs.mkdir(path.join(fixture, 'scripts'));
+  await fs.copyFile(path.join(root, 'scripts/stack-rule-inventory.json'), path.join(fixture, 'scripts/stack-rule-inventory.json'));
+  await fs.appendFile(path.join(fixture, `${createPrd}/PRD_TEMPLATE.md`), '\n~~~ruby\nputs 1\n~~~\n\n- View in app/views/orders/show.html.erb.\n- Task in lib/tasks/orders.rake.\n');
+  const failures = (await validateStackNeutrality({ root: fixture })).failures.filter((failure) => failure.includes('PRD_TEMPLATE.md'));
+  assert.equal(failures.length, 3, failures.join('\n'));
 });

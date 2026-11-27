@@ -367,6 +367,13 @@ test('cleaning up a run killed before its record no longer says nothing is left 
   }
   assert.deepEqual(await treeOf(target), before);
 
+  // --from-backups with a stale lock: this run only cleans up, and says so.
+  await fs.writeFile(path.join(target, '.agents/workflow-kit/apply.lock'), `${JSON.stringify({ pid: dead.pid, startedAt: new Date().toISOString(), kind: 'apply', createdDirectories: [] })}\n`);
+  const deferred = createMemoryIo();
+  assert.equal(await runCli(['rollback', '--target', target, '--from-backups', '--apply', '--yes'], deferred), 0, deferred.output.stderr);
+  assert.match(deferred.output.stdout, /--from-backups was not applied: this run only cleans up\. Run the same command again to restore the backups\./);
+  assert.deepEqual(await treeOf(target), before);
+
   // With no backup at all the old sentence is still true.
   const clean = await makeTempRepo();
   await fs.mkdir(path.join(clean, '.agents/workflow-kit'), { recursive: true });

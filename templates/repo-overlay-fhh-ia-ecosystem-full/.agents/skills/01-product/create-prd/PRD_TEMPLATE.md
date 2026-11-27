@@ -118,7 +118,7 @@ Si el PRD crea o cambia datos persistidos, reemplazar este bloque por la seccion
 
 ### 3.2 Diagrama de Clases
 
-Documentar las clases, entidades, value objects, servicios o interfaces introducidos o modificados y sus relaciones confirmadas. Usar nombres reales del diseno; indicar cardinalidades cuando apliquen. En un PRD compacto que solo agrega o cambia funciones (sin clases, entidades ni servicios nuevos o modificados), reemplazar el diagrama por una lista de firmas: nombre, entradas, salida y modulo de cada funcion.
+Documentar las clases, entidades, value objects, servicios o interfaces introducidos o modificados y sus relaciones confirmadas. Usar nombres reales del diseno; indicar cardinalidades cuando apliquen. En un PRD que solo agrega o cambia funciones (sin clases, entidades ni servicios nuevos o modificados), reemplazar el diagrama por una lista de firmas: nombre, entradas, salida y modulo de cada funcion. Si el PRD crea o mueve entidades de dominio sin persistencia, anotar aqui su contexto dueno y la direccion de sus dependencias.
 
 ```mermaid
 classDiagram
@@ -161,7 +161,7 @@ flowchart LR
 | P1-S1 | [One small result] | none | [One responsibility] | AC-1 | UC-1 | [Focused test] | [Edge case row, if any] | `[exact command]` | [Passing output/diff/check] |
 | P1-S2 | [Next small result] | P1-S1 | [One responsibility] | AC-2 | UC-1 | [Focused test] | [Edge case row, if any] | `[exact command]` | [Passing output/diff/check] |
 
-En un PRD compacto de una sola fase con hasta tres slices, reemplazar la tabla por una linea por slice: `P1-S1: resultado · archivos · AC · casos de uso · validacion · evidencia`.
+En un PRD compacto de una sola fase con hasta tres slices, reemplazar la tabla por una linea por slice: `P1-S1: resultado · depende de · archivos · AC · casos de uso · tests · edge cases · validacion · evidencia`.
 
 Los cuatro campos siguientes valen para toda la fase; anotarlos en un slice solo cuando difiere.
 
