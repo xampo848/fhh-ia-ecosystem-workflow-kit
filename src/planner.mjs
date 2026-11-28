@@ -531,6 +531,9 @@ async function planUpdate(options = {}) {
     manifest,
     mode: existingState ? 'update' : 'adopt',
     previousFiles: migration?.plannerFiles ?? previousFiles,
+    // A 1.0.0 state hashed every file whole: its record says nothing about
+    // an adapter's block.
+    recordsWholeFiles: migrating,
     backupMode,
     catalog,
     modelProfiles,
@@ -1049,7 +1052,7 @@ function planOwnedFile({ base, templateContent, rendered, existingContent, recor
 }
 
 // adapter: the kit owns only its block; the text outside it is the project's.
-function planAdapter({ base, entry, templateContent, existingContent, recorded, backupMode }) {
+function planAdapter({ base, entry, templateContent, existingContent, recorded, backupMode, recordsWholeFiles = false }) {
   const blockName = entry.block ?? defaultBlockName;
   const plan = (operation, content, extra = {}) => ({ ...base, operation, content, stateChecksum: managedBlockChecksum(content, blockName), ...extra });
   if (existingContent === null) return plan('create', templateContent, recorded?.sha256 ? { missingRecorded: true } : {});
@@ -1063,7 +1066,7 @@ function planAdapter({ base, entry, templateContent, existingContent, recorded, 
     // edit apart from an older kit block, whether or not the kit text changed.
     const existingBlock = managedBlockChecksum(existingContent, blockName);
     const blockEdited = Boolean(recorded?.sha256) && existingBlock !== recorded.sha256
-      && (recorded.class === 'adapter' || managedBlockChecksum(replaced, blockName) === recorded.sha256);
+      && !recordsWholeFiles && (recorded.class === 'adapter' || managedBlockChecksum(replaced, blockName) === recorded.sha256);
     // An adapter is never rewritten whole: say so next to the operation.
     return plan(overwriteOperation(backupMode), replaced, blockEdited ? { blockEdited: true } : { blockOnly: true });
   }

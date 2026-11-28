@@ -103,11 +103,22 @@ function positionsOf(content, marker) {
   return positions;
 }
 
+// True when the marker at `index` is alone on its line.
+function onOwnLine(content, index, marker) {
+  const lineStart = content.lastIndexOf('\n', index - 1) + 1;
+  const lineEnd = content.indexOf('\n', index);
+  return content.slice(lineStart, lineEnd === -1 ? content.length : lineEnd).trim() === marker;
+}
+
 // A single pair of markers is the block, wherever it sits: that never
-// changed. Only when there are more markers than one pair, the ones quoted
-// inside a closed code fence (documentation about the block) are set aside;
-// if exactly one pair is left outside, that pair is the block. Anything less
-// clear stays a duplicate, as before.
+// changed. With more markers than one pair, the file is ambiguous, and a wrong
+// guess overwrites own text; so the block is named only when all of this
+// holds, and anything else stays a duplicate for the user to decide:
+// - exactly one pair is outside every closed code fence, each marker alone on
+//   its line (markers quoted in a sentence are not a block);
+// - every other marker is inside a closed fence, in pairs;
+// - no fenced pair holds more text than the pair outside (a real block
+//   wrapped in a fence next to a short example is not guessed either).
 export function extractManagedBlock(content, name = defaultBlockName) {
   const markers = blockMarkers(name);
   let starts = positionsOf(content, markers.start);
@@ -118,6 +129,12 @@ export function extractManagedBlock(content, name = defaultBlockName) {
     const outside = (index) => !fences.some(([start, end]) => index >= start && index < end);
     const [outsideStarts, outsideEnds] = [starts.filter(outside), ends.filter(outside)];
     if (outsideStarts.length !== 1 || outsideEnds.length !== 1 || outsideEnds[0] < outsideStarts[0]) return { error: 'duplicate' };
+    if (!onOwnLine(content, outsideStarts[0], markers.start) || !onOwnLine(content, outsideEnds[0], markers.end)) return { error: 'duplicate' };
+    const fencedStarts = starts.filter((index) => !outside(index));
+    const fencedEnds = ends.filter((index) => !outside(index));
+    if (fencedStarts.length !== fencedEnds.length) return { error: 'duplicate' };
+    const size = outsideEnds[0] - outsideStarts[0];
+    if (fencedStarts.some((from, pair) => fencedEnds[pair] < from || fencedEnds[pair] - from > size)) return { error: 'duplicate' };
     [starts, ends] = [outsideStarts, outsideEnds];
   }
   const [start] = starts;

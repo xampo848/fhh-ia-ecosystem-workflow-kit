@@ -127,7 +127,7 @@ test('D5: a byte-order mark stays at the start of the file after split, and doct
   await fs.writeFile(path.join(target, '.agents/skills/.workflow-kit-tmp-4242'), 'x');
   const doctor = await cli('doctor', '--target', target, '--runtime', 'claude');
   assert.doesNotMatch(doctor.stdout, /boundary\/unowned-path\] [^\n]*\.workflow-kit-tmp-/);
-  assert.match(doctor.stdout, /\[workspace\/temporary-leftover\] \.agents\/skills\/\.workflow-kit-tmp-4242: A temporary file a stopped workflow-kit run left\. It is safe to delete by hand; no workflow-kit command removes it from this folder\. \(warning\)/);
+  assert.match(doctor.stdout, /\[workspace\/temporary-leftover\] \.agents\/skills\/\.workflow-kit-tmp-4242: A temporary file a stopped workflow-kit run left\. It is safe to delete by hand\. \(warning\)/);
   // The finding never sends anyone to rollback, which would undo the install.
   assert.doesNotMatch(doctor.stdout.split('\n').filter((line) => line.includes('temporary-leftover')).join('\n'), /rollback/);
 });
@@ -181,4 +181,55 @@ test('the delegate prompts are in English, with the delegate names and every rul
   for (const file of bothCopies(`${directory}/testinator-5000.md`)) {
     assert.match(await read(file), /each rule at its owning layer \(`Capa dueña`\); look for existing tests of the same rule and extend them before creating others/, file);
   }
+});
+
+// Repair round after the pilot run on this branch.
+test('repair R1: with more than one pair, nothing is written unless the pair left outside is a block on its own lines', async () => {
+  const template = await claudeTemplate();
+  const { block } = extractManagedBlock(template, blockName);
+  const start = '<!-- workflow-kit:managed:start -->';
+  const end = '<!-- workflow-kit:managed:end -->';
+  const sentence = `To disable it, remove everything between ${start} and ${end} by hand.\n`;
+  // The pilot's case: the real block inside a closed fence, and the markers
+  // quoted in a sentence outside it.
+  const fencedReal = `\`\`\`md\n${block}\n\`\`\`\n\n${sentence}`;
+  assert.equal(extractManagedBlock(fencedReal, blockName).error, 'duplicate');
+  assert.equal(replaceManagedBlock(fencedReal, template, blockName), null);
+  // A real block on its own lines and the same sentence: also not guessed.
+  assert.equal(extractManagedBlock(`${block}\n\n${sentence}`, blockName).error, 'duplicate');
+  // The real block inside a fence and a short example pair on its own lines outside.
+  assert.equal(extractManagedBlock(`\`\`\`md\n${block}\n\`\`\`\n\n${start}\nexample\n${end}\n`, blockName).error, 'duplicate');
+  // A marker pair outside with text on the marker lines.
+  assert.equal(extractManagedBlock(`> ${start}\nx\n> ${end}\n\n\`\`\`\n${start}\ny\n${end}\n\`\`\`\n`, blockName).error, 'duplicate');
+  // Still resolved: the block on its own lines, and a quoted copy or example in a closed fence.
+  for (const quoted of [`\`\`\`md\n${start}\nexample\n${end}\n\`\`\`\n`, `\`\`\`md\n${block}\n\`\`\`\n`]) {
+    assert.equal(extractManagedBlock(`${block}\n\n${quoted}`, blockName).block, block);
+    assert.equal(extractManagedBlock(`${quoted}\n${block}\n`, blockName).block, block);
+  }
+
+  // End to end: update leaves the pilot's file pending and writes nothing to it.
+  const target = await installed();
+  const adapter = path.join(target, 'CLAUDE.md');
+  const original = await fs.readFile(adapter, 'utf8');
+  const content = `\`\`\`md\n${original}\`\`\`\n\n${sentence}`;
+  await fs.writeFile(adapter, content);
+  const update = await cli('update', '--target', target, '--apply', '--yes');
+  assert.equal(await fs.readFile(adapter, 'utf8'), content, update.stdout.slice(-400));
+});
+
+test('repair R2 and R3: no false "edited" note under an install-state that records whole files, and only a pid-named file is a leftover', async () => {
+  const { installLegacy0181 } = await import('./fixtures/legacy-0.18.1/install.mjs');
+  const legacy = await makeTempRepo();
+  await installLegacy0181(legacy, { runtimes: ['claude'] });
+  const text = formatPlan(await buildUpdatePlan({ targetPath: legacy, edited: { all: 'discard' } }));
+  assert.doesNotMatch(text, /its kit block was edited/, text.split('\n').filter((line) => /kit block/.test(line)).join('\n'));
+
+  const target = await installed();
+  await fs.writeFile(path.join(target, '.agents/skills/.workflow-kit-tmp-notes.md'), 'own notes\n');
+  await fs.writeFile(path.join(target, '.agents/skills/.workflow-kit-tmp-4242'), 'x');
+  const doctor = await cli('doctor', '--target', target, '--runtime', 'claude');
+  assert.doesNotMatch(doctor.stdout, /temporary-leftover\] \.agents\/skills\/\.workflow-kit-tmp-notes\.md/);
+  assert.match(doctor.stdout, /boundary\/unowned-path\] \.agents\/skills\/\.workflow-kit-tmp-notes\.md/);
+  assert.match(doctor.stdout, /temporary-leftover\] \.agents\/skills\/\.workflow-kit-tmp-4242: A temporary file a stopped workflow-kit run left\. It is safe to delete by hand\. \(warning\)/);
+  assert.doesNotMatch(doctor.stdout, /no workflow-kit command removes it/);
 });

@@ -174,7 +174,7 @@ lives in `.ai-work/<prd-slug>/`, ignored by Git. These warnings never fail
 | --- | --- | --- |
 | `workspace/not-ignored` | `.ai-work/` exists but is not in `.gitignore` | run `workflow-kit update`, or add `.ai-work/` |
 | `workspace/backups-not-ignored` | `.gitignore` lacks `*.workflow-kit-backup-*`, so `git add -A` would version the backups | run `workflow-kit update --target <path>`, or add that line; if `.gitignore` is a symbolic link, `update` leaves it alone, prints a `Note:` naming the lines, and you add them to the file it points to |
-| `workspace/temporary-leftover` | a `.workflow-kit-tmp-<pid>` file a stopped run left in the kit tree | delete it by hand (it is safe); `rollback` does not look in that folder, and with a record it would undo the last apply |
+| `workspace/temporary-leftover` | a `.workflow-kit-tmp-<pid>` file a stopped run left in the kit tree | delete it by hand (it is safe). Do not run `rollback` only for this: with a finished apply on record it undoes that apply |
 | `workspace/closed-prd-leftover` | the PRD is closed but its workspace remains | delete that `.ai-work/<prd-slug>/` directory |
 | `workspace/stale` | no activity for more than 14 days | close, split, or archive the change; an open or blocked change may keep it |
 | `workspace/tracker-is-a-log` | the tracker grew past ~150 lines or repeats history blocks | keep the tracker as a snapshot; history goes to `events.log` |
