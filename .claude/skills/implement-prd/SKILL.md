@@ -1,6 +1,6 @@
 ---
 name: implement-prd
-description: "Approved PRD needs implementation ('implementa este PRD')"
+description: "A PRD with `Estado: Aprobado` (or approved on the way) needs implementation ('implementa este PRD')"
 disable-model-invocation: true
 ---
 
