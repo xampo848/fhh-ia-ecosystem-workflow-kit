@@ -593,6 +593,7 @@ async function firstUnreadableFolder(targetPath, relativePath) {
 function missingFilesHint(state, targetPath, journalProblem = null) {
   // An apply that did not finish explains the missing files, and nothing
   // else can run until it is rolled back: that comes first.
+  if (journalProblem?.kind === 'incomplete' && journalProblem.rollback) return `A rollback did not finish, so the files below may be ones it already removed: run ${rollbackCommand(targetPath)} again first; update and init stop until then.`;
   if (journalProblem?.kind === 'incomplete') return `The last apply did not finish, so the files below may be the ones it never wrote: run ${rollbackCommand(targetPath)} first; update and init stop until then.`;
   if (!state) return `No workflow-kit install-state here (${installStateRelativePath}), so workflow-kit is not installed in this folder; to install it, run ${code(kitCommand(targetPath, 'init'))} (a dry run first).`;
   if (state.schemaVersion === legacyInstallStateSchemaVersion || (state.toolkitVersion && state.toolkitVersion !== packageJson.version)) {

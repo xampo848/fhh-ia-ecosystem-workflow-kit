@@ -1,8 +1,8 @@
 // The kit text each adapter has carried. An adapter written before the block
 // markers existed holds that text with no markers around it; `update` offers
 // `split` only when it finds the text whole, byte for byte. So that the text
-// can change without taking `split` away from an older install, every text the
-// kit has shipped stays recognizable here by its fingerprint: the number of
+// can change without taking `split` away from an older install, the texts the
+// kit shipped in its tagged versions stay recognizable here by fingerprint: the number of
 // lines and the hash of the whole text, plus the hash of each of its longer
 // lines (to tell a file that holds an edited kit text from one that holds
 // none). The fingerprints live in adapter-kit-texts.json, written by
@@ -42,6 +42,11 @@ export function previousKitTexts(relativePath, texts = loadAdapterKitTexts()) {
 export function findKnownKitText(content, fingerprints) {
   if (fingerprints.length === 0) return null;
   const lines = content.split('\n');
+  // A file that lacks even one distinctive line of a text cannot hold it
+  // whole: ruled out before any window is hashed.
+  const present = new Set(distinctiveLines(content).map(lineHash));
+  fingerprints = fingerprints.filter((fingerprint) => (fingerprint.lineHashes ?? []).every((hash) => present.has(hash)));
+  if (fingerprints.length === 0) return null;
   const offsets = [];
   let offset = 0;
   for (const line of lines) {

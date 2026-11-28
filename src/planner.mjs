@@ -769,6 +769,9 @@ export function splitUnmarkedAdapter(existingContent, templateContent, blockName
     if (known) ({ start, length } = known);
   }
   if (start === -1) {
+    // A lone or repeated block marker cannot be paired safely with a new
+    // block: that file is not own text to keep whole.
+    if ([`<!-- ${blockName}:start -->`, `<!-- ${blockName}:end -->`].some((marker) => existingContent.includes(marker))) return null;
     if (existingContent.trim() === '' || holdsKitLines(existingContent, body, knownTexts)) return null;
     return { content: insertManagedBlock(existingContent, templateContent, blockName), wholeFileOwn: true };
   }

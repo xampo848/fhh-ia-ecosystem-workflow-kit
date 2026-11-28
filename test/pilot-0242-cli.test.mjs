@@ -197,7 +197,7 @@ test('0.25.0: a rollback with only older backups left says the project may alrea
   const second = await cli('rollback', '--target', reinstalled, '--apply', '--yes');
   assert.equal(second.code, 3);
   assert.match(second.stdout, /If a rollback already succeeded here, the project is back in its previous state and there is nothing more to do\./);
-  assert.match(second.stdout, /Restoring them takes each file back to before workflow-kit changed it: an adapter loses the kit block, which `workflow-kit update[^`]*` can put back with --edited <path>=split\./);
+  assert.match(second.stdout, /Restoring them takes each file back to an older copy: an adapter may lose the kit block or go back to an older one, which `workflow-kit update[^`]*` can put back with --edited <path>=split\./);
   assert.match(second.stderr, /Exit code 3: backups exist and none was restored\. That is expected after a rollback that already succeeded; add --from-backups only to go back to those older copies\./);
 });
 
@@ -253,4 +253,15 @@ test('0.25.0: the plan says an adapter update touches only the kit block, and th
   const doctor = await cli('doctor', '--target', withPack, '--runtime', 'claude');
   assert.match(doctor.stdout, /stack-pack\/missing[^\n]*restore `\.agents\/project\/stack\.md` from Git \(`git checkout -- \.agents\/project\/stack\.md`\)/);
   assert.doesNotMatch(doctor.stdout, /again by hand/);
+});
+
+test('review 0.25.0: doctor words an interrupted rollback as a rollback, not as an apply', async () => {
+  const target = await installed();
+  const journalPath = path.join(target, applyJournalRelativePath);
+  const journal = JSON.parse(await fs.readFile(journalPath, 'utf8'));
+  await fs.writeFile(journalPath, `${JSON.stringify({ ...journal, rollbackStartedAt: new Date().toISOString() }, null, 2)}\n`);
+  await fs.rm(path.join(target, '.agents/kit-boundary.md'));
+  const doctor = await cli('doctor', '--target', target, '--runtime', 'claude');
+  assert.doesNotMatch(doctor.stdout, /^The last apply did not finish/m);
+  assert.match(doctor.stdout, /^A rollback did not finish, so the files below may be ones it already removed: run `workflow-kit rollback --target \S+ --apply --yes` again first; update and init stop until then\.$/m);
 });

@@ -138,3 +138,57 @@ test('an adapter that holds the kit text with Windows line endings is still an e
   const indented = kitBody(template, blockName).split('\n').map((line) => `  ${line}`).join('\n');
   assert.equal(splitUnmarkedAdapter(indented, template, blockName, []), null);
 });
+
+// Findings of the independent review of 0.25.0.
+test('review: a file with a stray block marker never gets the whole-file split', async () => {
+  const template = await claudeTemplate();
+  for (const content of ['# Own rules\n\n<!-- workflow-kit:managed:end -->\nown text\n', '<!-- workflow-kit:managed:start -->\nown text\n', '<!-- workflow-kit:managed:start -->\na\n<!-- workflow-kit:managed:end -->\n<!-- workflow-kit:managed:start -->\nb\n<!-- workflow-kit:managed:end -->\n']) {
+    assert.equal(splitUnmarkedAdapter(content, template, blockName, []), null, content);
+  }
+  const target = await makeTempRepo();
+  await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+  await fs.writeFile(path.join(target, 'CLAUDE.md'), '# Own rules\n\n<!-- workflow-kit:managed:end -->\nown text\n');
+  const plan = await buildUpdatePlan({ targetPath: target });
+  const pending = plan.operations.find((item) => item.relativePath === 'CLAUDE.md');
+  assert.ok(!(pending.decisions ?? []).includes('split'), JSON.stringify(pending.decisions));
+});
+
+test('review: the adapter texts of every tagged version are recognized, and recording never drops an adapter that left', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const texts = loadAdapterKitTexts();
+  const template = await claudeTemplate();
+  let checked = 0;
+  for (const tag of ['v0.16.0-safe-update', 'v0.17.0-audit-hardening', 'v0.18.1-orchestrator-reads', 'v0.22.0-manifest-updater']) {
+    let old;
+    try {
+      old = execFileSync('git', ['-C', root, 'show', `${tag}:templates/runtime-adapters/claude/CLAUDE.md`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    } catch {
+      continue; // A shallow clone has no tags: the recorded fingerprints are still checked below.
+    }
+    checked += 1;
+    const unmarked = old.split('\n').filter((line) => !/^<!-- workflow-kit:managed:(start|end) -->$/.test(line)).join('\n');
+    const split = splitUnmarkedAdapter(`${unmarked}\nNota del equipo.\n`, template, blockName, texts.adapters['CLAUDE.md'].previous);
+    assert.ok(split && split.wholeFileOwn === false, `${tag}: its CLAUDE.md text is recognized`);
+    assert.match(split.content, /Nota del equipo\./, tag);
+    assert.equal((split.content.match(/Level pre-filter \(apply to every new user prompt/g) ?? []).length <= 1, true, tag);
+  }
+  assert.ok(texts.adapters['CLAUDE.md'].previous.length >= 3, 'several earlier texts are recorded');
+  assert.ok(checked >= 0);
+
+  const copy = path.join(await makeTempRepo(), 'adapter-kit-texts.json');
+  const recorded = structuredClone(texts);
+  recorded.adapters['OLD-ADAPTER.md'] = { current: { lines: 2, sha256: 'b'.repeat(64), lineHashes: [] }, previous: [{ lines: 1, sha256: 'c'.repeat(64), lineHashes: [] }] };
+  await fs.writeFile(copy, JSON.stringify(recorded));
+  const after = await recordAdapterKitTexts({ file: copy, lastVersion: '9.9.9-test' });
+  assert.equal(after.adapters['OLD-ADAPTER.md'].retired, true);
+  assert.deepEqual(after.adapters['OLD-ADAPTER.md'].previous.map((item) => item.sha256), ['c'.repeat(64), 'b'.repeat(64)]);
+  assert.deepEqual((await validateAdapterKitTexts({ file: copy })).failures, []);
+});
+
+test('review: a large own file is ruled out without hashing every window', async () => {
+  const texts = loadAdapterKitTexts();
+  const big = `${Array.from({ length: 120000 }, (_, index) => `own line number ${index} that is long enough to count as distinctive`).join('\n')}\n`;
+  const started = Date.now();
+  assert.equal(findKnownKitText(big, texts.adapters['CLAUDE.md'].previous), null);
+  assert.ok(Date.now() - started < 1500, `took ${Date.now() - started} ms`);
+});

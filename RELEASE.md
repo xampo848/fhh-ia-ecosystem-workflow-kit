@@ -46,8 +46,9 @@ Before any release action, confirm all of these explicitly:
 3. Confirm the `CHANGELOG.md` entry for that version.
    When the kit text of an adapter changed (the generated level pre-filter,
    or the block of `CLAUDE.md`, `AGENTS.md` and the others), run
-   `node scripts/sync-adapter-kit-texts.mjs --record` once before raising the
-   version: it keeps the text it replaces in `src/adapter-kit-texts.json`, so
+   `node scripts/sync-adapter-kit-texts.mjs --record` once, before the version
+   is raised in step 2 (or pass `--last-version <the version being replaced>`
+   if it was raised already): it keeps the text it replaces in `src/adapter-kit-texts.json`, so
    an install made before the block markers still gets `split`.
    `check:workflow` fails until it is recorded. Never delete an entry of
    `previous`.

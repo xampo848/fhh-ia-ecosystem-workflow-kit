@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Keeps src/adapter-kit-texts.json in step with the adapter templates.
-// Usage: node scripts/sync-adapter-kit-texts.mjs [--record]
+// Usage: node scripts/sync-adapter-kit-texts.mjs [--record [--last-version <version>]]
 //
 // Without a flag it checks: the fingerprint recorded as `current` for every
 // adapter must be the one of the kit text its template carries now. When a
@@ -42,8 +42,9 @@ export async function validateAdapterKitTexts({ file = adapterKitTextsPath } = {
     else if (entry.current.sha256 !== fingerprint.sha256) failures.push(`${relativePath}: its kit text changed since the recorded fingerprint.`);
     else if ((entry.previous ?? []).some((previous) => previous.sha256 === fingerprint.sha256)) failures.push(`${relativePath}: the current kit text is also listed as a previous one.`);
   }
-  for (const relativePath of Object.keys(recorded.adapters ?? {})) {
-    if (!current[relativePath]) failures.push(`${relativePath}: recorded, but no adapter template carries it.`);
+  // An adapter the kit no longer ships keeps its texts, marked retired.
+  for (const [relativePath, entry] of Object.entries(recorded.adapters ?? {})) {
+    if (!current[relativePath] && !entry.retired) failures.push(`${relativePath}: recorded, but no adapter template carries it (run --record to keep its texts as retired).`);
   }
   return { ok: failures.length === 0, failures, adapterCount: Object.keys(current).length, previousCount: Object.values(recorded.adapters ?? {}).reduce((sum, entry) => sum + (entry.previous ?? []).length, 0) };
 }
@@ -66,6 +67,13 @@ export async function recordAdapterKitTexts({ file = adapterKitTextsPath, lastVe
     }
     adapters[relativePath] = { current: fingerprint, previous };
   }
+  // An adapter that left the kit: an older install still has its texts.
+  for (const [relativePath, entry] of Object.entries(recorded.adapters ?? {})) {
+    if (adapters[relativePath]) continue;
+    const previous = [...(entry.previous ?? [])];
+    if (entry.current && !previous.some((item) => item.sha256 === entry.current.sha256)) previous.push({ ...entry.current, ...(lastVersion && !entry.retired ? { lastVersion } : {}) });
+    adapters[relativePath] = { retired: true, previous };
+  }
   const content = {
     description: 'Fingerprints of the kit text each adapter template carries (current) and has carried (previous). update offers split to an adapter without markers when it holds one of these texts whole. Written by scripts/sync-adapter-kit-texts.mjs --record; never delete an entry of previous.',
     adapters
@@ -76,8 +84,11 @@ export async function recordAdapterKitTexts({ file = adapterKitTextsPath, lastVe
 
 if (isMainModule(import.meta.url)) {
   if (process.argv.includes('--record')) {
+    // The version the replaced text was last shipped in: --last-version, or
+    // the version in package.json (so record before raising it).
+    const flag = process.argv.indexOf('--last-version');
     const packageJson = JSON.parse(await fs.readFile(path.join(packageRoot, 'package.json'), 'utf8'));
-    const content = await recordAdapterKitTexts({ lastVersion: packageJson.version });
+    const content = await recordAdapterKitTexts({ lastVersion: flag >= 0 ? process.argv[flag + 1] : packageJson.version });
     console.log(`Adapter kit texts recorded (${Object.keys(content.adapters).length} adapters).`);
   } else {
     const result = await validateAdapterKitTexts();

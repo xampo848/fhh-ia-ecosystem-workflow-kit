@@ -19,15 +19,15 @@ the kit text listed below. Your own text in those files does not change.
 - The generated level pre-filter says that the N1 limit counts production
   files and that the test file of each one goes with it. It was the same text
   since `0.18.1` because `update` offers `split` to an adapter without markers
-  only when it holds the kit text whole. `update` now also recognizes every
-  text the kit shipped before, by a fingerprint kept in
+  only when it holds the kit text whole. `update` now also recognizes the
+  text each tagged version shipped (from `0.7.4` on), by a fingerprint kept in
   `src/adapter-kit-texts.json`, so an install from before the markers still
-  gets `split`.
+  gets `split`, including some that did not get it before.
 - `split` also applies to an adapter that holds no kit text at all (an own
   `CLAUDE.md` from before the kit, or one `rollback --from-backups` restored):
   the whole file is kept and the block is added; the plan says so. An adapter
-  whose kit text was edited, or has Windows line endings, still gets only
-  `keep` or `discard`.
+  whose kit text was edited, has Windows line endings, or holds a stray block
+  marker still gets only `keep` or `discard`.
 - Status strings the kit prints are in English: `quality gate: not
   configured`, `no feature flag`, `inline execution: …`, `· autonomous`,
   `· supervised`.
