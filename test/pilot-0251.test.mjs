@@ -55,3 +55,47 @@ test('D2: block markers quoted inside a code fence are own text, not the block',
   // Tilde fences and longer fences count too.
   assert.equal(extractManagedBlock(`~~~~\n<!-- workflow-kit:managed:start -->\nx\n<!-- workflow-kit:managed:end -->\n~~~~\n`, blockName).error, 'missing');
 });
+
+test('D3: a plan with pending decisions says what each decision does', async () => {
+  const target = await installed();
+  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nedited\n');
+  const text = formatPlan(await buildUpdatePlan({ targetPath: target }));
+  assert.match(text, /^Decisions: keep leaves the file as it is \(the next update lists it again\); discard takes the kit version and moves your version to a backup file next to it[^\n]*$/m);
+  // A plan with nothing pending has no such line.
+  const clean = await installed();
+  assert.doesNotMatch(formatPlan(await buildUpdatePlan({ targetPath: clean })), /^Decisions:/m);
+});
+
+test('D4: the plan says that an edit inside the kit block is replaced, also when the kit block changed too', async () => {
+  const target = await installed();
+  const adapter = path.join(target, 'CLAUDE.md');
+  const statePath = path.join(target, '.agents/workflow-kit/install-state.json');
+  const { checksumOf } = await import('../src/fs-safety.mjs');
+  const current = await fs.readFile(adapter, 'utf8');
+  // The install recorded an older kit block; the team then edited a line inside it.
+  const olderKit = current.replace('1–2 production files', '1–2 files');
+  const state = JSON.parse(await fs.readFile(statePath, 'utf8'));
+  state.files['CLAUDE.md'].sha256 = checksumOf(extractManagedBlock(olderKit, blockName).block);
+  await fs.writeFile(statePath, JSON.stringify(state, null, 2));
+  await fs.writeFile(adapter, olderKit.replace('| N0 |', '| N0 (edited by the team) |'));
+  const text = formatPlan(await buildUpdatePlan({ targetPath: target }));
+  assert.match(text, /^- overwrite_with_backup: CLAUDE\.md \(its kit block was edited; the kit version replaces it and the backup keeps the edit\)$/m);
+  // Not edited, only older: the block-only note.
+  await fs.writeFile(adapter, olderKit);
+  assert.match(formatPlan(await buildUpdatePlan({ targetPath: target })), /CLAUDE\.md \(only its kit block changes; the rest of the file stays\)$/m);
+});
+
+test('D5: a byte-order mark stays at the start of the file after split, and doctor names a temporary file a killed run left', async () => {
+  const template = await claudeTemplate();
+  const bom = '﻿';
+  const split = splitUnmarkedAdapter(`${bom}# CLAUDE.md\n\nReglas propias del equipo.\n`, template, blockName, []);
+  assert.ok(split.content.startsWith(`${bom}<!-- workflow-kit:managed:start -->`), JSON.stringify(split.content.slice(0, 50)));
+  assert.equal(split.content.indexOf(bom, 1), -1, 'no byte-order mark in the middle');
+
+  const target = await installed();
+  await fs.writeFile(path.join(target, '.agents/workflow-kit/.workflow-kit-tmp-99999'), 'x');
+  await fs.writeFile(path.join(target, '.agents/skills/.workflow-kit-tmp-4242'), 'x');
+  const doctor = await cli('doctor', '--target', target, '--runtime', 'claude');
+  assert.doesNotMatch(doctor.stdout, /boundary\/unowned-path\] [^\n]*\.workflow-kit-tmp-/);
+  assert.match(doctor.stdout, /\[workspace\/temporary-leftover\] \.agents\/skills\/\.workflow-kit-tmp-4242: A temporary file a stopped workflow-kit run left\. Run `workflow-kit rollback --target \S+ --apply --yes` to remove it, or delete it by hand\. \(warning\)/);
+});

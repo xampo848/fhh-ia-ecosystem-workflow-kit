@@ -1054,8 +1054,11 @@ function planAdapter({ base, entry, templateContent, existingContent, recorded, 
     if (replaced === existingContent) return plan('unchanged', replaced);
     // The kit block is the same as the one recorded, so the only difference
     // is an edit made inside the block: say so, the plan line alone hides it.
-    const blockEdited = Boolean(recorded?.sha256) && managedBlockChecksum(replaced, blockName) === recorded.sha256
-      && managedBlockChecksum(existingContent, blockName) !== recorded.sha256;
+    // A state that records adapters by their block (class adapter) tells an
+    // edit apart from an older kit block, whether or not the kit text changed.
+    const existingBlock = managedBlockChecksum(existingContent, blockName);
+    const blockEdited = Boolean(recorded?.sha256) && existingBlock !== recorded.sha256
+      && (recorded.class === 'adapter' || managedBlockChecksum(replaced, blockName) === recorded.sha256);
     // An adapter is never rewritten whole: say so next to the operation.
     return plan(overwriteOperation(backupMode), replaced, blockEdited ? { blockEdited: true } : { blockOnly: true });
   }
@@ -1079,6 +1082,8 @@ function planAdapter({ base, entry, templateContent, existingContent, recorded, 
 }
 
 function insertManagedBlock(existingContent, templateContent, blockName) {
+  // A byte-order mark belongs at the start of the file, not after the block.
+  if (existingContent.startsWith('\uFEFF')) return `\uFEFF${insertManagedBlock(existingContent.slice(1), templateContent, blockName)}`;
   const { block } = extractManagedBlock(templateContent, blockName);
   if (templateContent.startsWith(block)) return `${block}\n\n${existingContent}`;
   const separator = existingContent.endsWith('\n') ? '' : '\n';
@@ -1217,6 +1222,10 @@ export function formatPlan(plan) {
     lines.push(`- ${item.operation}: ${item.relativePath}${note}`);
   }
 
+  // What a pending file's decisions do, once, when any file lists them.
+  if (plan.operations.some((item) => item.decisions)) {
+    lines.push('Decisions: keep leaves the file as it is (the next update lists it again); discard takes the kit version and moves your version to a backup file next to it; split, when listed, keeps your own text and replaces only the kit text with the new block; shadow, when listed, moves your edit to a project shadow. Pass one with --edited <path>=<decision>.');
+  }
   lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, merge_with_backup=${plan.summary.merge_with_backup}, merge_no_backup=${plan.summary.merge_no_backup}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, overwrite_no_backup=${plan.summary.overwrite_no_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}, delete_with_backup=${plan.summary.delete_with_backup}`);
   return lines.join('\n');
 }

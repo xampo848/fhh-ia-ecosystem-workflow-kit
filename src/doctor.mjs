@@ -18,7 +18,7 @@ import { validateAdapterContracts } from './workflow-contract/adapters.mjs';
 import { generatedMarker, loadDelegateCatalog, modelSettingLine, renderDelegateAdapterForPath, resolveModelProfiles } from './model-profiles.mjs';
 import { backupIgnoreDiagnostics, projectContextDiagnostics, workspaceDiagnostics } from './workspace-diagnostics.mjs';
 import { projectInstructionDiagnostics } from './project-instructions.mjs';
-import { findSymlinkInPath, resolveInsideTarget } from './fs-safety.mjs';
+import { findSymlinkInPath, resolveInsideTarget, temporaryFileMarker } from './fs-safety.mjs';
 
 function checksum(content) {
   return crypto.createHash('sha256').update(content, 'utf8').digest('hex');
@@ -400,9 +400,14 @@ async function shadowDiagnostics({ targetPath, manifest, shipped, pluginMode }) 
 async function unownedPathDiagnostics({ targetPath, manifest, state, shipped }) {
   if (!state || state.schemaVersion === legacyInstallStateSchemaVersion) return [];
   const { files } = await walkTree(targetPath, skillsRoot);
-  return files
-    .filter((relativePath) => !relativePath.includes(backupFileMarker) && classifyPath(manifest, relativePath)?.class === 'kit' && !shipped.has(relativePath) && !Object.hasOwn(state.files, relativePath))
-    .map((relativePath) => warning('boundary/unowned-path', relativePath, `This file is neither kit nor project; move it to ${manifest.project_root} (skills go to ${manifest.project_root}skills/<name>/ with a row in ${projectIndexPath}).`));
+  // A temporary file a killed run left is not a file of the project: it has
+  // its own finding, with the command that removes it.
+  const isTemporary = (relativePath) => path.basename(relativePath).startsWith(temporaryFileMarker);
+  const leftovers = files.filter(isTemporary)
+    .map((relativePath) => warning('workspace/temporary-leftover', relativePath, `A temporary file a stopped workflow-kit run left. Run ${rollbackCommand(targetPath)} to remove it, or delete it by hand.`));
+  return [...leftovers, ...files
+    .filter((relativePath) => !isTemporary(relativePath) && !relativePath.includes(backupFileMarker) && classifyPath(manifest, relativePath)?.class === 'kit' && !shipped.has(relativePath) && !Object.hasOwn(state.files, relativePath))
+    .map((relativePath) => warning('boundary/unowned-path', relativePath, `This file is neither kit nor project; move it to ${manifest.project_root} (skills go to ${manifest.project_root}skills/<name>/ with a row in ${projectIndexPath}).`))];
 }
 
 // A managed path behind a symbolic link is written into another file (or
