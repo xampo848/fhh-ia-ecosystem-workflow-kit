@@ -93,7 +93,7 @@ Rules:
 
 Use compact readiness when all are true:
 
-- The PRD is approved and behaviorally specific.
+- The PRD is approved (`Estado: Aprobado`; `implement-change` settles it before this step) and behaviorally specific.
 - The work is backend-only, docs-only, or single-surface.
 - There is no active frontend consumer change in the same PRD.
 - API/read-path activation, if any, is explicitly deferred or has a clear checklist.

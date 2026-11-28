@@ -37,7 +37,7 @@ test('the compact PRD target is what the mandatory tables allow, and its numberi
   for (const file of bothCopies(`${createPrd}/SKILL.md`)) {
     const text = await read(file);
     assert.doesNotMatch(text, /80 to 120 lines/, file);
-    assert.match(text, /at most about 170 lines/, file);
+    assert.match(text, /at most about 180 lines/, file);
     assert.match(text, /section numbers do not shift/, file);
     assert.match(text, /each phase's Definition of Done keeps only the lines that apply/, file);
     assert.ok(text.replace(/\n$/, '').split('\n').length <= 200, file);
@@ -47,7 +47,7 @@ test('the compact PRD target is what the mandatory tables allow, and its numberi
 test('implement-change maps an explicit PRD to a level and does not ask twice', async () => {
   for (const file of bothCopies(implementChange)) {
     const text = await read(file);
-    assert.match(text, /escalation rules below[^\n]*N1 when it is compact with one slice[^\n]*N2 otherwise/, file);
+    assert.match(text, /escalation rules below[^\n]*N1 when its header says `Modo: compacto` and it has one slice[^\n]*N2 otherwise/, file);
     assert.match(text, /"implementa este PRD" is that authorization; offering the execution mode is not a second confirmation/, file);
   }
 });
@@ -57,7 +57,7 @@ test('smaller alignments: unanswered questions, the template notice, the route i
     assert.match(await read(file), /If the user replies without answering a blocking question, ask again once, naming the ones that remain/, file);
   }
   for (const file of bothCopies('.agents/project/context.md')) {
-    assert.match(await read(file), /Remove the template marker above and this paragraph when no `\[TODO` is left/, file);
+    assert.match(await read(file), /When no `\[TODO` is left, delete this whole block and the marker line above/, file);
   }
   for (const file of bothCopies(router)) {
     assert.match((await read(file)).split('\n').find((line) => line.startsWith('| Project context setup |')), /template marker and the template notice go only when no `\[TODO` is left/, file);
@@ -87,7 +87,7 @@ test('the PRD template and its sections are written with accents, and the reader
     for (const heading of ['## 3. Diseño Técnico', '### 2.3 Criterios de Aceptación', '## 4. Plan de Implementación por Fases', '### 2.9 Qué queda obsoleto', '## 10. Evidencia de Implementación']) assert.ok(template.includes(heading), `${file}: ${heading}`);
   }
   for (const file of bothCopies('.agents/skills/02-implement/implement-change/reference/input-types.md')) {
-    assert.match(await read(file), /written before 0\.24\.2 has its headings without accents: the same sections/, file);
+    assert.match(await read(file), /an older PRD may have its headings without accents: the same sections/, file);
   }
   // The reader in the CLI accepts both spellings of section 10.
   const { workspaceDiagnostics } = await import('../src/workspace-diagnostics.mjs');
@@ -116,7 +116,7 @@ test('repair: an explicit PRD takes its level from the one hazard rule, and the 
   for (const file of bothCopies(implementChange)) {
     const text = await read(file);
     assert.doesNotMatch(text, /N3 when the PRD names a hazard \(a contract, data or a migration/, file);
-    assert.match(text, /this skill sets the level itself with the escalation rules below[^\n]*N1 when it is compact with one slice[^\n]*N2 otherwise/, file);
+    assert.match(text, /this skill sets the level itself with the escalation rules below[^\n]*N1 when its header says `Modo: compacto`[^\n]*N2 otherwise/, file);
     assert.equal((text.match(/two or more listed hazards/g) ?? []).length, 1, file);
   }
   for (const file of bothCopies(router)) {
@@ -168,4 +168,56 @@ test('0.25.0: no Spanish status literal is left inside English kit text', async 
   }
   for (const file of bothCopies('.agents/delegation/delegate-contract.md')) assert.match(await read(file), /`quality gate: not configured`/, file);
   for (const file of bothCopies(`${createPrd}/reference/ambiguity-detection.md`)) assert.match(await read(file), /record `no feature flag` as an assumption/, file);
+});
+
+test('0.25.0 flow findings: a PRD says whether it is compact, one yes covers an N1 PRD, and approval is the state field', async () => {
+  for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
+    assert.match(await read(file), /^\*\*Modo\*\*: completo \| compacto$/m, file);
+  }
+  for (const file of bothCopies(`${createPrd}/SKILL.md`)) {
+    const text = await read(file);
+    assert.match(text, /record `Modo: compacto` in the PRD header/, file);
+    assert.match(text, /at most about 180 lines/, file);
+    assert.match(text, /section 10 keeps every row of its table/, file);
+    assert.ok(text.replace(/\n$/, '').split('\n').length <= 200, file);
+  }
+  for (const file of bothCopies(implementChange)) {
+    const text = await read(file);
+    assert.match(text, /N1 when its header says `Modo: compacto`/, file);
+    assert.match(text, /one yes covers both the approval and the N1 line/, file);
+    assert.ok(text.replace(/\n$/, '').split('\n').length <= 200, file);
+  }
+  for (const name of ['prd-readiness-review', 'implementation-slicing']) {
+    for (const file of bothCopies(`.agents/skills/02-implement/${name}/SKILL.md`)) {
+      assert.match(await read(file), /The PRD is approved \(`Estado: Aprobado`; `implement-change` settles it before this step\)/, file);
+    }
+  }
+  for (const file of bothCopies('.agents/skills/02-implement/implement-change/reference/input-types.md')) {
+    const text = await read(file);
+    assert.doesNotMatch(text, /written before 0\.24\.2/, file);
+    assert.match(text, /an older PRD may have its headings without accents: the same sections/, file);
+  }
+});
+
+test('0.25.0 flow findings: the template notice is one block to delete, the repeat question has an end, and a feature request has one row', async () => {
+  for (const name of ['context.md', 'backend.md', 'frontend.md']) {
+    for (const file of bothCopies(`.agents/project/${name}`)) {
+      const text = await read(file);
+      const notice = text.split('\n\n').filter((paragraph) => paragraph.startsWith('> **Template notice'));
+      assert.equal(notice.length, 1, `${file}: one template notice block`);
+      assert.match(notice[0], /delete this whole block and the marker line above/, file);
+      // Nothing outside the notice talks about being a template.
+      assert.doesNotMatch(text.replace(notice[0], ''), /still the template|Remove the template marker/, file);
+    }
+  }
+  for (const file of bothCopies(`${createPrd}/reference/ambiguity-detection.md`)) {
+    assert.match(await read(file), /If it is still unanswered, stop and wait: do not ask a third time, and do not count the repeat as a round/, file);
+  }
+  for (const file of bothCopies(router)) {
+    const text = await read(file);
+    const row = text.split('\n').find((line) => line.startsWith('| Production code change |'));
+    assert.match(row, /a request for a feature with no imperative to build it \("quiero agregar X"\) is "Feature specification"/, file);
+    assert.match(text.split('\n').find((line) => line.startsWith('| Project context setup |')), /delete the template notice block and the marker/, file);
+    assert.ok(text.replace(/\n$/, '').split('\n').length <= 199, file);
+  }
 });

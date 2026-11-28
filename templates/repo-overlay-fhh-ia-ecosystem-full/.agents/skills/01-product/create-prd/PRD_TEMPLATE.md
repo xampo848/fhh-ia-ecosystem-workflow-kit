@@ -4,6 +4,7 @@
 **Autor**: [Equipo o persona]
 **Fecha**: [Fecha]
 **Estado**: Borrador | En revisión | Aprobado
+**Modo**: completo | compacto
 
 ---
 

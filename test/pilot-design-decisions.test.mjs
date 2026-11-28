@@ -209,7 +209,7 @@ test('decision 7: a compact PRD is proportional, and its class diagram is requir
     assert.match(compact, /do not omit acceptance criteria, use cases, test strategy, or the edge-case matrix/, file);
     assert.match(compact, /`No aplica: <reason>`/, file);
     assert.match(compact, /one line per slice/, file);
-    assert.match(compact, /at most about 170 lines/, file);
+    assert.match(compact, /at most about 180 lines/, file);
     const gate = section(skill, '### Hard Gate: Class Diagram Is Non-Optional');
     assert.match(gate, /introduces or changes classes, entities, value objects, services, or interfaces/, file);
     assert.match(gate, /PRD that only adds or changes functions[^\n]*signature list/, file);

@@ -48,7 +48,7 @@ choosing one.
 Recognized when the change modifies something already implemented from a PRD.
 The ceremony drops; the quality does not.
 
-1. **The map is the PRD and its `## 10. Evidencia de Implementación`** (a PRD written before 0.24.2 has its headings without accents: the same sections), not a
+1. **The map is the PRD and its `## 10. Evidencia de Implementación`** (an older PRD may have its headings without accents: the same sections), not a
    new Discovery. Read only the files the evidence names and the delta touches.
 2. **Freshness is measured by changes, not time.** Resolve the change
    reference in section 10 to a local commit first (for a PR, its merge

@@ -7,11 +7,7 @@ explores only what is specific to a change. It is versioned, reviewed by
 humans, and limited to 200 lines. After the initial Discovery, only the orchestrator updates it, at closure,
 with a small diff in the same PR. Point to other documents; do not copy them.
 
-This file is still the template. Ask your agent for the initial
-Discovery of the project (the router handles it as project context setup) and
-review the diff before relying on it.
-What the code does not settle is one line `not determined: <reason>`, never a
-`[TODO`. Remove the template marker above and this paragraph when no `[TODO` is left.
+> **Template notice.** This file is still the template. Ask your agent for the initial Discovery of the project (the router handles it as project context setup) and review the diff before relying on it. What the code does not settle is one line `not determined: <reason>`, never a `[TODO`. When no `[TODO` is left, delete this whole block and the marker line above.
 
 ## Structure map
 
