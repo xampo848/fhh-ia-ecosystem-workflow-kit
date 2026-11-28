@@ -1,7 +1,7 @@
 # Trabajo pendiente del kit (registro de traspaso)
 
 Fecha del registro: 2026-11-25; actualizado el 2026-11-27. Base: `main` en
-`328d328` (`0.24.1-pilot-alignment`); este PR lleva `0.24.2-pilot-followup`.
+`a9cef24` (`0.24.2-pilot-followup`); este PR lleva `0.25.0-open-prefilter`.
 
 Este documento permite continuar el trabajo desde otra sesión o equipo. Es una
 foto: antes de actuar, compruébalo con `git log`, los PR abiertos y el
@@ -34,7 +34,8 @@ PR abiertos, y dime qué sigue antes de editar nada.
 | Tercer piloto: dónde viven los estándares, ruta del Discovery inicial, detección de plantilla por marcador y momento del aviso en `create-prd` | #98 | 0.23.9-pilot-context |
 | Decisiones de diseño tras el piloto: sí con ruta única, "Explicit PRD", límite de archivos del N1, definición de contrato, idioma de identificadores, plantilla del PRD neutral, PRD compacto proporcional, `rollback --from-backups`, y tres incoherencias de `create-prd` (secciones sin encabezado, campos del slice, feature flag) | #99 | 0.24.0-pilot-decisions |
 | Pilotos de la 0.23.9 y la 0.24.0: capa ausente, una sola plantilla de reglas del proyecto, ruta de contexto con nivel y traza, plantilla del PRD en español y compacto más corto, código de salida y mensajes de `rollback` sin registro, falso positivo de `doctor` con rutas relativas | #100 | 0.24.1-pilot-alignment |
-| Piloto de la 0.24.1: línea `Result` en `rollback`, `update` recrea un archivo de proyecto borrado, simulación resumida (`--all`), aviso de lo que deja `--from-backups`, `doctor` en una carpeta sin kit, Estado del PRD, meta real del PRD compacto, tildes en la plantilla del PRD | este PR | 0.24.2-pilot-followup |
+| Piloto de la 0.24.1: línea `Result` en `rollback`, `update` recrea un archivo de proyecto borrado, simulación resumida (`--all`), aviso de lo que deja `--from-backups`, `doctor` en una carpeta sin kit, Estado del PRD, meta real del PRD compacto, tildes en la plantilla del PRD | #101 | 0.24.2-pilot-followup |
+| Bloque del pre-filtro abierto con huellas de los textos anteriores, `split` para un adaptador sin texto del kit, literales en inglés y los hallazgos del piloto de la 0.24.2 (instalador I1 a I6, flujo F1 a F9) | este PR | 0.25.0-open-prefilter |
 
 Publicado el 2026-11-26, con aprobación del mantenedor:
 
@@ -46,7 +47,7 @@ Publicado el 2026-11-26, con aprobación del mantenedor:
 Publicado el 2026-11-27, con aprobación del mantenedor: los tags
 `v0.17.4-usage-measurement`, `v0.17.5-slice-checkpoint`,
 `v0.17.6-bounded-output`, `v0.23.7-pilot-fixes`, `v0.23.8-pilot-text` y
-`v0.23.9-pilot-context`. También `v0.24.0-pilot-decisions` y
+`v0.23.9-pilot-context`. También `v0.24.2-pilot-followup`, `v0.24.0-pilot-decisions` y
 `v0.24.1-pilot-alignment`.
 
 Ninguna de las dos verificaciones independientes (2026-11-25 sobre 0.23.3 y
@@ -66,7 +67,7 @@ Resueltas:
 2. **Tags desde 0.18.0:** creados y subidos. `RELEASE.md` sigue pidiendo
    aprobación para cada tag nuevo. El 2026-11-27 se crearon, con aprobación
    del mantenedor, los tags de 0.17.4, 0.17.5, 0.17.6, 0.23.7, 0.23.8 y
-   0.23.9, 0.24.0 y 0.24.1; 0.24.2 aún no tiene tag (`docs/versioning.md` dará su commit tras la fusión).
+   0.23.9, 0.24.0, 0.24.1 y 0.24.2; 0.25.0 aún no tiene tag (`docs/versioning.md` dará su commit tras la fusión).
 3. **Ramas ya fusionadas:** el remoto solo tiene `main`, `plugin` y las de
    Dependabot; las ramas locales fusionadas se borraron.
 4. **Documentos de traspaso:** no se publican. Dos quedaron respaldados fuera
@@ -119,13 +120,6 @@ CLI y `doctor`:
   restaura el del apply anterior. Desde `0.24.0` un segundo `rollback` seguido
   ya no restaura nada: lista los backups y pide `--from-backups`. Guardar más
   niveles sería una función nueva.
-- El bloque generado del pre-filtro de los adaptadores no se puede cambiar
-  sin quitarle la decisión `split` a una instalación antigua, así que la
-  aclaración del N1 de `0.24.0` (el test no cuenta en el límite de archivos)
-  no llega a un agente que solo lee ese bloque. Abrirlo pide que el planner
-  reconozca también los textos anteriores del bloque, con un test sobre
-  `test/fixtures/legacy-0.18.1/**`: es un lote propio de riesgo alto. Decidido
-  por el mantenedor: se hace en una versión propia, después de la `0.24.1`.
 - `doctor` dice que un lock que es enlace simbólico "será tomado", pero
   `update` y `rollback` lo rechazan; el mensaje de rechazo dice "folder".
 - `doctor` muestra `EISDIR` o `EACCES` en `managed/path-unreadable` cuando no
@@ -203,11 +197,15 @@ la `0.24.2`):
   decisión anterior (`0.23.3`); unificar el idioma es un cambio de producto.
 - `doctor` no revisa en `.agents/project/context.md` las rutas que empiezan
   con `../`: son relativas a otro archivo y no se pueden resolver desde la raíz.
-- El literal `quality gate: no configurado` (español dentro de texto en
-  inglés) vive en el contrato de delegados y en texto generado: va en la
-  `0.25.0`, junto con la apertura del bloque del pre-filtro.
 - El costo de lectura del Discovery inicial y de `create-prd` compacto (unas
   950 líneas de instrucciones para un resultado pequeño) no se abordó.
+
+Desde la `0.25.0` el texto del kit en los adaptadores se puede cambiar: cada
+texto anterior queda reconocible por su huella en `src/adapter-kit-texts.json`
+(`node scripts/sync-adapter-kit-texts.mjs --record` antes de subir la versión;
+`check:workflow` lo exige). Límite conocido: un adaptador antiguo sin
+marcadores cuyo texto del kit fue retocado a mano, o que tiene finales de
+línea de Windows, sigue sin `split`.
 
 ## 5. Nunca verificado
 

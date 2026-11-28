@@ -30,7 +30,7 @@ older binary.
 A tag is the version with a `v` prefix and points at the commit on `main` that
 released it. **Tags are created only when the maintainer approves them**
 ([RELEASE.md](../RELEASE.md)). The remote has a tag for every version from
-`0.16.0` to `0.24.1`, so a pin such as `--ref v0.24.1-pilot-alignment` works. A
+`0.16.0` to `0.24.2`, so a pin such as `--ref v0.24.2-pilot-followup` works. A
 version released later has no tag until the maintainer approves it; pin its
 full commit hash instead (see "Versions without a tag yet").
 
@@ -38,7 +38,8 @@ full commit hash instead (see "Versions without a tag yet").
 
 | Tag | Notes |
 | --- | --- |
-| `v0.24.1-pilot-alignment` | latest tag; commit `328d3287f6cdaf05ccc56f49bb30efb34f82f252` |
+| `v0.24.2-pilot-followup` | latest tag; commit `a9cef248af6ff8f64fc5506d8032b37c6a3e7954` |
+| `v0.24.1-pilot-alignment` | commit `328d3287f6cdaf05ccc56f49bb30efb34f82f252` |
 | `v0.24.0-pilot-decisions` | commit `1b2f67f9dd0b88b012a3eda2a7d592ac92eabcc8` |
 | `v0.23.9-pilot-context` | commit `28bf3bff9264f0897331aac3399961e227a29f54` |
 | `v0.23.8-pilot-text` | commit `cf84f93bac7e4a3d2f8a4c0ba0110a67c76b68d4` |
@@ -81,7 +82,7 @@ the next tagged version instead.
 
 ### Versions without a tag yet
 
-Every released version from `0.16.0` to `0.24.1` has a tag. `0.24.2` has none
+Every released version from `0.16.0` to `0.24.2` has a tag. `0.25.0` has none
 until the maintainer creates it.
 A version released before its tag exists is pinned by its full commit hash,
 for example `workflow-kit upgrade --ref <40-character-hash> --apply --yes`
@@ -93,7 +94,7 @@ use the full hash. Each commit is the squash merge that released the version.
 
 | Version | Commit on `main` |
 | --- | --- |
-| `0.24.2-pilot-followup` | the squash merge of this release; its hash is added after the merge |
+| `0.25.0-open-prefilter` | the squash merge of this release; its hash is added after the merge |
 
 When the maintainer creates a tag for one of these, or for a future version,
 it takes the name in the first column with a `v` prefix, and the release steps
