@@ -79,7 +79,7 @@ project overlay; each person installs the plugin once per clone
 (`claude plugin install fhh@fhh-ia-ecosystem --scope project`, or
 `copilot plugin install fhh@fhh-ia-ecosystem`). The marketplace in `main`
 points at the branch `plugin`, which is published and serves the version in
-its `plugin.json` (`0.24.1-pilot-alignment` at the time of writing). No real
+its `plugin.json` (`0.25.0-open-prefilter` at the time of writing). No real
 `claude plugin install` against it has been verified yet. Claude Code pins a
 plugin to its version: a kit change reaches people only when the maintainer
 publishes a new version, never by following `main`. Release steps: [Versioning](versioning.md).
