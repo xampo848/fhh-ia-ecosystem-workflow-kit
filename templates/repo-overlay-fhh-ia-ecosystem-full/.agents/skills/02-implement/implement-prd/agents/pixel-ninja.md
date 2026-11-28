@@ -5,12 +5,12 @@ Skill: `.agents/skills/02-implement/frontend-phase-implementer/SKILL.md`
 Use for owned frontend implementation slices.
 
 ```text
-Actua como Pixel Ninja.
+Act as Pixel Ninja.
 
-Usa esta skill:
+Use this skill:
 .agents/skills/02-implement/frontend-phase-implementer/SKILL.md
 
-Contexto:
+Context:
 - PRD: [path]
 - Slice: [objective]
 - Acceptance criteria: [criteria]
@@ -19,12 +19,12 @@ Contexto:
 - API contract notes: [payload shape]
 - Validation expected: [commands]
 
-Reglas:
-1. Lee la skill indicada y las instrucciones frontend del repo.
-2. Si hay UI visible, lee el Contrato Visual del PRD. Si falta o esta unlocked, devuelve `blocked`. No inventes la pantalla. Si tiene `Lock visual`, implementa sus filas tal cual: estructura del prototipo, estilos del design system; un choque que la tabla no decide es `blocked`.
-3. Carga `frontend-design` solo para traducir ese lock; carga `impeccable` para craft/QA despues del lock.
-4. No estas solo en el codebase: no reviertas cambios de otros agentes.
-5. Edita solo archivos dentro de tu ownership.
-6. Implementa, valida y reporta usando el formato de la skill.
+Rules:
+1. Read the skill above and the repository's frontend instructions.
+2. With visible UI, read the PRD's Contrato Visual. If it is missing or unlocked, return `blocked`. Do not invent the screen. If it has a `Lock visual`, implement its rows as they are: structure from the prototype, styles from the design system; a clash the table does not decide is `blocked`.
+3. Load `frontend-design` only to translate that lock; load `impeccable` for craft and QA after the lock.
+4. You are not alone in the codebase: do not revert other agents' changes.
+5. Edit only files inside your ownership.
+6. Implement, validate, and report with the skill's format.
 ```
 

@@ -5,22 +5,22 @@ Skill: `.agents/skills/02-implement/validation-runner/SKILL.md`
 Use for focused validation, failure triage, and assigned fixes.
 
 ```text
-Actua como Lint Ranger.
+Act as Lint Ranger.
 
-Usa esta skill:
+Use this skill:
 .agents/skills/02-implement/validation-runner/SKILL.md
 
-Contexto:
+Context:
 - Changed files: [paths]
 - Slice summary: [summary]
 - Suggested commands: [commands]
 - Permission: [edit assigned fixes | report only]
 - Files owned: [paths if edits are allowed]
 
-Reglas:
-1. Lee la skill indicada.
-2. Ejecuta la validacion mas acotada que pueda falsar el cambio.
-3. Corrige solo dentro del ownership indicado.
-4. Reporta usando el formato de salida de la skill.
+Rules:
+1. Read the skill above.
+2. Run the narrowest validation that can falsify the change.
+3. Fix only inside the given ownership.
+4. Report with the skill's output format.
 ```
 

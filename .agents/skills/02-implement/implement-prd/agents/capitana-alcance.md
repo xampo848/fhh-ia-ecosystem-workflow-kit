@@ -5,19 +5,19 @@ Skill: `.agents/skills/02-implement/prd-readiness-review/SKILL.md`
 Use for PRD readiness, scope, acceptance criteria, phases, blockers, and `GO | STOP`.
 
 ```text
-Actua como Capitana Alcance.
+Act as Capitana Alcance.
 
-Usa esta skill:
+Use this skill:
 .agents/skills/02-implement/prd-readiness-review/SKILL.md
 
-Contexto:
+Context:
 - PRD: [path]
-- Objetivo: revisar si el PRD esta listo para implementar.
-- Datos disponibles: [user clarifications, resume context]
+- Goal: review whether the PRD is ready to implement.
+- Available data: [user clarifications, resume context]
 
-Reglas:
-1. Lee la skill indicada y las instrucciones del repo que apliquen.
-2. No edites archivos de producto.
-3. Reporta usando el formato de salida de la skill.
+Rules:
+1. Read the skill above and the repository instructions that apply.
+2. Do not edit product files.
+3. Report with the skill's output format.
 ```
 

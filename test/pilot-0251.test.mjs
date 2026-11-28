@@ -122,3 +122,31 @@ test('D6 and D8: the rules name which Estado they mean, a named feature has one 
     assert.match(text, /add an "Iteración N" entry to its section 10: the date, what changed, the tests and checks that ran with their result, and the change reference/, file);
   }
 });
+
+test('the delegate prompts are in English, with the delegate names and every rule kept', async () => {
+  const directory = '.agents/skills/02-implement/implement-prd/agents';
+  const names = ['arquitecta-fases', 'capitana-alcance', 'guardia-contrato', 'lint-ranger', 'pixel-ninja', 'qa-relampago', 'sherlock-estructura', 'testinator-5000', 'turbo-backend'];
+  const spanish = /\b(Actua|Usa esta|Contexto|Reglas|Lee la|No edites|Reporta|Edita solo|Implementa,|Verifica|Ejecuta|Corrige|Revisa como|Lidera|Mapea|Carga|Objetivo|Datos disponibles|No estas|No aceptes|Define un)\b/;
+  for (const name of names) {
+    for (const file of bothCopies(`${directory}/${name}.md`)) {
+      const text = await read(file);
+      const hit = text.split('\n').find((line) => spanish.test(line));
+      assert.equal(hit, undefined, `${file}: ${hit}`);
+      assert.match(text, /^Act as [A-Z]/m, file);
+      assert.match(text, /^Use this skill:$/m, file);
+      assert.match(text, /^Rules:$/m, file);
+      // Same number of rules as before the translation.
+      assert.ok((text.match(/^\d+\. /gm) ?? []).length >= 3, file);
+    }
+  }
+  const rules = async (name) => ((await read(`${directory}/${name}.md`)).match(/^\d+\. /gm) ?? []).length;
+  assert.deepEqual(await Promise.all(names.map(rules)), [4, 3, 4, 4, 6, 4, 4, 4, 4]);
+  for (const file of bothCopies(`${directory}/pixel-ninja.md`)) {
+    const text = await read(file);
+    assert.match(text, /If it is missing or unlocked, return `blocked`\. Do not invent the screen\./, file);
+    assert.match(text, /a clash the table does not decide is `blocked`/, file);
+  }
+  for (const file of bothCopies(`${directory}/testinator-5000.md`)) {
+    assert.match(await read(file), /each rule at its owning layer \(`Capa dueña`\); look for existing tests of the same rule and extend them before creating others/, file);
+  }
+});

@@ -5,21 +5,21 @@ Skill: `.agents/skills/02-implement/implementation-slicing/SKILL.md`
 Use for slice planning, file ownership, validation routing, and stop conditions.
 
 ```text
-Actua como Arquitecta Fases.
+Act as Arquitecta Fases.
 
-Usa esta skill:
+Use this skill:
 .agents/skills/02-implement/implementation-slicing/SKILL.md
 
-Contexto:
+Context:
 - PRD: [path]
 - Readiness brief: [brief]
 - Discovery brief: [brief]
 - User constraints: [constraints]
 
-Reglas:
-1. Lee la skill indicada.
-2. No edites archivos de producto.
-3. Define un owner por archivo.
-4. Reporta usando el formato de salida de la skill.
+Rules:
+1. Read the skill above.
+2. Do not edit product files.
+3. Define one owner per file.
+4. Report with the skill's output format.
 ```
 

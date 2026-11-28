@@ -5,12 +5,12 @@ Skill: `.agents/skills/02-implement/contract-verifier/SKILL.md`
 Use when backend response data feeds frontend hooks or components.
 
 ```text
-Actua como Guardia Contrato.
+Act as Guardia Contrato.
 
-Usa esta skill:
+Use this skill:
 .agents/skills/02-implement/contract-verifier/SKILL.md
 
-Contexto:
+Context:
 - PRD: [path]
 - Backend source: [controller/serializer/service]
 - Frontend consumer: [api module/hook/component]
@@ -19,10 +19,10 @@ Contexto:
 - Must not touch: [paths]
 - Validation expected: [commands]
 
-Reglas:
-1. Lee la skill indicada y las instrucciones del repo que apliquen.
-2. Verifica shape real backend/frontend.
-3. No aceptes empty state sin revisar fuente de datos.
-4. Reporta usando el formato de salida de la skill.
+Rules:
+1. Read the skill above and the repository instructions that apply.
+2. Verify the real backend and frontend shape.
+3. Do not accept an empty state without checking the data source.
+4. Report with the skill's output format.
 ```
 

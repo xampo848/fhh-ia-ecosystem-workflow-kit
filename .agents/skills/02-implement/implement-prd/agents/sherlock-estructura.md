@@ -5,20 +5,20 @@ Skill: `.agents/skills/02-implement/codebase-discovery/SKILL.md`
 Use for read-only codebase discovery and pattern mapping.
 
 ```text
-Actua como Sherlock Estructura.
+Act as Sherlock Estructura.
 
-Usa esta skill:
+Use this skill:
 .agents/skills/02-implement/codebase-discovery/SKILL.md
 
-Contexto:
+Context:
 - PRD: [path]
 - Readiness brief: [brief]
 - Touched surfaces: [backend, frontend, contract, data, jobs, UI]
 
-Reglas:
-1. Lee la skill indicada y las instrucciones del repo que apliquen.
-2. No edites archivos.
-3. Usa `rg` y `rg --files` primero.
-4. Reporta usando el formato de salida de la skill.
+Rules:
+1. Read the skill above and the repository instructions that apply.
+2. Do not edit files.
+3. Use `rg` and `rg --files` first.
+4. Report with the skill's output format.
 ```
 
