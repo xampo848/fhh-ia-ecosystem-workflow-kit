@@ -7,10 +7,10 @@
   "compact_pattern_index": ".agents/skills/06-patterns/index.md",
   "structured_registry": ".agents/skills/registry.json",
   "source_hashes": {
-    ".agents/skills/index.md": "4c2e5ab06f03588da9f6c56bb23df9b8ecedc653389b45e5bdea5e287c0f793d",
+    ".agents/skills/index.md": "9b72be61ced6aa47ddfa01f23ee173d2bcc48732dd3871a4a34974cc626819ed",
     ".agents/skills/06-patterns/index.md": "3e468cf3404df4a802c3380d2aff52e25a9b9cc83409d77bb382b2e214f4cf18",
-    ".agents/skills/registry.md": "3d330b1909d4a6b355e4efb147b291e71162c662c7a74a3f3802a5dd0e621b20",
-    ".agents/skills/registry.json": "531fce321b7d51caf843f6e7c9b9810478c566b794b53cbbaabfad7c20b56fe9"
+    ".agents/skills/registry.md": "ad07c1273330a048f7fdb900ee3cce30072dc55a49ad95875f3f6997e04988ef",
+    ".agents/skills/registry.json": "62b74c5249c36a4bbd66dafc738463b4ea331532b3d8ee1bc43bc9e54b20684c"
   },
   "entry_count": 43,
   "entries": [
@@ -156,7 +156,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "2c8e8370259b6ff3da8718790e8e06a76de071b4393432bc08b0005b6b52c5d0"
+      "skill_sha256": "253dc55bdfdc92898628b31da2936915cb478267e8b552d71b5c2d8980d557db"
     },
     {
       "key": "document-development",
@@ -219,7 +219,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-change/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "7d411e5d4df8cd44b0677fa3882cce031215bcf71947cc2dc951d9a5b906cc04"
+      "skill_sha256": "47419eb0e2280fbb9de34c777e5d2ba48965e4c7689a43d3e28f0bc7e38dd9ca"
     },
     {
       "key": "implement-prd",
@@ -237,7 +237,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/implementation-skill-matcher/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "c64b764ebcdc640a3d6d7db2052b2bb9c9911ae2206eaf7fcb3333b2af6a94da"
+      "skill_sha256": "700339369171818ada9bf8c3c2fd5b98a748f98329d186245f98738dbbda1d7d"
     },
     {
       "key": "implementation-slicing",

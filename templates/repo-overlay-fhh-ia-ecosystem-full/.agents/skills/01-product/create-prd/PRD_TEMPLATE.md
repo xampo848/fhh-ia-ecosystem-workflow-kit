@@ -184,11 +184,11 @@ Los cuatro campos siguientes valen para toda la fase; anotarlos en un slice solo
 
 ### Fase 2 - [Nombre]
 
-Repetir la estructura completa de la fase anterior. No reemplazar los slices ejecutables por una lista amplia de entregables.
+_Solo PRD completo: un PRD compacto tiene una sola fase._ Repetir la estructura completa de la fase anterior. No reemplazar los slices ejecutables por una lista amplia de entregables.
 
 ### Fase Futura - [Nombre] _(fuera de alcance de este PRD)_
 
-> Será abordada en PRD separado.
+> _Solo PRD completo: un PRD compacto no lleva fase futura._ Será abordada en PRD separado.
 
 - [Descripción breve de lo que vendrá después]
 
@@ -265,5 +265,5 @@ Esta sección es el registro durable de cierre: un resumen, no una bitácora. `i
 | Riesgos o waivers | [Ninguno o riesgo, aprobador y motivo] |
 | Checks reutilizados | [Ninguno, o `comando`: reutilizado de <etapa>, huella <x>] |
 | Iteraciones y causa | [Ninguna, o por cada reentrada, ronda de reparación o iteración: `hueco del PRD` \| `error de implementación` \| `entorno` \| `cambio de requisito`] |
-| Modo de ejecución | [supervisado \| autónomo] |
+| Modo de ejecución | [supervised \| autonomous] |
 | Fecha de cierre | [YYYY-MM-DD] |

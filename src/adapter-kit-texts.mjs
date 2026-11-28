@@ -39,7 +39,8 @@ export function previousKitTexts(relativePath, texts = loadAdapterKitTexts()) {
 
 // Where an earlier kit text sits in a file, as whole lines: { start, length }
 // in characters, or null.
-export function findKnownKitText(content, fingerprints) {
+// `stats.windows` counts the windows hashed (a test measures work, not time).
+export function findKnownKitText(content, fingerprints, stats = { windows: 0 }) {
   if (fingerprints.length === 0) return null;
   const lines = content.split('\n');
   // A file that lacks even one distinctive line of a text cannot hold it
@@ -56,6 +57,7 @@ export function findKnownKitText(content, fingerprints) {
   for (const fingerprint of fingerprints) {
     for (let first = 0; first + fingerprint.lines <= lines.length; first += 1) {
       const candidate = lines.slice(first, first + fingerprint.lines).join('\n');
+      stats.windows += 1;
       if (sha256(candidate) === fingerprint.sha256) return { start: offsets[first], length: candidate.length };
     }
   }

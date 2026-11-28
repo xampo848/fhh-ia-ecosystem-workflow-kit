@@ -117,8 +117,8 @@ test('a 0.18.1 install still gets split for every adapter, with the text it has 
 test('the generated pre-filter carries the N1 file rule in every adapter, and the text it replaced is still recognized', async () => {
   const { extractPrefilterBlock, prefilterTargets } = await import('../scripts/sync-level-prefilter.mjs');
   const block = extractPrefilterBlock(await fs.readFile(path.join(root, '.agents/instructions.md'), 'utf8'));
-  assert.match(block, /\| Behavior-changing edit in 1–2 production files with clear scope \| N1 \|/);
-  assert.match(block, /edit only the target files \(the test file of each one goes with it and does not count toward the 1–2\)/);
+  assert.match(block, /\| Behavior-changing edit in 1–2 production files with clear scope/);
+  assert.match(block, /the test file of each one goes with it[^.]*does not count/);
   for (const target of prefilterTargets) {
     assert.equal(extractPrefilterBlock(await fs.readFile(path.join(root, target), 'utf8'), target), block, target);
   }
@@ -185,10 +185,60 @@ test('review: the adapter texts of every tagged version are recognized, and reco
   assert.deepEqual((await validateAdapterKitTexts({ file: copy })).failures, []);
 });
 
-test('review: a large own file is ruled out without hashing every window', async () => {
+test('review: a large own file is ruled out without hashing a single window', async () => {
   const texts = loadAdapterKitTexts();
-  const big = `${Array.from({ length: 120000 }, (_, index) => `own line number ${index} that is long enough to count as distinctive`).join('\n')}\n`;
-  const started = Date.now();
-  assert.equal(findKnownKitText(big, texts.adapters['CLAUDE.md'].previous), null);
-  assert.ok(Date.now() - started < 1500, `took ${Date.now() - started} ms`);
+  const big = `${Array.from({ length: 20000 }, (_, index) => `own line number ${index} that is long enough to count as distinctive`).join('\n')}\n`;
+  // Work is measured, not time: a loaded machine must not fail this.
+  const stats = { windows: 0 };
+  assert.equal(findKnownKitText(big, texts.adapters['CLAUDE.md'].previous, stats), null);
+  assert.equal(stats.windows, 0);
+  // A file that does hold a known text is scanned, and found.
+  const template = await claudeTemplate();
+  const earlier = [...kitBody(template, blockName).split('\n'), 'A sentence only the earlier kit text had, long enough to count.'].join('\n');
+  const found = { windows: 0 };
+  assert.ok(findKnownKitText(`own\n${earlier}\n`, [fingerprintOf(earlier)], found));
+  assert.ok(found.windows > 0);
+});
+
+// Repair round after the pilot run on this branch.
+test('repair: the pre-filter is complete about files, tests and the lookup, and the adapter says the lookup is allowed', async () => {
+  const { extractPrefilterBlock, prefilterTargets } = await import('../scripts/sync-level-prefilter.mjs');
+  const block = extractPrefilterBlock(await fs.readFile(path.join(root, '.agents/instructions.md'), 'utf8'));
+  assert.match(block, /\| Behavior-changing edit in 1–2 production files with clear scope, or a change to tests only \| N1 \|/);
+  assert.match(block, /\| Uncertain scope, more than 2 production files, or several pieces \| N2 \|/);
+  assert.doesNotMatch(block, /more than 2 files/);
+  assert.match(block, /The 1–2 limit counts production files, new ones included; the test file of each one goes with it, may be created when there is none, and does not count\./);
+  assert.match(block, /Before the yes, a bounded read-only lookup to locate the target, its test, and the check command is allowed; reading to design the change waits for the yes\./);
+  for (const target of prefilterTargets) {
+    const content = await fs.readFile(path.join(root, target), 'utf8');
+    assert.equal(extractPrefilterBlock(content, target), block, target);
+    assert.match(content, /In N1, the bounded read-only lookup that names the files comes before that\s+"yes"; it is not implementation inspection\./, target);
+  }
+  // No text that was never released is listed as a previous one.
+  const texts = loadAdapterKitTexts();
+  for (const [adapter, entry] of Object.entries(texts.adapters)) {
+    assert.ok(!(entry.previous ?? []).some((item) => item.lastVersion === '0.25.0-open-prefilter'), adapter);
+  }
+  assert.deepEqual((await validateAdapterKitTexts()).failures, []);
+});
+
+test('repair: split never applies when a block marker would be left in the own text', async () => {
+  const template = await claudeTemplate();
+  const { block } = extractManagedBlock(template, blockName);
+  const body = kitBody(template, blockName);
+  const start = '<!-- workflow-kit:managed:start -->';
+  // A: a stray start marker and the kit text whole, without markers.
+  assert.equal(splitUnmarkedAdapter(`${start}\nNota suelta.\n\n${body}\n`, template, blockName, []), null);
+  // B: a stray start marker and a complete block.
+  assert.equal(splitUnmarkedAdapter(`${start}\nNota suelta.\n\n${block}\n`, template, blockName, []), null);
+  // Without the stray marker the same file still gets split.
+  assert.equal(splitUnmarkedAdapter(`Nota suelta.\n\n${body}\n`, template, blockName, []).content, `${block}\n\nNota suelta.\n`);
+
+  for (const content of [`${start}\nNota suelta.\n\n${body}\n`, `${start}\nNota suelta.\n\n${block}\n`]) {
+    const target = await makeTempRepo();
+    await applyInstallPlan(await buildInstallPlan({ targetPath: target, runtime: 'claude' }));
+    await fs.writeFile(path.join(target, 'CLAUDE.md'), content);
+    const pending = (await buildUpdatePlan({ targetPath: target })).operations.find((item) => item.relativePath === 'CLAUDE.md');
+    assert.ok(!(pending.decisions ?? []).includes('split'), JSON.stringify([pending.operation, pending.reason, pending.decisions]));
+  }
 });

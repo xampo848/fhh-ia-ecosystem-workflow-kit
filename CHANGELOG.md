@@ -16,8 +16,11 @@ pilot run on `0.24.2`. In your projects, `workflow-kit update` changes
 `AGENTS.md`, `ANTIGRAVITY.md`, `.github/copilot-instructions.md`) and updates
 the kit text listed below. Your own text in those files does not change.
 
-- The generated level pre-filter says that the N1 limit counts production
-  files and that the test file of each one goes with it. It was the same text
+- The generated level pre-filter is complete about N1: the limit counts
+  production files (new ones included), the test file of each one goes with
+  it and may be created, a change to tests only is N1, more than 2 production
+  files is N2, and a bounded read-only lookup to name the files may precede
+  the yes. The authorization line of every adapter names that lookup. It was the same text
   since `0.18.1` because `update` offers `split` to an adapter without markers
   only when it holds the kit text whole. `update` now also recognizes the
   text each tagged version shipped (from `0.7.4` on), by a fingerprint kept in
@@ -26,11 +29,11 @@ the kit text listed below. Your own text in those files does not change.
 - `split` also applies to an adapter that holds no kit text at all (an own
   `CLAUDE.md` from before the kit, or one `rollback --from-backups` restored):
   the whole file is kept and the block is added; the plan says so. An adapter
-  whose kit text was edited, has Windows line endings, or holds a stray block
-  marker still gets only `keep` or `discard`.
+  whose kit text was edited, has Windows line endings, or would be left with
+  a stray block marker still gets only `keep` or `discard`.
 - Status strings the kit prints are in English: `quality gate: not
-  configured`, `no feature flag`, `inline execution: …`, `· autonomous`,
-  `· supervised`.
+  configured`, `no feature flag`, `inline execution: …`, `matching: no
+  candidates for <surface>`, `· autonomous`, `· supervised`.
 - `rollback` without a record of an apply says that the project may already
   be in its previous state and what restoring the older backups would undo.
   When every backup already matches its file, the result line says
@@ -39,10 +42,12 @@ the kit text listed below. Your own text in those files does not change.
   the `stack-pack/missing` finding names the command that restores the file.
 - A plan says next to an adapter that only its kit block changes.
 - `create-prd`: the PRD header records `Modo: completo | compacto`; the
-  compact target is "at most about 180 lines"; section 10 keeps every row of
-  its table.
+  compact form is defined by what it leaves out (separators, template notes,
+  section 9, a second phase, a future phase) and no longer by a line count;
+  section 10 keeps every row of its table.
 - `implement-change`: an explicit PRD is N1 only when its header says
-  `Modo: compacto`; at N1 one yes covers the approval and the N1 line;
+  `Modo: compacto`; at N1 one yes covers the approval and the N1 line, and
+  with a PRD that is already approved it shows the N1 line and goes on;
   "approved" means `Estado: Aprobado`, also for `prd-readiness-review` and
   `implementation-slicing`.
 - The template notice of `.agents/project/context.md`, `backend.md` and

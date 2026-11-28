@@ -12,14 +12,14 @@ Level pre-filter (apply to every new user prompt before loading any workflow fil
 | --- | --- |
 | Read-only question, lookup, or local command without side effects | N0 |
 | Non-semantic edit (formatting, indentation, typo, comment, docs wording) | N0 |
-| Behavior-changing edit in 1–2 production files with clear scope | N1 |
-| Uncertain scope, more than 2 files, or several pieces | N2 |
+| Behavior-changing edit in 1–2 production files with clear scope, or a change to tests only | N1 |
+| Uncertain scope, more than 2 production files, or several pieces | N2 |
 | Contracts, data or migrations, auth or tenancy, dependencies, CI, or anything irreversible (push, deploy, delete) | N3 |
 | Hard triggers: explicit skill invocation, PR/review comments, explicit PRD | per that skill, whatever the level |
 
 - The level is the highest signal that applies; when unsure between two levels, pick the higher one.
 - N0: act directly without reading workflow files or emitting a trace; after 3 tool calls, stop and propose N1.
-- N1: emit one line (`N1 · surgical · <files>`), wait for a short yes, edit only the target files (the test file of each one goes with it and does not count toward the 1–2), and run one focused check (lint, build, or test). When behavior changes, add or update a test and make that check the touched tests (lint or build alone is not enough); for a bug, the test must fail before the fix and pass after it.
+- N1: emit one line (`N1 · surgical · <files>`), wait for a short yes, edit only the target files, and run one focused check (lint, build, or test). The 1–2 limit counts production files, new ones included; the test file of each one goes with it, may be created when there is none, and does not count. Before the yes, a bounded read-only lookup to locate the target, its test, and the check command is allowed; reading to design the change waits for the yes. When behavior changes, add or update a test and make that check the touched tests (lint or build alone is not enough); for a bug, the test must fail before the fix and pass after it.
 - N2/N3: apply `.agents/instructions.md` and `workflow-router` before planning, editing, or implementing.
 - If something unexpected appears in N0 or N1 (another file, a contract, a test you do not understand), stop and propose a higher level.
 - The user can force a level ("hazlo quirúrgico", "hazlo completo"); forcing below an N3 signal requires naming the risk first.
@@ -46,6 +46,8 @@ Shared bootstrap for every new user prompt:
   Exceptions: N0 acts on intent, N1 needs a short "yes", and read-only routes
   or an explicit imperative naming the work ("revisa este PR") need no extra
   confirmation.
+  In N1, the bounded read-only lookup that names the files comes before that
+  "yes"; it is not implementation inspection.
 
 Runtime notes:
 

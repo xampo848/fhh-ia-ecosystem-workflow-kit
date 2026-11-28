@@ -33,6 +33,8 @@ Shared bootstrap for every new user prompt:
   Exceptions: N0 acts on intent, N1 needs a short "yes", and read-only routes
   or an explicit imperative naming the work ("revisa este PR") need no extra
   confirmation.
+  In N1, the bounded read-only lookup that names the files comes before that
+  "yes"; it is not implementation inspection.
 
 Runtime notes:
 

@@ -83,10 +83,10 @@ test('decision 2: an N1 limit counts production files, the test goes with its fi
     const rules = section(text, 'Level rules:');
     assert.match(rules, /N1 file limit counts production files/, file);
     assert.match(rules, /bounded read-only lookup/, file);
-    // Since 0.25.0 the generated block carries the file rule too (earlier
-    // texts stay recognized by fingerprint); the lookup stays outside it.
+    // Since 0.25.0 the generated block carries the file rule and the lookup
+    // too (earlier texts stay recognized by fingerprint).
     assert.match(extractPrefilterBlock(text), /1–2 production files/, file);
-    assert.doesNotMatch(extractPrefilterBlock(text), /read-only lookup/, file);
+    assert.match(extractPrefilterBlock(text), /bounded read-only lookup/, file);
   }
 });
 
@@ -209,7 +209,7 @@ test('decision 7: a compact PRD is proportional, and its class diagram is requir
     assert.match(compact, /do not omit acceptance criteria, use cases, test strategy, or the edge-case matrix/, file);
     assert.match(compact, /`No aplica: <reason>`/, file);
     assert.match(compact, /one line per slice/, file);
-    assert.match(compact, /at most about 180 lines/, file);
+    assert.match(compact, /Its length is whatever those rules leave/, file);
     const gate = section(skill, '### Hard Gate: Class Diagram Is Non-Optional');
     assert.match(gate, /introduces or changes classes, entities, value objects, services, or interfaces/, file);
     assert.match(gate, /PRD that only adds or changes functions[^\n]*signature list/, file);

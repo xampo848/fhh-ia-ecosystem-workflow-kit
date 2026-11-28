@@ -760,6 +760,7 @@ export function kitBody(templateContent, blockName) {
 export function splitUnmarkedAdapter(existingContent, templateContent, blockName, knownTexts = []) {
   const body = kitBody(templateContent, blockName);
   if (body === '') return null;
+  const strayMarkers = [`<!-- ${blockName}:start -->`, `<!-- ${blockName}:end -->`];
   let start = existingContent.indexOf(body);
   const wholeLines = (index) => (index === 0 || existingContent[index - 1] === '\n') && [undefined, '\n'].includes(existingContent[index + body.length]);
   while (start !== -1 && !wholeLines(start)) start = existingContent.indexOf(body, start + 1);
@@ -771,13 +772,15 @@ export function splitUnmarkedAdapter(existingContent, templateContent, blockName
   if (start === -1) {
     // A lone or repeated block marker cannot be paired safely with a new
     // block: that file is not own text to keep whole.
-    if ([`<!-- ${blockName}:start -->`, `<!-- ${blockName}:end -->`].some((marker) => existingContent.includes(marker))) return null;
+    if (strayMarkers.some((marker) => existingContent.includes(marker))) return null;
     if (existingContent.trim() === '' || holdsKitLines(existingContent, body, knownTexts)) return null;
     return { content: insertManagedBlock(existingContent, templateContent, blockName), wholeFileOwn: true };
   }
   const before = existingContent.slice(0, start).replace(/(?:^|(?<=\n))(?:[ \t]*\n)+$/, '');
   const after = existingContent.slice(start + length).replace(/^\n/, '').replace(/^(?:[ \t]*\n)+/, '').replace(/^[ \t]*$/, '');
   const own = `${before}${before && after ? '\n' : ''}${after}`;
+  // A block marker left in the own text would give the file two of them.
+  if (strayMarkers.some((marker) => own.includes(marker))) return null;
   return { content: own === '' ? templateContent : insertManagedBlock(own, templateContent, blockName), wholeFileOwn: false };
 }
 

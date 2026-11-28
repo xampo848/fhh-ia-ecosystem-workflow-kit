@@ -36,8 +36,7 @@ test('the PRD state has an owner: create-prd delivers it in review, and implemen
 test('the compact PRD target is what the mandatory tables allow, and its numbering and phase checklist are defined', async () => {
   for (const file of bothCopies(`${createPrd}/SKILL.md`)) {
     const text = await read(file);
-    assert.doesNotMatch(text, /80 to 120 lines/, file);
-    assert.match(text, /at most about 180 lines/, file);
+    assert.doesNotMatch(text, /80 to 120 lines|at most about \d+ lines/, file);
     assert.match(text, /section numbers do not shift/, file);
     assert.match(text, /each phase's Definition of Done keeps only the lines that apply/, file);
     assert.ok(text.replace(/\n$/, '').split('\n').length <= 200, file);
@@ -177,7 +176,6 @@ test('0.25.0 flow findings: a PRD says whether it is compact, one yes covers an 
   for (const file of bothCopies(`${createPrd}/SKILL.md`)) {
     const text = await read(file);
     assert.match(text, /record `Modo: compacto` in the PRD header/, file);
-    assert.match(text, /at most about 180 lines/, file);
     assert.match(text, /section 10 keeps every row of its table/, file);
     assert.ok(text.replace(/\n$/, '').split('\n').length <= 200, file);
   }
@@ -219,5 +217,49 @@ test('0.25.0 flow findings: the template notice is one block to delete, the repe
     assert.match(row, /a request for a feature with no imperative to build it \("quiero agregar X"\) is "Feature specification"/, file);
     assert.match(text.split('\n').find((line) => line.startsWith('| Project context setup |')), /delete the template notice block and the marker/, file);
     assert.ok(text.replace(/\n$/, '').split('\n').length <= 199, file);
+  }
+});
+
+test('0.25.0 repair: an approved PRD at N1 shows its line and goes on, and no state or status literal is left behind', async () => {
+  for (const file of bothCopies(implementChange)) {
+    const text = await read(file);
+    assert.match(text, /With an approved PRD the imperative is the authorization at every level: at N1, show the N1 line and go on without waiting/, file);
+    assert.match(text, /stop only when a file to touch is not one the PRD names/, file);
+    assert.ok(text.replace(/\n$/, '').split('\n').length <= 200, file);
+  }
+  for (const file of bothCopies('.agents/instructions.md')) {
+    assert.match(await read(file), /With an explicit PRD that is approved, `implement-change` shows the N1 line and goes on/, file);
+  }
+  for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
+    assert.match(await read(file), /\| Modo de ejecución \| \[supervised \\\| autonomous\] \|/, file);
+  }
+  for (const name of ['.agents/skills/02-implement/implement-change/reference/level-n3.md', '.agents/skills/02-implement/implementation-skill-matcher/SKILL.md']) {
+    for (const file of bothCopies(name)) {
+      const text = await read(file);
+      assert.doesNotMatch(text, /sin candidatos/, file);
+      assert.match(text, /`matching: no candidates for <surface>`/, file);
+    }
+  }
+  for (const name of ['.agents/skills/index.md', '.agents/skills/registry.md']) {
+    for (const file of bothCopies(name)) {
+      const rows = (await read(file)).split('\n').filter((line) => /^\| `implement-(change|prd)` \|/.test(line));
+      assert.equal(rows.length, 2, file);
+      for (const row of rows) assert.match(row, /`Estado: Aprobado`/, `${file}: ${row.slice(0, 80)}`);
+    }
+  }
+});
+
+test('0.25.0 repair: a compact PRD is defined by what it leaves out, not by a line count', async () => {
+  for (const file of bothCopies(`${createPrd}/SKILL.md`)) {
+    const text = await read(file);
+    assert.doesNotMatch(text, /at most about \d+ lines|\d+ to \d+ lines/, file);
+    assert.match(text, /no `---` separators, none of the template's notes in italics, no section 9, no second phase and no future phase/, file);
+    assert.match(text, /Its length is whatever those rules leave/, file);
+    assert.ok(text.replace(/\n$/, '').split('\n').length <= 200, file);
+  }
+  for (const file of bothCopies(`${createPrd}/PRD_TEMPLATE.md`)) {
+    const template = await read(file);
+    assert.ok((template.match(/_Solo PRD completo/g) ?? []).length >= 2, `${file}: the full-only parts are marked`);
+    assert.ok(template.replace(/\n$/, '').split('\n').length <= 270, file);
   }
 });
