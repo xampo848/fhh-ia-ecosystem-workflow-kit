@@ -1025,7 +1025,8 @@ function planAdapter({ base, entry, templateContent, existingContent, recorded, 
     // is an edit made inside the block: say so, the plan line alone hides it.
     const blockEdited = Boolean(recorded?.sha256) && managedBlockChecksum(replaced, blockName) === recorded.sha256
       && managedBlockChecksum(existingContent, blockName) !== recorded.sha256;
-    return plan(overwriteOperation(backupMode), replaced, blockEdited ? { blockEdited: true } : {});
+    // An adapter is never rewritten whole: say so next to the operation.
+    return plan(overwriteOperation(backupMode), replaced, blockEdited ? { blockEdited: true } : { blockOnly: true });
   }
 
   // No single valid block. A file the kit wrote before it had markers is
@@ -1176,6 +1177,7 @@ export function formatPlan(plan) {
     if (item.untracked) note = ' (kit-location removed; leaves the install as a project file)';
     if (item.missingRecorded) note = ' (recorded as installed and missing from disk; created again)';
     if (item.recreated) note = ' (project file that was deleted; created again from its template)';
+    if (item.blockOnly) note = ' (only its kit block changes; the rest of the file stays)';
     if (item.blockEdited) note = ` (its kit block was edited; the kit version replaces it${item.operation === 'overwrite_with_backup' ? ' and the backup keeps the edit' : ''})`;
     if (item.decisions && !migrationListsPending) note = ` (${item.reason}): ${item.decisions.join(' | ')}`;
     if (item.note) note = ` (${item.reason}): ${item.note}`;

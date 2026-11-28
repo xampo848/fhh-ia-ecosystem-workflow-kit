@@ -242,7 +242,7 @@ export async function runRollbackCommand(options, { stdout, stderr }) {
       result(outcome);
       return 0;
     }
-    stderr.write('Exit code 3: backups exist and none was restored. Add --from-backups to restore them.\n');
+    stderr.write('Exit code 3: backups exist and none was restored. That is expected after a rollback that already succeeded; add --from-backups only to go back to those older copies.\n');
     result(outcome);
     return 3;
   }
@@ -273,7 +273,9 @@ function rollbackOutcome(plan) {
   if (plan.source === 'leftovers') return 'cleaned-up';
   if (plan.source === 'journal') return 'rolled-back';
   if (plan.operations.length > 0) return 'restored-from-backups';
-  return (plan.availableBackups?.length ?? 0) > 0 ? 'backups-not-restored' : 'nothing-to-undo';
+  if ((plan.availableBackups?.length ?? 0) > 0) return 'backups-not-restored';
+  // Backups are there and every file already has their content.
+  return (plan.matchingBackups ?? 0) > 0 ? 'already-restored' : 'nothing-to-undo';
 }
 
 export async function runTuiCommand(_options, { stdout }) {

@@ -49,7 +49,7 @@ test('rollback without a journal: apply exits 3 when backups exist and none is r
   const apply = await cli('rollback', '--target', target, '--apply', '--yes');
   assert.equal(apply.code, 3, apply.stdout);
   assert.match(apply.stdout, /Nothing is restored\./);
-  assert.match(apply.stderr, /Exit code 3: backups exist and none was restored\. Add --from-backups to restore them\./);
+  assert.match(apply.stderr, /Exit code 3: backups exist and none was restored\. That is expected after a rollback that already succeeded; add --from-backups only to go back to those older copies\./);
 
   const empty = await makeTempRepo();
   const nothing = await cli('rollback', '--target', empty, '--apply', '--yes');

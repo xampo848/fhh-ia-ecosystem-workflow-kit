@@ -35,7 +35,7 @@ const commandNotes = {
   upgrade: [dryRunNote],
   export: [runtimeNote, dryRunNote, allNote],
   doctor: [runtimeNote, 'doctor only reads: it never writes, so it takes no --apply, --yes or --dry-run.'],
-  rollback: [dryRunNote, 'A rollback that gets as far as a plan ends with one line a script can read: Result: rolled-back, restored-from-backups, cleaned-up, nothing-to-undo or backups-not-restored (exit code 3 with --apply); interrupted or failed when it stops partway; a dry run prints Result: dry-run (would be: ...).', '--from-backups restores the newest backup of each managed file when there is no record of an applied run (a project installed before 0.17.0, or a removed record). Without it, rollback only lists those backups: they may come from a run older than the one you mean to undo.'],
+  rollback: [dryRunNote, 'A rollback that gets as far as a plan ends with one line a script can read: Result: rolled-back, restored-from-backups, already-restored, cleaned-up, nothing-to-undo or backups-not-restored (exit code 3 with --apply); interrupted or failed when it stops partway; a dry run prints Result: dry-run (would be: ...).', '--from-backups restores the newest backup of each managed file when there is no record of an applied run (a project installed before 0.17.0, or a removed record). Without it, rollback only lists those backups: they may come from a run older than the one you mean to undo.'],
   tui: ['The menu needs an interactive terminal; in scripts use the other commands.']
 };
 
