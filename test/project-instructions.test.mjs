@@ -116,7 +116,7 @@ test('implementation skills never skip a missing quality gate silently', async (
     read(root, '.agents/delegation/delegate-contract.md'),
     read(root, '.agents/skills/02-implement/backend-phase-implementer/SKILL.md')
   ]);
-  for (const content of [core, contract, backend]) assert.match(content, /quality gate: no configurado/);
+  for (const content of [core, contract, backend]) assert.match(content, /quality gate: not configured/);
   assert.match(core, /at N3 that is a stop/);
 });
 

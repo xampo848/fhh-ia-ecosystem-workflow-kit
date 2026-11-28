@@ -49,7 +49,7 @@ test('every rollback ends with a result line a script can read, in a dry run too
   const restored = await cli('rollback', '--target', noJournal, '--from-backups', '--apply', '--yes');
   assert.equal(restored.code, 0, restored.stderr);
   assert.equal(lastLine(restored.stdout), 'Result: restored-from-backups');
-  assert.equal(lastLine((await cli('rollback', '--target', noJournal, '--from-backups', '--apply', '--yes')).stdout), 'Result: nothing-to-undo');
+  assert.equal(lastLine((await cli('rollback', '--target', noJournal, '--from-backups', '--apply', '--yes')).stdout), 'Result: already-restored');
 
   const stale = await installed();
   await fs.rm(path.join(stale, applyJournalRelativePath));
@@ -61,7 +61,7 @@ test('rollback --from-backups says what it leaves behind: the kit stays, and res
   const target = await installed();
   await fs.rm(path.join(target, applyJournalRelativePath));
   const dry = await cli('rollback', '--target', target, '--from-backups');
-  assert.match(dry.stdout, /The kit stays installed: a restored adapter \(such as CLAUDE\.md\) or \.gitignore loses the kit block or lines the install added, and `workflow-kit doctor[^`]*` reports that until `workflow-kit update[^`]*` puts them back\./);
+  assert.match(dry.stdout, /The kit stays installed: a restored adapter \(such as CLAUDE\.md\) or \.gitignore loses the kit block or lines the install added, and `workflow-kit doctor[^`]*` reports that until `workflow-kit update[^`]*` puts them back \(for an adapter, with --edited <path>=split, which keeps your text\)\./);
 });
 
 test('update recreates a project file that was deleted, and doctor says how to repair it', async () => {
@@ -183,6 +183,85 @@ test('repair: the help says what --all does and which results a rollback prints'
   const general = await cli('--help');
   assert.match(general.stdout, /--all lists every file/);
   const rollback = await cli('rollback', '--help');
-  assert.match(rollback.stdout, /Result: rolled-back, restored-from-backups, cleaned-up, nothing-to-undo or backups-not-restored/);
+  assert.match(rollback.stdout, /Result: rolled-back, restored-from-backups, already-restored, cleaned-up, nothing-to-undo or backups-not-restored/);
   assert.match(rollback.stdout, /interrupted or failed/);
+});
+
+// Installer findings of the pilot run on 0.24.2.
+test('0.25.0: a rollback with only older backups left says the project may already be fine, and what restoring them would undo', async () => {
+  const target = await installed();
+  assert.equal((await cli('rollback', '--target', target, '--apply', '--yes')).code, 0);
+  // The journal is gone and the backups of the init stay: nothing more to undo.
+  const reinstalled = await installed();
+  await fs.rm(path.join(reinstalled, applyJournalRelativePath));
+  const second = await cli('rollback', '--target', reinstalled, '--apply', '--yes');
+  assert.equal(second.code, 3);
+  assert.match(second.stdout, /If a rollback already succeeded here, the project is back in its previous state and there is nothing more to do\./);
+  assert.match(second.stdout, /Restoring them takes each file back to an older copy: an adapter may lose the kit block or go back to an older one, which `workflow-kit update[^`]*` can put back with --edited <path>=split\./);
+  assert.match(second.stderr, /Exit code 3: backups exist and none was restored\. That is expected after a rollback that already succeeded; add --from-backups only to go back to those older copies\./);
+});
+
+test('0.25.0: backups that already match their files have their own result word', async () => {
+  const target = await installed();
+  await fs.rm(path.join(target, applyJournalRelativePath));
+  await cli('rollback', '--target', target, '--from-backups', '--apply', '--yes');
+  assert.equal(lastLine((await cli('rollback', '--target', target, '--from-backups', '--apply', '--yes')).stdout), 'Result: already-restored');
+  assert.equal(lastLine((await cli('rollback', '--target', target)).stdout), 'Result: dry-run (would be: already-restored)');
+  const empty = await makeTempRepo();
+  assert.equal(lastLine((await cli('rollback', '--target', empty, '--apply', '--yes')).stdout), 'Result: nothing-to-undo');
+  assert.match((await cli('rollback', '--help')).stdout, /already-restored/);
+});
+
+test('0.25.0: doctor names the rollback first when the last apply did not finish', async () => {
+  const target = await installed();
+  const journalPath = path.join(target, applyJournalRelativePath);
+  const journal = JSON.parse(await fs.readFile(journalPath, 'utf8'));
+  await fs.writeFile(journalPath, `${JSON.stringify({ ...journal, completed: false }, null, 2)}\n`);
+  await fs.rm(path.join(target, '.agents/kit-boundary.md'));
+  const statePath = path.join(target, '.agents/workflow-kit/install-state.json');
+  const state = JSON.parse(await fs.readFile(statePath, 'utf8'));
+  await fs.writeFile(statePath, JSON.stringify({ ...state, toolkitVersion: '0.21.0' }, null, 2));
+  const doctor = await cli('doctor', '--target', target, '--runtime', 'claude');
+  assert.equal(doctor.code, 1);
+  assert.doesNotMatch(doctor.stdout, /most likely new in/);
+  const lines = doctor.stdout.split('\n');
+  const hint = lines.findIndex((line) => line.startsWith('The last apply did not finish'));
+  assert.ok(hint >= 0 && hint < lines.indexOf('Missing files:'), doctor.stdout.slice(0, 900));
+  assert.match(lines[hint], /run `workflow-kit rollback --target \S+ --apply --yes` first; update and init stop until then/);
+});
+
+test('0.25.0: the plan says an adapter update touches only the kit block, and the stack pack finding names a command', async () => {
+  const target = await installed();
+  const adapter = path.join(target, 'CLAUDE.md');
+  const statePath = path.join(target, '.agents/workflow-kit/install-state.json');
+  // An older block: the kit version replaces it, and only it.
+  const original = await fs.readFile(adapter, 'utf8');
+  const older = original.replace('1–2 production files', '1–2 files');
+  assert.notEqual(older, original);
+  await fs.writeFile(adapter, older);
+  const { extractManagedBlock } = await import('../src/kit-manifest.mjs');
+  const { checksumOf } = await import('../src/fs-safety.mjs');
+  const state = JSON.parse(await fs.readFile(statePath, 'utf8'));
+  state.files['CLAUDE.md'].sha256 = checksumOf(extractManagedBlock(older, 'workflow-kit:managed').block);
+  await fs.writeFile(statePath, JSON.stringify(state, null, 2));
+  const update = await cli('update', '--target', target);
+  assert.match(update.stdout, /^- overwrite_no_backup: CLAUDE\.md \(only its kit block changes; the rest of the file stays\)$|^- overwrite_with_backup: CLAUDE\.md \(only its kit block changes; the rest of the file stays\)$/m);
+
+  const withPack = await makeTempRepo();
+  await cli('init', '--target', withPack, '--runtime', 'claude', '--stack', 'rails-react', '--apply', '--yes');
+  await fs.rm(path.join(withPack, '.agents/project/stack.md'));
+  const doctor = await cli('doctor', '--target', withPack, '--runtime', 'claude');
+  assert.match(doctor.stdout, /stack-pack\/missing[^\n]*restore `\.agents\/project\/stack\.md` from Git \(`git checkout -- \.agents\/project\/stack\.md`\)/);
+  assert.doesNotMatch(doctor.stdout, /again by hand/);
+});
+
+test('review 0.25.0: doctor words an interrupted rollback as a rollback, not as an apply', async () => {
+  const target = await installed();
+  const journalPath = path.join(target, applyJournalRelativePath);
+  const journal = JSON.parse(await fs.readFile(journalPath, 'utf8'));
+  await fs.writeFile(journalPath, `${JSON.stringify({ ...journal, rollbackStartedAt: new Date().toISOString() }, null, 2)}\n`);
+  await fs.rm(path.join(target, '.agents/kit-boundary.md'));
+  const doctor = await cli('doctor', '--target', target, '--runtime', 'claude');
+  assert.doesNotMatch(doctor.stdout, /^The last apply did not finish/m);
+  assert.match(doctor.stdout, /^A rollback did not finish, so the files below may be ones it already removed: run `workflow-kit rollback --target \S+ --apply --yes` again first; update and init stop until then\.$/m);
 });

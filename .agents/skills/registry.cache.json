@@ -7,10 +7,10 @@
   "compact_pattern_index": ".agents/skills/06-patterns/index.md",
   "structured_registry": ".agents/skills/registry.json",
   "source_hashes": {
-    ".agents/skills/index.md": "4c2e5ab06f03588da9f6c56bb23df9b8ecedc653389b45e5bdea5e287c0f793d",
+    ".agents/skills/index.md": "9b72be61ced6aa47ddfa01f23ee173d2bcc48732dd3871a4a34974cc626819ed",
     ".agents/skills/06-patterns/index.md": "3e468cf3404df4a802c3380d2aff52e25a9b9cc83409d77bb382b2e214f4cf18",
-    ".agents/skills/registry.md": "3d330b1909d4a6b355e4efb147b291e71162c662c7a74a3f3802a5dd0e621b20",
-    ".agents/skills/registry.json": "531fce321b7d51caf843f6e7c9b9810478c566b794b53cbbaabfad7c20b56fe9"
+    ".agents/skills/registry.md": "ad07c1273330a048f7fdb900ee3cce30072dc55a49ad95875f3f6997e04988ef",
+    ".agents/skills/registry.json": "62b74c5249c36a4bbd66dafc738463b4ea331532b3d8ee1bc43bc9e54b20684c"
   },
   "entry_count": 43,
   "entries": [
@@ -30,7 +30,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/backend-phase-implementer/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "645824529f4de2b1cd97c8ca34455565da2ed37b8ca10570da2f3b015e72631a"
+      "skill_sha256": "c70b067d942eec0a3492a7880c6649164f63b4b6f752cd71b884b89c8ac58b2a"
     },
     {
       "key": "cavecrew",
@@ -156,7 +156,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "9793ea3b4768646a73a77607581edd156c1ddb4dfa6c586b191519429a1ab37c"
+      "skill_sha256": "253dc55bdfdc92898628b31da2936915cb478267e8b552d71b5c2d8980d557db"
     },
     {
       "key": "document-development",
@@ -192,7 +192,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/frontend-phase-implementer/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "8b117235d521adcba65cb9799a63aef34bc2ec57732506891159c29b0909cf8f"
+      "skill_sha256": "c8e881a158e12193bc76e7c3445a1ee07f6e2002a0282f80abbcb04733f93770"
     },
     {
       "key": "generate-pm-ticket",
@@ -219,7 +219,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-change/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "9336906f129de16a30aafc7a9244721375a6ab2490cbaaa17eb1d2952bc00f23"
+      "skill_sha256": "47419eb0e2280fbb9de34c777e5d2ba48965e4c7689a43d3e28f0bc7e38dd9ca"
     },
     {
       "key": "implement-prd",
@@ -237,7 +237,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/implementation-skill-matcher/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "c64b764ebcdc640a3d6d7db2052b2bb9c9911ae2206eaf7fcb3333b2af6a94da"
+      "skill_sha256": "700339369171818ada9bf8c3c2fd5b98a748f98329d186245f98738dbbda1d7d"
     },
     {
       "key": "implementation-slicing",
@@ -246,7 +246,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/implementation-slicing/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "88d7bcf229a9c64413337f03bcaf44a97fd37cb23a702b73771ac17dafde892e"
+      "skill_sha256": "e9e66c74c1acfa3d66a048bdf88a887e9e4b308e54dd75f46e3a737eea2665c5"
     },
     {
       "key": "pattern-authoring-add-project-pattern",
@@ -291,7 +291,7 @@
       "class": "Delegate-only implementation",
       "path": ".agents/skills/02-implement/prd-readiness-review/SKILL.md",
       "loading_posture": "Delegated-only",
-      "skill_sha256": "1c1c51147ca15988506843756ef53a9b96d1b7e4fbfcc8d884fb51eb4c25d3a4"
+      "skill_sha256": "fcf2caf1a6d62285f4645ed8512d203760c795cb1625ec823170b87cff1fd32d"
     },
     {
       "key": "project-formation",
@@ -399,7 +399,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "b0058e2ebb55683781bebed3317db3ae1d9b638826db6eb0bd00a090445558cb"
+      "skill_sha256": "828bd0334c19c3f526937b3c76244b74965b68fc5533f5ea6317cb64abede0a0"
     }
   ]
 }

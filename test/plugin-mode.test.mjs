@@ -658,7 +658,7 @@ test('AC-12: edited kit files stop the switch without writing; the printed comma
 test('all or nothing: a pending adapter stops the switch, naming its decisions or the fix by hand, and writes nothing', async () => {
   const ownText = '# Our CLAUDE.md\n\nNo markers here.\n';
   const cases = [
-    { name: 'recorded CLAUDE.md without markers', setup: (target) => write(target, 'CLAUDE.md', ownText), flags: [], names: ['- CLAUDE.md (unmarked_adapter): discard\n', '--edited all=discard'], settle: ['--edited', 'all=discard'] },
+    { name: 'recorded CLAUDE.md without markers', setup: (target) => write(target, 'CLAUDE.md', ownText), flags: [], names: ['- CLAUDE.md (unmarked_adapter): discard | split\n', '--edited all=discard'], settle: ['--edited', 'all=discard'] },
     { name: 'unrecorded AGENTS.md with its markers out of order', setup: (target) => write(target, 'AGENTS.md', `<!-- ${managedBlockName}:end -->\nOur agents.\n<!-- ${managedBlockName}:start -->\n`), flags: ['--runtime', 'claude,copilot'], names: ['- AGENTS.md (invalid_managed_block): no --edited decision applies; fix its workflow-kit markers by hand'] }
   ];
   for (const { name, setup, flags, names, settle } of cases) {

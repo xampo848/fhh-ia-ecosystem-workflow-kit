@@ -44,6 +44,14 @@ Before any release action, confirm all of these explicitly:
    `templates/**`, `src/**`, `bin/**`, `scripts/**`, or CI (`check:release`
    enforces it).
 3. Confirm the `CHANGELOG.md` entry for that version.
+   When the kit text of an adapter changed (the generated level pre-filter,
+   or the block of `CLAUDE.md`, `AGENTS.md` and the others), run
+   `node scripts/sync-adapter-kit-texts.mjs --record` once, before the version
+   is raised in step 2 (or pass `--last-version <the version being replaced>`
+   if it was raised already): it keeps the text it replaces in `src/adapter-kit-texts.json`, so
+   an install made before the block markers still gets `split`.
+   `check:workflow` fails until it is recorded. Never delete an entry of
+   `previous`.
 4. Create the tag `v<version>` (for example `v0.17.0-audit-hardening`) and push
    it only after explicit approval. A version released without a tag is still
    valid: it is pinned by commit (see `docs/versioning.md`).
@@ -51,8 +59,8 @@ Before any release action, confirm all of these explicitly:
    it is there) to the tag table of `docs/versioning.md` and update the pinning
    examples of `README.md`, `docs/github-install.md` and `docs/quickstart.md`.
    Until the tag exists, add the version and its commit to the "without a tag"
-   table after the merge. Today every version from `0.16.0` to `0.24.1` has a
-   tag; the latest is `v0.24.1-pilot-alignment`.
+   table after the merge. Today every version from `0.16.0` to `0.24.2` has a
+   tag; the latest is `v0.24.2-pilot-followup`.
 6. Publish a package only after explicit approval and a final dry-run.
 
 ## Safe rollout sequence for users
@@ -66,7 +74,7 @@ Before any release action, confirm all of these explicitly:
 
 2. Or pin to a reviewed ref: a tag, or the full commit hash of a version that
    has no tag yet (the remote has a tag for every version from `0.16.0` to
-   `0.24.1`; see `docs/versioning.md`):
+   `0.24.2`; see `docs/versioning.md`):
 
    ```bash
    workflow-kit upgrade --ref <tag-or-commit> --apply --yes

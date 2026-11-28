@@ -73,7 +73,7 @@ Working rules carried from the former `standard` mode:
 - `implementation-skill-matcher` maps each slice to required pattern skills
   before coding; matcher completion is blocking for dependent slices. Apply
   its Proportional Entry first: with 0 candidates in the patterns index, record
-  `matching: sin candidatos para <surface>` in the lock instead of delegating.
+  `matching: no candidates for <surface>` in the lock instead of delegating.
 - Implementation groups use `backend-phase-implementer`,
   `frontend-phase-implementer`, and `acceptance-test-engineer`, one writer per
   cohesive PRD phase, not one per file. `contract-verifier` runs whenever

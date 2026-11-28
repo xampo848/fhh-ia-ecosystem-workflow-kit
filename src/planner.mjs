@@ -12,6 +12,7 @@ import { describeMigrations } from './plan-insight.mjs';
 import { assertNameLengths, assertNoSymlinkWrites, assertPathShapes, assertWriteFoldersAreFolders, checksumOf, describeEnvironmentError, findSymlinkInPath, readFileNamed, resolveInsideTarget } from './fs-safety.mjs';
 import { applyJournalProblem, applyJournalRelativePath, assertLockIsNotFolder, observeTarget, targetLockHolder, unfinishedJournalMessage } from './apply.mjs';
 import { classifyPath, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest, replaceManagedBlock } from './kit-manifest.mjs';
+import { findKnownKitText, holdsKitLines, previousKitTexts } from './adapter-kit-texts.mjs';
 import { backupFileMarker, layoutMigrationId, pendingEditReasons, prepareLayoutMigration, projectIndexPath, requireMigrationBackups } from './migration.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -696,8 +697,12 @@ async function planEditedDecisions({ targetPath, operations, edited, manifest, m
     if (shadow) shadowTargets.set(item.relativePath, shadow);
     if (item.reason === 'unmarked_adapter') {
       const blockName = classifyPath(manifest, item.relativePath)?.block ?? defaultBlockName;
-      const split = splitUnmarkedAdapter(await readFileNamed(item.targetFile, 'utf8'), item.content, blockName);
-      if (split !== null) splitContents.set(item.relativePath, split);
+      const split = splitUnmarkedAdapter(await readFileNamed(item.targetFile, 'utf8'), item.content, blockName, previousKitTexts(item.relativePath));
+      if (split !== null) {
+        splitContents.set(item.relativePath, split.content);
+        // No kit text in it: split keeps the whole file and adds the block.
+        if (split.wholeFileOwn) item.splitKeepsWholeFile = true;
+      }
     }
     const applies = { keep: !switching, discard: true, shadow: Boolean(shadow), split: splitContents.has(item.relativePath) };
     validByPath.set(item.relativePath, editedDecisions.filter((decision) => applies[decision] && (decision === 'keep' || !linkedPaths.has(item.relativePath))));
@@ -735,28 +740,48 @@ async function planEditedDecisions({ targetPath, operations, edited, manifest, m
 // The kit text of a template block: the lines between its marker lines,
 // without the trailing blank lines and HTML comment lines (the note about
 // where own text goes, which kits before the markers did not have).
-function kitBody(templateContent, blockName) {
+export function kitBody(templateContent, blockName) {
   const lines = extractManagedBlock(templateContent, blockName).block.split('\n').slice(1, -1);
   while (lines.length > 0 && (lines.at(-1).trim() === '' || /^\s*<!--.*-->\s*$/.test(lines.at(-1)))) lines.pop();
   return lines.join('\n');
 }
 
-// split: valid only when the file holds the kit text as one region of whole
-// lines, byte for byte. The own text is what comes before and after that
-// region, unchanged except for the blank lines that touched it (one blank line
-// keeps the two parts apart); the new block goes where the template places it.
-// Returns null when split does not apply.
-function splitUnmarkedAdapter(existingContent, templateContent, blockName) {
+// split: valid when the file holds the kit text as one region of whole lines,
+// byte for byte: the current text, or one the kit shipped before (known by its
+// fingerprint, so the text can change without taking split away from an older
+// install). The own text is what comes before and after that region, unchanged
+// except for the blank lines that touched it (one blank line keeps the two
+// parts apart); the new block goes where the template places it.
+// A file with no kit text at all (an own adapter that was there before the
+// kit, or one a rollback restored) is own text as a whole: the block is added
+// to it. A file that holds kit lines but no whole kit text was edited: the own
+// text cannot be told apart, so split does not apply.
+// Returns { content, wholeFileOwn } or null when split does not apply.
+export function splitUnmarkedAdapter(existingContent, templateContent, blockName, knownTexts = []) {
   const body = kitBody(templateContent, blockName);
   if (body === '') return null;
+  const strayMarkers = [`<!-- ${blockName}:start -->`, `<!-- ${blockName}:end -->`];
   let start = existingContent.indexOf(body);
   const wholeLines = (index) => (index === 0 || existingContent[index - 1] === '\n') && [undefined, '\n'].includes(existingContent[index + body.length]);
   while (start !== -1 && !wholeLines(start)) start = existingContent.indexOf(body, start + 1);
-  if (start === -1) return null;
+  let length = body.length;
+  if (start === -1) {
+    const known = findKnownKitText(existingContent, knownTexts);
+    if (known) ({ start, length } = known);
+  }
+  if (start === -1) {
+    // A lone or repeated block marker cannot be paired safely with a new
+    // block: that file is not own text to keep whole.
+    if (strayMarkers.some((marker) => existingContent.includes(marker))) return null;
+    if (existingContent.trim() === '' || holdsKitLines(existingContent, body, knownTexts)) return null;
+    return { content: insertManagedBlock(existingContent, templateContent, blockName), wholeFileOwn: true };
+  }
   const before = existingContent.slice(0, start).replace(/(?:^|(?<=\n))(?:[ \t]*\n)+$/, '');
-  const after = existingContent.slice(start + body.length).replace(/^\n/, '').replace(/^(?:[ \t]*\n)+/, '').replace(/^[ \t]*$/, '');
+  const after = existingContent.slice(start + length).replace(/^\n/, '').replace(/^(?:[ \t]*\n)+/, '').replace(/^[ \t]*$/, '');
   const own = `${before}${before && after ? '\n' : ''}${after}`;
-  return own === '' ? templateContent : insertManagedBlock(own, templateContent, blockName);
+  // A block marker left in the own text would give the file two of them.
+  if (strayMarkers.some((marker) => own.includes(marker))) return null;
+  return { content: own === '' ? templateContent : insertManagedBlock(own, templateContent, blockName), wholeFileOwn: false };
 }
 
 // No plan replaces content without a backup unless that content matches what
@@ -1006,7 +1031,8 @@ function planAdapter({ base, entry, templateContent, existingContent, recorded, 
     // is an edit made inside the block: say so, the plan line alone hides it.
     const blockEdited = Boolean(recorded?.sha256) && managedBlockChecksum(replaced, blockName) === recorded.sha256
       && managedBlockChecksum(existingContent, blockName) !== recorded.sha256;
-    return plan(overwriteOperation(backupMode), replaced, blockEdited ? { blockEdited: true } : {});
+    // An adapter is never rewritten whole: say so next to the operation.
+    return plan(overwriteOperation(backupMode), replaced, blockEdited ? { blockEdited: true } : { blockOnly: true });
   }
 
   // No single valid block. A file the kit wrote before it had markers is
@@ -1157,9 +1183,11 @@ export function formatPlan(plan) {
     if (item.untracked) note = ' (kit-location removed; leaves the install as a project file)';
     if (item.missingRecorded) note = ' (recorded as installed and missing from disk; created again)';
     if (item.recreated) note = ' (project file that was deleted; created again from its template)';
+    if (item.blockOnly) note = ' (only its kit block changes; the rest of the file stays)';
     if (item.blockEdited) note = ` (its kit block was edited; the kit version replaces it${item.operation === 'overwrite_with_backup' ? ' and the backup keeps the edit' : ''})`;
     if (item.decisions && !migrationListsPending) note = ` (${item.reason}): ${item.decisions.join(' | ')}`;
     if (item.note) note = ` (${item.reason}): ${item.note}`;
+    if (item.splitKeepsWholeFile && item.decisions?.includes('split')) note += `${note === '' ? ` (${item.reason})` : ''}; split keeps the whole file as your own text and adds the kit block (no kit text was found in it)`;
     if (item.manualFragment) note = ` (${item.reason}); ${item.manualAction} by hand:\n${item.manualFragment.replace(/^/gm, '    ')}`;
     lines.push(`- ${item.operation}: ${item.relativePath}${note}`);
   }

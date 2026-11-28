@@ -144,7 +144,7 @@ copies.
 | --- | --- | --- |
 | `project-instructions/not-migrated` | rules exist only in `.github/instructions/`, so other runtimes skip them | run `workflow-kit update`; it copies them to `.agents/project/` and regenerates the Copilot file with a backup |
 | `project-instructions/wrapper-stale` | the generated Copilot file differs from the neutral one | run `workflow-kit update`; edit `.agents/project/<name>.md`, never the generated copy |
-| `stack-pack/missing` | a stack pack is recorded but `.agents/project/stack.md` is gone | restore it from Git, or copy `templates/stack-packs/<pack>/stack.md` again by hand: `update` never recreates a project file it created once |
+| `stack-pack/missing` | a stack pack is recorded but `.agents/project/stack.md` is gone | restore it from Git (`git checkout -- .agents/project/stack.md`), or copy the file `templates/stack-packs/<pack>/stack.md` of the workflow-kit package to that path: `update` does not recreate this one |
 
 Since `0.22.0` the quality gate default belongs to the kit
 (`.agents/delegation/quality-gate.md`) and always applies;
@@ -305,8 +305,8 @@ Things to know:
   backup of `.gitignore`. "Nothing to restore: … each managed file already has
   the content of its newest backup" means the backups were already restored.
   Every `rollback` that gets as far as a plan ends with a line `Result: …` a script can read
-  (`rolled-back`, `restored-from-backups`, `cleaned-up`, `nothing-to-undo`,
-  `backups-not-restored`; a dry run prints `Result: dry-run (would be: …)`).
+  (`rolled-back`, `restored-from-backups`, `already-restored`, `cleaned-up`,
+  `nothing-to-undo`, `backups-not-restored`; a dry run prints `Result: dry-run (would be: …)`).
   After `--from-backups` the kit stays installed: a restored `CLAUDE.md` or
   `.gitignore` loses what the install added, `doctor` reports it, and `update`
   puts it back.
@@ -326,7 +326,9 @@ Things to know:
   or `.agents/project/skills` as a file), or a folder where it writes a file
   (for example `.agents/kit-boundary.md` as a folder), stops `init` and
   `update` before anything is written; move it aside.
-- An adapter with Windows (CRLF) line endings never qualifies for `split`.
+- An adapter that holds the kit text with Windows (CRLF) line endings, or
+  with a line of it edited, never qualifies for `split`. One with no kit text
+  at all does: `split` adds the block and keeps the whole file.
 
 ## `last-apply.json` was committed
 

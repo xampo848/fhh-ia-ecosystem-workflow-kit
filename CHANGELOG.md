@@ -7,6 +7,59 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.25.0-open-prefilter
+
+The kit text of the adapters can change again, and it does: the N1 file rule
+now reaches an agent that reads only its adapter. Plus the findings of the
+pilot run on `0.24.2`. In your projects, `workflow-kit update` changes
+`kit_version`, replaces the kit block of every adapter (`CLAUDE.md`,
+`AGENTS.md`, `ANTIGRAVITY.md`, `.github/copilot-instructions.md`) and updates
+the kit text listed below. Your own text in those files does not change.
+
+- The generated level pre-filter is complete about N1: the limit counts
+  production files (new ones included), the test file of each one goes with
+  it and may be created, a change to tests only is N1, more than 2 production
+  files is N2, and a bounded read-only lookup to name the files may precede
+  the yes. The authorization line of every adapter names that lookup. It was the same text
+  since `0.18.1` because `update` offers `split` to an adapter without markers
+  only when it holds the kit text whole. `update` now also recognizes the
+  text each tagged version shipped (from `0.7.4` on), by a fingerprint kept in
+  `src/adapter-kit-texts.json`, so an install from before the markers still
+  gets `split`, including some that did not get it before.
+- `split` also applies to an adapter that holds no kit text at all (an own
+  `CLAUDE.md` from before the kit, or one `rollback --from-backups` restored):
+  the whole file is kept and the block is added; the plan says so. An adapter
+  whose kit text was edited, has Windows line endings, or would be left with
+  a stray block marker still gets only `keep` or `discard`.
+- Status strings the kit prints are in English: `quality gate: not
+  configured`, `no feature flag`, `inline execution: …`, `matching: no
+  candidates for <surface>`, `· autonomous`, `· supervised`.
+- `rollback` without a record of an apply says that the project may already
+  be in its previous state and what restoring the older backups would undo.
+  When every backup already matches its file, the result line says
+  `already-restored`.
+- `doctor` names the rollback first when the last apply did not finish, and
+  the `stack-pack/missing` finding names the command that restores the file.
+- A plan says next to an adapter that only its kit block changes.
+- `create-prd`: the PRD header records `Modo: completo | compacto`; the
+  compact form is defined by what it leaves out (separators, template notes,
+  section 9, a second phase, a future phase) and no longer by a line count;
+  section 10 keeps every row of its table.
+- `implement-change`: an explicit PRD is N1 only when its header says
+  `Modo: compacto`; at N1 one yes covers the approval and the N1 line, and
+  with a PRD that is already approved it shows the N1 line and goes on;
+  "approved" means `Estado: Aprobado`, also for `prd-readiness-review` and
+  `implementation-slicing`.
+- The template notice of `.agents/project/context.md`, `backend.md` and
+  `frontend.md` is one block to delete (new installs only; existing project
+  files are not rewritten).
+- Smaller rules: a blocking question asked twice is not asked a third time;
+  a feature request with no imperative to build it has one router row.
+
+For kit maintainers: when the kit text of an adapter changes, run
+`node scripts/sync-adapter-kit-texts.mjs --record` before raising the version;
+`check:workflow` fails until then.
+
 ## 0.24.2-pilot-followup
 
 Fixes and decisions from the pilot run on `0.24.1`. In your projects,

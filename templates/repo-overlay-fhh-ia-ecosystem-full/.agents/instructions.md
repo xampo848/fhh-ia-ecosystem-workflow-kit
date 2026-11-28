@@ -173,14 +173,14 @@ Level pre-filter (apply to every new user prompt before loading any workflow fil
 | --- | --- |
 | Read-only question, lookup, or local command without side effects | N0 |
 | Non-semantic edit (formatting, indentation, typo, comment, docs wording) | N0 |
-| Behavior-changing edit in 1–2 files with clear scope | N1 |
-| Uncertain scope, more than 2 files, or several pieces | N2 |
+| Behavior-changing edit in 1–2 production files with clear scope, or a change to tests only | N1 |
+| Uncertain scope, more than 2 production files, or several pieces | N2 |
 | Contracts, data or migrations, auth or tenancy, dependencies, CI, or anything irreversible (push, deploy, delete) | N3 |
 | Hard triggers: explicit skill invocation, PR/review comments, explicit PRD | per that skill, whatever the level |
 
 - The level is the highest signal that applies; when unsure between two levels, pick the higher one.
 - N0: act directly without reading workflow files or emitting a trace; after 3 tool calls, stop and propose N1.
-- N1: emit one line (`N1 · surgical · <files>`), wait for a short yes, edit only the target files, and run one focused check (lint, build, or test). When behavior changes, add or update a test and make that check the touched tests (lint or build alone is not enough); for a bug, the test must fail before the fix and pass after it.
+- N1: emit one line (`N1 · surgical · <files>`), wait for a short yes, edit only the target files, and run one focused check (lint, build, or test). The 1–2 limit counts production files, new ones included; the test file of each one goes with it, may be created when there is none, and does not count. Before the yes, a bounded read-only lookup to locate the target, its test, and the check command is allowed; reading to design the change waits for the yes. When behavior changes, add or update a test and make that check the touched tests (lint or build alone is not enough); for a bug, the test must fail before the fix and pass after it.
 - N2/N3: apply `.agents/instructions.md` and `workflow-router` before planning, editing, or implementing.
 - If something unexpected appears in N0 or N1 (another file, a contract, a test you do not understand), stop and propose a higher level.
 - The user can force a level ("hazlo quirúrgico", "hazlo completo"); forcing below an N3 signal requires naming the risk first.
@@ -246,7 +246,7 @@ Execution authorization gate:
 - The gate applies to routes that write: code, PRDs, epics, tickets, installs, or other repository files.
 - Read-only routes (review, audit, explanation, or discovery the user asked for) need no extra confirmation, and neither does an explicit imperative that names the work ("audita X", "revisa este PR", "implementa este PRD"): that imperative is the authorization. For a PRD, `implement-change` still asks once when its `Estado` is not `Aprobado`.
 - Intent language from the user (for example: "quiero", "necesito", "hagamos") is not execution authorization by itself.
-- Level exceptions: in N0 the user's intent is enough; in N1 a short "yes" to the one-line surgical proposal authorizes it. An irreversible operational action (push, deploy, delete) always names the concrete risk and waits for an explicit yes, even after an imperative.
+- Level exceptions: in N0 the user's intent is enough; in N1 a short "yes" to the one-line surgical proposal authorizes it. With an explicit PRD that is approved, `implement-change` shows the N1 line and goes on: naming the PRD was the authorization. An irreversible operational action (push, deploy, delete) always names the concrete risk and waits for an explicit yes, even after an imperative.
 - Before explicit route authorization of a writing route, the agent must stay in `awaiting-user-choice` for route-selection turns.
 - While in `awaiting-user-choice`, the agent must not inspect product code for implementation, must not plan implementation tasks, and must not edit files.
 - Execution starts only after the user explicitly authorizes the selected route (for example: "usa create-prd", "implementa este PRD", "haz el ticket", "procede con esa ruta").

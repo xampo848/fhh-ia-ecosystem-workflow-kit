@@ -11,10 +11,7 @@ import {
 import { applyJournalRelativePath, describeTargetLock } from './apply.mjs';
 import { blockMarkers, classifyPath, currentPathFor, defaultBlockName, extractManagedBlock, isProjectPath, loadKitManifest } from './kit-manifest.mjs';
 import { backupFileMarker, layoutMigrationId, projectIndexPath, projectIndexTableRows, shadowManifestName, skillsRoot, unquote, walkTree } from './migration.mjs';
-import {
-  carriesKitLocationMarker, claudePluginEnableCommand, claudePluginListHint, claudePluginUpdateCommand, cliUpgradeCommand, code, kitCommand, compareVersionCores, copilotPluginListCommand, inspectInstalledPlugins, inspectPluginSettings,
-  kitLocationBlockName, kitMarketplaceEntry, marketplaceEntryKey, pluginAdapterContent, pluginBranch, pluginDeclarationFragment, pluginEntryKey, pluginId, pluginInstallCommand, shellWord
-} from './plugin-mode.mjs';
+import { carriesKitLocationMarker, claudePluginEnableCommand, claudePluginListHint, claudePluginUpdateCommand, cliUpgradeCommand, code, kitCommand, compareVersionCores, copilotPluginListCommand, inspectInstalledPlugins, inspectPluginSettings, kitLocationBlockName, kitMarketplaceEntry, marketplaceEntryKey, pluginAdapterContent, pluginBranch, pluginDeclarationFragment, pluginEntryKey, pluginId, pluginInstallCommand, shellWord, rollbackCommand } from './plugin-mode.mjs';
 import { pluginRuntimes, pluginSettingsPaths, runtimeEntrypoints, supportedRuntimes } from './runtime-matrix.mjs';
 import { validateWorkflowContract } from './workflow-contract/index.mjs';
 import { validateAdapterContracts } from './workflow-contract/adapters.mjs';
@@ -557,7 +554,7 @@ export async function runDoctor(options = {}) {
 
   return {
     ok: missing.length === 0 && !diagnostics.some((item) => item.severity === 'error'),
-    missingHint: missing.length > 0 ? missingFilesHint(storedState, targetPath) : null,
+    missingHint: missing.length > 0 ? missingFilesHint(storedState, targetPath, journalProblem) : null,
     // No state and not one kit file (an own CLAUDE.md or AGENTS.md is not
     // one): the list of every file adds nothing.
     nothingInstalled: !storedState && !present.some((relativePath) => ['kit', 'derived'].includes(classifyPath(manifest, relativePath)?.class)),
@@ -593,7 +590,11 @@ async function firstUnreadableFolder(targetPath, relativePath) {
 
 // Missing files on an install from another workflow-kit version are mostly
 // files this version adds; with no install-state, nothing is installed.
-function missingFilesHint(state, targetPath) {
+function missingFilesHint(state, targetPath, journalProblem = null) {
+  // An apply that did not finish explains the missing files, and nothing
+  // else can run until it is rolled back: that comes first.
+  if (journalProblem?.kind === 'incomplete' && journalProblem.rollback) return `A rollback did not finish, so the files below may be ones it already removed: run ${rollbackCommand(targetPath)} again first; update and init stop until then.`;
+  if (journalProblem?.kind === 'incomplete') return `The last apply did not finish, so the files below may be the ones it never wrote: run ${rollbackCommand(targetPath)} first; update and init stop until then.`;
   if (!state) return `No workflow-kit install-state here (${installStateRelativePath}), so workflow-kit is not installed in this folder; to install it, run ${code(kitCommand(targetPath, 'init'))} (a dry run first).`;
   if (state.schemaVersion === legacyInstallStateSchemaVersion || (state.toolkitVersion && state.toolkitVersion !== packageJson.version)) {
     return `This install was last applied with workflow-kit ${state.toolkitVersion ?? 'of another version'}, so the files below are most likely new in ${packageJson.version}: run ${code(kitCommand(targetPath, 'update'))} (a dry run first) before fixing them one by one.`;
@@ -625,7 +626,7 @@ async function emptyFileDiagnostics({ targetPath, manifest, files, present, upda
 async function stackPackDiagnostics({ targetPath, stackPack }) {
   if (!stackPack || stackPack === 'none') return [];
   if (await readOptional(path.join(targetPath, stackRulesPath)) !== null) return [];
-  return [warning('stack-pack/missing', stackRulesPath, `The ${stackPack} stack pack is recorded but its rules file is missing, so stack-specific rules are not applied. The kit never recreates it: restore ${stackRulesPath} from Git, or copy templates' ${stackPack} pack again by hand (templates/stack-packs/${stackPack}/stack.md in the workflow-kit package).`)];
+  return [warning('stack-pack/missing', stackRulesPath, `The ${stackPack} stack pack is recorded but its rules file is missing, so stack-specific rules are not applied. \`update\` does not recreate this one: restore \`${stackRulesPath}\` from Git (\`git checkout -- ${stackRulesPath}\`), or copy the file templates/stack-packs/${stackPack}/stack.md of the workflow-kit package to that path.`)];
 }
 
 // Fails when a delegate agent's model setting does not match the project's

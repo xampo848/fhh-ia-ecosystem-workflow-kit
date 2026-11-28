@@ -71,7 +71,7 @@ Read only the matching section of `reference/input-types.md`.
 ## Step 2 · Confirm the level
 
 The router or the pre-filter proposes the level; this skill confirms it before
-any edit. With an explicit PRD (a hard trigger, which skips the level signals) this skill sets the level itself with the escalation rules below (the hazard rule and the critical concerns decide N3): N1 when it is compact with one slice, one or two production files, and no listed hazard; N2 otherwise. If the PRD's `Estado` is not `Aprobado`, say so and ask for a yes before any edit; with that yes, set `Estado: Aprobado` in the PRD. A request that says the PRD is approved ("el PRD ya está aprobado, avanza") is that yes: mark it and go on without asking. A PRD without the field (written before it existed) is not blocked. One classification only: the old operating modes map to levels.
+any edit. With an explicit PRD (a hard trigger, which skips the level signals) this skill sets the level itself with the escalation rules below (the hazard rule and the critical concerns decide N3): N1 when its header says `Modo: compacto` and it has one slice, one or two production files, and no listed hazard; N2 otherwise. If the PRD's `Estado` is not `Aprobado`, say so and ask for a yes before any edit; with that yes, set `Estado: Aprobado` in the PRD. A request that says the PRD is approved ("el PRD ya está aprobado, avanza") is that yes: mark it and go on without asking. At N1, one yes covers both the approval and the N1 line: ask once, naming both. With an approved PRD the imperative is the authorization at every level: at N1, show the N1 line and go on without waiting; stop only when a file to touch is not one the PRD names. A PRD without the field (written before it existed) is not blocked. One classification only: the old operating modes map to levels.
 
 | Level | Former mode | Load |
 | --- | --- | --- |
@@ -153,7 +153,7 @@ No level, modifier, or user hurry removes these:
    layers it touches (`.agents/project/backend.md`, `.agents/project/frontend.md`,
    and `.agents/project/stack.md` when present); `.agents/project/paths.json`
    maps these names for projects with another layout. Nothing is skipped
-   silently: if the kit default is missing, say `quality gate: no configurado`
+   silently: if the kit default is missing, say `quality gate: not configured`
    in the trace; at N3 that is a stop, and a path the input requires that is
    missing is always a hard stop.
 5. **Stop conditions and brakes** in `../implement-prd/reference/validation-and-stop-conditions.md`

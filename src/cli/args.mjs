@@ -25,7 +25,7 @@ const commandSummaries = {
 const runtimeNote = `--runtime takes a comma-separated list of: ${[...supportedRuntimes, 'neutral'].join(', ')} (neutral: no runtime adapter).`;
 const dryRunNote = 'Without --apply --yes every command is a dry run and writes nothing.';
 const allNote = 'A plan shows one line with a count for the files that need no attention (created, unchanged); --all lists every file.';
-const editedNote = 'update --edited decides on a file the dry run lists as pending (repeat the flag per file, or use all=):\nkeep leaves it as it is (the next update lists it again), discard takes the kit version, shadow moves the edit to a project shadow (only while\nmigrating from install-state 1.0.0), split keeps the own lines of an adapter without markers below the new block.';
+const editedNote = 'update --edited decides on a file the dry run lists as pending (repeat the flag per file, or use all=):\nkeep leaves it as it is (the next update lists it again), discard takes the kit version, shadow moves the edit to a project shadow (only while\nmigrating from install-state 1.0.0), split keeps the own lines of an adapter without markers next to the new block (it applies when the file holds the kit text whole, or none of it).';
 const modeNote = '--mode repo (the default for init) installs the kit files in the project. --mode plugin (runtimes claude, copilot)\ninstalls only the adapters, the project overlay and the plugin declaration: the kit runs as the plugin fhh,\nwhich each person installs once per clone.';
 
 // The notes each command's own --help carries.
@@ -35,7 +35,7 @@ const commandNotes = {
   upgrade: [dryRunNote],
   export: [runtimeNote, dryRunNote, allNote],
   doctor: [runtimeNote, 'doctor only reads: it never writes, so it takes no --apply, --yes or --dry-run.'],
-  rollback: [dryRunNote, 'A rollback that gets as far as a plan ends with one line a script can read: Result: rolled-back, restored-from-backups, cleaned-up, nothing-to-undo or backups-not-restored (exit code 3 with --apply); interrupted or failed when it stops partway; a dry run prints Result: dry-run (would be: ...).', '--from-backups restores the newest backup of each managed file when there is no record of an applied run (a project installed before 0.17.0, or a removed record). Without it, rollback only lists those backups: they may come from a run older than the one you mean to undo.'],
+  rollback: [dryRunNote, 'A rollback that gets as far as a plan ends with one line a script can read: Result: rolled-back, restored-from-backups, already-restored, cleaned-up, nothing-to-undo or backups-not-restored (exit code 3 with --apply); interrupted or failed when it stops partway; a dry run prints Result: dry-run (would be: ...).', '--from-backups restores the newest backup of each managed file when there is no record of an applied run (a project installed before 0.17.0, or a removed record). Without it, rollback only lists those backups: they may come from a run older than the one you mean to undo.'],
   tui: ['The menu needs an interactive terminal; in scripts use the other commands.']
 };
 

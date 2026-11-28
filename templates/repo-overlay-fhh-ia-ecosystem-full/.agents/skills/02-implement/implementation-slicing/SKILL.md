@@ -47,7 +47,7 @@ For compact PRDs, the goal is not to create more slices. The goal is to find the
 Use compact slicing when all are true:
 
 - Scope is single-surface or backend-only.
-- The PRD is approved and acceptance criteria are falsifiable.
+- The PRD is approved (`Estado: Aprobado`; `implement-change` settles it before this step) and acceptance criteria are falsifiable.
 - There is no frontend/backend contract cutover in the same PRD, or the producer contract is not consumed yet.
 - A single implementation owner can safely make the first slice.
 - Validation can start with focused tests instead of broad suites.

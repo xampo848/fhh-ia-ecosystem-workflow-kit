@@ -83,9 +83,10 @@ test('decision 2: an N1 limit counts production files, the test goes with its fi
     const rules = section(text, 'Level rules:');
     assert.match(rules, /N1 file limit counts production files/, file);
     assert.match(rules, /bounded read-only lookup/, file);
-    // The generated block is frozen (the `split` decision of old installs
-    // depends on it), so the clarification lives outside its markers.
-    assert.doesNotMatch(extractPrefilterBlock(text), /production files|read-only lookup/, file);
+    // Since 0.25.0 the generated block carries the file rule and the lookup
+    // too (earlier texts stay recognized by fingerprint).
+    assert.match(extractPrefilterBlock(text), /1–2 production files/, file);
+    assert.match(extractPrefilterBlock(text), /bounded read-only lookup/, file);
   }
 });
 
@@ -208,7 +209,7 @@ test('decision 7: a compact PRD is proportional, and its class diagram is requir
     assert.match(compact, /do not omit acceptance criteria, use cases, test strategy, or the edge-case matrix/, file);
     assert.match(compact, /`No aplica: <reason>`/, file);
     assert.match(compact, /one line per slice/, file);
-    assert.match(compact, /at most about 170 lines/, file);
+    assert.match(compact, /Its length is whatever those rules leave/, file);
     const gate = section(skill, '### Hard Gate: Class Diagram Is Non-Optional');
     assert.match(gate, /introduces or changes classes, entities, value objects, services, or interfaces/, file);
     assert.match(gate, /PRD that only adds or changes functions[^\n]*signature list/, file);
@@ -271,7 +272,7 @@ test('third pilot: a feature flag is asked about only when the change carries ro
   for (const file of bothCopies(`${createPrd}/reference/ambiguity-detection.md`)) {
     const text = await read(file);
     assert.match(text, /Feature flag: ask only when the change alters behavior existing users already see, touches existing data, or needs a gradual rollout/, file);
-    assert.match(text, /otherwise record `sin feature flag` as an assumption/, file);
+    assert.match(text, /otherwise record `no feature flag` as an assumption/, file);
   }
 });
 

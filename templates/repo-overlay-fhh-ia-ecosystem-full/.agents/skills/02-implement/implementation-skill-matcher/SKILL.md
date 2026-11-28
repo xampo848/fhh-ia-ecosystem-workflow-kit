@@ -135,7 +135,7 @@ Do not launch the matcher as a delegate when there is nothing to match. Before
 delegating, the orchestrator runs a deterministic lookup in
 `.agents/skills/06-patterns/index.md` and the `Pattern` rows of `.agents/project/index.md` by the slice's surface and hazards:
 
-- **0 candidates:** record `matching: sin candidatos para <surface>` in the
+- **0 candidates:** record `matching: no candidates for <surface>` in the
   slice lock and continue; no delegate is launched.
 - **1 or more candidates, or any ambiguity:** run the full matching procedure,
   inline or delegated according to the level.
