@@ -7,6 +7,35 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.25.1-pilot-leftovers
+
+What the pilot run on `0.25.0` left for later. In your projects,
+`workflow-kit update` changes `kit_version` and updates the kit text listed
+below. The kit block of the adapters (`CLAUDE.md`, `AGENTS.md` and the others)
+does not change in this version.
+
+- `split` removes every whole copy of the kit text from an adapter without
+  markers, not only the first one. A file that held the old text twice kept
+  one copy as its own text.
+- Block markers quoted inside a closed code fence are the file's own text:
+  `update` no longer takes them for the kit block.
+- A plan that lists pending files says once what each decision does (`keep`,
+  `discard`, `split`, `shadow`). It also says that an edit made inside the kit
+  block is replaced, when the kit block changed too; before, only the
+  block-only note was shown.
+- A byte-order mark stays at the start of the file when `split` or `init`
+  adds the kit block.
+- `doctor` reports a temporary file a stopped run left in the kit tree as
+  `workspace/temporary-leftover`, with the command that removes it, instead of
+  `boundary/unowned-path`.
+- `implement-change` names which `Estado` it means (the one in the PRD
+  header; section 10 has the closure state), and `level-n1.md` says what an
+  N1 adds to section 10.
+- Router: a request that names a feature is "Feature specification", also
+  against the "Product ambiguity" row.
+- The prompts of the nine delegates (`implement-prd/agents/*.md`) are in
+  English. The delegate names do not change.
+
 ## 0.25.0-open-prefilter
 
 The kit text of the adapters can change again, and it does: the N1 file rule
