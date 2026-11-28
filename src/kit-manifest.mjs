@@ -72,12 +72,47 @@ export function blockMarkers(name) {
   return { start: `<!-- ${name}:start -->`, end: `<!-- ${name}:end -->` };
 }
 
+// The closed code fences of a markdown text, as [start, end) character
+// ranges. A fence that never closes is not one here: treating the rest of the
+// file as code would hide a real block below it.
+function closedFences(content) {
+  const ranges = [];
+  let open = null;
+  let offset = 0;
+  for (const line of content.split('\n')) {
+    const match = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    if (match) {
+      if (open === null) open = { char: match[1][0], length: match[1].length, start: offset };
+      else if (match[1][0] === open.char && match[1].length >= open.length && match[2].trim() === '') {
+        ranges.push([open.start, offset + line.length]);
+        open = null;
+      }
+    }
+    offset += line.length + 1;
+  }
+  return ranges;
+}
+
+// Every position of a marker that is not quoted inside a closed code fence.
+function markerPositions(content, marker, fences) {
+  const positions = [];
+  for (let index = content.indexOf(marker); index >= 0; index = content.indexOf(marker, index + 1)) {
+    if (!fences.some(([start, end]) => index >= start && index < end)) positions.push(index);
+  }
+  return positions;
+}
+
+// Markers quoted inside a code fence (documentation about the block) are the
+// file's own text, never the block.
 export function extractManagedBlock(content, name = defaultBlockName) {
   const markers = blockMarkers(name);
-  const start = content.indexOf(markers.start);
-  const endMarker = content.indexOf(markers.end);
-  if (start < 0 || endMarker < 0) return { error: 'missing' };
-  if (content.indexOf(markers.start, start + 1) >= 0 || content.indexOf(markers.end, endMarker + 1) >= 0) return { error: 'duplicate' };
+  const fences = content.includes('```') || content.includes('~~~') ? closedFences(content) : [];
+  const starts = markerPositions(content, markers.start, fences);
+  const ends = markerPositions(content, markers.end, fences);
+  if (starts.length === 0 || ends.length === 0) return { error: 'missing' };
+  if (starts.length > 1 || ends.length > 1) return { error: 'duplicate' };
+  const [start] = starts;
+  const [endMarker] = ends;
   if (endMarker < start) return { error: 'unordered' };
   const end = endMarker + markers.end.length;
   return { block: content.slice(start, end), start, end };

@@ -757,6 +757,24 @@ export function kitBody(templateContent, blockName) {
 // to it. A file that holds kit lines but no whole kit text was edited: the own
 // text cannot be told apart, so split does not apply.
 // Returns { content, wholeFileOwn } or null when split does not apply.
+// Where the kit text sits in a file, as whole lines: the current text, or an
+// earlier one known by its fingerprint. null when it is not there.
+function kitTextRegion(content, body, knownTexts) {
+  let start = content.indexOf(body);
+  const wholeLines = (index) => (index === 0 || content[index - 1] === '\n') && [undefined, '\n'].includes(content[index + body.length]);
+  while (start !== -1 && !wholeLines(start)) start = content.indexOf(body, start + 1);
+  if (start !== -1) return { start, length: body.length };
+  return findKnownKitText(content, knownTexts);
+}
+
+// The own text around a removed kit text: unchanged except for the blank
+// lines that touched it (one blank line keeps the two parts apart).
+function joinOwnParts(beforeText, afterText) {
+  const before = beforeText.replace(/(?:^|(?<=\n))(?:[ \t]*\n)+$/, '');
+  const after = afterText.replace(/^\n/, '').replace(/^(?:[ \t]*\n)+/, '').replace(/^[ \t]*$/, '');
+  return `${before}${before && after ? '\n' : ''}${after}`;
+}
+
 export function splitUnmarkedAdapter(existingContent, templateContent, blockName, knownTexts = []) {
   const body = kitBody(templateContent, blockName);
   if (body === '') return null;
@@ -778,7 +796,14 @@ export function splitUnmarkedAdapter(existingContent, templateContent, blockName
   }
   const before = existingContent.slice(0, start).replace(/(?:^|(?<=\n))(?:[ \t]*\n)+$/, '');
   const after = existingContent.slice(start + length).replace(/^\n/, '').replace(/^(?:[ \t]*\n)+/, '').replace(/^[ \t]*$/, '');
-  const own = `${before}${before && after ? '\n' : ''}${after}`;
+  let own = `${before}${before && after ? '\n' : ''}${after}`;
+  // The kit text may be there more than once (pasted twice, or an old and a
+  // newer one): every whole copy goes, not only the first.
+  for (let pass = 0; pass < 8; pass += 1) {
+    const again = kitTextRegion(own, body, knownTexts);
+    if (!again) break;
+    own = joinOwnParts(own.slice(0, again.start), own.slice(again.start + again.length));
+  }
   // A block marker left in the own text would give the file two of them.
   if (strayMarkers.some((marker) => own.includes(marker))) return null;
   return { content: own === '' ? templateContent : insertManagedBlock(own, templateContent, blockName), wholeFileOwn: false };
