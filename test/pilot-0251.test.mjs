@@ -86,7 +86,7 @@ test('D3: a plan with pending decisions says what each decision does', async () 
   const target = await installed();
   await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nedited\n');
   const text = formatPlan(await buildUpdatePlan({ targetPath: target }));
-  assert.match(text, /^Decisions \(each file lists the ones that apply to it\): keep leaves the file as it is \(the next update lists it again\); discard takes the kit version, or removes a file the kit no longer ships, and moves your version to a backup file next to it; split keeps your own text and puts the kit block in place of the kit text, or next to your text when the file holds none; shadow moves your edit to a project shadow\. Pass one with --edited <path>=<decision>\.$/m);
+  assert.match(text, /^Decisions \(each file lists the ones that apply to it\): keep leaves the file as it is \(the next update lists it again\); discard takes the kit version, or removes a file the kit no longer ships, and moves your version to a backup file next to it; split puts the kit block where the kit places it[^\n]*Pass one with --edited <path>=<decision>\.$/m);
   // A plan with nothing pending has no such line.
   const clean = await installed();
   assert.doesNotMatch(formatPlan(await buildUpdatePlan({ targetPath: clean })), /^Decisions:/m);
@@ -232,4 +232,32 @@ test('repair R2 and R3: no false "edited" note under an install-state that recor
   assert.match(doctor.stdout, /boundary\/unowned-path\] \.agents\/skills\/\.workflow-kit-tmp-notes\.md/);
   assert.match(doctor.stdout, /temporary-leftover\] \.agents\/skills\/\.workflow-kit-tmp-4242: A temporary file a stopped workflow-kit run left\. It is safe to delete by hand\. \(warning\)/);
   assert.doesNotMatch(doctor.stdout, /no workflow-kit command removes it/);
+});
+
+test('repair R4 to R7: one size rule for N1, the approved-PRD exception wherever the yes is asked, what N1 writes at closure, and an exact legend', async () => {
+  const skill = '.agents/skills/02-implement/implement-change/SKILL.md';
+  const n1 = '.agents/skills/02-implement/implement-change/reference/level-n1.md';
+  for (const file of bothCopies(skill)) {
+    const text = await read(file);
+    assert.doesNotMatch(text, /2\+ non-mechanical edits/, file);
+    assert.match(text, /If N1 needs 4\+ exploratory reads, more than two production files, or\s+cross-layer reasoning, stop and propose N2/, file);
+    assert.match(text, /Authorization: N1 needs a short "yes" to the one-line proposal\s+\(`N1 · surgical · <files>`\), except with an approved PRD \(Step 2\)/, file);
+    assert.match(text, /stop only when the change needs a production file outside the scope its slice names \(`Alcance \/ archivos probables` lists likely files, not an exact set\)/, file);
+    assert.ok(text.replace(/\n$/, '').split('\n').length <= 200, file);
+  }
+  for (const file of bothCopies(n1)) {
+    const text = await read(file);
+    assert.match(text, /With an approved PRD the user asked to implement, show the line and go on without waiting/, file);
+    assert.match(text, /another production file is needed beyond the one or two named \(with an approved PRD: outside the scope its slice names\)/, file);
+    assert.match(text, /set the `Estado` of section 10 to `Cerrada` when every acceptance criterion has its evidence, otherwise `En progreso`, and `Modo de ejecución` to `supervised`/, file);
+  }
+  for (const file of bothCopies('.agents/instructions.md')) {
+    assert.match(await read(file), /With an explicit PRD that is approved, `implement-change` shows the N1 line and goes on/, file);
+  }
+  const target = await installed();
+  await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nedited\n');
+  const legend = formatPlan(await buildUpdatePlan({ targetPath: target })).split('\n').find((line) => line.startsWith('Decisions'));
+  assert.doesNotMatch(legend, /in place of the kit text/);
+  assert.match(legend, /split puts the kit block where the kit places it \(at the top of most adapters\), keeps your own text below it, and leaves a backup of the file as it was/);
+  assert.match(legend, /shadow \(listed only while migrating from install-state 1\.0\.0\) moves your edit to a project shadow/);
 });

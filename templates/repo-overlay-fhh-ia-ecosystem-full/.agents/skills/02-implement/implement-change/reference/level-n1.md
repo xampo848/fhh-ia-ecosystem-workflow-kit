@@ -23,7 +23,7 @@ Discovery, no execution locks, no delegate matrix or prompt packs.
 
 ## Flow
 
-1. Propose `N1 · surgical · <files>` and wait for a short "yes". The test file for the target counts as a target file (it may be edited) but not toward the one-or-two-file limit: name it in the line when known. Before the yes, a bounded read-only lookup is allowed to locate the target, its test, and the check command; reading to design the change waits for the yes.
+1. Propose `N1 · surgical · <files>` and wait for a short "yes". With an approved PRD the user asked to implement, show the line and go on without waiting (`../SKILL.md`, Step 2). The test file for the target counts as a target file (it may be edited) but not toward the one-or-two-file limit: name it in the line when known. Before the yes, a bounded read-only lookup is allowed to locate the target, its test, and the check command; reading to design the change waits for the yes.
 2. Read the target files and their tests.
 3. Bug: reproduce, then write the test that fails before the fix. Behavior
    change: add or update the test. Non-semantic edit: no new test.
@@ -32,11 +32,11 @@ Discovery, no execution locks, no delegate matrix or prompt packs.
    (regression). For an iteration, also run the tests listed in the PRD's
    section 10 for that feature.
 6. Close with short evidence: what changed, which tests and checks ran with
-   their result, and the change reference. If a PRD exists: a first implementation fills the table of its section 10; an iteration adds an "Iteración N" entry there, with the cause of the iteration, the delta, the acceptance criteria added or changed, the tests executed and the change reference (`input-types.md`, "Iteration").
+   their result, and the change reference. If a PRD exists: a first implementation fills the table of its section 10; an iteration adds an "Iteración N" entry there, with the cause of the iteration, the delta, the acceptance criteria added or changed, the tests executed and the change reference (`input-types.md`, "Iteration"). At closure, set the `Estado` of section 10 to `Cerrada` when every acceptance criterion has its evidence, otherwise `En progreso`, and `Modo de ejecución` to `supervised`.
 
 ## Stop and escalate
 
-Stop and propose N2 or N3 when any of these appear: another file is needed, a
+Stop and propose N2 or N3 when any of these appear: another production file is needed beyond the one or two named (with an approved PRD: outside the scope its slice names), a
 contract or shared type is involved, a test failure you cannot explain in one
 step, a hazard from the list in `../SKILL.md`, or the check cannot run. Never
 widen scope silently.

@@ -1232,7 +1232,7 @@ export function formatPlan(plan) {
 
   // What a pending file's decisions do, once, when any file lists them.
   if (plan.operations.some((item) => item.decisions)) {
-    lines.push('Decisions (each file lists the ones that apply to it): keep leaves the file as it is (the next update lists it again); discard takes the kit version, or removes a file the kit no longer ships, and moves your version to a backup file next to it; split keeps your own text and puts the kit block in place of the kit text, or next to your text when the file holds none; shadow moves your edit to a project shadow. Pass one with --edited <path>=<decision>.');
+    lines.push('Decisions (each file lists the ones that apply to it): keep leaves the file as it is (the next update lists it again); discard takes the kit version, or removes a file the kit no longer ships, and moves your version to a backup file next to it; split puts the kit block where the kit places it (at the top of most adapters), keeps your own text below it, and leaves a backup of the file as it was; shadow (listed only while migrating from install-state 1.0.0) moves your edit to a project shadow. Pass one with --edited <path>=<decision>.');
   }
   lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, merge_with_backup=${plan.summary.merge_with_backup}, merge_no_backup=${plan.summary.merge_no_backup}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, overwrite_no_backup=${plan.summary.overwrite_no_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}, delete_with_backup=${plan.summary.delete_with_backup}`);
   return lines.join('\n');
