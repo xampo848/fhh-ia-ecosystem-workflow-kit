@@ -22,7 +22,7 @@ For compact PRDs, the goal is not to create more slices. The goal is to find the
 - PRD readiness brief and, at N3 with a PRD, the PRD index (`.ai-work/<prd-slug>/prd-index.toon`) plus only the PRD sections the slices need; ask for a section by its reference instead of rereading the whole PRD.
 - Codebase discovery brief, targeted lookup notes, or explicit reason discovery was skipped.
 - Candidate level (N2 or N3).
-- The PRD's `Que queda obsoleto` table: every row belongs to a slice, with the same traceability rule as acceptance criteria. The removal goes in its own slice when it can fail on its own, and a test or check proves the old path is gone or adapted. Rows of type `test` (tests this change makes meaningless, temporary migration tests) are deleted by their slice; their verification search proves it.
+- The PRD's `Qué queda obsoleto` table: every row belongs to a slice, with the same traceability rule as acceptance criteria. The removal goes in its own slice when it can fail on its own, and a test or check proves the old path is gone or adapted. Rows of type `test` (tests this change makes meaningless, temporary migration tests) are deleted by their slice; their verification search proves it.
 - The PRD's `Supuestos e integraciones` table: an `asumido` row that affects an acceptance criterion and was not verified becomes the first slice, with a stop condition if the assumption is false.
 - User constraints, branch status, and resume state.
 
@@ -30,7 +30,7 @@ For compact PRDs, the goal is not to create more slices. The goal is to find the
 
 1. Preserve PRD milestone order unless discovery proves a dependency problem. Phases are milestones; slices are the executable unit.
 2. Map every acceptance criterion to one or more slices and define the evidence that will prove it.
-3. Map every PRD use case (`UC-N`) to at least one slice, every PRD Estrategia de Tests row it depends on, and any Matriz de Edge Cases rows it must satisfy. An edge-case row goes to the slice that owns its `Capa duena` layer, and its test is written there only (`.agents/skills/02-implement/implement-prd/reference/test-design-rules.md`). A use case, test row, or edge-case row with no owning slice is a traceability gap; resolve it before handoff or report it as a stop condition.
+3. Map every PRD use case (`UC-N`) to at least one slice, every PRD Estrategia de Tests row it depends on, and any Matriz de Edge Cases rows it must satisfy. An edge-case row goes to the slice that owns its `Capa dueña` layer, and its test is written there only (`.agents/skills/02-implement/implement-prd/reference/test-design-rules.md`). A use case, test row, or edge-case row with no owning slice is a traceability gap; resolve it before handoff or report it as a stop condition.
 4. Split first by failure/rollback boundary, then by contract boundary: migration, domain behavior, API/serializer, frontend API/hook, UI, rollout/backfill, cleanup.
 5. Apply the atomicity rules below. Recursively split every `TOO_COARSE` slice before handing off implementation.
 6. Assign each slice a single owner skill and one observable outcome.
@@ -47,7 +47,7 @@ For compact PRDs, the goal is not to create more slices. The goal is to find the
 Use compact slicing when all are true:
 
 - Scope is single-surface or backend-only.
-- The PRD is approved and acceptance criteria are falsifiable.
+- The PRD is approved (`Estado: Aprobado`; `implement-change` settles it before this step) and acceptance criteria are falsifiable.
 - There is no frontend/backend contract cutover in the same PRD, or the producer contract is not consumed yet.
 - A single implementation owner can safely make the first slice.
 - Validation can start with focused tests instead of broad suites.

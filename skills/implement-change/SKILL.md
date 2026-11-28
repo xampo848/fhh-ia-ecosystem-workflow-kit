@@ -1,6 +1,6 @@
 ---
 name: implement-change
-description: "An approved PRD, a bug, a ticket, or an iteration over an implemented PRD needs code changes (N1–N3)"
+description: "A PRD with `Estado: Aprobado` (or approved on the way), a bug, a ticket, or an iteration over an implemented PRD needs code changes (N1–N3)"
 disable-model-invocation: true
 ---
 

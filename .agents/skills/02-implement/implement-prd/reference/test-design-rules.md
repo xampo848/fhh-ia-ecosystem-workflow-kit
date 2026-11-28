@@ -43,7 +43,7 @@ reason.
 
 ## 3. Edge-case matrix layer
 
-The PRD's Matriz de Edge Cases has a `Capa duena` column. Slicing gives each
+The PRD's Matriz de Edge Cases has a `Capa dueña` column. Slicing gives each
 row to the slice that owns that layer. QA checks that the evidence sits at that
 layer: a row proven only at another layer is a gap; a row proven again at extra
 layers is a duplicate finding (`low`, or `medium` when the extra tests are slow).
@@ -66,7 +66,7 @@ layer concern.
 ## 6. Migration test lifecycle
 
 - A test of a migration's up/down or of a data backfill is **temporary**. Mark
-  it as such in a comment at its top, list it in the PRD's `Que queda obsoleto`
+  it as such in a comment at its top, list it in the PRD's `Qué queda obsoleto`
   table (type `test`, action `eliminar`, trigger: the migration reaches the main
   branch), and delete it once the migration is on the main branch.
 - A database rule that stays live (check constraint, unique index, trigger,
@@ -106,7 +106,7 @@ An exception carries a one-line comment naming why the detail is the contract.
 
 ## 9. Obsolete tests
 
-The PRD's `Que queda obsoleto` table also lists the tests this change makes
+The PRD's `Qué queda obsoleto` table also lists the tests this change makes
 meaningless: tests of removed behavior, tests of a migration or tool that
 leaves, and tests that duplicate a rule the change moves to another owning
 layer. The owning slice deletes or adapts them, and the row's verification

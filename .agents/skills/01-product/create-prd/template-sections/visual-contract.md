@@ -4,25 +4,25 @@ Conditional section of [PRD_TEMPLATE.md](../PRD_TEMPLATE.md). Insert it as secti
 
 ### 2.7 Contrato Visual (UI lock)
 
-Completar cuando hay UI visible. Si no hay pantalla de usuario, dejar `UI lock: not-applicable` y una razon de una linea.
+Completar cuando hay UI visible. Si no hay pantalla de usuario, dejar `UI lock: not-applicable` y una razón de una línea.
 
 **UI lock**: locked | not-applicable
 **Superficie**: Nueva | Evolucion de [ruta o componente existente]
-**Densidad / composicion**: Tabla | Formulario | Wizard | Detalle | Dashboard | Otro: [nombre]
-**Accion primaria**: [La unica accion que debe ganar jerarquia]
-**Estados requeridos**: loading | vacio | error | permisos | 1 item | N items
-**Tesis visual**: [Una frase: jerarquia, ritmo y el movimiento que evita un look generico]
+**Densidad / composición**: Tabla | Formulario | Wizard | Detalle | Dashboard | Otro: [nombre]
+**Acción primaria**: [La única acción que debe ganar jerarquía]
+**Estados requeridos**: loading | vacío | error | permisos | 1 item | N items
+**Tesis visual**: [Una frase: jerarquía, ritmo y el movimiento que evita un look genérico]
 **Reutilizar**: [Primitiva del Design System o pantalla hermana]
 **Evidencia opcional**: [path de screen actual / Figma / foto / mockup | ninguna]
-**No lockear aqui**: hex, tipografias nuevas, animacion, salvo decision de producto ya existente o `Lock visual: pixel` pedido explicitamente
+**No lockear aquí**: hex, tipografías nuevas, animación, salvo decisión de producto ya existente o `Lock visual: pixel` pedido explícitamente
 
 ```text
 [Wireframe ASCII de la pantalla principal]
 +--------------------------------------+
-| Titulo                    [Accion]   |
+| Título                    [Acción]   |
 |--------------------------------------|
 | [contenido primario]                 |
-| [estado vacio / error / lista]       |
+| [estado vacío / error / lista]       |
 +--------------------------------------+
 ```
 
@@ -35,6 +35,6 @@ Reglas en `reference/visual-lock.md`: el prototipo manda en estructura y conteni
 **Lock visual**: N/A | estructura | pixel
 **Fuente**: [ruta del HTML o la imagen]
 
-| Elemento | Fuente | Componente | Decision |
+| Elemento | Fuente | Componente | Decisión |
 | --- | --- | --- | --- |
-| [seccion, campo, texto, estado o interaccion] | prototipo/pattern | [Componente existente / componente nuevo] | [default / pattern gana: valor / prototipo (explicito): palabras del usuario / prototipo (pixel) / pattern update pendiente] |
+| [sección, campo, texto, estado o interacción] | prototipo/pattern | [Componente existente / componente nuevo] | [default / pattern gana: valor / prototipo (explícito): palabras del usuario / prototipo (pixel) / pattern update pendiente] |

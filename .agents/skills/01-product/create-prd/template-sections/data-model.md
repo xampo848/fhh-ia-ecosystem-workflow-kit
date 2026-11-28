@@ -6,13 +6,13 @@ Conditional section of [PRD_TEMPLATE.md](../PRD_TEMPLATE.md). Insert it as secti
 
 **Persistencia**: aplica
 
-#### Ubicacion en el dominio
+#### Ubicación en el dominio
 
-[Contexto o modulo dueno de la entidad, namespace, estrategia de nombres de tabla o coleccion y dependencias entre contextos: quien depende de quien y en que direccion]
+[Contexto o módulo dueño de la entidad, namespace, estrategia de nombres de tabla o colección y dependencias entre contextos: quién depende de quién y en qué dirección]
 
 #### Enumeraciones
 
-[Valores restringidos y la enumeracion con nombre que los define, segun la convencion del proyecto; `Ninguna` si no hay]
+[Valores restringidos y la enumeración con nombre que los define, según la convención del proyecto; `Ninguna` si no hay]
 
 #### Estado actual de los datos
 
@@ -20,27 +20,27 @@ Conditional section of [PRD_TEMPLATE.md](../PRD_TEMPLATE.md). Insert it as secti
 
 #### Campos nuevos o modificados
 
-| Campo origen | Campo almacenado | Tipo | Nullable | Descripcion |
+| Campo origen | Campo almacenado | Tipo | Nullable | Descripción |
 | ------------ | ---------------- | ---- | -------- | ----------- |
 | ...          | ...              | ...  | ...      | ...         |
 
-**Almacenamiento**: [Que se persiste: crudo, calculado o ambos]
+**Almacenamiento**: [Qué se persiste: crudo, calculado o ambos]
 
-#### Migracion requerida
+#### Migración requerida
 
-[Pseudocodigo de la migracion en la herramienta de migraciones del proyecto: que se agrega, valores por defecto, indices y como se revierte]
+[Pseudocódigo de la migración en la herramienta de migraciones del proyecto: qué se agrega, valores por defecto, índices y cómo se revierte]
 
 #### Ciclo de vida
 
-[Solo-agregar o mutable; estados y transiciones validas; quien puede cambiar cada estado]
+[Solo-agregar o mutable; estados y transiciones válidas; quién puede cambiar cada estado]
 
 #### Aislamiento entre tenants _(solo si el proyecto es multi-tenant)_
 
-[Regla de aislamiento, como se prueba en la entrada y que pasa con los datos existentes. En un proyecto de un solo tenant, borrar este bloque.]
+[Regla de aislamiento, cómo se prueba en la entrada y qué pasa con los datos existentes. En un proyecto de un solo tenant, borrar este bloque.]
 
 #### Definition of Done de datos
 
-- [ ] Los datos existentes siguen siendo validos tras la migracion, o hay un backfill definido
-- [ ] Nombres de campos segun el `identifier_language` del Pattern Lock
+- [ ] Los datos existentes siguen siendo válidos tras la migración, o hay un backfill definido
+- [ ] Nombres de campos según el `identifier_language` del Pattern Lock
 - [ ] Sin consultas N+1 en los caminos tocados
-- [ ] La migracion se puede revertir, o el PRD dice por que no
+- [ ] La migración se puede revertir, o el PRD dice por qué no

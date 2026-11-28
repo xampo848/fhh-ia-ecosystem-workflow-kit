@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "fhh",
-  "version": "0.24.1-pilot-alignment",
+  "version": "0.25.0-open-prefilter",
   "description": "Workflow kit: routed workflow skills and delegates that run from the plugin while each repository keeps its own project overlay.",
   "author": {
     "name": "fhh-ia-ecosystem"

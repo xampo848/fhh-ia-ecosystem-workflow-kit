@@ -33,7 +33,7 @@ Delegate contract (summary of `.agents/delegation/delegate-contract.md`):
    the project additions in `.agents/project/quality-gate.md` when present),
    and the relevant section of `.agents/project/context.md` (legacy: `.agents/project-context.md`).
    The kit default always applies; if it is missing, report
-   `quality gate: no configurado`; never skip it silently.
+   `quality gate: not configured`; never skip it silently.
 3. **Observable reuse.** Reuse pre-injected content only when the runtime makes the complete content,
    its provenance, and its current freshness observable. In that case, record
    the provenance and do not re-read the identical source.

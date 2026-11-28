@@ -33,12 +33,12 @@ never the level's gates.
    after a direct request or an applicable project or skill instruction), ask
    once whether to delegate to the generated agents. If the user declines, or
    the runtime exposes no way to spawn them, say so in the trace
-   (`ejecución inline: subagentes no autorizados o no disponibles`) and apply
+   (`inline execution: subagents not authorized or not available`) and apply
    the smallest context load for the level. Never fall back to inline
    execution silently: a silent fallback piles every stage into the
    orchestrator's context window.
-6. **Visibility:** the trace shows the active mode (`· autónomo` or
-   `· supervisado`), and the closure records which mode was used.
+6. **Visibility:** the trace shows the active mode (`· autonomous` or
+   `· supervised`), and the closure records which mode was used.
 
 ## Resume
 

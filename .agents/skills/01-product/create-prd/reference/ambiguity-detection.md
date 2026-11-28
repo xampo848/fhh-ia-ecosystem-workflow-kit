@@ -33,6 +33,7 @@ Antes de continuar, necesito resolver estas dudas:
 
 - Ask at most about 10 questions per round, grouped by category, each with the
   answer you propose, so the user only confirms or corrects.
+- Wait for the answers: never draft past an unanswered blocking question. If the user replies without answering a blocking question, ask again once, naming the ones that remain; do not turn it into an assumption. If it is still unanswered, stop and wait: do not ask a third time, and do not count the repeat as a round.
 - At most 3 rounds. If blocking questions still appear after the third round,
   the PRD is too large: count it as a size signal (see `self-audit.md`) and
   propose splitting it.
@@ -40,7 +41,7 @@ Antes de continuar, necesito resolver estas dudas:
   default value in the PRD's `Supuestos e integraciones` section; the user can
   change it.
 - Feature flag: ask only when the change alters behavior existing users already see, touches existing data, or needs a gradual rollout;
-  otherwise record `sin feature flag` as an assumption in that section.
+  otherwise record `no feature flag` as an assumption in that section.
 
 ## Edge-Case Confirmation Round
 

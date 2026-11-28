@@ -64,14 +64,14 @@ fallback for PRDs started before this layout.
 | PRD | a PRD path or "implementa este PRD" | acceptance-criteria coverage matrix |
 | Bug | observed behavior differs from expected | reproduction, a test that fails before the fix and passes after, one-line root cause |
 | Ticket | a ticket id or short acceptance criteria | each acceptance criterion covered by a test or check |
-| Iteration | a change to something already implemented from a PRD | delta against the PRD and its `## 10. Evidencia de Implementacion` |
+| Iteration | a change to something already implemented from a PRD | delta against the PRD and its `## 10. Evidencia de Implementación` |
 
 Read only the matching section of `reference/input-types.md`.
 
 ## Step 2 · Confirm the level
 
 The router or the pre-filter proposes the level; this skill confirms it before
-any edit. With an explicit PRD (a hard trigger, which skips the level signals) this skill sets the level itself, from the PRD's hazards and size. One classification only: the old operating modes map to levels.
+any edit. With an explicit PRD (a hard trigger, which skips the level signals) this skill sets the level itself with the escalation rules below (the hazard rule and the critical concerns decide N3): N1 when its header says `Modo: compacto` and it has one slice, one or two production files, and no listed hazard; N2 otherwise. If the PRD's `Estado` is not `Aprobado`, say so and ask for a yes before any edit; with that yes, set `Estado: Aprobado` in the PRD. A request that says the PRD is approved ("el PRD ya está aprobado, avanza") is that yes: mark it and go on without asking. At N1, one yes covers both the approval and the N1 line: ask once, naming both. With an approved PRD the imperative is the authorization at every level: at N1, show the N1 line and go on without waiting; stop only when a file to touch is not one the PRD names. A PRD without the field (written before it existed) is not blocked. One classification only: the old operating modes map to levels.
 
 | Level | Former mode | Load |
 | --- | --- | --- |
@@ -99,7 +99,7 @@ Escalation rules, applied before choosing the level reference:
 Authorization: N1 needs a short "yes" to the one-line proposal
 (`N1 · surgical · <files>`). N2 and N3 need explicit route
 authorization; together with it, offer **supervised** (default: review pause
-between phases) or **autonomous** (`reference/modifiers.md`).
+between phases) or **autonomous** (`reference/modifiers.md`). "implementa este PRD" is that authorization; offering the execution mode is not a second confirmation: with no answer, run supervised.
 
 ## Step 3 · Execute with the level reference
 
@@ -153,7 +153,7 @@ No level, modifier, or user hurry removes these:
    layers it touches (`.agents/project/backend.md`, `.agents/project/frontend.md`,
    and `.agents/project/stack.md` when present); `.agents/project/paths.json`
    maps these names for projects with another layout. Nothing is skipped
-   silently: if the kit default is missing, say `quality gate: no configurado`
+   silently: if the kit default is missing, say `quality gate: not configured`
    in the trace; at N3 that is a stop, and a path the input requires that is
    missing is always a hard stop.
 5. **Stop conditions and brakes** in `../implement-prd/reference/validation-and-stop-conditions.md`
@@ -177,7 +177,7 @@ No level, modifier, or user hurry removes these:
 | Level | Closure |
 | --- | --- |
 | N1 | delta tests, regression of the touched area, focused check, short evidence in the PRD or the final response |
-| N2 | N1 + coverage of the acceptance criteria touched + focused QA + `## 10. Evidencia de Implementacion` updated when a PRD exists |
+| N2 | N1 + coverage of the acceptance criteria touched + focused QA + `## 10. Evidencia de Implementación` updated when a PRD exists |
 | N3 | the 12-point Mandatory Closure Contract in `reference/level-n3.md` |
 
 An iteration closes with an "Iteración N" subsection in section 10 instead of

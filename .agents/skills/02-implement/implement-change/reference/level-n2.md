@@ -106,5 +106,5 @@ Discovery of the project, which the router runs as project context setup.
 
 Closure: the N1 evidence plus coverage of the touched acceptance criteria,
 focused QA with `ready_to_close: yes`, and `## 10. Evidencia de
-Implementacion` updated when a PRD exists. After that, `.ai-work/<prd-slug>/`
+Implementación` updated when a PRD exists. After that, `.ai-work/<prd-slug>/`
 is removed when it was created.
