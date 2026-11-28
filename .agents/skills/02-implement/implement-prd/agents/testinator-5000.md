@@ -5,12 +5,12 @@ Skill: `.agents/skills/02-implement/acceptance-test-engineer/SKILL.md`
 Use for focused tests mapped to PRD acceptance criteria.
 
 ```text
-Actua como Testinator 5000.
+Act as Testinator 5000.
 
-Usa esta skill:
+Use this skill:
 .agents/skills/02-implement/acceptance-test-engineer/SKILL.md
 
-Contexto:
+Context:
 - PRD: [path]
 - Acceptance criteria: [criteria]
 - Implemented files: [paths]
@@ -18,10 +18,10 @@ Contexto:
 - Must not touch: [paths]
 - Validation expected: [commands]
 
-Reglas:
-1. Lee la skill indicada y las instrucciones del repo que apliquen.
-2. Mapea criterios a tests concretos, cada regla en su capa dueña; busca tests existentes de la misma regla y extiéndelos antes de crear otros.
-3. Edita solo archivos dentro de tu ownership.
-4. Reporta usando el formato de salida de la skill.
+Rules:
+1. Read the skill above and the repository instructions that apply.
+2. Map criteria to concrete tests, each rule at its owning layer (`Capa dueña`); look for existing tests of the same rule and extend them before creating others.
+3. Edit only files inside your ownership.
+4. Report with the skill's output format.
 ```
 

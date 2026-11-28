@@ -7,6 +7,46 @@ no longer ships and move project content to `.agents/project/`, always with a
 backup and `workflow-kit rollback`. Migration details are in
 `docs/migration.md`.
 
+## 0.25.1-pilot-leftovers
+
+What the pilot run on `0.25.0` left for later. In your projects,
+`workflow-kit update` changes `kit_version` and updates the kit text listed
+below. The kit block of the adapters (`CLAUDE.md`, `AGENTS.md` and the others)
+does not change in this version.
+
+- `split` removes every whole copy of the kit text from an adapter without
+  markers, not only the first one. A file that held the old text twice kept
+  one copy as its own text.
+- When a file holds the kit block and also quotes its markers inside a closed
+  code fence (documentation about the block), `update` finds the real block
+  instead of stopping on a duplicate, but only when the pair left outside is
+  alone on its lines and no fenced pair holds more text; anything less clear
+  stays pending, as before. A file with a single pair of markers behaves
+  exactly as before, wherever that pair sits.
+- A plan that lists pending files says once what each decision does (`keep`,
+  `discard`, `split`, `shadow`). It also says that an edit made inside the kit
+  block is replaced, when the kit block changed too; before, only the
+  block-only note was shown.
+- A byte-order mark stays at the start of the file when `split` or `init`
+  adds the kit block, and a file that starts with the mark and the kit text
+  still gets `split`.
+- `doctor` reports a temporary file a stopped run left in the kit tree as
+  `workspace/temporary-leftover` instead of `boundary/unowned-path`, and says
+  it is safe to delete by hand. Only a file named `.workflow-kit-tmp-<pid>`
+  counts.
+- `implement-change`: the size rule for N1 is the one of the pre-filter
+  (more than two production files is N2); the approved-PRD exception is
+  stated wherever the yes is asked; an N1 that closes a PRD sets the state and
+  the execution mode of section 10.
+- `implement-change` names which `Estado` it means (the one in the PRD
+  header; section 10 has the closure state), and `level-n1.md` says what an
+  N1 writes in section 10 (the table for a first implementation, an
+  "Iteración N" entry for an iteration).
+- Router: a request that names a feature is "Feature specification", also
+  against the "Product ambiguity" row.
+- The prompts of the nine delegates (`implement-prd/agents/*.md`) are in
+  English. The delegate names do not change.
+
 ## 0.25.0-open-prefilter
 
 The kit text of the adapters can change again, and it does: the N1 file rule

@@ -72,12 +72,73 @@ export function blockMarkers(name) {
   return { start: `<!-- ${name}:start -->`, end: `<!-- ${name}:end -->` };
 }
 
+// The closed code fences of a markdown text, as [start, end) character
+// ranges, by the CommonMark rule: an opening fence of backticks has no
+// backtick in its info string (so "```npm test``` runs" is not one), and a
+// closing fence has the same character, at least the same length and nothing
+// after it. A fence that never closes is not one here.
+function closedFences(content) {
+  const ranges = [];
+  let open = null;
+  let offset = 0;
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.replace(/\r$/, '');
+    const match = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    if (match) {
+      if (open === null) {
+        if (match[1][0] === '~' || !match[2].includes('`')) open = { char: match[1][0], length: match[1].length, start: offset };
+      } else if (match[1][0] === open.char && match[1].length >= open.length && match[2].trim() === '') {
+        ranges.push([open.start, offset + rawLine.length]);
+        open = null;
+      }
+    }
+    offset += rawLine.length + 1;
+  }
+  return ranges;
+}
+
+function positionsOf(content, marker) {
+  const positions = [];
+  for (let index = content.indexOf(marker); index >= 0; index = content.indexOf(marker, index + 1)) positions.push(index);
+  return positions;
+}
+
+// True when the marker at `index` is alone on its line.
+function onOwnLine(content, index, marker) {
+  const lineStart = content.lastIndexOf('\n', index - 1) + 1;
+  const lineEnd = content.indexOf('\n', index);
+  return content.slice(lineStart, lineEnd === -1 ? content.length : lineEnd).trim() === marker;
+}
+
+// A single pair of markers is the block, wherever it sits: that never
+// changed. With more markers than one pair, the file is ambiguous, and a wrong
+// guess overwrites own text; so the block is named only when all of this
+// holds, and anything else stays a duplicate for the user to decide:
+// - exactly one pair is outside every closed code fence, each marker alone on
+//   its line (markers quoted in a sentence are not a block);
+// - every other marker is inside a closed fence, in pairs;
+// - no fenced pair holds more text than the pair outside (a real block
+//   wrapped in a fence next to a short example is not guessed either).
 export function extractManagedBlock(content, name = defaultBlockName) {
   const markers = blockMarkers(name);
-  const start = content.indexOf(markers.start);
-  const endMarker = content.indexOf(markers.end);
-  if (start < 0 || endMarker < 0) return { error: 'missing' };
-  if (content.indexOf(markers.start, start + 1) >= 0 || content.indexOf(markers.end, endMarker + 1) >= 0) return { error: 'duplicate' };
+  let starts = positionsOf(content, markers.start);
+  let ends = positionsOf(content, markers.end);
+  if (starts.length === 0 || ends.length === 0) return { error: 'missing' };
+  if (starts.length > 1 || ends.length > 1) {
+    const fences = closedFences(content);
+    const outside = (index) => !fences.some(([start, end]) => index >= start && index < end);
+    const [outsideStarts, outsideEnds] = [starts.filter(outside), ends.filter(outside)];
+    if (outsideStarts.length !== 1 || outsideEnds.length !== 1 || outsideEnds[0] < outsideStarts[0]) return { error: 'duplicate' };
+    if (!onOwnLine(content, outsideStarts[0], markers.start) || !onOwnLine(content, outsideEnds[0], markers.end)) return { error: 'duplicate' };
+    const fencedStarts = starts.filter((index) => !outside(index));
+    const fencedEnds = ends.filter((index) => !outside(index));
+    if (fencedStarts.length !== fencedEnds.length) return { error: 'duplicate' };
+    const size = outsideEnds[0] - outsideStarts[0];
+    if (fencedStarts.some((from, pair) => fencedEnds[pair] < from || fencedEnds[pair] - from > size)) return { error: 'duplicate' };
+    [starts, ends] = [outsideStarts, outsideEnds];
+  }
+  const [start] = starts;
+  const [endMarker] = ends;
   if (endMarker < start) return { error: 'unordered' };
   const end = endMarker + markers.end.length;
   return { block: content.slice(start, end), start, end };

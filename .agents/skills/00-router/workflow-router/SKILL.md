@@ -132,7 +132,7 @@ is insufficient; for `premium`, the concrete risk. Never invent token counts.
 | --- | --- | --- | --- |
 | Irreversible operational action | push, deploy, delete, publish, or a project runbook trigger | name the concrete risk, wait for explicit confirmation, then act directly; no workflow skill. A matching project runbook sets the steps (`reference/project-overlay.md`) | Yes, always |
 | Project formation | end-to-end shaping: discovery, roadmap, GTM, dossier | propose `project-formation` plus alternatives | Yes |
-| Product ambiguity | problem, need, strategy, priority, unclear direction | propose `create-epic` or `create-prd` | Yes |
+| Product ambiguity | problem, need, strategy, priority, unclear direction; a request that names the feature ("quiero agregar X") is "Feature specification", not this row | propose `create-epic` or `create-prd` | Yes |
 | Broad initiative | multi-phase work, research, appetite, several PRDs | `create-epic` | Yes unless the user asked for an epic |
 | Feature specification | clear feature with rules, UX states, API/data impact, AC | propose `create-prd` | Yes |
 | Tiny backlog item | small task with clear AC, no full PRD | propose `generate-pm-ticket` | Yes |

@@ -21,7 +21,7 @@ test('the PRD state has an owner: create-prd delivers it in review, and implemen
   }
   for (const file of bothCopies(implementChange)) {
     const text = await read(file);
-    assert.match(text, /`Estado` is not `Aprobado`[^\n]*say so and ask for a yes before any edit[^\n]*set `Estado: Aprobado`/, file);
+    assert.match(text, /`Estado` in the PRD header is not `Aprobado`[^\n]*say so and ask for a yes before any edit[^\n]*set `Estado: Aprobado`/, file);
     assert.match(text, /A PRD without the field[^\n]*is not blocked/, file);
     assert.ok(text.replace(/\n$/, '').split('\n').length <= 200, file);
   }
@@ -224,7 +224,7 @@ test('0.25.0 repair: an approved PRD at N1 shows its line and goes on, and no st
   for (const file of bothCopies(implementChange)) {
     const text = await read(file);
     assert.match(text, /With an approved PRD the imperative is the authorization at every level: at N1, show the N1 line and go on without waiting/, file);
-    assert.match(text, /stop only when a file to touch is not one the PRD names/, file);
+    assert.match(text, /stop only when the change needs a production file outside the scope its slice names/, file);
     assert.ok(text.replace(/\n$/, '').split('\n').length <= 200, file);
   }
   for (const file of bothCopies('.agents/instructions.md')) {

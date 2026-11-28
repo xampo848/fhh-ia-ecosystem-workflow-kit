@@ -531,6 +531,9 @@ async function planUpdate(options = {}) {
     manifest,
     mode: existingState ? 'update' : 'adopt',
     previousFiles: migration?.plannerFiles ?? previousFiles,
+    // A 1.0.0 state hashed every file whole: its record says nothing about
+    // an adapter's block.
+    recordsWholeFiles: migrating,
     backupMode,
     catalog,
     modelProfiles,
@@ -746,6 +749,24 @@ export function kitBody(templateContent, blockName) {
   return lines.join('\n');
 }
 
+// Where the kit text sits in a file, as whole lines: the current text, or an
+// earlier one known by its fingerprint. null when it is not there.
+function kitTextRegion(content, body, knownTexts) {
+  let start = content.indexOf(body);
+  const wholeLines = (index) => (index === 0 || content[index - 1] === '\n') && [undefined, '\n'].includes(content[index + body.length]);
+  while (start !== -1 && !wholeLines(start)) start = content.indexOf(body, start + 1);
+  if (start !== -1) return { start, length: body.length };
+  return findKnownKitText(content, knownTexts);
+}
+
+// The own text around a removed kit text: unchanged except for the blank
+// lines that touched it (one blank line keeps the two parts apart).
+function joinOwnParts(beforeText, afterText) {
+  const before = beforeText.replace(/(?:^|(?<=\n))(?:[ \t]*\n)+$/, '');
+  const after = afterText.replace(/^\n/, '').replace(/^(?:[ \t]*\n)+/, '').replace(/^[ \t]*$/, '');
+  return `${before}${before && after ? '\n' : ''}${after}`;
+}
+
 // split: valid when the file holds the kit text as one region of whole lines,
 // byte for byte: the current text, or one the kit shipped before (known by its
 // fingerprint, so the text can change without taking split away from an older
@@ -758,6 +779,12 @@ export function kitBody(templateContent, blockName) {
 // text cannot be told apart, so split does not apply.
 // Returns { content, wholeFileOwn } or null when split does not apply.
 export function splitUnmarkedAdapter(existingContent, templateContent, blockName, knownTexts = []) {
+  // A byte-order mark is set aside and put back first, so the kit text on
+  // the first line is still found whole.
+  if (existingContent.startsWith('\uFEFF')) {
+    const split = splitUnmarkedAdapter(existingContent.slice(1), templateContent, blockName, knownTexts);
+    return split && { ...split, content: `\uFEFF${split.content}` };
+  }
   const body = kitBody(templateContent, blockName);
   if (body === '') return null;
   const strayMarkers = [`<!-- ${blockName}:start -->`, `<!-- ${blockName}:end -->`];
@@ -778,7 +805,13 @@ export function splitUnmarkedAdapter(existingContent, templateContent, blockName
   }
   const before = existingContent.slice(0, start).replace(/(?:^|(?<=\n))(?:[ \t]*\n)+$/, '');
   const after = existingContent.slice(start + length).replace(/^\n/, '').replace(/^(?:[ \t]*\n)+/, '').replace(/^[ \t]*$/, '');
-  const own = `${before}${before && after ? '\n' : ''}${after}`;
+  let own = `${before}${before && after ? '\n' : ''}${after}`;
+  // The kit text may be there more than once (pasted twice, or an old and a
+  // newer one): every whole copy goes, not only the first.
+  // Each pass removes one copy and shortens the text, so it ends.
+  for (let again = kitTextRegion(own, body, knownTexts); again; again = kitTextRegion(own, body, knownTexts)) {
+    own = joinOwnParts(own.slice(0, again.start), own.slice(again.start + again.length));
+  }
   // A block marker left in the own text would give the file two of them.
   if (strayMarkers.some((marker) => own.includes(marker))) return null;
   return { content: own === '' ? templateContent : insertManagedBlock(own, templateContent, blockName), wholeFileOwn: false };
@@ -1019,7 +1052,7 @@ function planOwnedFile({ base, templateContent, rendered, existingContent, recor
 }
 
 // adapter: the kit owns only its block; the text outside it is the project's.
-function planAdapter({ base, entry, templateContent, existingContent, recorded, backupMode }) {
+function planAdapter({ base, entry, templateContent, existingContent, recorded, backupMode, recordsWholeFiles = false }) {
   const blockName = entry.block ?? defaultBlockName;
   const plan = (operation, content, extra = {}) => ({ ...base, operation, content, stateChecksum: managedBlockChecksum(content, blockName), ...extra });
   if (existingContent === null) return plan('create', templateContent, recorded?.sha256 ? { missingRecorded: true } : {});
@@ -1029,8 +1062,11 @@ function planAdapter({ base, entry, templateContent, existingContent, recorded, 
     if (replaced === existingContent) return plan('unchanged', replaced);
     // The kit block is the same as the one recorded, so the only difference
     // is an edit made inside the block: say so, the plan line alone hides it.
-    const blockEdited = Boolean(recorded?.sha256) && managedBlockChecksum(replaced, blockName) === recorded.sha256
-      && managedBlockChecksum(existingContent, blockName) !== recorded.sha256;
+    // A state that records adapters by their block (class adapter) tells an
+    // edit apart from an older kit block, whether or not the kit text changed.
+    const existingBlock = managedBlockChecksum(existingContent, blockName);
+    const blockEdited = Boolean(recorded?.sha256) && existingBlock !== recorded.sha256
+      && !recordsWholeFiles && (recorded.class === 'adapter' || managedBlockChecksum(replaced, blockName) === recorded.sha256);
     // An adapter is never rewritten whole: say so next to the operation.
     return plan(overwriteOperation(backupMode), replaced, blockEdited ? { blockEdited: true } : { blockOnly: true });
   }
@@ -1054,6 +1090,8 @@ function planAdapter({ base, entry, templateContent, existingContent, recorded, 
 }
 
 function insertManagedBlock(existingContent, templateContent, blockName) {
+  // A byte-order mark belongs at the start of the file, not after the block.
+  if (existingContent.startsWith('\uFEFF')) return `\uFEFF${insertManagedBlock(existingContent.slice(1), templateContent, blockName)}`;
   const { block } = extractManagedBlock(templateContent, blockName);
   if (templateContent.startsWith(block)) return `${block}\n\n${existingContent}`;
   const separator = existingContent.endsWith('\n') ? '' : '\n';
@@ -1192,6 +1230,10 @@ export function formatPlan(plan) {
     lines.push(`- ${item.operation}: ${item.relativePath}${note}`);
   }
 
+  // What a pending file's decisions do, once, when any file lists them.
+  if (plan.operations.some((item) => item.decisions)) {
+    lines.push('Decisions (each file lists the ones that apply to it): keep leaves the file as it is (the next update lists it again); discard takes the kit version, or removes a file the kit no longer ships, and moves your version to a backup file next to it; split puts the kit block where the kit places it (at the top of most adapters), keeps your own text below it, and leaves a backup of the file as it was; shadow (listed only while migrating from install-state 1.0.0) moves your edit to a project shadow. Pass one with --edited <path>=<decision>.');
+  }
   lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, merge_with_backup=${plan.summary.merge_with_backup}, merge_no_backup=${plan.summary.merge_no_backup}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, overwrite_no_backup=${plan.summary.overwrite_no_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}, delete_with_backup=${plan.summary.delete_with_backup}`);
   return lines.join('\n');
 }

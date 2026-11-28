@@ -71,7 +71,7 @@ Read only the matching section of `reference/input-types.md`.
 ## Step 2 · Confirm the level
 
 The router or the pre-filter proposes the level; this skill confirms it before
-any edit. With an explicit PRD (a hard trigger, which skips the level signals) this skill sets the level itself with the escalation rules below (the hazard rule and the critical concerns decide N3): N1 when its header says `Modo: compacto` and it has one slice, one or two production files, and no listed hazard; N2 otherwise. If the PRD's `Estado` is not `Aprobado`, say so and ask for a yes before any edit; with that yes, set `Estado: Aprobado` in the PRD. A request that says the PRD is approved ("el PRD ya está aprobado, avanza") is that yes: mark it and go on without asking. At N1, one yes covers both the approval and the N1 line: ask once, naming both. With an approved PRD the imperative is the authorization at every level: at N1, show the N1 line and go on without waiting; stop only when a file to touch is not one the PRD names. A PRD without the field (written before it existed) is not blocked. One classification only: the old operating modes map to levels.
+any edit. With an explicit PRD (a hard trigger, which skips the level signals) this skill sets the level itself with the escalation rules below (the hazard rule and the critical concerns decide N3): N1 when its header says `Modo: compacto` and it has one slice, one or two production files, and no listed hazard; N2 otherwise. If the `Estado` in the PRD header is not `Aprobado` (the `Estado` of section 10 is the closure state, not the approval), say so and ask for a yes before any edit; with that yes, set `Estado: Aprobado` in the PRD. A request that says the PRD is approved ("el PRD ya está aprobado, avanza") is that yes: mark it and go on without asking. At N1, one yes covers both the approval and the N1 line: ask once, naming both. With an approved PRD the imperative is the authorization at every level: at N1, show the N1 line and go on without waiting; stop only when the change needs a production file outside the scope its slice names (`Alcance / archivos probables` lists likely files, not an exact set). A PRD without the field (written before it existed) is not blocked. One classification only: the old operating modes map to levels.
 
 | Level | Former mode | Load |
 | --- | --- | --- |
@@ -92,12 +92,12 @@ Escalation rules, applied before choosing the level reference:
    dependent slice with two or more listed hazards MUST run at N3.
 2. **Critical concerns.** A delta that touches a `criticalConcern`
    (`.agents/model-routing/README.md`) runs at N3 with all its gates.
-3. **Size.** If N1 needs 4+ exploratory reads, 2+ non-mechanical edits, or
+3. **Size.** If N1 needs 4+ exploratory reads, more than two production files, or
    cross-layer reasoning, stop and propose N2. If N2 Discovery shows the change
    is small, propose N1. Both are proposals the user confirms.
 
 Authorization: N1 needs a short "yes" to the one-line proposal
-(`N1 · surgical · <files>`). N2 and N3 need explicit route
+(`N1 · surgical · <files>`), except with an approved PRD (Step 2). N2 and N3 need explicit route
 authorization; together with it, offer **supervised** (default: review pause
 between phases) or **autonomous** (`reference/modifiers.md`). "implementa este PRD" is that authorization; offering the execution mode is not a second confirmation: with no answer, run supervised.
 

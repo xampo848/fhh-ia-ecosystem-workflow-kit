@@ -156,7 +156,7 @@
       "class": "Workflow",
       "path": ".agents/skills/01-product/create-prd/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "253dc55bdfdc92898628b31da2936915cb478267e8b552d71b5c2d8980d557db"
+      "skill_sha256": "92763e9bb5661cdf2037c24d7223a017a33e82c999c5efd1fbfa12f6fb782838"
     },
     {
       "key": "document-development",
@@ -219,7 +219,7 @@
       "class": "Workflow",
       "path": ".agents/skills/02-implement/implement-change/SKILL.md",
       "loading_posture": "Explicit-only",
-      "skill_sha256": "47419eb0e2280fbb9de34c777e5d2ba48965e4c7689a43d3e28f0bc7e38dd9ca"
+      "skill_sha256": "be3dbba2da6036dc01fb1a961a370dd74d31f5baf6b92c971c8f6f6e91c3f044"
     },
     {
       "key": "implement-prd",
@@ -399,7 +399,7 @@
       "class": "Workflow",
       "path": ".agents/skills/00-router/workflow-router/SKILL.md",
       "loading_posture": "Startup-minimal",
-      "skill_sha256": "828bd0334c19c3f526937b3c76244b74965b68fc5533f5ea6317cb64abede0a0"
+      "skill_sha256": "c7d63256f2bdea49f4de5ee1f1c033b6c86c7086d578c93e7c9d17a1cc85a41a"
     }
   ]
 }

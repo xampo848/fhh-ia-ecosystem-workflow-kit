@@ -17,7 +17,7 @@ metadata:
 
 # Create PRD — Product Requirements Document
 
-This skill delivers the PRD with `Estado: En revisión`; only the user moves it to `Aprobado` (or tells the agent to mark it). When the user approves the delivered PRD in the conversation, set `Estado: Aprobado` right then. After the PRD is approved, the expected next step is `implement-change`.
+This skill delivers the PRD with `Estado: En revisión` in its header; only the user moves it to `Aprobado` (or tells the agent to mark it). When the user approves the delivered PRD in the conversation, set `Estado: Aprobado` right then. After the PRD is approved, the expected next step is `implement-change`.
 
 Use this skill when:
 
