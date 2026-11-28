@@ -17,20 +17,24 @@ does not change in this version.
 - `split` removes every whole copy of the kit text from an adapter without
   markers, not only the first one. A file that held the old text twice kept
   one copy as its own text.
-- Block markers quoted inside a closed code fence are the file's own text:
-  `update` no longer takes them for the kit block.
+- When a file holds the kit block and also quotes its markers inside a closed
+  code fence (documentation about the block), `update` finds the real block
+  instead of stopping on a duplicate. A file with a single pair of markers
+  behaves exactly as before, wherever that pair sits.
 - A plan that lists pending files says once what each decision does (`keep`,
   `discard`, `split`, `shadow`). It also says that an edit made inside the kit
   block is replaced, when the kit block changed too; before, only the
   block-only note was shown.
 - A byte-order mark stays at the start of the file when `split` or `init`
-  adds the kit block.
+  adds the kit block, and a file that starts with the mark and the kit text
+  still gets `split`.
 - `doctor` reports a temporary file a stopped run left in the kit tree as
-  `workspace/temporary-leftover`, with the command that removes it, instead of
-  `boundary/unowned-path`.
+  `workspace/temporary-leftover` instead of `boundary/unowned-path`, and says
+  it is safe to delete by hand.
 - `implement-change` names which `Estado` it means (the one in the PRD
   header; section 10 has the closure state), and `level-n1.md` says what an
-  N1 adds to section 10.
+  N1 writes in section 10 (the table for a first implementation, an
+  "Iteración N" entry for an iteration).
 - Router: a request that names a feature is "Feature specification", also
   against the "Product ambiguity" row.
 - The prompts of the nine delegates (`implement-prd/agents/*.md`) are in

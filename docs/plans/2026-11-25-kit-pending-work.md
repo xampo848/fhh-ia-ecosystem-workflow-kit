@@ -214,6 +214,14 @@ Del piloto de la `0.25.0`, anotado y no corregido en la `0.25.1`:
   cuando recibe el bloque del kit, que se escribe con finales de Unix.
   Convertir el bloque haría que cada `update` lo viera como distinto del de
   la plantilla; pide decidir cómo se compara un bloque con otros finales de línea.
+- Un archivo cuyo único par de marcadores está citado dentro de un bloque de
+  código (sin bloque real) se sigue tomando por el bloque del kit. Ignorar
+  marcadores dentro de un bloque de código cuando son el único par arriesga
+  dejar de reconocer un bloque real, así que solo se resuelve el caso con dos
+  pares.
+- Un archivo temporal `.workflow-kit-tmp-<pid>` que una ejecución muerta dejó
+  fuera de `.agents/workflow-kit/` no lo quita ningún comando: `doctor` lo
+  nombra y se borra a mano.
 - El costo de lectura (unas 1.000 líneas de instrucciones antes de un trabajo
   chico) se acepta como costo, por decisión del mantenedor: no es un hallazgo
   a corregir.

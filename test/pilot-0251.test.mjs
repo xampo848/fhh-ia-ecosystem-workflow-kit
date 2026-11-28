@@ -38,29 +38,55 @@ test('D1: split removes every whole copy of the kit text, not only the first', a
   const split = splitUnmarkedAdapter(twice, template, blockName, []);
   assert.equal(split.content, `${block}\n\nIntro del equipo\n\nNota entre copias.\n\nNota final.\n`);
   assert.equal((split.content.match(/Level pre-filter \(apply to every new user prompt/g) ?? []).length, 1);
+  // However many copies there are.
+  const many = `${Array.from({ length: 12 }, (_, index) => `Nota ${index}.\n\n${body}`).join('\n\n')}\n`;
+  const all = splitUnmarkedAdapter(many, template, blockName, []);
+  assert.equal((all.content.match(/Level pre-filter \(apply to every new user prompt/g) ?? []).length, 1);
+  assert.equal((all.content.match(/^Nota \d+\.$/gm) ?? []).length, 12);
 });
 
-test('D2: block markers quoted inside a code fence are own text, not the block', async () => {
+test('D2: with a real block and a quoted one, the real block is found; a file that worked before works the same', async () => {
   const template = await claudeTemplate();
   const { block } = extractManagedBlock(template, blockName);
   const quoted = '```md\n<!-- workflow-kit:managed:start -->\nexample\n<!-- workflow-kit:managed:end -->\n```\n';
-  // Only a quoted block: there is no real block to replace.
-  assert.equal(extractManagedBlock(`# Notes\n\n${quoted}`, blockName).error, 'missing');
-  assert.equal(replaceManagedBlock(`# Notes\n\n${quoted}`, template, blockName), null);
   // A real block and a quoted one: the real one is found, the quote stays.
+  for (const eol of ['\n', '\r\n']) {
+    const both = `${block}\n\n# Notes\n\n${quoted}`.replace(/\n/g, eol);
+    const found = extractManagedBlock(both, blockName);
+    assert.equal(found.error, undefined, JSON.stringify(eol));
+    assert.equal(found.start, 0, JSON.stringify(eol));
+  }
   const both = `${block}\n\n# Notes\n\n${quoted}`;
-  assert.equal(extractManagedBlock(both, blockName).block, block);
   const older = both.replace('1–2 production files', '1–2 files');
   assert.equal(replaceManagedBlock(older, template, blockName), both);
-  // Tilde fences and longer fences count too.
-  assert.equal(extractManagedBlock(`~~~~\n<!-- workflow-kit:managed:start -->\nx\n<!-- workflow-kit:managed:end -->\n~~~~\n`, blockName).error, 'missing');
+  // Two real blocks are still a duplicate.
+  assert.equal(extractManagedBlock(`${block}\n\n${block}\n`, blockName).error, 'duplicate');
+
+  // Never a regression: whatever a single pair of markers is next to, it is
+  // the block, exactly as before fences were looked at.
+  const single = [
+    `\`\`\`npm test\`\`\` runs the tests\n\n${block}\n\n\`\`\`bash\nnpm test\n\`\`\`\n`,
+    `\`\`\`\nan unclosed fence\n\n${block}\n\n\`\`\`bash\nnpm test\n\`\`\`\n`,
+    `# Notes\n\n\`\`\`md\n${block}\n\`\`\`\n`,
+    `    \`\`\`\n${block}\n`
+  ];
+  for (const content of single) {
+    const found = extractManagedBlock(content, blockName);
+    assert.equal(found.block, block, content.slice(0, 40));
+    assert.equal(replaceManagedBlock(content.replace('1–2 production files', '1–2 files'), template, blockName), content, content.slice(0, 40));
+  }
+  // The inline-code line and the unclosed fence do not turn a real block into a quote when a quote is there too.
+  const tricky = `\`\`\`npm test\`\`\` runs the tests\n\n${block}\n\n${quoted}`;
+  assert.equal(extractManagedBlock(tricky, blockName).block, block);
+  const unclosed = `\`\`\`\nan unclosed fence\n\n${block}\n\n${quoted}`;
+  assert.equal(extractManagedBlock(unclosed, blockName).error, 'duplicate', 'nothing is guessed when no pair is clearly outside a fence');
 });
 
 test('D3: a plan with pending decisions says what each decision does', async () => {
   const target = await installed();
   await fs.appendFile(path.join(target, '.agents/instructions.md'), '\nedited\n');
   const text = formatPlan(await buildUpdatePlan({ targetPath: target }));
-  assert.match(text, /^Decisions: keep leaves the file as it is \(the next update lists it again\); discard takes the kit version and moves your version to a backup file next to it[^\n]*$/m);
+  assert.match(text, /^Decisions \(each file lists the ones that apply to it\): keep leaves the file as it is \(the next update lists it again\); discard takes the kit version, or removes a file the kit no longer ships, and moves your version to a backup file next to it; split keeps your own text and puts the kit block in place of the kit text, or next to your text when the file holds none; shadow moves your edit to a project shadow\. Pass one with --edited <path>=<decision>\.$/m);
   // A plan with nothing pending has no such line.
   const clean = await installed();
   assert.doesNotMatch(formatPlan(await buildUpdatePlan({ targetPath: clean })), /^Decisions:/m);
@@ -91,13 +117,19 @@ test('D5: a byte-order mark stays at the start of the file after split, and doct
   const split = splitUnmarkedAdapter(`${bom}# CLAUDE.md\n\nReglas propias del equipo.\n`, template, blockName, []);
   assert.ok(split.content.startsWith(`${bom}<!-- workflow-kit:managed:start -->`), JSON.stringify(split.content.slice(0, 50)));
   assert.equal(split.content.indexOf(bom, 1), -1, 'no byte-order mark in the middle');
+  // A file that starts with the mark and the kit text is still split.
+  const { block } = extractManagedBlock(template, blockName);
+  const withKit = splitUnmarkedAdapter(`${bom}${kitBody(template, blockName)}\n\nNota del equipo.\n`, template, blockName, []);
+  assert.equal(withKit.content, `${bom}${block}\n\nNota del equipo.\n`);
 
   const target = await installed();
   await fs.writeFile(path.join(target, '.agents/workflow-kit/.workflow-kit-tmp-99999'), 'x');
   await fs.writeFile(path.join(target, '.agents/skills/.workflow-kit-tmp-4242'), 'x');
   const doctor = await cli('doctor', '--target', target, '--runtime', 'claude');
   assert.doesNotMatch(doctor.stdout, /boundary\/unowned-path\] [^\n]*\.workflow-kit-tmp-/);
-  assert.match(doctor.stdout, /\[workspace\/temporary-leftover\] \.agents\/skills\/\.workflow-kit-tmp-4242: A temporary file a stopped workflow-kit run left\. Run `workflow-kit rollback --target \S+ --apply --yes` to remove it, or delete it by hand\. \(warning\)/);
+  assert.match(doctor.stdout, /\[workspace\/temporary-leftover\] \.agents\/skills\/\.workflow-kit-tmp-4242: A temporary file a stopped workflow-kit run left\. It is safe to delete by hand; no workflow-kit command removes it from this folder\. \(warning\)/);
+  // The finding never sends anyone to rollback, which would undo the install.
+  assert.doesNotMatch(doctor.stdout.split('\n').filter((line) => line.includes('temporary-leftover')).join('\n'), /rollback/);
 });
 
 test('D6 and D8: the rules name which Estado they mean, a named feature has one router row, and N1 says what it appends to section 10', async () => {
@@ -119,7 +151,7 @@ test('D6 and D8: the rules name which Estado they mean, a named feature has one 
   for (const file of bothCopies('.agents/skills/02-implement/implement-change/reference/level-n1.md')) {
     const text = await read(file);
     assert.doesNotMatch(text, /as described for the input type/, file);
-    assert.match(text, /add an "Iteración N" entry to its section 10: the date, what changed, the tests and checks that ran with their result, and the change reference/, file);
+    assert.match(text, /a first implementation fills the table of its section 10; an iteration adds an "Iteración N" entry there, with the cause of the iteration, the delta, the acceptance criteria added or changed, the tests executed and the change reference/, file);
   }
 });
 

@@ -746,17 +746,6 @@ export function kitBody(templateContent, blockName) {
   return lines.join('\n');
 }
 
-// split: valid when the file holds the kit text as one region of whole lines,
-// byte for byte: the current text, or one the kit shipped before (known by its
-// fingerprint, so the text can change without taking split away from an older
-// install). The own text is what comes before and after that region, unchanged
-// except for the blank lines that touched it (one blank line keeps the two
-// parts apart); the new block goes where the template places it.
-// A file with no kit text at all (an own adapter that was there before the
-// kit, or one a rollback restored) is own text as a whole: the block is added
-// to it. A file that holds kit lines but no whole kit text was edited: the own
-// text cannot be told apart, so split does not apply.
-// Returns { content, wholeFileOwn } or null when split does not apply.
 // Where the kit text sits in a file, as whole lines: the current text, or an
 // earlier one known by its fingerprint. null when it is not there.
 function kitTextRegion(content, body, knownTexts) {
@@ -775,7 +764,24 @@ function joinOwnParts(beforeText, afterText) {
   return `${before}${before && after ? '\n' : ''}${after}`;
 }
 
+// split: valid when the file holds the kit text as one region of whole lines,
+// byte for byte: the current text, or one the kit shipped before (known by its
+// fingerprint, so the text can change without taking split away from an older
+// install). The own text is what comes before and after that region, unchanged
+// except for the blank lines that touched it (one blank line keeps the two
+// parts apart); the new block goes where the template places it.
+// A file with no kit text at all (an own adapter that was there before the
+// kit, or one a rollback restored) is own text as a whole: the block is added
+// to it. A file that holds kit lines but no whole kit text was edited: the own
+// text cannot be told apart, so split does not apply.
+// Returns { content, wholeFileOwn } or null when split does not apply.
 export function splitUnmarkedAdapter(existingContent, templateContent, blockName, knownTexts = []) {
+  // A byte-order mark is set aside and put back first, so the kit text on
+  // the first line is still found whole.
+  if (existingContent.startsWith('\uFEFF')) {
+    const split = splitUnmarkedAdapter(existingContent.slice(1), templateContent, blockName, knownTexts);
+    return split && { ...split, content: `\uFEFF${split.content}` };
+  }
   const body = kitBody(templateContent, blockName);
   if (body === '') return null;
   const strayMarkers = [`<!-- ${blockName}:start -->`, `<!-- ${blockName}:end -->`];
@@ -799,9 +805,8 @@ export function splitUnmarkedAdapter(existingContent, templateContent, blockName
   let own = `${before}${before && after ? '\n' : ''}${after}`;
   // The kit text may be there more than once (pasted twice, or an old and a
   // newer one): every whole copy goes, not only the first.
-  for (let pass = 0; pass < 8; pass += 1) {
-    const again = kitTextRegion(own, body, knownTexts);
-    if (!again) break;
+  // Each pass removes one copy and shortens the text, so it ends.
+  for (let again = kitTextRegion(own, body, knownTexts); again; again = kitTextRegion(own, body, knownTexts)) {
     own = joinOwnParts(own.slice(0, again.start), own.slice(again.start + again.length));
   }
   // A block marker left in the own text would give the file two of them.
@@ -1224,7 +1229,7 @@ export function formatPlan(plan) {
 
   // What a pending file's decisions do, once, when any file lists them.
   if (plan.operations.some((item) => item.decisions)) {
-    lines.push('Decisions: keep leaves the file as it is (the next update lists it again); discard takes the kit version and moves your version to a backup file next to it; split, when listed, keeps your own text and replaces only the kit text with the new block; shadow, when listed, moves your edit to a project shadow. Pass one with --edited <path>=<decision>.');
+    lines.push('Decisions (each file lists the ones that apply to it): keep leaves the file as it is (the next update lists it again); discard takes the kit version, or removes a file the kit no longer ships, and moves your version to a backup file next to it; split keeps your own text and puts the kit block in place of the kit text, or next to your text when the file holds none; shadow moves your edit to a project shadow. Pass one with --edited <path>=<decision>.');
   }
   lines.push(`Summary: create=${plan.summary.create}, unchanged=${plan.summary.unchanged}, merge_with_backup=${plan.summary.merge_with_backup}, merge_no_backup=${plan.summary.merge_no_backup}, overwrite_with_backup=${plan.summary.overwrite_with_backup}, overwrite_no_backup=${plan.summary.overwrite_no_backup}, skip_modified=${plan.summary.skip_modified}, skip_unmanaged=${plan.summary.skip_unmanaged}, adopt_existing=${plan.summary.adopt_existing}, delete_with_backup=${plan.summary.delete_with_backup}`);
   return lines.join('\n');

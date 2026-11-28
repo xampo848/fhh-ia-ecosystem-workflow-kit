@@ -73,44 +73,53 @@ export function blockMarkers(name) {
 }
 
 // The closed code fences of a markdown text, as [start, end) character
-// ranges. A fence that never closes is not one here: treating the rest of the
-// file as code would hide a real block below it.
+// ranges, by the CommonMark rule: an opening fence of backticks has no
+// backtick in its info string (so "```npm test``` runs" is not one), and a
+// closing fence has the same character, at least the same length and nothing
+// after it. A fence that never closes is not one here.
 function closedFences(content) {
   const ranges = [];
   let open = null;
   let offset = 0;
-  for (const line of content.split('\n')) {
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.replace(/\r$/, '');
     const match = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
     if (match) {
-      if (open === null) open = { char: match[1][0], length: match[1].length, start: offset };
-      else if (match[1][0] === open.char && match[1].length >= open.length && match[2].trim() === '') {
-        ranges.push([open.start, offset + line.length]);
+      if (open === null) {
+        if (match[1][0] === '~' || !match[2].includes('`')) open = { char: match[1][0], length: match[1].length, start: offset };
+      } else if (match[1][0] === open.char && match[1].length >= open.length && match[2].trim() === '') {
+        ranges.push([open.start, offset + rawLine.length]);
         open = null;
       }
     }
-    offset += line.length + 1;
+    offset += rawLine.length + 1;
   }
   return ranges;
 }
 
-// Every position of a marker that is not quoted inside a closed code fence.
-function markerPositions(content, marker, fences) {
+function positionsOf(content, marker) {
   const positions = [];
-  for (let index = content.indexOf(marker); index >= 0; index = content.indexOf(marker, index + 1)) {
-    if (!fences.some(([start, end]) => index >= start && index < end)) positions.push(index);
-  }
+  for (let index = content.indexOf(marker); index >= 0; index = content.indexOf(marker, index + 1)) positions.push(index);
   return positions;
 }
 
-// Markers quoted inside a code fence (documentation about the block) are the
-// file's own text, never the block.
+// A single pair of markers is the block, wherever it sits: that never
+// changed. Only when there are more markers than one pair, the ones quoted
+// inside a closed code fence (documentation about the block) are set aside;
+// if exactly one pair is left outside, that pair is the block. Anything less
+// clear stays a duplicate, as before.
 export function extractManagedBlock(content, name = defaultBlockName) {
   const markers = blockMarkers(name);
-  const fences = content.includes('```') || content.includes('~~~') ? closedFences(content) : [];
-  const starts = markerPositions(content, markers.start, fences);
-  const ends = markerPositions(content, markers.end, fences);
+  let starts = positionsOf(content, markers.start);
+  let ends = positionsOf(content, markers.end);
   if (starts.length === 0 || ends.length === 0) return { error: 'missing' };
-  if (starts.length > 1 || ends.length > 1) return { error: 'duplicate' };
+  if (starts.length > 1 || ends.length > 1) {
+    const fences = closedFences(content);
+    const outside = (index) => !fences.some(([start, end]) => index >= start && index < end);
+    const [outsideStarts, outsideEnds] = [starts.filter(outside), ends.filter(outside)];
+    if (outsideStarts.length !== 1 || outsideEnds.length !== 1 || outsideEnds[0] < outsideStarts[0]) return { error: 'duplicate' };
+    [starts, ends] = [outsideStarts, outsideEnds];
+  }
   const [start] = starts;
   const [endMarker] = ends;
   if (endMarker < start) return { error: 'unordered' };

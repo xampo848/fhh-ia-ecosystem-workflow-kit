@@ -32,7 +32,7 @@ Discovery, no execution locks, no delegate matrix or prompt packs.
    (regression). For an iteration, also run the tests listed in the PRD's
    section 10 for that feature.
 6. Close with short evidence: what changed, which tests and checks ran with
-   their result, and the change reference. If a PRD exists, add an "Iteración N" entry to its section 10: the date, what changed, the tests and checks that ran with their result, and the change reference.
+   their result, and the change reference. If a PRD exists: a first implementation fills the table of its section 10; an iteration adds an "Iteración N" entry there, with the cause of the iteration, the delta, the acceptance criteria added or changed, the tests executed and the change reference (`input-types.md`, "Iteration").
 
 ## Stop and escalate
 

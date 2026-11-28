@@ -404,7 +404,7 @@ async function unownedPathDiagnostics({ targetPath, manifest, state, shipped }) 
   // its own finding, with the command that removes it.
   const isTemporary = (relativePath) => path.basename(relativePath).startsWith(temporaryFileMarker);
   const leftovers = files.filter(isTemporary)
-    .map((relativePath) => warning('workspace/temporary-leftover', relativePath, `A temporary file a stopped workflow-kit run left. Run ${rollbackCommand(targetPath)} to remove it, or delete it by hand.`));
+    .map((relativePath) => warning('workspace/temporary-leftover', relativePath, 'A temporary file a stopped workflow-kit run left. It is safe to delete by hand; no workflow-kit command removes it from this folder.'));
   return [...leftovers, ...files
     .filter((relativePath) => !isTemporary(relativePath) && !relativePath.includes(backupFileMarker) && classifyPath(manifest, relativePath)?.class === 'kit' && !shipped.has(relativePath) && !Object.hasOwn(state.files, relativePath))
     .map((relativePath) => warning('boundary/unowned-path', relativePath, `This file is neither kit nor project; move it to ${manifest.project_root} (skills go to ${manifest.project_root}skills/<name>/ with a row in ${projectIndexPath}).`))];
