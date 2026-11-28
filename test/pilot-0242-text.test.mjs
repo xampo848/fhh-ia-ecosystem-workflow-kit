@@ -21,7 +21,7 @@ test('the PRD state has an owner: create-prd delivers it in review, and implemen
   }
   for (const file of bothCopies(implementChange)) {
     const text = await read(file);
-    assert.match(text, /`Estado` is not `Aprobado`[^\n]*say so and ask for a yes before any edit[^\n]*set `Estado: Aprobado`/, file);
+    assert.match(text, /`Estado` in the PRD header is not `Aprobado`[^\n]*say so and ask for a yes before any edit[^\n]*set `Estado: Aprobado`/, file);
     assert.match(text, /A PRD without the field[^\n]*is not blocked/, file);
     assert.ok(text.replace(/\n$/, '').split('\n').length <= 200, file);
   }

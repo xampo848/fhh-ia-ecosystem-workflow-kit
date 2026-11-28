@@ -99,3 +99,26 @@ test('D5: a byte-order mark stays at the start of the file after split, and doct
   assert.doesNotMatch(doctor.stdout, /boundary\/unowned-path\] [^\n]*\.workflow-kit-tmp-/);
   assert.match(doctor.stdout, /\[workspace\/temporary-leftover\] \.agents\/skills\/\.workflow-kit-tmp-4242: A temporary file a stopped workflow-kit run left\. Run `workflow-kit rollback --target \S+ --apply --yes` to remove it, or delete it by hand\. \(warning\)/);
 });
+
+test('D6 and D8: the rules name which Estado they mean, a named feature has one router row, and N1 says what it appends to section 10', async () => {
+  for (const file of bothCopies('.agents/skills/02-implement/implement-change/SKILL.md')) {
+    const text = await read(file);
+    assert.match(text, /If the `Estado` in the PRD header is not `Aprobado`/, file);
+    assert.match(text, /the `Estado` of section 10 is the closure state, not the approval/, file);
+    assert.ok(text.replace(/\n$/, '').split('\n').length <= 200, file);
+  }
+  for (const file of bothCopies('.agents/skills/01-product/create-prd/SKILL.md')) {
+    assert.match(await read(file), /delivers the PRD with `Estado: En revisión` in its header/, file);
+  }
+  for (const file of bothCopies('.agents/skills/00-router/workflow-router/SKILL.md')) {
+    const text = await read(file);
+    const row = text.split('\n').find((line) => line.startsWith('| Product ambiguity |'));
+    assert.match(row, /a request that names the feature \("quiero agregar X"\) is "Feature specification"/, file);
+    assert.ok(text.replace(/\n$/, '').split('\n').length <= 199, file);
+  }
+  for (const file of bothCopies('.agents/skills/02-implement/implement-change/reference/level-n1.md')) {
+    const text = await read(file);
+    assert.doesNotMatch(text, /as described for the input type/, file);
+    assert.match(text, /add an "Iteración N" entry to its section 10: the date, what changed, the tests and checks that ran with their result, and the change reference/, file);
+  }
+});
